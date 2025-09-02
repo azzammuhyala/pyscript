@@ -1,0 +1,29 @@
+a = int(input("Masukan bilangan pertama: "))
+b = int(input("Masukan bilangan kedua  : "))
+op = input("Masukan operasi (+, -, *, /): ")
+
+switch (op.strip())
+{
+    case '+':
+        hasil = a + b
+        print("Hasil dari {} + {} = {}".format(a, b, hasil))
+        break
+
+    case '-':
+        hasil = a - b
+        print("Hasil dari {} - {} = {}".format(a, b, hasil))
+        break
+
+    case '*':
+        hasil = a * b
+        print("Hasil dari {} * {} = {}".format(a, b, hasil))
+        break
+
+    case '/':
+        hasil = b != 0 ? a / b : "Tidak dapat dibagi dengan 0!"
+        print("Hasil dari {} / {} = {}".format(a, b, hasil))
+        break
+
+    default:
+        print("Operasi tidak di kenal")
+}

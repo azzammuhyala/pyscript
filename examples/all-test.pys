@@ -1,0 +1,167 @@
+# cuma test
+
+# cara print hello world
+print("Hello World!")
+
+# NUMBER LITERAL
+print(0)
+print(0b0)
+print(0o0)
+print(0x0)
+print(0j)
+print(1e2)
+print(1_0)
+print(1.0)
+
+# STRING LITERAL
+print("Hello")
+print('Hello')
+print('Octal: \101')
+print('Hex: \x41')
+print('Unicode: \u0041')
+print('8-Unicode: \U00000041')
+print('Name: \N{Latin Capital Letter A}')
+print(repr('\\\'\"\n\r\t\b\f\a\v'))
+
+# SEQUENCE LITERAL
+print([1, 2])
+print((1, 2))
+print({1, 2})
+print({'a': 1})
+
+# SLICE, ACCESS, ASSIGN, ATTR
+print([1, 2, 3][1])
+a = [1, 2, 3, 4, 5]
+a[0] = 1
+print(a)
+del a[0]
+print(a)
+
+(a, b, c) = [1, 2, 3]
+print(a, b, c)
+[a, b, c] = ('s1', 's2', 's3')
+print(a, b, c)
+
+array = [1, 2 , 3]
+array.pop(0)
+array.append(4)
+print(array)
+print(array.sort)
+
+# BINARY OPERATOR LITERAL
+print(1 + 1)
+print(2 ** 3 ** 2)
+
+# TERNARY OPERATOR
+print(true ? 'is true' : 'other')
+
+# IF STATEMENT
+x = false
+if (x) {
+    print('yep!')
+}
+elif (x == false) {
+    print('woo!')
+}
+else {
+    print('nope')
+}
+
+# SWITCH
+x = 1
+switch (x) {
+    case 0:
+        print("zero")
+        break
+    case 1:
+        print("one")
+        break
+    default:
+        print("umm")
+}
+
+# TRY, THROW
+try {
+    print("trying")
+    throw Exception("Ups!")
+} catch {
+    print("something error!")
+}
+
+try {
+    print("trying 2")
+    throw Exception("Ups!")
+} catch (e) {
+    print(e)
+}
+
+# LOOP
+for (i = 0; i < 10; i ++) {
+    print(i)
+}
+
+# FOR EACH
+for ((a, b) of zip([0, 1], ['element wow', 'amzing'])) {
+    print(a, b)
+}
+
+i = 0
+while (true) {
+    if (i == 10) {
+        break
+    }
+    print(i)
+    i += 1
+}
+
+# FUNCTION, CALL
+func name() {
+    print('goo')
+}
+
+name()
+
+func add(a, b=1) {
+    print(a + b)
+}
+
+add(1)
+add(a=2)
+add(5, 5)
+add(a=1, b=2)
+
+# DELETE
+del add
+
+foo = func(){print("on function!")}
+
+foo()
+
+MyClass = type('MyClass', (), {
+    '__init__': func(self) {
+        print('__init__ called')
+    },
+    'method': func(self) {
+        print('method called')
+    },
+
+    # property
+    'attr': property(func(self) {
+        print('attr called')
+    })
+})
+
+ChildClass = type('ChildClass', (MyClass,), {
+    '__init__': func(self) {
+        super(ChildClass, self).__init__()
+        print('child __init__ called')
+    }
+})
+
+mycls = MyClass()
+mycls.method()
+mycls.attr
+
+child = ChildClass()
+child.method()
+child.attr
