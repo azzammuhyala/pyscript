@@ -1,25 +1,4 @@
-from .utils import SYNTAX
-
 import builtins
-
-_singleton_objects = {}
-
-class UndefinedType:
-
-    __slots__ = ()
-
-    def __new__(cls):
-        if _singleton_objects.get('undefined', None) is None:
-            _singleton_objects['undefined'] = super().__new__(cls)
-        return _singleton_objects['undefined']
-
-    def __bool__(self):
-        return False
-
-    def __repr__(self):
-        return 'undefined'
-
-undefined = UndefinedType()
 
 def license():
     print("MIT License - PyScript created by AzzamMuhyala.")
@@ -33,61 +12,80 @@ def closeeq(a, b):
     result = getattr(a, '__ce__', None)
 
     if not callable(result):
-        raise TypeError("bad operand type for close(): '" + type(a).__name__ + "'")
+        raise TypeError("unsupported operand type(s) for close(): '" + type(a).__name__ + "'")
 
     return result(b)
 
-def increment(x):
-    if isinstance(x, (int, float, complex)):
-        return x + 1
+def exec(string, globals=None):
+    if not isinstance(string, str):
+        raise TypeError("exec(): string must be str")
+    if not isinstance(globals, (type(None), dict)):
+        raise TypeError("exec(): globals must be dict")
 
-    result = getattr(x, '__increment__', None)
+    from .runner import pys_exec
 
-    if not callable(result):
-        raise TypeError("bad operand type for increment(): '" + type(x).__name__ + "'")
+    pys_exec(string, globals)
 
-    return result()
+def eval(string, globals=None):
+    if not isinstance(string, str):
+        raise TypeError("exec(): string must be str")
+    if not isinstance(globals, (type(None), dict)):
+        raise TypeError("exec(): globals must be dict")
 
-def decrement(x):
-    if isinstance(x, (int, float, complex)):
-        return x - 1
+    from .runner import pys_eval
 
-    result = getattr(x, '__decrement__', None)
+    return pys_eval(string, globals)
 
-    if not callable(result):
-        raise TypeError("bad operand type for decrement(): '" + type(x).__name__ + "'")
+class generator:
 
-    return result()
+    def __init__(self, init, wrap, exception=None):
+        if not callable(wrap):
+            raise TypeError("generator(): wrap must be callable")
+        if not (exception is None or callable(exception)):
+            raise TypeError("generator(): exception must be callable")
+
+        self.init = init
+        self.wrap = wrap
+        self.exception = exception
+
+    def __iter__(self):
+        self.iter = iter(self.init)
+        return self
+
+    def __next__(self):
+        while True:
+            result = next(self.iter)
+            if self.exception is None or self.exception(result):
+                return self.wrap(result)
 
 builtins_dict = {}
 
-_builtins = SYNTAX['builtins']
-_illegal_builtins = {
-    'compile',
-    'copyright',
-    'credits',
-    'eval',
-    'exec',
-    'globals',
-    'help',
-    'license',
-    'locals'
-}
+def _set(name, value):
+    from .utils import SYNTAX
+    builtins_dict[SYNTAX['builtins'].get(name, name)] = value
 
-builtins_dict[_builtins.get('true', 'true')] = True
-builtins_dict[_builtins.get('false', 'false')] = False
-builtins_dict[_builtins.get('none', 'none')] = None
-builtins_dict[_builtins.get('undefined', 'undefined')] = undefined
+_set('pyimport', __import__)
+_set('license', license)
+_set('closeeq', closeeq)
+_set('exec', exec)
+_set('eval', eval)
+_set('generator', generator)
 
-builtins_dict[_builtins.get('pyimport', 'pyimport')] = __import__
-builtins_dict[_builtins.get('license', 'license')] = license
-builtins_dict[_builtins.get('closeeq', 'closeeq')] = closeeq
-builtins_dict[_builtins.get('increment', 'increment')] = increment
-builtins_dict[_builtins.get('decrement', 'decrement')] = decrement
-
-for builtin in dir(builtins):
+for name in dir(builtins):
     if not (
-        builtin.startswith('_') or
-        builtin in _illegal_builtins
+        name.startswith('_') or
+        name in {
+            'compile',
+            'copyright',
+            'credits',
+            'eval',
+            'exec',
+            'globals',
+            'help',
+            'license',
+            'locals'
+        }
     ):
-        builtins_dict[_builtins.get(builtin, builtin)] = getattr(builtins, builtin)
+        _set(name, getattr(builtins, name))
+
+del _set

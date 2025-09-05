@@ -10,11 +10,9 @@ class PysToken(Pys):
         self.value = value
 
     def __repr__(self):
-        return (
-            'PysToken(' +
-            get_token_name_by_token_type(self.type) +
-            (', ' + repr(self.value) if self.value is not None else "") +
-            ')'
+        return 'Token({}{})'.format(
+            get_token_name_by_token_type(self.type),
+            (', ' + repr(self.value) if self.value is not None else '')
         )
 
     def match(self, type, value):

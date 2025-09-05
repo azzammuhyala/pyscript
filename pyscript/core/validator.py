@@ -10,7 +10,11 @@ def check_valid_assign(self, node, message):
             if self.error:
                 return self.error
 
-    elif not isinstance(node, (PysVariableAccessNode, PysAttributeNode, PysSubscriptNode)):
+    elif isinstance(node, PysAccessNode):
+        if node.protected:
+            return self.throw("cannot assign to {}".format(node.name.value), node.position)
+
+    elif not isinstance(node, (PysAttributeNode, PysSubscriptNode)):
         return self.throw(message, node.position)
 
 class PysValidator(Pys):
@@ -47,7 +51,7 @@ class PysValidator(Pys):
                 if self.error:
                     return self.error
 
-    def visit_VariableAssignNode(self, node):
+    def visit_AssignNode(self, node):
         return check_valid_assign(
             self,
             node.variable,
@@ -160,5 +164,9 @@ class PysValidator(Pys):
 
     def visit_DeleteNode(self, node):
         for element in node.objects:
-            if not isinstance(element, (PysAttributeNode, PysVariableAccessNode, PysSubscriptNode)):
+            if isinstance(element, PysAccessNode):
+                if element.protected:
+                    return self.throw("cannot delete to {}".format(element.name.value), element.position)
+
+            elif not isinstance(element, (PysAttributeNode, PysSubscriptNode)):
                 return self.throw("cannot delete literal", element.position)

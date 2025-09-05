@@ -1,9 +1,10 @@
 from .bases import Pys
 from .exceptions import PysException
-from .values import PysShouldReturn, PysValue, PysFunction, PysMethod
+from .values import PysShouldReturn, PysFunction, PysMethod
 from .constants import TOKENS
 from .utils import SYNTAX, is_exception, Iterable
-from .pysbuiltins import undefined, closeeq, increment, decrement
+from .pysbuiltins import closeeq
+from .singletons import undefined
 from .nodes import *
 
 class PysRunTimeResult(Pys):
@@ -59,50 +60,45 @@ class PysRunTimeResult(Pys):
             self.loop_should_break
         )
 
-def visit_slices_from_SliceNode(self, result, slices, context):
-    if isinstance(slices, tuple):
-        start, stop, step = slices
+def visit_slice_from_SubscriptNode(self, result, slice_node, context):
+    if isinstance(slice_node, tuple):
+        start, stop, step = slice_node
 
         if start is not None:
             start = result.register(self.visit(start, context))
             if result.should_return():
                 return result
-            start = start.value
 
         if stop is not None:
             stop = result.register(self.visit(stop, context))
             if result.should_return():
                 return result
-            stop = stop.value
 
         if step is not None:
             step = result.register(self.visit(step, context))
             if result.should_return():
                 return result
-            step = step.value
 
-        slices = slice(start, stop, step)
+        return slice(start, stop, step)
 
-    elif isinstance(slices, list):
-        slices = []
+    elif isinstance(slice_node, list):
+        slice_node = []
 
-        for element in slices:
-            visit_slices_from_SliceNode(self, result, element, context)
+        for element in slice_node:
+            slice_node.append(visit_slice_from_SubscriptNode(self, result, element, context))
             if result.should_return():
                 return result
 
-        slices = tuple(slices)
+        return tuple(slice_node)
 
     else:
-        value = result.register(self.visit(slices, context))
+        value = result.register(self.visit(slice_node, context))
         if result.should_return():
             return result
 
-        slices = value.value
+        return value
 
-    return slices
-
-def unpack_assign(self, result, node, value, context, operand):
+def unpack_assign(self, result, node, value, context, operand=TOKENS['EQ']):
 
     if isinstance(node, PysSequenceNode):
 
@@ -123,6 +119,7 @@ def unpack_assign(self, result, node, value, context, operand):
                 unpack_assign(self, result, node.elements[i], element, context, operand)
                 if result.should_return():
                     return result
+
                 count += 1
 
             else:
@@ -148,12 +145,12 @@ def unpack_assign(self, result, node, value, context, operand):
         if result.should_return():
             return result
 
-        slices = visit_slices_from_SliceNode(self, result, node.slice, context)
+        slice = visit_slice_from_SubscriptNode(self, result, node.slice, context)
         if result.should_return():
             return result
 
         try:
-            object.value[slices] = value
+            object[slice] = value
         except BaseException as e:
             return result.failure(PysException(e, node.position, context))
 
@@ -163,53 +160,22 @@ def unpack_assign(self, result, node, value, context, operand):
             return result
 
         try:
-            setattr(object.value, node.attribute.name.value, value)
+            setattr(object, node.attribute.name.value, value)
         except BaseException as e:
             return result.failure(PysException(e, node.position, context))
 
-    elif isinstance(node, PysVariableAccessNode):
-        name = node.name.value
-        variable = context.symbol_table.get(name)
-
-        if operand == TOKENS['EQ']:
-            if variable is undefined:
-                context.symbol_table.set(name, value)
-            else:
-                variable.value = value
-
-        else:
-
-            if variable is undefined:
+    elif isinstance(node, PysAccessNode):
+        try:
+            if not context.symbol_table.set(node.name.value, value, operand):
                 return result.failure(
                     PysException(
-                        NameError("'{}' is not defined".format(element)),
+                        NameError("'{}' is not defined".format(node.name.value)),
                         node.position,
                         context
                     )
                 )
-
-            if operand == TOKENS['IPLUS']:
-                variable.value += value
-            elif operand == TOKENS['IMINUS']:
-                variable.value -= value
-            elif operand == TOKENS['IMUL']:
-                variable.value *= value
-            elif operand == TOKENS['IDIV']:
-                variable.value /= value
-            elif operand == TOKENS['IFDIV']:
-                variable.value //= value
-            elif operand == TOKENS['IPOW']:
-                variable.value **= value
-            elif operand == TOKENS['IMOD']:
-                variable.value %= value
-            elif operand == TOKENS['IAND']:
-                variable.value &= value
-            elif operand == TOKENS['IXOR']:
-                variable.value ^= value
-            elif operand == TOKENS['ILSHIFT']:
-                variable.value <<= value
-            elif operand == TOKENS['IRSHIFT']:
-                variable.value >>= value
+        except BaseException as e:
+            return result.failure(PysException(e, node.position, context))
 
 class PysInterpreter(Pys):
 
@@ -217,10 +183,10 @@ class PysInterpreter(Pys):
         return getattr(self, 'visit_' + type(node).__name__[3:])(node, context)
 
     def visit_NumberNode(self, node, context):
-        return PysRunTimeResult().success(PysValue(node.token.value))
+        return PysRunTimeResult().success(node.token.value)
 
     def visit_StringNode(self, node, context):
-        return PysRunTimeResult().success(PysValue(node.token.value))
+        return PysRunTimeResult().success(node.token.value)
 
     def visit_SequenceNode(self, node, context):
         result = PysRunTimeResult()
@@ -237,14 +203,14 @@ class PysInterpreter(Pys):
                 if result.should_return():
                     return result
 
-                elements.append((key.value, value.value))
+                elements.append((key, value))
 
             else:
                 value = result.register(self.visit(element, context))
                 if result.should_return():
                     return result
 
-                elements.append(value.value)
+                elements.append(value)
 
         try:
             if node.type == 'tuple':
@@ -256,7 +222,7 @@ class PysInterpreter(Pys):
         except BaseException as e:
             return result.failure(PysException(e, node.position, context))
 
-        return result.success(PysValue(elements))
+        return result.success(elements)
 
     def visit_SubscriptNode(self, node, context):
         result = PysRunTimeResult()
@@ -265,17 +231,25 @@ class PysInterpreter(Pys):
         if result.should_return():
             return result
 
-        slice = visit_slices_from_SliceNode(self, result, node.slice, context)
+        slice = visit_slice_from_SubscriptNode(self, result, node.slice, context)
         if result.should_return():
             return result
 
         try:
-            return result.success(PysValue(object.value[slice]))
+            return result.success(object[slice])
         except BaseException as e:
             return result.failure(PysException(e, node.position, context))
 
-    def visit_VariableAccessNode(self, node, context):
+    def visit_AccessNode(self, node, context):
         result = PysRunTimeResult()
+
+        if node.name.value == 'True':
+            return result.success(True)
+        elif node.name.value == 'False':
+            return result.success(False)
+        elif node.name.value == 'None':
+            return result.success(None)
+
         value = context.symbol_table.get(node.name.value)
 
         if value is undefined:
@@ -297,24 +271,67 @@ class PysInterpreter(Pys):
             return result
 
         try:
-            attribute = getattr(object.value, node.attribute.name.value)
+            attribute = getattr(object, node.attribute.name.value)
         except BaseException as e:
             return result.failure(PysException(e, node.attribute.position, context))
 
-        return result.success(PysValue(attribute))
+        return result.success(attribute)
 
-    def visit_VariableAssignNode(self, node, context):
+    def visit_AssignNode(self, node, context):
         result = PysRunTimeResult()
 
         value = result.register(self.visit(node.value, context))
         if result.should_return():
             return result
 
-        unpack_assign(self, result, node.variable, value.value, context, node.operand.type)
+        unpack_assign(self, result, node.variable, value, context, node.operand.type)
         if result.should_return():
             return result
 
-        return result.success(PysValue(undefined))
+        return result.success(undefined)
+
+    def visit_ChainOperatorNode(self, node, context):
+        result = PysRunTimeResult()
+
+        left = result.register(self.visit(node.expressions[0], context))
+        if result.should_return():
+            return result
+
+        try:
+
+            for i, operand in enumerate(node.operations):
+                right = result.register(self.visit(node.expressions[i + 1], context))
+                if result.should_return():
+                    return result
+
+                if operand.match(TOKENS['KEYWORD'], SYNTAX['keywords']['in']):
+                    comparison = left in right
+                elif operand.match(TOKENS['KEYWORD'], SYNTAX['keywords']['is']):
+                    comparison = left is right
+                elif operand.type == TOKENS['EE']:
+                    comparison = left == right
+                elif operand.type == TOKENS['CE']:
+                    comparison = closeeq(left, right)
+                elif operand.type == TOKENS['NE']:
+                    comparison = left != right
+                elif operand.type == TOKENS['LT']:
+                    comparison = left < right
+                elif operand.type == TOKENS['GT']:
+                    comparison = left > right
+                elif operand.type == TOKENS['LTE']:
+                    comparison = left <= right
+                elif operand.type == TOKENS['GTE']:
+                    comparison = left >= right
+
+                if not comparison:
+                    return result.success(False)
+
+                left = right
+
+        except BaseException as e:
+            return result.failure(PysException(e, node.position, context))
+
+        return result.success(True)
 
     def visit_BinaryOperatorNode(self, node, context):
         result = PysRunTimeResult()
@@ -324,24 +341,22 @@ class PysInterpreter(Pys):
             return result
 
         if node.operand.match(TOKENS['KEYWORD'], SYNTAX['keywords']['and']):
-            if left.value:
+            if left:
                 right = result.register(self.visit(node.right, context))
                 if result.should_return():
                     return result
 
-                result_value = right.value
-            else:
-                result_value = left.value
+                return result.success(right)
+            return result.success(left)
 
         elif node.operand.match(TOKENS['KEYWORD'], SYNTAX['keywords']['or']):
-            if not left.value:
+            if not left:
                 right = result.register(self.visit(node.right, context))
                 if result.should_return():
                     return result
 
-                result_value = right.value
-            else:
-                result_value = left.value
+                return result.success(right)
+            return result.success(left)
 
         else:
             right = result.register(self.visit(node.right, context))
@@ -350,55 +365,35 @@ class PysInterpreter(Pys):
 
         try:
 
-            if node.operand.match(TOKENS['KEYWORD'], SYNTAX['keywords']['in']):
-                result_value = left.value in right.value
-            elif node.operand.match(TOKENS['KEYWORD'], SYNTAX['keywords']['is']):
-                result_value = left.value is right.value
-            elif node.operand.type == TOKENS['EE']:
-                result_value = left.value == right.value
-            elif node.operand.type == TOKENS['CE']:
-                result_value = closeeq(left.value, right.value)
-            elif node.operand.type == TOKENS['NE']:
-                result_value = left.value != right.value
-            elif node.operand.type == TOKENS['LT']:
-                result_value = left.value < right.value
-            elif node.operand.type == TOKENS['GT']:
-                result_value = left.value > right.value
-            elif node.operand.type == TOKENS['LTE']:
-                result_value = left.value <= right.value
-            elif node.operand.type == TOKENS['GTE']:
-                result_value = left.value >= right.value
-            elif node.operand.type == TOKENS['AND']:
-                result_value = left.value & right.value
+            if node.operand.type == TOKENS['AND']:
+                return result.success(left & right)
             elif node.operand.type == TOKENS['OR']:
-                result_value = left.value | right.value
+                return result.success(left | right)
             elif node.operand.type == TOKENS['XOR']:
-                result_value = left.value ^ right.value
+                return result.success(left ^ right)
             elif node.operand.type == TOKENS['LSHIFT']:
-                result_value = left.value << right.value
+                return result.success(left << right)
             elif node.operand.type == TOKENS['RSHIFT']:
-                result_value = left.value >> right.value
+                return result.success(left >> right)
             elif node.operand.type == TOKENS['PLUS']:
-                result_value = left.value + right.value
+                return result.success(left + right)
             elif node.operand.type == TOKENS['MINUS']:
-                result_value = left.value - right.value
+                return result.success(left - right)
             elif node.operand.type == TOKENS['MUL']:
-                result_value = left.value * right.value
+                return result.success(left * right)
             elif node.operand.type == TOKENS['DIV']:
-                result_value = left.value / right.value
+                return result.success(left / right)
             elif node.operand.type == TOKENS['FDIV']:
-                result_value = left.value // right.value
+                return result.success(left // right)
             elif node.operand.type == TOKENS['MOD']:
-                result_value = left.value % right.value
+                return result.success(left % right)
             elif node.operand.type == TOKENS['POW']:
-                result_value = left.value ** right.value
+                return result.success(left ** right)
 
         except BaseException as e:
             return result.failure(PysException(e, node.position, context))
 
-        return result.success(PysValue(result_value))
-
-    def visit_UnaryOperatorNode(self, node, context):
+    def visit_UnaryOperatorNode(self, node: PysUnaryOperatorNode, context):
         result = PysRunTimeResult()
 
         value = result.register(self.visit(node.value, context))
@@ -408,28 +403,16 @@ class PysInterpreter(Pys):
         try:
 
             if node.operand.match(TOKENS['KEYWORD'], SYNTAX['keywords']['not']):
-                result_value = not value.value
+                return result.success(not value)
             elif node.operand.type == TOKENS['PLUS']:
-                result_value = +value.value
+                return result.success(+value)
             elif node.operand.type == TOKENS['MINUS']:
-                result_value = -value.value
+                return result.success(-value)
             elif node.operand.type == TOKENS['NOT']:
-                result_value = ~value.value
-            elif node.operand.type == TOKENS['INCREMENT']:
-                result_value = value.value
-                value.value = increment(value.value)
-                if node.operand_position == 'left':
-                    result_value = value.value
-            elif node.operand.type == TOKENS['DECREMENT']:
-                result_value = value.value
-                value.value = decrement(value.value)
-                if node.operand_position == 'left':
-                    result_value = value.value
+                return result.success(~value)
 
         except Exception as e:
             return result.failure(PysException(e, node.position, context))
-
-        return result.success(PysValue(result_value))
 
     def visit_TernaryOperatorNode(self, node, context):
         result = PysRunTimeResult()
@@ -438,16 +421,16 @@ class PysInterpreter(Pys):
         if result.should_return():
             return result
 
-        if condition.value:
-            result_value = result.register(self.visit(node.valid, context))
+        if condition:
+            value = result.register(self.visit(node.valid, context))
             if result.should_return():
                 return result
         else:
-            result_value = result.register(self.visit(node.invalid, context))
+            value = result.register(self.visit(node.invalid, context))
             if result.should_return():
                 return result
 
-        return result.success(PysValue(result_value.value))
+        return result.success(value)
 
     def visit_IfNode(self, node, context):
         result = PysRunTimeResult()
@@ -457,19 +440,19 @@ class PysInterpreter(Pys):
             if result.should_return():
                 return result
 
-            if condition_value.value:
+            if condition_value:
                 result.register(self.visit(body, context))
                 if result.should_return():
                     return result
 
-                return result.success(PysValue(undefined))
+                return result.success(undefined)
 
         if node.else_case:
             result.register(self.visit(node.else_case, context))
             if result.should_return():
                 return result
 
-        return result.success(PysValue(undefined))
+        return result.success(undefined)
 
     def visit_SwitchNode(self, node, context):
         result = PysRunTimeResult()
@@ -485,7 +468,7 @@ class PysInterpreter(Pys):
             if result.should_return():
                 return result
 
-            if fall_through or value.value == condition_value.value:
+            if fall_through or value == condition_value:
                 result.register(self.visit(body, context))
                 if result.should_return() and not result.loop_should_break:
                     return result
@@ -504,7 +487,22 @@ class PysInterpreter(Pys):
             if result.loop_should_break:
                 result.loop_should_break = False
 
-        return result.success(PysValue(undefined))
+        return result.success(undefined)
+
+    def visit_TryNode(self, node, context):
+        result = PysRunTimeResult()
+
+        result.register(self.visit(node.body, context))
+
+        if result.should_return():
+            if node.variable:
+                context.symbol_table.set(node.variable.name.value, result.error.exception)
+
+            result.register(self.visit(node.catch, context))
+            if result.should_return():
+                return result
+
+        return result.success(undefined)
 
     def visit_ForNode(self, node, context):
         result = PysRunTimeResult()
@@ -514,11 +512,11 @@ class PysInterpreter(Pys):
             if result.should_return():
                 return result
 
-            iterable = iter(iterable.value)
+            iterable = iter(iterable)
 
             def condition():
                 try:
-                    unpack_assign(self, result, node.iterable[0], next(iterable), context, TOKENS['EQ'])
+                    unpack_assign(self, result, node.iterable[0], next(iterable), context)
                     if result.should_return():
                         return
 
@@ -546,7 +544,7 @@ class PysInterpreter(Pys):
                     if result.should_return():
                         return False
 
-                    return value.value
+                    return value
 
                 return True
 
@@ -554,7 +552,14 @@ class PysInterpreter(Pys):
                 if node.iterable[2]:
                     result.register(self.visit(node.iterable[2], context))
 
-        while condition():
+        while True:
+            done = condition()
+            if result.should_return():
+                return result
+
+            if not done:
+                break
+
             result.register(self.visit(node.body, context))
             if result.should_return() and not result.loop_should_continue and not result.loop_should_break:
                 return result
@@ -571,10 +576,7 @@ class PysInterpreter(Pys):
             if result.should_return():
                 return result
 
-        if result.should_return():
-            return result
-
-        return result.success(PysValue(undefined))
+        return result.success(undefined)
 
     def visit_WhileNode(self, node, context):
         result = PysRunTimeResult()
@@ -584,7 +586,7 @@ class PysInterpreter(Pys):
             if result.should_return():
                 return result
 
-            if not condition.value:
+            if not condition:
                 break
 
             result.register(self.visit(node.body, context))
@@ -599,7 +601,7 @@ class PysInterpreter(Pys):
                 result.loop_should_break = False
                 break
 
-        return result.success(PysValue(undefined))
+        return result.success(undefined)
 
     def visit_FunctionNode(self, node, context):
         result = PysRunTimeResult()
@@ -608,28 +610,28 @@ class PysInterpreter(Pys):
 
         for arg in node.parameter:
 
-            if isinstance(arg, PysVariableAccessNode):
-                parameter.append(arg.name.value)
-
-            elif isinstance(arg, tuple):
+            if isinstance(arg, tuple):
                 value = result.register(self.visit(arg[1], context))
                 if result.should_return():
                     return result
 
-                parameter.append((arg[0].name.value, value.value))
+                parameter.append((arg[0].name.value, value))
+
+            else:
+                parameter.append(arg.name.value)
 
         func = PysFunction(
-            node.position_parameter,
-            context,
             None if node.name is None else node.name.name.value,
             parameter,
-            node.body
+            node.body,
+            node.position_parameter,
+            context
         )
 
-        if func.name is not None:
-            context.symbol_table.set(func.name, func)
+        if node.name is not None:
+            context.symbol_table.set(func.__name__, func)
 
-        return result.success(PysValue(func))
+        return result.success(func)
 
     def visit_CallNode(self, node, context):
         result = PysRunTimeResult()
@@ -648,26 +650,24 @@ class PysInterpreter(Pys):
                 if result.should_return():
                     return result
 
-                kwargs[element[0].name.value] = value.value
+                kwargs[element[0].name.value] = value
 
             else:
                 value = result.register(self.visit(element, context))
                 if result.should_return():
                     return result
 
-                args.append(value.value)
+                args.append(value)
 
         try:
-            if isinstance(name.value, PysFunction):
-                name.value.position = node.position
-                name.value.context = context
-            elif isinstance(name.value, PysMethod):
-                name.value.function.position = node.position
-                name.value.function.context = context
+            if isinstance(name, PysFunction):
+                name._position = node.position
+                name._context = context
+            elif isinstance(name, PysMethod):
+                name.function._position = node.position
+                name.function._context = context
 
-            func_return = name.value(*args, **kwargs)
-
-            return result.success(PysValue(func_return))
+            return result.success(name(*args, **kwargs))
 
         except PysShouldReturn as e:
             result.register(e.result)
@@ -684,7 +684,7 @@ class PysInterpreter(Pys):
             if result.should_return():
                 return result
         else:
-            value = PysValue(None)
+            value = None
 
         return result.success_return(value)
 
@@ -695,7 +695,7 @@ class PysInterpreter(Pys):
         if result.should_return():
             return result
 
-        if not is_exception(exception.value, BaseException):
+        if not is_exception(exception, BaseException):
             return result.failure(
                 PysException(
                     TypeError("exceptions must derive from BaseException"),
@@ -704,7 +704,7 @@ class PysInterpreter(Pys):
                 )
             )
 
-        return result.failure(PysException(exception.value, node.position, context))
+        return result.failure(PysException(exception, node.position, context))
 
     def visit_ContinueNode(self, node, context):
         return PysRunTimeResult().success_continue()
@@ -717,28 +717,34 @@ class PysInterpreter(Pys):
 
         for node_instance in node.objects:
 
-            if isinstance(node_instance, PysVariableAccessNode):
-                success = context.symbol_table.remove(node_instance.name.value)
-                if not success:
-                    return result.failure(
-                        PysException(
-                            NameError("'{}' is not defined".format(node_instance.name.value)),
-                            node.position,
-                            context
+            if isinstance(node_instance, PysAccessNode):
+                try:
+                    if not context.symbol_table.remove(node_instance.name.value):
+                        return result.failure(
+                            PysException(
+                                NameError(
+                                    "'{}' is not defined".format(node_instance.name.value)
+                                    if context.symbol_table.get(node_instance.name.value) is undefined else
+                                    "'{}' is not defined on local".format(node_instance.name.value)
+                                ),
+                                node.position,
+                                context
+                            )
                         )
-                    )
+                except BaseException as e:
+                    return result.failure(PysException(e, node.position, context))
 
             elif isinstance(node_instance, PysSubscriptNode):
                 object = result.register(self.visit(node_instance.object, context))
                 if result.should_return():
                     return result
 
-                slices = visit_slices_from_SliceNode(self, result, node_instance.slice, context)
+                slice = visit_slice_from_SubscriptNode(self, result, node_instance.slice, context)
                 if result.should_return():
                     return result
 
                 try:
-                    del object.value[slices]
+                    del object[slice]
                 except BaseException as e:
                     return result.failure(PysException(e, node_instance.position, context))
 
@@ -746,23 +752,8 @@ class PysInterpreter(Pys):
                 object = result.register(self.visit(node_instance.object, context))
 
                 try:
-                    delattr(object.value, node_instance.attribute.name.value)
+                    delattr(object, node_instance.attribute.name.value)
                 except BaseException as e:
                     return result.failure(PysException(e, node_instance.position, context))
 
-        return result.success(PysValue(undefined))
-
-    def visit_TryNode(self, node, context):
-        result = PysRunTimeResult()
-
-        result.register(self.visit(node.body, context))
-
-        if result.should_return():
-            if node.variable:
-                context.symbol_table.set(node.variable.name.value, result.error.exception)
-
-            result.register(self.visit(node.catch, context))
-            if result.should_return():
-                return result
-
-        return result.success(PysValue(undefined))
+        return result.success(undefined)

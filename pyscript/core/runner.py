@@ -1,78 +1,119 @@
 from .buffer import PysFileBuffer
+from .exceptions import PysException
+from .position import PysPositionRange
 from .context import PysContext
-from .symtab import SymbolTable
+from .symtab import PysSymbolTable
 from .lexer import PysLexer
 from .parser import PysParser
 from .validator import PysValidator
 from .interpreter import PysInterpreter
 from .utils import create_new_symbol_table, is_exception
-from .pysbuiltins import undefined, license
-from .version import __version__
+from .pysbuiltins import license
+from .singletons import undefined
+from .version import __version__, __date__
+
+from io import IOBase
 
 import sys
 
-def pys_exec(file, symbol_table=None, *, statement=True, throw_exit=False):
-    if not isinstance(file, (str, PysFileBuffer)):
-        raise TypeError("pys_exec(): file must be str or pyscript.core.buffer.PysFileBuffer")
-    if not isinstance(symbol_table, (type(None), SymbolTable)):
-        raise TypeError("pys_exec(): symbol_table must be None, dict, or pyscript.core.symtab.SymbolTable")
+def pys_execute(source, mode, symbol_table=None, throw_exit=False):
+    context = PysContext('<program>', source)
 
     try:
-
-        if isinstance(file, str):
-            file = PysFileBuffer(file)
-
-        lexer = PysLexer(file)
+        lexer = PysLexer(source)
         tokens, error = lexer.make_tokens()
 
         if error:
-            print(error.generate_string_traceback(), file=sys.stderr)
-            return 1, None
+            return error, None
 
         parser = PysParser(tokens)
-        ast = parser.parse(None if statement else parser.expr)
+        ast = parser.parse(None if mode == 'exec' else parser.expr)
 
         if ast.error:
-            print(ast.error.generate_string_traceback(), file=sys.stderr)
-            return 1, None
+            return ast.error, None
 
-        validator = PysValidator(file)
+        validator = PysValidator(source)
         error = validator.visit(ast.node)
 
         if error:
-            print(error.generate_string_traceback(), file=sys.stderr)
-            return 1, None
+            return error, None
 
-        context = PysContext('<program>', file)
         context.symbol_table = symbol_table or create_new_symbol_table()
 
         interpreter = PysInterpreter()
         result = interpreter.visit(ast.node, context)
 
         if result.error:
-            code = 1
-            exception = result.error.exception
+            if is_exception(result.error.exception, SystemExit) and throw_exit:
+                raise result.error.exception
 
-            if is_exception(exception, SystemExit):
-                if throw_exit:
-                    raise exception
-                code = exception.args[0] if len(exception.args) == 1 else exception.args
+            return result.error, None
 
-            print(result.error.generate_string_traceback(), file=sys.stderr)
+        return None, result.value
 
-            return code, None
+    except KeyboardInterrupt as e:
+        return PysException(e, PysPositionRange(0, 0), context), None
 
-        return 0, result.value.value
+def pys_exec(source, symbol_table=None):
+    """
+    Execute a PyScript code from source given.
+    """
 
-    except KeyboardInterrupt:
-        print('KeyboardInterrupt', file=sys.stderr)
-        return 1, None
+    if isinstance(source, str):
+        source = PysFileBuffer(source)
+    elif isinstance(source, IOBase):
+        source = PysFileBuffer(source.read(), source.name)
+        if not isinstance(source.text, str):
+            raise TypeError("pys_exec(): IO from source must be read as str")
+    elif not isinstance(source, PysFileBuffer):
+        raise TypeError("pys_exec(): source must be str, IO object, or pyscript.core.buffer.PysFileBuffer")
 
-def pys_eval(file, symbol_table=None):
-    return pys_exec(file, symbol_table, statement=False)
+    if isinstance(symbol_table, dict):
+        if not all(isinstance(k, str) and k.isidentifier() for k in symbol_table.keys()):
+            raise ValueError("pys_exec(): symbol_table found an invalid name")
+        s = symbol_table
+        symbol_table = create_new_symbol_table()
+        symbol_table.symbols.update(s)
+    elif not isinstance(symbol_table, (type(None), PysSymbolTable)):
+        raise TypeError("pys_exec(): symbol_table must be dict or pyscript.core.symtab.PysSymbolTable")
+
+    error, _ = pys_execute(source, mode='exec', symbol_table=symbol_table)
+
+    if error:
+        raise error.exception
+
+def pys_eval(source, symbol_table=None):
+    """
+    Evaluate a PyScript code from source given.
+    """
+
+    if isinstance(source, str):
+        source = PysFileBuffer(source)
+    elif isinstance(source, IOBase):
+        source = PysFileBuffer(source.read(), source.name)
+        if not isinstance(source.text, str):
+            raise TypeError("pys_eval(): IO from source must be read as str")
+    elif not isinstance(source, PysFileBuffer):
+        raise TypeError("pys_eval(): source must be str, IO object, or pyscript.core.buffer.PysFileBuffer")
+
+    if isinstance(symbol_table, dict):
+        if not all(isinstance(k, str) and k.isidentifier() for k in symbol_table.keys()):
+            raise ValueError("pys_eval(): symbol_table found an invalid name")
+        s = symbol_table
+        symbol_table = create_new_symbol_table()
+        symbol_table.symbols.update(s)
+    elif not isinstance(symbol_table, (type(None), PysSymbolTable)):
+        raise TypeError("pys_eval(): symbol_table must be dict or pyscript.core.symtab.PysSymbolTable")
+
+    error, result = pys_execute(source, mode='eval', symbol_table=symbol_table)
+
+    if error:
+        raise error.exception
+
+    return result
 
 def pys_shell():
-    print("PyScript {} (1 September 2025, 20:00:00 UTC+8)".format(__version__))
+    print("PyScript {} ({})".format(__version__, __date__))
     print("Python {}".format(sys.version))
     print('Type ".exit" to exit the program or type ".license" for more information.')
 
@@ -94,8 +135,12 @@ def pys_shell():
                 symbol_table = create_new_symbol_table()
 
             else:
-                code, result = pys_exec(PysFileBuffer(text, '<pyscript-shell>'), symbol_table, throw_exit=True)
-                if code == 0 and len(result) == 1 and result[0] is not undefined:
+                error, result = pys_execute(PysFileBuffer(text, '<pyscript-shell>'), 'exec', symbol_table, throw_exit=True)
+
+                if error:
+                    print(error.generate_string_traceback(), file=sys.stderr)
+
+                elif len(result) == 1 and result[0] is not undefined:
                     print(repr(result[0]))
 
         except KeyboardInterrupt:

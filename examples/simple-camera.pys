@@ -1,0 +1,25 @@
+cv2 = pyimport('cv2')
+
+capture = cv2.VideoCapture(0)
+
+if (not capture.isOpened()) {
+    print("Gagal membuka kamera")
+    exit(1)
+}
+
+while (True) {
+    [success, frame] = capture.read()
+    if (not success) {
+        print("Gagal membaca frame kamera")
+        break
+    }
+
+    cv2.imshow("Kamera", frame)
+
+    if (cv2.waitKey(1) & 0xFF == ord('q')) {
+        break
+    }
+}
+
+capture.release()
+cv2.destroyAllWindows()

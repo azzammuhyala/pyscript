@@ -1,6 +1,5 @@
 from .bases import Pys
 from .position import PysPositionRange
-from .utils import get_token_name_by_token_type
 
 class PysNode(Pys):
     pass
@@ -31,7 +30,7 @@ class PysSequenceNode(PysNode):
         self.elements = elements
 
     def __repr__(self):
-        return 'Sequence({}, {!r})'.format(self.type, self.elements)
+        return 'Sequence({!r}, {!r})'.format(self.type, self.elements)
 
 class PysSubscriptNode(PysNode):
 
@@ -43,14 +42,15 @@ class PysSubscriptNode(PysNode):
     def __repr__(self):
         return 'Subscript({!r}, {!r})'.format(self.object, self.slice)
 
-class PysVariableAccessNode(PysNode):
+class PysAccessNode(PysNode):
 
-    def __init__(self, name):
+    def __init__(self, name, protected=False):
         self.position = name.position
         self.name = name
+        self.protected = protected
 
     def __repr__(self):
-        return 'VariableAccess({})'.format(self.name.value)
+        return 'Access({!r})'.format(self.name.value)
 
 class PysAttributeNode(PysNode):
 
@@ -62,7 +62,7 @@ class PysAttributeNode(PysNode):
     def __repr__(self):
         return 'Attribute({!r}, {!r})'.format(self.object, self.attribute)
 
-class PysVariableAssignNode(PysNode):
+class PysAssignNode(PysNode):
 
     def __init__(self, variable, operand, value):
         self.position = PysPositionRange(variable.position.start, value.position.end)
@@ -71,11 +71,17 @@ class PysVariableAssignNode(PysNode):
         self.value = value
 
     def __repr__(self):
-        return 'VariableAssign({!r}, {}, {!r})'.format(
-            self.variable,
-            get_token_name_by_token_type(self.operand.type),
-            self.value
-        )
+        return 'Assign({!r}, {!r}, {!r})'.format(self.variable, self.operand, self.value)
+
+class PysChainOperatorNode(PysNode):
+
+    def __init__(self, operations, expressions):
+        self.position = PysPositionRange(expressions[0].position.start, expressions[-1].position.end)
+        self.operations = operations
+        self.expressions = expressions
+
+    def __repr__(self):
+        return 'ChainOperator({!r}, {!r})'.format(self.operations, self.expressions)
 
 class PysBinaryOperatorNode(PysNode):
 
@@ -86,11 +92,7 @@ class PysBinaryOperatorNode(PysNode):
         self.right = right
 
     def __repr__(self):
-        return 'BinaryOperator({!r}, {}, {!r})'.format(
-            self.left,
-            get_token_name_by_token_type(self.operand.type),
-            self.right
-        )
+        return 'BinaryOperator({!r}, {!r}, {!r})'.format(self.left, self.operand, self.right)
 
 class PysUnaryOperatorNode(PysNode):
 
@@ -107,9 +109,9 @@ class PysUnaryOperatorNode(PysNode):
 
     def __repr__(self):
         return (
-            'UnaryOperator({}, {!r})'.format(get_token_name_by_token_type(self.operand.type), self.value)
+            'UnaryOperator({!r}, {!r})'.format(self.operand, self.value)
             if self.operand_position == 'left' else
-            'UnaryOperator({!r}, {})'.format(self.value, get_token_name_by_token_type(self.operand.type))
+            'UnaryOperator({!r}, {!r})'.format(self.value, self.operand)
         )
 
 class PysTernaryOperatorNode(PysNode):

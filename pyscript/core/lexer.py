@@ -26,7 +26,7 @@ class PysLexer(Pys):
             self.index += 1
             self.update_current_char()
 
-    def reverse(self, amount):
+    def reverse(self, amount=1):
         if self.error is None:
             self.index -= amount
             self.update_current_char()
@@ -93,14 +93,14 @@ class PysLexer(Pys):
             elif self.char_in('0123456789.'):
                 self.make_number()
 
+            elif self.char_in('bB"\''):
+                self.make_string()
+
             elif self.char_are('isidentifier'):
                 self.make_identifier()
 
             elif self.char_eq('$'):
                 self.make_dollar()
-
-            elif self.char_in('"\''):
-                self.make_string()
 
             elif self.char_eq('+'):
                 self.make_plus()
@@ -257,7 +257,7 @@ class PysLexer(Pys):
 
                 break
 
-            elif self.char_in('eE'):
+            elif self.char_in('eE') and not is_scientific:
                 format = float
                 is_scientific = True
                 number += 'e'
@@ -273,7 +273,7 @@ class PysLexer(Pys):
                 self.advance()
                 break
 
-        if is_underscore:
+        if is_underscore or (is_scientific and number.endswith(('e', '-', '+'))):
             self.throw(self.index - 1, "invalid decimal literal")
 
         if self.char_eq('.'):
@@ -298,37 +298,21 @@ class PysLexer(Pys):
             elif format is int:
                 self.add_token(TOKENS['NUMBER'], start, wrap(int))
 
-    def make_identifier(self, as_identifier=False, start=None):
-        start = start if as_identifier else self.index
-        name = ''
-
-        while self.not_eof() and (name + self.current_char).isidentifier():
-            name += self.current_char
-            self.advance()
-
-        self.add_token(
-            TOKENS['KEYWORD'] if not as_identifier and name in SYNTAX['keywords'].values() else TOKENS['IDENTIFIER'],
-            start,
-            name
-        )
-
-    def make_dollar(self):
-        start = self.index
-
-        self.advance()
-
-        while self.not_eof() and self.char_ne('\n') and self.char_are('isspace'):
-            self.advance()
-
-        if not self.char_are('isidentifier'):
-            self.advance()
-            self.throw(self.index - 1, "expected identifier")
-
-        self.make_identifier(as_identifier=True, start=start)
-
     def make_string(self):
         string = ''
         start = self.index
+        is_bytes = False
+
+        if self.char_in('bB'):
+            is_bytes = True
+
+            self.advance()
+
+            if not self.char_in('"\''):
+                self.reverse()
+                self.make_identifier()
+                return
+
         prefix = self.current_char
 
         is_triple_quote = self.is_triple_quote(prefix)
@@ -392,7 +376,9 @@ class PysLexer(Pys):
                             self.advance()
 
                         if len(escape) != length:
-                            decoded_error_message = "codec can't decode bytes, truncated \\{}{} escape".format(base, 'X' * length)
+                            decoded_error_message = "codec can't decode bytes, truncated \\{}{} escape".format(
+                                base, 'X' * length
+                            )
                         else:
                             string += chr(int(escape, 16))
 
@@ -420,7 +406,10 @@ class PysLexer(Pys):
 
                     else:
                         if not warning_displayed:
-                            print("SyntaxWarning: invalid escape sequence '\\{}'".format(self.current_char), file=sys.stderr)
+                            print(
+                                "SyntaxWarning: invalid escape sequence '\\{}'".format(self.current_char),
+                                file=sys.stderr
+                            )
                             warning_displayed = True
 
                         string += '\\' + self.current_char
@@ -431,7 +420,7 @@ class PysLexer(Pys):
                 self.advance()
 
         if not (self.is_triple_quote(prefix) if is_triple_quote else self.char_eq(prefix)):
-            self.throw(start, "unterminated string literal")
+            self.throw(start, "unterminated bytes literal" if is_bytes else "unterminated string literal")
         elif decoded_error_message:
             self.throw(start, decoded_error_message)
 
@@ -440,7 +429,38 @@ class PysLexer(Pys):
             self.advance()
 
         self.advance()
-        self.add_token(TOKENS['STRING'], start, string)
+        try:
+            self.add_token(TOKENS['STRING'], start, string.encode('ascii') if is_bytes else string)
+        except:
+            self.throw(start, "invalid bytes literal")
+
+    def make_identifier(self, as_identifier=False, start=None):
+        start = start if as_identifier else self.index
+        name = ''
+
+        while self.not_eof() and (name + self.current_char).isidentifier():
+            name += self.current_char
+            self.advance()
+
+        self.add_token(
+            TOKENS['KEYWORD'] if not as_identifier and name in SYNTAX['keywords'].values() else TOKENS['IDENTIFIER'],
+            start,
+            name
+        )
+
+    def make_dollar(self):
+        start = self.index
+
+        self.advance()
+
+        while self.not_eof() and self.char_ne('\n') and self.char_are('isspace'):
+            self.advance()
+
+        if not self.char_are('isidentifier'):
+            self.advance()
+            self.throw(self.index - 1, "expected identifier")
+
+        self.make_identifier(as_identifier=True, start=start)
 
     def make_plus(self):
         start = self.index
@@ -450,10 +470,6 @@ class PysLexer(Pys):
 
         if self.char_eq('='):
             type = TOKENS['IPLUS']
-            self.advance()
-
-        elif self.char_eq('+'):
-            type = TOKENS['INCREMENT']
             self.advance()
 
         self.add_token(type, start)
@@ -466,10 +482,6 @@ class PysLexer(Pys):
 
         if self.char_eq('='):
             type = TOKENS['IMINUS']
-            self.advance()
-
-        elif self.char_eq('-'):
-            type = TOKENS['DECREMENT']
             self.advance()
 
         self.add_token(type, start)

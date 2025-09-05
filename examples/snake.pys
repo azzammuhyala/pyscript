@@ -7,7 +7,7 @@ pygame.init()
 (WIDTH, HEIGHT) = (500, 500)
 CELL = 20
 
-running = true
+running = True
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
@@ -22,7 +22,7 @@ while (running) {
     # pengaturan event
     for (event of pygame.event.get()) {
         if (event.type == pygame.QUIT) {
-            running = false
+            running = False
         }
 
         elif (event.type == pygame.KEYDOWN) {
@@ -62,7 +62,7 @@ while (running) {
         len(snake) != len(set(snake))  # tabrak badan sendiri
     ) {
         print("Kamu kalah!")
-        running = false
+        running = False
     }
 
     # mengammbar ular

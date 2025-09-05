@@ -1,14 +1,14 @@
 from .bases import Pys
-from .values import PysValue
+from .constants import TOKENS
 
-class SymbolTable(Pys):
+class PysSymbolTable(Pys):
 
     def __init__(self, parent=None):
         self.symbols = {}
         self.parent = parent
 
     def get(self, name):
-        from .pysbuiltins import undefined
+        from .singletons import undefined
 
         value = self.symbols.get(name, undefined)
 
@@ -19,33 +19,51 @@ class SymbolTable(Pys):
             builtins = self.symbols.get('__builtins__', undefined)
 
             if builtins is not undefined:
-                if isinstance(builtins.value, dict):
-                    result = builtins.value.get(name, undefined)
-                    if result is not undefined:
-                        return PysValue(result)
-
-                elif isinstance(builtins.value, SymbolTable):
-                    return builtins.value.get(name)
+                if isinstance(builtins, dict):
+                    return builtins.get(name, undefined)
+                elif isinstance(builtins, PysSymbolTable):
+                    return builtins.get(name)
 
         return value
 
-    def set(self, name, value):
-        self.symbols[name] = PysValue(value)
-
-    def remove(self, name):
-        if name in self.symbols:
-            del self.symbols[name]
+    def set(self, name, value, operand=TOKENS['EQ']):
+        if operand == TOKENS['EQ']:
+            self.symbols[name] = value
             return True
 
+        if not self.include(name):
+            return False
+
+        if operand == TOKENS['IPLUS']:
+            self.symbols[name] += value
+        elif operand == TOKENS['IMINUS']:
+            self.symbols[name] -= value
+        elif operand == TOKENS['IMUL']:
+            self.symbols[name] *= value
+        elif operand == TOKENS['IDIV']:
+            self.symbols[name] /= value
+        elif operand == TOKENS['IFDIV']:
+            self.symbols[name] //= value
+        elif operand == TOKENS['IPOW']:
+            self.symbols[name] **= value
+        elif operand == TOKENS['IMOD']:
+            self.symbols[name] %= value
+        elif operand == TOKENS['IAND']:
+            self.symbols[name] &= value
+        elif operand == TOKENS['IXOR']:
+            self.symbols[name] ^= value
+        elif operand == TOKENS['ILSHIFT']:
+            self.symbols[name] <<= value
+        elif operand == TOKENS['IRSHIFT']:
+            self.symbols[name] >>= value
+
+        return True
+
+    def remove(self, name):
+        if self.include(name):
+            del self.symbols[name]
+            return True
         return False
 
-    def clear(self):
-        self.symbols.clear()
-
-    def copy(self):
-        symtab = type(self)(self.parent)
-
-        for key, value in self.symbols.items():
-            symtab.symbols[key] = value.copy()
-
-        return symtab
+    def include(self, name):
+        return name in self.symbols

@@ -1,167 +1,280 @@
-# cuma test
+# === SEMUA TEST DAN SINTAKS PYSCRIPT ===
 
 # cara print hello world
 print("Hello World!")
 
-# NUMBER LITERAL
-print(0)
-print(0b0)
-print(0o0)
-print(0x0)
-print(0j)
-print(1e2)
-print(1_0)
-print(1.0)
+# angka literal
+print(0)    # bilangan bulat biasa
+print(0b0)  # bilangan bulat biner
+print(0o0)  # bilangan bulat oktal
+print(0x0)  # bilangan bulat hexadesimal
+print(0j)   # bilangan imajiner
+print(1e2)  # bilangan ilmiah
+print(1_0)  # bilangan bulat biasa (underscore digunakan untuk keterbacaan)
+print(1.0)  # bilangan desimal
 
-# STRING LITERAL
-print("Hello")
-print('Hello')
-print('Octal: \101')
-print('Hex: \x41')
-print('Unicode: \u0041')
-print('8-Unicode: \U00000041')
-print('Name: \N{Latin Capital Letter A}')
-print(repr('\\\'\"\n\r\t\b\f\a\v'))
+# string dan bytes literal
+print("Hello")                             # kutip "
+print('Hello')                             # kutip '
+print("""hello""", '''hello''')            # triple kutip
+print('Octal: \101')                       # escape oktal
+print('Hex: \x41')                         # escape hexadesimal
+print('Unicode: \u0041')                   # escape unicode
+print('8-Unicode: \U00000041')             # escape 8 unicode
+print('Name: \N{Latin Capital Letter A}')  # escape nama unicode
+print(repr('\\\'\"\n\r\t\b\f\a\v'))        # escape lain
+print(b'Hello')                            # bytes
 
-# SEQUENCE LITERAL
-print([1, 2])
-print((1, 2))
-print({1, 2})
-print({'a': 1})
+# boolean literal
+print(True)   # nilai benar
+print(False)  # nilai salah
 
-# SLICE, ACCESS, ASSIGN, ATTR
-print([1, 2, 3][1])
-a = [1, 2, 3, 4, 5]
-a[0] = 1
-print(a)
-del a[0]
-print(a)
+# nilai kosong
+print(None)
 
+# urutan literal
+print([1, 2])    # list atau array
+print((1, 2))    # tuple
+print({1, 2})    # set (himpunan)
+print({'a': 1})  # dict (kamus)
+
+# variabel
+number = 123   # menyimpan int 123 di dalam number
+print(number)  # akses variabel
+
+array = [1, 2, 3]
+print(array)
+
+# unpacking variabel
 (a, b, c) = [1, 2, 3]
 print(a, b, c)
-[a, b, c] = ('s1', 's2', 's3')
+
+[a, b, c] = array
 print(a, b, c)
 
-array = [1, 2 , 3]
-array.pop(0)
+# unpacking bisa dalam bentuk [], (), dan {}
+{a, [b, c, (d, e), f]} = [1, [2, 3, [4, 5], 6]]
+print(a, b, c, d, e, f)
+
+# operasi
+print(1 + 1)                       # penjumlahan
+print(1 - 1)                       # pengurangan
+print(2 * 2)                       # perkalian
+print(10 / 2)                      # pembagian (desimal)
+print(10 // 2)                     # pembagian bulat
+print(11 % 2)                      # pembagian sisa
+print(2 ** 4)                      # perpangkatan
+print(+1)                          # nilai positif
+print(-1)                          # nilai negatif
+print(5 & 4)                       # and (bitwise)
+print(2 | 4)                       # or
+print(5 ^ 2)                       # xor
+print(4 << 5)                      # lshift
+print(2 >> 3)                      # rshift
+print(True and False)              # logika dan
+print(False or True)               # logika atau
+print(not False)                   # logika bukan
+print(3 in array)                  # dalam suatu objek
+print(array is array)              # refrensi objek
+print(1 == 1)                      # sama dengan
+print(1 != 1)                      # tidak sama dengan
+print(1 ~= 1)                      # hampir sama dengan
+print(1 < 1)                       # lebih kecil
+print(1 > 1)                       # lebih besar
+print(1 <= 1)                      # lebih kecil sama dengan
+print(1 >= 1)                      # lebih kecil sama dengan
+print(True ? 'is True' : 'other')  # operator terner
+
+# catatan: untuk operasi not dalam is dan in tidak bisa digunakan dalam bentuk:
+# 3 not in [1, 2, 3]
+# array is not array
+
+# gunakan:
+# not (3 in [1, 2, 3]) 
+# not (array is array)
+
+# operasi in-place
+k = 5
+
+k += 1   # penjumlahan
+k -= 1   # pengurangan
+k *= 1   # perkalian
+k /= 1   # pembagian
+k //= 1  # pembagian bulat
+k %= 1   # pembagian sisa
+k **= 1  # perpangkatan
+
+k = 5
+k &= 1   # and (bitwise)
+k |= 1   # or
+k ^= 1   # xor
+k <<= 1  # lshift
+k >>= 1  # rshift
+
+# potongan atau indeks
+first = array[0]  # mengambil nilai pertama dari array
+print(first)
+
+first_second = array[0:2]  # mengambil potongan nilai pertama sampai ke kedua (membuat array baru)
+print(first_second)
+
+# metode dan/atau attribut
+array = [1, 2, 3, 4, 5]
+array.pop(0)  # memanggil metode .pop() dari list/array
+print(array)
 array.append(4)
 print(array)
-print(array.sort)
+print(array.sort)  # mengambil attribut .sort (berupa metode yang tidak di panggil)
 
-# BINARY OPERATOR LITERAL
-print(1 + 1)
-print(2 ** 3 ** 2)
+# statemen if-elif-else
+x = False
 
-# TERNARY OPERATOR
-print(true ? 'is true' : 'other')
-
-# IF STATEMENT
-x = false
+# kondisi pertama
 if (x) {
     print('yep!')
 }
-elif (x == false) {
+# kondisi kedua
+elif (x == False) {
     print('woo!')
 }
+# tidak memenuhi kasus
 else {
     print('nope')
 }
 
-# SWITCH
+# statemen switch-case-default
 x = 1
 switch (x) {
+    # kasus jika nilai x == 0
     case 0:
         print("zero")
-        break
+        break  # break untuk berhenti ke kasus selanjutnya
+    # kasus jika nilai x == 1
     case 1:
         print("one")
         break
+    # tidak ada kasus
     default:
-        print("umm")
+        print("what the number is that?")
 }
 
-# TRY, THROW
+# statemen try-catch
 try {
     print("trying")
+
+    # statemen lempar kesalahan
     throw Exception("Ups!")
 } catch {
+    # saat terjadi kesalahan maka kode ini di eksekusi
     print("something error!")
 }
 
 try {
     print("trying 2")
     throw Exception("Ups!")
-} catch (e) {
+} catch (e) {  # ambil ekspesi dan disimpan di variabel e
     print(e)
 }
 
-# LOOP
-for (i = 0; i < 10; i ++) {
-    print(i)
+# statemen loop for
+for (i = 0; i < 10; i += 1) { # for (<initilisasi>; <kondisi>; <pembaruan>)
+    print("i:", i)
 }
 
-# FOR EACH
-for ((a, b) of zip([0, 1], ['element wow', 'amzing'])) {
-    print(a, b)
+# statemen loop for-each. me isi semua obek
+for (
+    (a, b) of zip([0, 1], ['first', 'amazing'])
+) {
+    print("a:", a, "b:", b)
 }
 
+# statemen while
 i = 0
-while (true) {
+while (True) {  # kondisi
     if (i == 10) {
-        break
+        break  # hentikan loop secara paksa
     }
     print(i)
     i += 1
+    continue  # lanjutkan loop
+    print("hehe..") # bagian ini tidak di eksekusi karena continue
 }
 
-# FUNCTION, CALL
+# fungsi
 func name() {
-    print('goo')
+    print('My name is siri')
+    return 'siri'  # mengembalikan nilai siri
 }
 
+# pangilan fungsi
 name()
 
-func add(a, b=1) {
+my_name = name()  # simpan nilai yang di kembalikan di my_name
+
+# fungsi dengan argumen
+func add(a, b=1) {  # b disini sifatnya optional argumen
     print(a + b)
 }
 
 add(1)
-add(a=2)
+add(a=2)  # langsung isi argumen a
 add(5, 5)
 add(a=1, b=2)
 
-# DELETE
-del add
-
+# fungsi dapat di simpan dalam variabel
 foo = func(){print("on function!")}
 
 foo()
 
+# OOP (Object Oriented Programming) (Pemrograman Berorientasi Objek) dengan type()
 MyClass = type('MyClass', (), {
+
+    # konstruktor
     '__init__': func(self) {
         print('__init__ called')
+        self.name = "fufufafa" # membuat attribut
     },
+
+    # metode
     'method': func(self) {
         print('method called')
     },
 
-    # property
+    # property (mirip dekorator "@")
     'attr': property(func(self) {
         print('attr called')
     })
 })
 
+# turunan kelas
 ChildClass = type('ChildClass', (MyClass,), {
     '__init__': func(self) {
-        super(ChildClass, self).__init__()
+        super(ChildClass, self).__init__()  # memangil konstruktor induk
         print('child __init__ called')
+        self.name = "gibgib"
+    },
+
+    '__del__': func(self) {
+        print('called __del__')
     }
 })
 
-mycls = MyClass()
-mycls.method()
-mycls.attr
+mycls = MyClass()  # membuat kelas
+mycls.method()  # memanggil metode
+print(mycls.name)  # mendapatkan attribut
+mycls.attr  # mendapatkan attribut juga (di dekorasi oleh property)
 
-child = ChildClass()
+child = ChildClass()  # membuat anak kelas
 child.method()
+print(child.name)
 child.attr
+
+# penghapusan
+del add
+del [MyClass, ChildClass]
+
+# impor modul (lewat python)
+
+sys = pyimport("sys")
+
+sys.stdout.write("Hello from sys.stdout!\n")

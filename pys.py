@@ -1,5 +1,5 @@
 from pyscript.core.buffer import PysFileBuffer
-from pyscript.core.runner import pys_exec, pys_shell
+from pyscript.core.runner import pys_execute, pys_shell
 
 import sys
 import argparse
@@ -46,7 +46,11 @@ def main():
             print(f"PyScript: file '{args.file}': Unexpected error: {e}", file=sys.stderr)
             exit(2)
 
-        exit(pys_exec(file)[0])
+        error, _ = pys_execute(file, 'exec')
+
+        if error:
+            print(error.generate_string_traceback(), file=sys.stderr)
+            exit(1)
 
 if __name__ == '__main__':
     main()
