@@ -1,134 +1,197 @@
 from .bases import Pys
-from .context import PysContext
-from .exceptions import PysException
-from .utils import join_with_conjunction
+from .buffer import PysCode
 
-class PysShouldReturn(Exception):
+class PysModule(Pys):
 
-    def __init__(self, result):
-        super().__init__()
-        self.result = result
-
-class PysMethod(Pys):
-
-    def __init__(self, function, instance):
-        self.function = function
-        self.instance = instance
+    def __init__(self, name, doc=None):
+        self.__name__ = name
+        self.__doc__ = doc
 
     def __repr__(self):
-        return '<bound method {} of {!r}>'.format(self.function.__name__, self.instance)
+        from .singletons import undefined
 
-    def __call__(self, *args, **kwds):
-        return self.function(self.instance, *args, **kwds)
+        file = getattr(self, '__file__', undefined)
+
+        return '<module {!r}{}>'.format(
+            self.__name__,
+            '' if file is undefined else ' from {!r}'.format(file)
+        )
+
+class PysChainFunction(Pys):
+
+    def __init__(self, func):
+        from .constants import DEFAULT
+
+        self.__name__ = func.__name__
+        self.__func__ = func
+        self.__code__ = PysCode(position=None, context=None, flags=DEFAULT)
+
+    def __repr__(self):
+        return '<chain function {}>'.format(self.__name__)
+
+    def __call__(self, *args, **kwargs):
+        from .utils import handle_call
+
+        handle_call(self.__func__, self.__code__.context, self.__code__.position, self.__code__.flags)
+        return self.__func__(self, *args, **kwargs)
 
 class PysFunction(Pys):
 
-    def __init__(self, name, parameter, body, position, context):
-        self.__name__ = name or '<function>'
+    def __init__(self, name, parameters, body, position, context):
+        from .constants import DEFAULT
+        from .utils import to_str
 
-        self._paramter = parameter
-        self._body = body
-        self._position = position
-        self._context = context
+        self.__name__ = '<function>' if name is None else to_str(name)
+        self.__code__ = PysCode(
+            parameters=parameters,
+            body=body,
+            position=position,
+            context=context,
 
-        self._arg_names = [item for item in parameter if not isinstance(item, tuple)]
-        self._kwarg_names = [item[0] for item in parameter if isinstance(item, tuple)]
+            call_context=context,
+            flags=DEFAULT,
+            prefix='',
 
-        self._kwargs = {item[0]: item[1] for item in parameter if isinstance(item, tuple)}
+            arg_names=tuple(item for item in parameters if not isinstance(item, tuple)),
+            kwarg_names=tuple(item[0] for item in parameters if isinstance(item, tuple)),
+            names=tuple(item[0] if isinstance(item, tuple) else item for item in parameters),
+            kwargs={item[0]: item[1] for item in parameters if isinstance(item, tuple)}
+        )
 
     def __repr__(self):
         return '<function {} at 0x{:016X}>'.format(self.__name__, id(self))
 
     def __get__(self, instance, owner):
-        return self if instance is None else PysMethod(self, instance)
+        from types import MethodType
+
+        self.__code__.prefix = owner.__name__ + '.'
+
+        return self if instance is None else MethodType(self, instance)
 
     def __call__(self, *args, **kwargs):
-        from .interpreter import PysRunTimeResult, PysInterpreter
+        from .context import PysContext
+        from .exceptions import PysException, PysShouldReturn
+        from .interpreter import PysInterpreter
+        from .results import PysRunTimeResult
         from .symtab import PysSymbolTable
+        from .utils import join_with_conjunction
 
         result = PysRunTimeResult()
 
-        context = PysContext(self.__name__, self._context.file, self._position, self._context)
-        context.symbol_table = PysSymbolTable(self._context.symbol_table)
+        context = PysContext(
+            name=self.__name__,
+            file=self.__code__.context.file,
+            symbol_table=PysSymbolTable(self.__code__.context.symbol_table),
+            parent=self.__code__.call_context,
+            parent_entry_position=self.__code__.position
+        )
 
         registered_args = set()
-        index = 0
 
-        for name, arg in zip(self._arg_names, args):
+        for name, arg in zip(self.__code__.arg_names, args):
             context.symbol_table.set(name, arg)
             registered_args.add(name)
-            index += 1
 
-        input_kwargs = self._kwargs | kwargs
+        combined_kwargs = self.__code__.kwargs | kwargs
 
-        for name, arg in zip(self._kwarg_names, args[index:]):
+        for name, arg in zip(self.__code__.kwarg_names, args[len(registered_args):]):
             context.symbol_table.set(name, arg)
             registered_args.add(name)
-            input_kwargs.pop(name, None)
+            combined_kwargs.pop(name, None)
 
-        for name, value in input_kwargs.items():
+        for name, value in combined_kwargs.items():
+
             if name in registered_args:
                 raise PysShouldReturn(
                     result.failure(
                         PysException(
-                            TypeError("{}() got multiple values for argument '{}'".format(self.__name__, name)),
-                            self._position,
-                            self._context
+                            TypeError(
+                                "{}{}() got multiple values for argument {!r}".format(
+                                    self.__code__.prefix, self.__name__, name
+                                )
+                            ),
+                            self.__code__.call_context,
+                            self.__code__.position
                         )
                     )
                 )
 
-            else:
-                context.symbol_table.set(name, value)
-                registered_args.add(name)
+            elif name not in self.__code__.names:
+                raise PysShouldReturn(
+                    result.failure(
+                        PysException(
+                            TypeError(
+                                "{}{}() got an unexpected keyword argument {!r}".format(
+                                    self.__code__.prefix, self.__name__, name
+                                )
+                            ),
+                            self.__code__.call_context,
+                            self.__code__.position
+                        )
+                    )
+                )
 
-        if len(registered_args) < len(self._paramter):
-            missing_args = list((set(self._arg_names) | set(self._kwargs.keys())) - registered_args)
+            context.symbol_table.set(name, value)
+            registered_args.add(name)
+
+        if len(registered_args) < len(self.__code__.parameters):
+            missing_args = [name for name in self.__code__.names if name not in registered_args]
             total_missing = len(missing_args)
 
             raise PysShouldReturn(
                 result.failure(
                     PysException(
                         TypeError(
-                            "{}() missing {} required positional argument{}: {}".format(
+                            "{}{}() missing {} required positional argument{}: {}".format(
+                                self.__code__.prefix,
                                 self.__name__,
                                 total_missing,
                                 '' if total_missing == 1 else 's',
-                                join_with_conjunction(missing_args, repr)
+                                join_with_conjunction(missing_args, func=repr, conjunction='and')
                             )
                         ),
-                        self._position,
-                        self._context
+                        self.__code__.call_context,
+                        self.__code__.position
                     )
                 )
             )
 
-        elif len(registered_args) > len(self._paramter) or len(args) > len(self._paramter):
-            total_input_args = len(args)
-            total_args = len(self._paramter)
+        elif len(registered_args) > len(self.__code__.parameters) or len(args) > len(self.__code__.parameters):
+            total_args = len(args)
+            total_parameter = len(self.__code__.parameters)
+
+            given_args = total_args if total_args > total_parameter else len(registered_args)
 
             raise PysShouldReturn(
                 result.failure(
                     PysException(
                         TypeError(
-                            "{}() takes {} positional argument{} but {} were given".format(
+                            "{}{}() takes no arguments ({} given)".format(
+                                self.__code__.prefix, self.__name__, given_args
+                            ) if total_parameter == 0 else
+                            "{}{}() takes {} positional argument{} but {} were given".format(
+                                self.__code__.prefix,
                                 self.__name__,
-                                total_args,
-                                '' if total_args == 1 else 's',
-                                total_input_args if total_input_args > total_args else len(registered_args)
+                                total_parameter,
+                                '' if total_parameter == 1 else 's',
+                                given_args
                             )
                         ),
-                        self._position,
-                        self._context
+                        self.__code__.call_context,
+                        self.__code__.position
                     )
                 )
             )
 
-        else:
-            interpreter = PysInterpreter()
-            result.register(interpreter.visit(self._body, context))
+        interpreter = PysInterpreter(self.__code__.flags)
 
-            if result.should_return() and result.func_return_value is None:
-                raise PysShouldReturn(result)
+        result.register(interpreter.visit(self.__code__.body, context))
+        if result.should_return() and not result.func_should_return:
+            raise PysShouldReturn(result)
 
-            return result.func_return_value
+        return_value = result.func_return_value
+
+        result.func_should_return = False
+        result.func_return_value = None
+
+        return return_value

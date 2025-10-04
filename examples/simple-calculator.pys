@@ -1,0 +1,29 @@
+a = float(input("Enter a first number : "))
+b = float(input("Enter a second number: "))
+op = input("Enter an operation (+, -, *, /): ")
+
+switch (op.strip())
+{
+    case '+':
+        result = a + b
+        print("Result of {} + {} = {}".format(a, b, result))
+        break
+
+    case '-':
+        result = a - b
+        print("Result of {} - {} = {}".format(a, b, result))
+        break
+
+    case '*':
+        result = a * b
+        print("Result of {} * {} = {}".format(a, b, result))
+        break
+
+    case '/':
+        result = b != 0 ? a / b : "Cannot be divided by 0!"
+        print("Result of {} / {} = {}".format(a, b, result))
+        break
+
+    default:
+        print("Unknown operation")
+}

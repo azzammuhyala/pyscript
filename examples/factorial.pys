@@ -1,11 +1,9 @@
-n = 5
-
 func factorial(x) {
     result = x
-    for (i = x - 1; i > 1; i -= 1) {
+    for (i = x - 1; i > 1; i--) {
         result *= i
     }
-    return result
+    print(result)
 }
 
-print("the factorial of {} is {}".format(n, factorial(n)))
+factorial(5)

@@ -1,0 +1,12 @@
+lyrics = [
+    ("Temanku semua pada jahat tante", 0.12),
+    ("Aku lagi susah mereka enggak ada", 0.12),
+    ("Coba kalo lagi jaya", 0.1),
+    ("Aku di puja-pujanya tante", 0.1),
+    ("Sudah terbiasa terjadi tante", 0.14),
+    ("Teman datang ketika lagi butuh saja", 0.11),
+    ("Coba kalo lagi susah", 0.08),
+    ("Mereka semua menghilang", 0.12)
+]
+
+delays = [0.1, 0.6, 0.7, 2, 0.1, 0.7, 1, 5]

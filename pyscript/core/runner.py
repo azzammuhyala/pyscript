@@ -1,153 +1,298 @@
 from .buffer import PysFileBuffer
-from .exceptions import PysException
-from .position import PysPositionRange
+from .cache import hook
+from .constants import DEFAULT, SILENT, RETRES
 from .context import PysContext
-from .symtab import PysSymbolTable
+from .exceptions import PysException
+from .interpreter import PysInterpreter
 from .lexer import PysLexer
 from .parser import PysParser
+from .position import PysPosition
+from .results import PysExecuteResult
+from .symtab import PysSymbolTable
+from .utils import is_object_of, get_caller_locals, build_symbol_table, handle_execute, print_display
 from .validator import PysValidator
-from .interpreter import PysInterpreter
-from .utils import create_new_symbol_table, is_exception
-from .pysbuiltins import license
-from .singletons import undefined
-from .version import __version__, __date__
-
-from io import IOBase
+from .version import version
 
 import sys
 
-def pys_execute(source, mode, symbol_table=None, throw_exit=False):
-    context = PysContext('<program>', source)
+def pys_runner(
+    file,
+    mode,
+    symbol_table,
+    flags=DEFAULT,
+    future=DEFAULT,
+    context_parent=None,
+    context_parent_entry_position=None
+):
+    context = PysContext(
+        name='<program>',
+        file=file,
+        symbol_table=symbol_table,
+        parent=context_parent,
+        parent_entry_position=context_parent_entry_position
+    )
+
+    parser = None
 
     try:
-        lexer = PysLexer(source)
-        tokens, error = lexer.make_tokens()
 
-        if error:
-            return error, None
+        try:
+            lexer = PysLexer(file, context_parent, context_parent_entry_position)
+            tokens, error = lexer.make_tokens()
 
-        parser = PysParser(tokens)
-        ast = parser.parse(None if mode == 'exec' else parser.expr)
+            if error:
+                return PysExecuteResult(error, None, context, future)
 
-        if ast.error:
-            return ast.error, None
+            parser = PysParser(file, tokens, context_parent, context_parent_entry_position, future)
+            ast = parser.parse(None if mode == 'exec' else parser.expr)
 
-        validator = PysValidator(source)
-        error = validator.visit(ast.node)
+            if ast.error:
+                return PysExecuteResult(ast.error, None, context, future)
 
-        if error:
-            return error, None
+            validator = PysValidator(file, context_parent, context_parent_entry_position)
+            error = validator.visit(ast.node)
 
-        context.symbol_table = symbol_table or create_new_symbol_table()
+            if error:
+                return PysExecuteResult(error, None, context, future)
 
-        interpreter = PysInterpreter()
+        except RecursionError:
+            return PysExecuteResult(
+                PysException(
+                    RecursionError("maximum recursion depth exceeded during complication"),
+                    context,
+                    PysPosition(file, 0, 0)
+                ),
+                None,
+                context,
+                future
+            )
+
+        interpreter = PysInterpreter(flags)
         result = interpreter.visit(ast.node, context)
 
         if result.error:
-            if is_exception(result.error.exception, SystemExit) and throw_exit:
-                raise result.error.exception
-
-            return result.error, None
-
-        return None, result.value
+            return PysExecuteResult(result.error, None, context, parser.future)
+        return PysExecuteResult(None, result.value, context, parser.future)
 
     except KeyboardInterrupt as e:
-        return PysException(e, PysPositionRange(0, 0), context), None
+        return PysExecuteResult(
+            PysException(
+                e,
+                context,
+                PysPosition(file, 0, 0)
+            ),
+            None,
+            context,
+            future if parser is None else parser.future
+        )
 
-def pys_exec(source, symbol_table=None):
+def pys_exec(source, globals=None, flags=DEFAULT):
     """
     Execute a PyScript code from source given.
+
+    Parameters
+    ----------
+    source: A valid PyScript source code.
+
+    globals: A namespace dictionary or symbol table that can be accessed. \
+             If it is None, it uses the current global namespace at the Python level.
+
+    flags: A special flags.
     """
 
-    if isinstance(source, str):
-        source = PysFileBuffer(source)
-    elif isinstance(source, IOBase):
-        source = PysFileBuffer(source.read(), source.name)
-        if not isinstance(source.text, str):
-            raise TypeError("pys_exec(): IO from source must be read as str")
-    elif not isinstance(source, PysFileBuffer):
-        raise TypeError("pys_exec(): source must be str, IO object, or pyscript.core.buffer.PysFileBuffer")
+    file = PysFileBuffer(source)
 
-    if isinstance(symbol_table, dict):
-        if not all(isinstance(k, str) and k.isidentifier() for k in symbol_table.keys()):
-            raise ValueError("pys_exec(): symbol_table found an invalid name")
-        s = symbol_table
-        symbol_table = create_new_symbol_table()
-        symbol_table.symbols.update(s)
-    elif not isinstance(symbol_table, (type(None), PysSymbolTable)):
-        raise TypeError("pys_exec(): symbol_table must be dict or pyscript.core.symtab.PysSymbolTable")
+    if globals is None:
+        globals = build_symbol_table(file, get_caller_locals(2))
+    elif isinstance(globals, dict):
+        globals = build_symbol_table(file, globals)
+    elif not isinstance(globals, PysSymbolTable):
+        raise TypeError("pys_exec(): globals must be dict or pyscript.core.symtab.PysSymbolTable")
 
-    error, _ = pys_execute(source, mode='exec', symbol_table=symbol_table)
+    if not isinstance(flags, int):
+        raise TypeError("pys_exec(): flags must be integer")
 
-    if error:
-        raise error.exception
+    result = pys_runner(
+        file=file,
+        mode='exec',
+        symbol_table=globals,
+        flags=flags
+    )
 
-def pys_eval(source, symbol_table=None):
+    if flags & RETRES:
+        return result
+
+    elif result.error and not (flags & SILENT):
+        raise result.error.exception
+
+def pys_eval(source, globals=None, flags=DEFAULT):
     """
     Evaluate a PyScript code from source given.
+
+    Parameters
+    ----------
+    source: A valid PyScript (Expression) source code.
+
+    globals: A namespace dictionary or symbol table that can be accessed. \
+            If it is None, it uses the current global namespace at the Python level.
+
+    flags: A special flags.
     """
 
-    if isinstance(source, str):
-        source = PysFileBuffer(source)
-    elif isinstance(source, IOBase):
-        source = PysFileBuffer(source.read(), source.name)
-        if not isinstance(source.text, str):
-            raise TypeError("pys_eval(): IO from source must be read as str")
-    elif not isinstance(source, PysFileBuffer):
-        raise TypeError("pys_eval(): source must be str, IO object, or pyscript.core.buffer.PysFileBuffer")
+    file = PysFileBuffer(source)
 
-    if isinstance(symbol_table, dict):
-        if not all(isinstance(k, str) and k.isidentifier() for k in symbol_table.keys()):
-            raise ValueError("pys_eval(): symbol_table found an invalid name")
-        s = symbol_table
-        symbol_table = create_new_symbol_table()
-        symbol_table.symbols.update(s)
-    elif not isinstance(symbol_table, (type(None), PysSymbolTable)):
-        raise TypeError("pys_eval(): symbol_table must be dict or pyscript.core.symtab.PysSymbolTable")
+    if globals is None:
+        globals = build_symbol_table(file, get_caller_locals(2))
+    elif isinstance(globals, dict):
+        globals = build_symbol_table(file, globals)
+    elif not isinstance(globals, PysSymbolTable):
+        raise TypeError("pys_eval(): globals must be dict or pyscript.core.symtab.PysSymbolTable")
 
-    error, result = pys_execute(source, mode='eval', symbol_table=symbol_table)
+    if not isinstance(flags, int):
+        raise TypeError("pys_eval(): flags must be integer")
 
-    if error:
-        raise error.exception
+    result = pys_runner(
+        file=file,
+        mode='eval',
+        symbol_table=globals,
+        flags=flags
+    )
 
-    return result
+    if flags & RETRES:
+        return result
 
-def pys_shell():
-    print("PyScript {} ({})".format(__version__, __date__))
-    print("Python {}".format(sys.version))
-    print('Type ".exit" to exit the program or type ".license" for more information.')
+    elif result.error and not (flags & SILENT):
+        raise result.error.exception
 
-    symbol_table = create_new_symbol_table()
+    return result.result
+
+def pys_shell(flags=DEFAULT, future=DEFAULT, symbol_table=None):
+    """
+    Start an interactive PyScript shell.
+    """
+
+    print('PyScript {}'.format(version))
+    print('Python {}'.format(sys.version))
+    print('Type "license" for more information.')
+
+    if symbol_table is None:
+        symbol_table = build_symbol_table(PysFileBuffer('', '<pyscript-shell>'))
+        symbol_table.set('__name__', '__main__')
+
+    hook.display = print_display
+
+    line = 0
+
+    parenthesis_level = 0
+    in_string = False
+    in_decorator = False
+    is_triple_string = False
+    next_line = False
+    string_prefix = ''
+    full_text = ''
+
+    def reset_next_line():
+        nonlocal parenthesis_level, in_string, in_decorator, string_prefix, is_triple_string, next_line, full_text
+        parenthesis_level = 0
+        in_string = False
+        in_decorator = False
+        string_prefix = ''
+        is_triple_string = False
+        next_line = False
+        full_text = ''
+
+    def is_next_line():
+        return parenthesis_level > 0 or in_decorator or is_triple_string or next_line
 
     while True:
 
         try:
-            text = input('>>> ')
-            stripped_text = text.strip()
+            text = input('... ' if is_next_line() else '>>> ')
 
-            if stripped_text == '.exit':
-                break
+            next_line = False
+            in_decorator = False
+            is_space = True
 
-            elif stripped_text == '.license':
-                license()
+            i = 0
 
-            elif stripped_text == '.reset':
-                symbol_table = create_new_symbol_table()
+            while i < len(text):
+                char = text[i]
+
+                if char == '\\':
+                    i += 1
+                    char = text[i:i+1]
+
+                    if char == '':
+                        next_line = True
+                        break
+
+                    if in_string and char in '\'"':
+                        i += 1
+
+                elif char in '\'"':
+                    bind_3 = text[i:i+3]
+
+                    if is_triple_string:
+                        if len(bind_3) == 3 and string_prefix * 3 == bind_3:
+                            in_string = False
+                            is_triple_string = False
+                            i += 2
+                    else:
+                        if not in_string and bind_3 in ("'''", '"""'):
+                            is_triple_string = True
+                            i += 2
+
+                        if in_string and string_prefix == char:
+                            in_string = False
+                        else:
+                            string_prefix = char
+                            in_string = True
+
+                if not in_string and is_space and char == '@':
+                    in_decorator = True
+
+                elif not in_string and char in '([{':
+                    parenthesis_level += 1
+
+                elif not in_string and char in ')]}':
+                    parenthesis_level -= 1
+
+                if not in_string and not char.isspace():
+                    is_space = False
+
+                i += 1
+
+            if in_string and not (next_line or is_triple_string):
+                in_string = False
+                parenthesis_level = 0
+
+            if is_next_line():
+                full_text += text + '\n'
 
             else:
-                error, result = pys_execute(PysFileBuffer(text, '<pyscript-shell>'), 'exec', symbol_table, throw_exit=True)
+                result = pys_runner(
+                    file=PysFileBuffer(full_text + text, '<pyscript-shell-{}>'.format(line)),
+                    mode='exec',
+                    symbol_table=symbol_table,
+                    flags=flags,
+                    future=future
+                )
 
-                if error:
-                    print(error.generate_string_traceback(), file=sys.stderr)
+                reset_next_line()
 
-                elif len(result) == 1 and result[0] is not undefined:
-                    print(repr(result[0]))
+                if result.error and is_object_of(result.error.exception, SystemExit):
+                    exit(result.error.exception.code)
+                    break
+
+                future = result.future
+
+                code = handle_execute(result)
+                if code == 0:
+                    line += 1
 
         except KeyboardInterrupt:
-            print('\nKeyboardInterrupt. Type ".exit" to exit the program.', file=sys.stderr)
+            reset_next_line()
+            print('\rKeyboardInterrupt. Type "exit" to exit the program. ', file=sys.stderr)
 
         except EOFError:
             break
-
-        except SystemExit as e:
-            exit(e)

@@ -1,0 +1,9 @@
+import time
+
+func animate_text(text, char_delay) {
+    for (char of text) {
+        print(end=char, flush=True)
+        time.sleep(char_delay)
+    }
+    print()
+}

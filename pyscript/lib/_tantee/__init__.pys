@@ -1,0 +1,44 @@
+# Hei kamu disini, ini adalah uji coba tes impor modul yang semua ditulis dengan bahasa PyScript!
+# Btw ini showcase iseng aja sih..
+
+import time
+import os
+
+try {
+    import pygame
+} catch {
+    pygame = None
+}
+
+from 'lyrics.pys' import [lyrics, delays]
+from 'animate.pys' import animate_text
+
+func main() {
+    path_song = os.path.join(os.path.dirname(__file__), 'tantee.mp3')
+
+    os.system(os.name == 'nt' ? 'cls' : 'clear')
+    print('~~~ TANTEE ~~~')
+
+    try {
+        if (pygame and os.path.exists(path_song)) {
+            pygame.mixer.init()
+
+            pygame.mixer.music.load(path_song)
+            pygame.mixer.music.play()
+
+            time.sleep(4.7)
+        }
+
+        for ([i, [text, char_delay]] of enumerate(lyrics)) {
+            animate_text(text, char_delay)
+            time.sleep(delays[i])
+        }
+    }
+
+    finally {
+        if pygame
+            pygame.mixer.quit()
+    }
+}
+
+main()

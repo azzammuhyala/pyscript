@@ -1,10 +1,9 @@
 from .bases import Pys
-from .utils import get_token_name_by_token_type, Iterable
+from .utils import get_token_name_by_token_type
 
 class PysToken(Pys):
 
-    def __init__(self, file, type, position, value=None):
-        self.file = file
+    def __init__(self, type, position, value=None):
         self.type = type
         self.position = position
         self.value = value
@@ -12,11 +11,11 @@ class PysToken(Pys):
     def __repr__(self):
         return 'Token({}{})'.format(
             get_token_name_by_token_type(self.type),
-            (', ' + repr(self.value) if self.value is not None else '')
+            '' if self.value is None else ', {!r}'.format(self.value)
         )
 
     def match(self, type, value):
-        if not isinstance(value, Iterable):
-            value = (value,)
+        return self.type == type and self.value == value
 
-        return self.type == type and self.value in value
+    def matches(self, type, values):
+        return self.type == type and self.value in values
