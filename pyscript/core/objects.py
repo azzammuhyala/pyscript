@@ -30,7 +30,7 @@ class PysChainFunction(Pys):
         return '<chain function {}>'.format(self.__name__)
 
     def __call__(self, *args, **kwargs):
-        from .utils import handle_call
+        from .handlers import handle_call
 
         handle_call(self.__func__, self.__code__.context, self.__code__.position, self.__code__.flags)
         return self.__func__(self, *args, **kwargs)
@@ -39,9 +39,8 @@ class PysFunction(Pys):
 
     def __init__(self, name, parameters, body, position, context):
         from .constants import DEFAULT
-        from .utils import to_str
 
-        self.__name__ = '<function>' if name is None else to_str(name)
+        self.__name__ = '<function>' if name is None else name
         self.__code__ = PysCode(
             parameters=parameters,
             body=body,

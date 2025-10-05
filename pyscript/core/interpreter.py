@@ -2,13 +2,14 @@ from .bases import Pys
 from .constants import TOKENS, KEYWORDS, DEFAULT, OPTIMIZE
 from .context import PysContext
 from .exceptions import PysException
+from .handlers import handle_call, handle_exception
 from .nodes import PysSequenceNode, PysIdentifierNode, PysAttributeNode, PysSubscriptNode
 from .objects import PysFunction
 from .pysbuiltins import require, pyimport, ce, nce, increment, decrement
 from .results import PysRunTimeResult
 from .singletons import undefined
 from .symtab import PysClassSymbolTable
-from .utils import inplace_functions_map, keyword_identifiers_map, is_object_of, handle_call, handle_exception, Iterable
+from .utils import inplace_functions_map, keyword_identifiers_map, is_object_of, Iterable
 
 class PysInterpreter(Pys):
 
@@ -29,6 +30,7 @@ class PysInterpreter(Pys):
         elements = []
 
         if node.type == 'dict':
+
             for key, value in node.elements:
                 key = result.register(self.visit(key, context))
                 if result.should_return():
@@ -41,6 +43,7 @@ class PysInterpreter(Pys):
                 elements.append((key, value))
 
         else:
+
             for element in node.elements:
                 elements.append(result.register(self.visit(element, context)))
                 if result.should_return():
@@ -392,18 +395,18 @@ class PysInterpreter(Pys):
     def visit_SwitchNode(self, node, context):
         result = PysRunTimeResult()
 
-        target_value = result.register(self.visit(node.target, context))
+        target = result.register(self.visit(node.target, context))
         if result.should_return():
             return result
 
         fall_through = False
 
         for condition, body in node.cases_body:
-            case_value = result.register(self.visit(condition, context))
+            case = result.register(self.visit(condition, context))
             if result.should_return():
                 return result
 
-            if fall_through or target_value == case_value:
+            if fall_through or target == case:
                 result.register(self.visit(body, context))
                 if result.should_return() and not result.loop_should_break:
                     return result
@@ -651,24 +654,24 @@ class PysInterpreter(Pys):
 
         parameters = []
 
-        for arg in node.parameters:
+        for parameter in node.parameters:
 
-            if isinstance(arg, tuple):
-                value = result.register(self.visit(arg[1], context))
+            if isinstance(parameter, tuple):
+                value = result.register(self.visit(parameter[1], context))
                 if result.should_return():
                     return result
 
-                parameters.append((arg[0].value, value))
+                parameters.append((parameter[0].value, value))
 
             else:
-                parameters.append(arg.value)
+                parameters.append(parameter.value)
 
         func = PysFunction(
-            None if node.name is None else node.name.value,
-            parameters,
-            node.body,
-            node.position,
-            context
+            name=None if node.name is None else node.name.value,
+            parameters=parameters,
+            body=node.body,
+            position=node.position,
+            context=context
         )
 
         for decorator in reversed(node.decorators):
@@ -683,7 +686,7 @@ class PysInterpreter(Pys):
                 return result
 
         if node.name is not None:
-            context.symbol_table.set(func.__name__, func)
+            context.symbol_table.set(node.name.value, func)
 
         return result.success(func)
 
@@ -697,15 +700,15 @@ class PysInterpreter(Pys):
         args = []
         kwargs = {}
 
-        for element in node.args:
+        for arg in node.args:
 
-            if isinstance(element, tuple):
-                kwargs[element[0].value] = result.register(self.visit(element[1], context))
+            if isinstance(arg, tuple):
+                kwargs[arg[0].value] = result.register(self.visit(arg[1], context))
                 if result.should_return():
                     return result
 
             else:
-                args.append(result.register(self.visit(element, context)))
+                args.append(result.register(self.visit(arg, context)))
                 if result.should_return():
                     return result
 
@@ -733,54 +736,56 @@ class PysInterpreter(Pys):
     def visit_DeleteNode(self, node, context):
         result = PysRunTimeResult()
 
-        for element in node.targets:
+        for target in node.targets:
 
-            if isinstance(element, PysIdentifierNode):
+            if isinstance(target, PysIdentifierNode):
 
-                with handle_exception(result, context, node.position):
-                    success = context.symbol_table.remove(element.token.value)
+                with handle_exception(result, context, target.position):
+                    success = context.symbol_table.remove(target.token.value)
 
                     if not success:
-                        closest_symbol = context.symbol_table.find_closest(element.token.value)
+                        closest_symbol = context.symbol_table.find_closest(target.token.value)
 
-                        return result.failure(
+                        result.failure(
                             PysException(
                                 NameError(
                                     "{!r} is not defined{}".format(
-                                        element.token.value,
+                                        target.token.value,
                                         '' if closest_symbol is None else ". Did you mean {!r}?".format(closest_symbol)
                                     )
-                                    if context.symbol_table.get(element.token.value) is undefined else
-                                    "{!r} is not defined on local".format(element.token.value)
+                                    if context.symbol_table.get(target.token.value) is undefined else
+                                    "{!r} is not defined on local".format(target.token.value)
                                 ),
                                 context,
-                                node.position
+                                target.position
                             )
                         )
 
                 if result.should_return():
                     return result
 
-            elif isinstance(element, PysSubscriptNode):
-                object = result.register(self.visit(element.object, context))
+            elif isinstance(target, PysSubscriptNode):
+                object = result.register(self.visit(target.object, context))
                 if result.should_return():
                     return result
 
-                slice = result.register(self.visit_slice_from_SubscriptNode(element.slice, context))
+                slice = result.register(self.visit_slice_from_SubscriptNode(target.slice, context))
                 if result.should_return():
                     return result
 
-                with handle_exception(result, context, element.position):
+                with handle_exception(result, context, target.position):
                     del object[slice]
 
                 if result.should_return():
                     return result
 
-            elif isinstance(element, PysAttributeNode):
-                object = result.register(self.visit(element.object, context))
+            elif isinstance(target, PysAttributeNode):
+                object = result.register(self.visit(target.object, context))
+                if result.should_return():
+                    return result
 
-                with handle_exception(result, context, element.position):
-                    delattr(object, element.attribute.value)
+                with handle_exception(result, context, target.position):
+                    delattr(object, target.attribute.value)
 
                 if result.should_return():
                     return result
@@ -842,7 +847,7 @@ class PysInterpreter(Pys):
             slices = []
 
             for element in node:
-                slices.append(result.register(self.visit_slice_from_SubscriptNode(self, element, context)))
+                slices.append(result.register(self.visit_slice_from_SubscriptNode(element, context)))
                 if result.should_return():
                     return result
 
@@ -903,13 +908,15 @@ class PysInterpreter(Pys):
                         count += 1
 
                     else:
-                        return result.failure(
+                        result.failure(
                             PysException(
                                 ValueError("to many values to unpack (expected {})".format(len(node.elements))),
                                 context,
                                 node.position
                             )
                         )
+
+                        break
 
             if result.should_return():
                 return result
@@ -918,10 +925,7 @@ class PysInterpreter(Pys):
                 return result.failure(
                     PysException(
                         ValueError(
-                            "not enough values to unpack (expected {}, got {})".format(
-                                len(node.elements),
-                                count
-                            )
+                            "not enough values to unpack (expected {}, got {})".format(len(node.elements), count)
                         ),
                         context,
                         node.position
@@ -958,10 +962,7 @@ class PysInterpreter(Pys):
                     setattr(
                         object,
                         node.attribute.value,
-                        inplace_functions_map[operand](
-                            getattr(object, node.attribute.value),
-                            value
-                        )
+                        inplace_functions_map[operand](getattr(object, node.attribute.value), value)
                     )
 
             if result.should_return():
@@ -975,7 +976,7 @@ class PysInterpreter(Pys):
                 if not success:
                     closest_symbol = context.symbol_table.find_closest(node.token.value)
 
-                    return result.failure(
+                    result.failure(
                         PysException(
                             NameError(
                                 "{!r} is not defined{}".format(

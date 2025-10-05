@@ -21,12 +21,18 @@ func main() {
 
     try {
         if (pygame and os.path.exists(path_song)) {
-            pygame.mixer.init()
+            try {
+                pygame.mixer.init()
+            } catch {
+                pygame = None
+            }
 
-            pygame.mixer.music.load(path_song)
-            pygame.mixer.music.play()
+            if pygame {
+                pygame.mixer.music.load(path_song)
+                pygame.mixer.music.play()
 
-            time.sleep(4.7)
+                time.sleep(4.7)
+            }
         }
 
         for ([i, [text, char_delay]] of enumerate(lyrics)) {

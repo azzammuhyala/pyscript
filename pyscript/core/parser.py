@@ -225,7 +225,7 @@ class PysParser(Pys):
                     self.current_token.position,
                     'reversed'
                 )
-                if self.future & REVERSE_POW_XOR and self.current_token.type in {TOKENS['EPOW'], TOKENS['EXOR']} else
+                if self.future & REVERSE_POW_XOR and self.current_token.type in (TOKENS['EPOW'], TOKENS['EXOR']) else
                 self.current_token
             )
 
@@ -497,9 +497,9 @@ class PysParser(Pys):
                 start = self.current_token.position.start
 
                 slices = []
+                single_slice = True
                 indices = [None, None, None]
                 index = 1
-                single_slice = True
 
                 self.parenthesis_level += 1
 
@@ -519,8 +519,9 @@ class PysParser(Pys):
 
                         single_slice = False
 
-                if self.current_token.type in parenthesises_map.values():
+                if not single_slice or self.current_token.type in parenthesises_map.values():
                     slices.append(indices[0])
+                    index -= 1
 
                 while self.current_token.type not in parenthesises_map.values():
 
@@ -1426,8 +1427,6 @@ class PysParser(Pys):
         if result.error:
             return result
 
-        self.skip(result)
-
         advance_count = self.skip(result)
 
         if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['else']):
@@ -1633,9 +1632,17 @@ class PysParser(Pys):
         if result.error:
             return result
 
+        if isinstance(expr, PysSequenceNode):
+            targets = expr.elements
+            if not targets:
+                return result.failure(self.error("empty object", expr.position))
+
+        else:
+            targets = [expr]
+
         return result.success(
             PysDeleteNode(
-                expr.elements if isinstance(expr, PysSequenceNode) else [expr],
+                targets,
                 position
             )
         )

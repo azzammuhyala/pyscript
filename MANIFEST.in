@@ -1,0 +1,5 @@
+include MANIFEST.in
+include PyScript.png
+include setup.py
+
+recursive-include pyscript/lib *

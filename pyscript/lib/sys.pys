@@ -10,3 +10,6 @@ modules = _pyscript.cache.modules
 pyscript_path = _pyscript.constants.PYSCRIPT_PATH
 version = _pyscript.version.version
 version_info = _pyscript.version.version_info
+
+__version__ = _pyscript.version.__version__
+__date__ = _pyscript.version.__date__

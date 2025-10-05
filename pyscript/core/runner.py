@@ -3,13 +3,14 @@ from .cache import hook
 from .constants import DEFAULT, SILENT, RETRES
 from .context import PysContext
 from .exceptions import PysException
+from .handlers import handle_execute
 from .interpreter import PysInterpreter
 from .lexer import PysLexer
 from .parser import PysParser
 from .position import PysPosition
 from .results import PysExecuteResult
 from .symtab import PysSymbolTable
-from .utils import is_object_of, get_caller_locals, build_symbol_table, handle_execute, print_display
+from .utils import is_object_of, get_caller_locals, build_symbol_table, print_display
 from .validator import PysValidator
 from .version import version
 

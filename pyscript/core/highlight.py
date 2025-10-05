@@ -23,19 +23,19 @@ class _HighlightFormatter(Pys):
         return self.formater(*args, **kwargs)
 
     def formater(self, type, position, content):
-        contented = self.content_block(type, position, content)
+        contented = self.content_block(position, content)
         result = ''
 
         if type == 'newline':
             if self._open:
-                result += self.close_block(type, position, contented)
+                result += self.close_block(position, self._type)
                 self._open = False
 
-            result += self.newline_block(position, contented)
+            result += self.newline_block(position)
 
         elif type == 'end':
             if self._open:
-                result += self.close_block(type, position, contented)
+                result += self.close_block(position, self._type)
                 self._open = False
 
         elif type == self._type and self._open:
@@ -43,36 +43,37 @@ class _HighlightFormatter(Pys):
 
         else:
             if self._open:
-                result += self.close_block(type, position, contented)
+                result += self.close_block(position, self._type)
 
-            result += self.open_block(type, position, contented)
+            result += self.open_block(position, type)
+            result += contented
+
             self._open = True
 
         self._type = type
         return result
 
-def _ansi_open_block(type, position, content):
+def _ansi_open_block(position, type):
     color = HIGHLIGHT.get(type, 'default')
 
-    return '\x1b[38;2;{};{};{}m{}'.format(
+    return '\x1b[38;2;{};{};{}m'.format(
         int(color[1:3], 16),
         int(color[3:5], 16),
-        int(color[5:7], 16),
-        content
+        int(color[5:7], 16)
     )
 
 HLFMT_HTML = _HighlightFormatter(
-    lambda type, position, content: sanitize_newline('<br>', html_escape(content)),
-    lambda type, position, content: '<span style="color:{}">{}'.format(HIGHLIGHT.get(type, 'default'), content),
-    lambda type, position, content: '</span>',
-    lambda position, content: '<br>'
+    lambda position, content: sanitize_newline('<br>', html_escape(content)),
+    lambda position, type: '<span style="color:{}">'.format(HIGHLIGHT.get(type, 'default')),
+    lambda position, type: '</span>',
+    lambda position: '<br>'
 )
 
 HLFMT_ANSI = _HighlightFormatter(
-    lambda type, position, content: sanitize_newline('\n', content),
+    lambda position, content: sanitize_newline('\n', content),
     _ansi_open_block,
-    lambda type, position, content: '\x1b[0m',
-    lambda position, content: '\n'
+    lambda position, type: '\x1b[0m',
+    lambda position: '\n'
 )
 
 def pys_highlight(source, format=None, max_parenthesis_level=3, flags=DEFAULT):
@@ -200,3 +201,5 @@ def pys_highlight(source, format=None, max_parenthesis_level=3, flags=DEFAULT):
             break
 
     return result
+
+del _ansi_open_block

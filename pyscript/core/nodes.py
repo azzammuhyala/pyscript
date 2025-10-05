@@ -267,9 +267,9 @@ class PysReturnNode(PysNode):
 
 class PysDeleteNode(PysNode):
 
-    def __init__(self, objects, position):
+    def __init__(self, targets, position):
         self.position = position
-        self.targets = objects
+        self.targets = targets
 
     def __repr__(self):
         return 'Delete(targets={!r})'.format(self.targets)

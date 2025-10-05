@@ -1,8 +1,9 @@
 from .core.buffer import PysFileBuffer
 from .core.constants import DEFAULT, OPTIMIZE
+from .core.handlers import handle_execute
 from .core.highlight import HLFMT_HTML, HLFMT_ANSI, pys_highlight
 from .core.runner import pys_runner, pys_shell
-from .core.utils import normalize_path, build_symbol_table, handle_execute
+from .core.utils import normalize_path, build_symbol_table
 from .core.version import __version__
 
 from argparse import ArgumentParser
@@ -23,7 +24,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    '-v', '--version',
+    '-v', '-V', '--version',
     action='version',
     version="PyScript {}".format(__version__),
 )
@@ -51,7 +52,7 @@ parser.add_argument(
     '-l', '--highlight',
     choices=('html', 'ansi'),
     default=None,
-    help='generate highlight code from a file'
+    help='generate PyScript highlight code from a file'
 )
 
 args = parser.parse_args()

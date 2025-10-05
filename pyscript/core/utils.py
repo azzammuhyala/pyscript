@@ -6,7 +6,6 @@ try:
 except ImportError:
     from collections import Iterable
 
-from contextlib import contextmanager
 from inspect import currentframe
 from json import detect_encoding
 from io import IOBase
@@ -251,7 +250,7 @@ def get_token_name_by_token_type(type):
 
     return '<UNKNOWN>'
 
-def build_symbol_table(file, locals=None):
+def build_symbol_table(file, globals=None):
     from .objects import PysModule
     from .singletons import undefined
     from .symtab import PysSymbolTable
@@ -260,8 +259,8 @@ def build_symbol_table(file, locals=None):
 
     symtab.module = PysModule(os.path.basename(file.name))
 
-    if locals is not None:
-        symtab.module.__dict__ = locals
+    if globals is not None:
+        symtab.module.__dict__ = globals
 
     symtab.symbols = symtab.module.__dict__
 
@@ -269,69 +268,10 @@ def build_symbol_table(file, locals=None):
         from .pysbuiltins import pys_builtins
         symtab.set('__builtins__', pys_builtins)
 
-    if locals is None:
+    if globals is None:
         symtab.set('__file__', file.name)
 
     return symtab
-
-@contextmanager
-def handle_exception(result, context, position):
-    from .exceptions import PysException, PysShouldReturn
-
-    try:
-        yield
-    except PysShouldReturn as e:
-        result.register(e.result)
-    except BaseException as e:
-        result.failure(PysException(e, context, position))
-
-def handle_call(object, context, position, flags):
-    from .objects import PysChainFunction, PysFunction
-
-    from types import MethodType
-
-    if isinstance(object, PysFunction):
-        object.__code__.call_context = context
-        object.__code__.position = position
-        object.__code__.flags = flags
-
-    elif isinstance(object, PysChainFunction):
-        object.__code__.context = context
-        object.__code__.position = position
-        object.__code__.flags = flags
-
-    elif isinstance(object, MethodType) and isinstance(object.__func__, PysFunction):
-        object.__func__.__code__.call_context = context
-        object.__func__.__code__.position = position
-        object.__func__.__code__.flags = flags
-
-    elif isinstance(object, type):
-
-        for call in ('__init__', '__new__'):
-            fn = getattr(object, call, None)
-
-            if isinstance(fn, PysFunction):
-                fn.__code__.call_context = context
-                fn.__code__.position = position
-                fn.__code__.flags = flags
-
-def handle_execute(result):
-    try:
-
-        if result.error:
-            if is_object_of(result.error.exception, SystemExit):
-                return result.error.exception.code
-            if hook.exception is not None:
-                hook.exception(result.error)
-            return 1
-
-        elif len(result.result) == 1 and hook.display is not None:
-            hook.display(result.result[0])
-
-    except:
-        return 1
-
-    return 0
 
 def print_display(value):
     if value is not None:
