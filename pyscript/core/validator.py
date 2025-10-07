@@ -14,6 +14,7 @@ class PysValidator(Pys):
         self.in_loop = 0
         self.in_function = 0
         self.in_switch = 0
+
         self.error = None
 
     def throw(self, message, position):
@@ -227,16 +228,16 @@ class PysValidator(Pys):
             if self.error:
                 return
 
+        for base in node.bases:
+            self.visit(base)
+            if self.error:
+                return
+
         in_loop, in_function, in_switch = self.in_loop, self.in_function, self.in_switch
 
         self.in_loop = 0
         self.in_function = 0
         self.in_switch = 0
-
-        for base in node.bases:
-            self.visit(base)
-            if self.error:
-                return
 
         self.visit(node.body)
         if self.error:

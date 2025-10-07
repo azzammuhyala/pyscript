@@ -1,12 +1,18 @@
+from .bases import Pys
+
 _singleton_objects = {}
 
-class UndefinedType:
+class PysSingleton(Pys):
+    pass
+
+class UndefinedType(PysSingleton):
 
     __slots__ = ()
 
     def __new__(cls):
         if _singleton_objects.get('undefined', None) is None:
             _singleton_objects['undefined'] = super().__new__(cls)
+
         return _singleton_objects['undefined']
 
     def __repr__(self):
@@ -15,12 +21,15 @@ class UndefinedType:
     def __bool__(self):
         return False
 
-class VersionInfo(tuple):
+class VersionInfo(PysSingleton, tuple):
+
+    __slots__ = ()
 
     def __new__(cls):
         if _singleton_objects.get('version_info', None) is None:
             from .version import __version__
             _singleton_objects['version_info'] = super().__new__(cls, map(int, __version__.split('.')))
+
         return _singleton_objects['version_info']
 
     def __repr__(self):
@@ -40,7 +49,7 @@ class VersionInfo(tuple):
     def micro(self):
         return self[2]
 
-class Hook:
+class Hook(PysSingleton):
 
     __slots__ = ('display', 'exception')
 

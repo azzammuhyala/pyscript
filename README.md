@@ -1,7 +1,7 @@
 # PyScript Language📖
 
 <p align="center">
-    <img src="PyScript.png" alt="PyScript Logo" width="200">
+    <img src="https://github.com/azzammuhyala/pyscript/blob/main/PyScript.png?raw=true" alt="PyScript Logo" width="200">
 </p>
 
 PyScript adalah bahasa pemprograman sederhana yang dibuat di atas bahasa Python. Bahasa ini mengabungkan beberapa sintaks dari Python dan JavaScript, jadi bagi Anda yang sudah familiar dengan sintaks Python atau JavaScript atau keduanya pasti seharusnya cukup mudah mempelajari bahasa ini.

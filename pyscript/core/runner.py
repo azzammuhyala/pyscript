@@ -208,7 +208,13 @@ def pys_shell(flags=DEFAULT, future=DEFAULT, symbol_table=None):
     while True:
 
         try:
-            text = input('... ' if is_next_line() else '>>> ')
+            if is_next_line():
+                text = input('... ')
+
+            else:
+                text = input('>>> ')
+                if text == '!exit':
+                    break
 
             next_line = False
             in_decorator = False
@@ -234,10 +240,12 @@ def pys_shell(flags=DEFAULT, future=DEFAULT, symbol_table=None):
                     bind_3 = text[i:i+3]
 
                     if is_triple_string:
+
                         if len(bind_3) == 3 and string_prefix * 3 == bind_3:
                             in_string = False
                             is_triple_string = False
                             i += 2
+
                     else:
                         if not in_string and bind_3 in ("'''", '"""'):
                             is_triple_string = True
@@ -249,17 +257,22 @@ def pys_shell(flags=DEFAULT, future=DEFAULT, symbol_table=None):
                             string_prefix = char
                             in_string = True
 
-                if not in_string and is_space and char == '@':
-                    in_decorator = True
+                if not in_string:
 
-                elif not in_string and char in '([{':
-                    parenthesis_level += 1
+                    if char == '#':
+                        break
 
-                elif not in_string and char in ')]}':
-                    parenthesis_level -= 1
+                    elif is_space and char == '@':
+                        in_decorator = True
 
-                if not in_string and not char.isspace():
-                    is_space = False
+                    elif char in '([{':
+                        parenthesis_level += 1
+
+                    elif char in ')]}':
+                        parenthesis_level -= 1
+
+                    if not char.isspace():
+                        is_space = False
 
                 i += 1
 
@@ -293,7 +306,7 @@ def pys_shell(flags=DEFAULT, future=DEFAULT, symbol_table=None):
 
         except KeyboardInterrupt:
             reset_next_line()
-            print('\rKeyboardInterrupt. Type "exit" to exit the program. ', file=sys.stderr)
+            print('\rKeyboardInterrupt. Type "exit" or "!exit" to exit the program. ', file=sys.stderr)
 
         except EOFError:
             break

@@ -804,7 +804,7 @@ class PysInterpreter(Pys):
                 PysException(
                     TypeError("exceptions must derive from BaseException"),
                     context,
-                    node.position
+                    node.target.position
                 )
             )
 

@@ -111,6 +111,28 @@ def get_similarity_ratio(string1, string2):
 def is_object_of(obj, class_or_tuple):
     return isinstance(obj, class_or_tuple) or (isinstance(obj, type) and issubclass(obj, class_or_tuple))
 
+def supported_method(object, name, *args, **kwargs):
+    from .singletons import undefined
+
+    method = getattr(object, name, undefined)
+    if method is undefined:
+        return False, None
+
+    if callable(method):
+
+        try:
+
+            result = method(*args, **kwargs)
+            if result is NotImplemented:
+                return False, None
+
+            return True, result
+
+        except NotImplementedError:
+            return False, None
+
+    return False, None
+
 def get_caller_locals(deep=1):
     frame = currentframe()
 
@@ -237,18 +259,6 @@ def generate_string_traceback(exception):
     result = 'Traceback (most recent call last):\n{}{}'.format(strings_traceback, name)
 
     return result + ': ' + message if message else result
-
-def get_token_name_by_token_type(type):
-    from .token import PysToken
-
-    if isinstance(type, PysToken):
-        type = type.type
-
-    for name, token_type in TOKENS.items():
-        if token_type == type:
-            return name
-
-    return '<UNKNOWN>'
 
 def build_symbol_table(file, globals=None):
     from .objects import PysModule

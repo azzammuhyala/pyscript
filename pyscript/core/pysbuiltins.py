@@ -193,14 +193,13 @@ def ce(a, b, *, rel_tol=1e-9, abs_tol=0):
         from math import isclose
         return isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
 
-    try:
-        from_a = True
-        func = getattr(a, '__ce__')
-    except AttributeError:
-        from_a = False
-        func = getattr(b, '__ce__', None)
+    from .utils import supported_method
 
-    if not callable(func):
+    success, result = supported_method(a, '__ce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
+    if not success:
+        success, result = supported_method(b, '__ce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
+
+    if not success:
         raise TypeError(
             "unsupported operand type(s) for ~= or ce(): {!r} and {!r}".format(
                 type(a).__name__,
@@ -208,24 +207,26 @@ def ce(a, b, *, rel_tol=1e-9, abs_tol=0):
             )
         )
 
-    return func(b if from_a else a, rel_tol=rel_tol, abs_tol=abs_tol)
+    return result
 
 def nce(a, b, *, rel_tol=1e-9, abs_tol=0):
     if isinstance(a, (int, float)) and isinstance(b, (int, float)):
         from math import isclose
         return not isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
 
-    try:
-        from_a = True
-        func = getattr(a, '__nce__')
-    except AttributeError:
-        try:
-            from_a = False
-            func = getattr(b, '__nce__')
-        except AttributeError:
-            return not ce(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
+    from .utils import supported_method
 
-    if not callable(func):
+    success, result = supported_method(a, '__nce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
+    if not success:
+        success, result = supported_method(b, '__nce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
+        if not success:
+            success, result = supported_method(a, '__ce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
+            if not success:
+                success, result = supported_method(b, '__ce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
+
+            result = not result
+
+    if not success:
         raise TypeError(
             "unsupported operand type(s) for ~! or nce(): {!r} and {!r}".format(
                 type(a).__name__,
@@ -233,29 +234,33 @@ def nce(a, b, *, rel_tol=1e-9, abs_tol=0):
             )
         )
 
-    return func(b if from_a else a, rel_tol=rel_tol, abs_tol=abs_tol)
+    return result
 
 def increment(object):
     if isinstance(object, (int, float)):
         return object + 1
 
-    func = getattr(object, '__increment__', None)
+    from .utils import supported_method
 
-    if not callable(func):
+    success, result = supported_method(object, '__increment__')
+
+    if not success:
         raise TypeError("unsupported operand type(s) for ++ or increment(): {!r}".format(type(object).__name__))
 
-    return func()
+    return result
 
 def decrement(object):
     if isinstance(object, (int, float)):
         return object - 1
 
-    func = getattr(object, '__decrement__', None)
+    from .utils import supported_method
 
-    if not callable(func):
+    success, result = supported_method(object, '__decrement__')
+
+    if not success:
         raise TypeError("unsupported operand type(s) for -- or decrement(): {!r}".format(type(object).__name__))
 
-    return func()
+    return result
 
 def comprehension(init, wrap, condition=None):
     if not callable(wrap):

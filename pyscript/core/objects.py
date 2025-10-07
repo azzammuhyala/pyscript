@@ -1,7 +1,10 @@
 from .bases import Pys
 from .buffer import PysCode
 
-class PysModule(Pys):
+class PysObject(Pys):
+    pass
+
+class PysModule(PysObject):
 
     def __init__(self, name, doc=None):
         self.__name__ = name
@@ -17,7 +20,7 @@ class PysModule(Pys):
             '' if file is undefined else ' from {!r}'.format(file)
         )
 
-class PysChainFunction(Pys):
+class PysChainFunction(PysObject):
 
     def __init__(self, func):
         from .constants import DEFAULT
@@ -35,7 +38,7 @@ class PysChainFunction(Pys):
         handle_call(self.__func__, self.__code__.context, self.__code__.position, self.__code__.flags)
         return self.__func__(self, *args, **kwargs)
 
-class PysFunction(Pys):
+class PysFunction(PysObject):
 
     def __init__(self, name, parameters, body, position, context):
         from .constants import DEFAULT

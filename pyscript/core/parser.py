@@ -22,6 +22,10 @@ class PysParser(Pys):
 
         self.advance()
 
+    def update_current_token(self):
+        if 0 <= self.token_index < len(self.tokens):
+            self.current_token = self.tokens[self.token_index]
+
     def advance(self):
         self.token_index += 1
         self.update_current_token()
@@ -29,10 +33,6 @@ class PysParser(Pys):
     def reverse(self, amount=1):
         self.token_index -= amount
         self.update_current_token()
-
-    def update_current_token(self):
-        if 0 <= self.token_index < len(self.tokens):
-            self.current_token = self.tokens[self.token_index]
 
     def error(self, message, position=None):
         return PysException(
@@ -89,11 +89,7 @@ class PysParser(Pys):
             PysSequenceNode(
                 'statements',
                 statements,
-                PysPosition(
-                    self.file,
-                    start,
-                    self.current_token.position.end
-                )
+                PysPosition(self.file, start, self.current_token.position.end)
             )
         )
 
@@ -435,7 +431,7 @@ class PysParser(Pys):
                 self.advance()
                 self.skip(result)
 
-                on_keyword_state = False
+                seen_kwargs = False
                 args = []
 
                 while self.current_token.type not in parenthesises_map.values():
@@ -454,12 +450,12 @@ class PysParser(Pys):
                         self.advance()
                         self.skip(result)
 
-                        on_keyword_state = True
+                        seen_kwargs = True
 
-                    elif on_keyword_state:
+                    elif seen_kwargs:
                         return result.failure(self.error("expected '=' (follows keyword argument)"))
 
-                    if on_keyword_state:
+                    if seen_kwargs:
                         value = result.register(self.expr(), True)
                         if result.error:
                             return result
@@ -697,11 +693,10 @@ class PysParser(Pys):
 
         return result.failure(self.error("expected expression", token.position), fatal=False)
 
-    def sequence_expr(self, type):
+    def sequence_expr(self, type, should_sequence=False):
         result = PysParserResult()
         start = self.current_token.position.start
 
-        should_sequence = True
         elements = []
 
         left_parenthesis = parenthesises_sequence_map[type]
@@ -755,9 +750,9 @@ class PysParser(Pys):
                     return result.failure(self.error("invalid syntax. Perhaps you forgot a comma?"))
 
         else:
-            should_sequence = False
 
             while self.current_token.type not in parenthesises_map.values():
+
                 elements.append(result.register(self.expr(), True))
                 if result.error:
                     return result
@@ -1009,12 +1004,11 @@ class PysParser(Pys):
 
             return result.success(all_cases)
 
-        else:
-            else_body = result.register(self.else_expr())
-            if result.error:
-                return result
+        else_body = result.register(self.else_expr())
+        if result.error:
+            return result
 
-            return result.success(([], else_body))
+        return result.success(([], else_body))
 
     def if_expr_cases(self, case_keyword):
         result = PysParserResult()
@@ -1148,8 +1142,8 @@ class PysParser(Pys):
                 return result
 
             return result.success(body)
-        else:
-            return result.success(None)
+
+        return result.success(None)
 
     def case_or_default_expr(self):
         result = PysParserResult()
@@ -1161,12 +1155,11 @@ class PysParser(Pys):
 
             return result.success(all_cases)
 
-        else:
-            default_body = result.register(self.default_expr())
-            if result.error:
-                return result
+        default_body = result.register(self.default_expr())
+        if result.error:
+            return result
 
-            return result.success(([], default_body))
+        return result.success(([], default_body))
 
     def try_expr(self):
         result = PysParserResult()
@@ -1316,7 +1309,7 @@ class PysParser(Pys):
             self.advance()
             self.skip(result)
 
-            iterable = result.register(self.expr(), True)
+            iter = result.register(self.expr(), True)
             if result.error:
                 return result
 
@@ -1354,7 +1347,7 @@ class PysParser(Pys):
 
         return result.success(
             PysForNode(
-                (init, iterable) if foreach else (init, condition, update),
+                (init, iter) if foreach else (init, condition, update),
                 body,
                 else_body,
                 position
@@ -1466,11 +1459,12 @@ class PysParser(Pys):
         self.skip(result)
 
         if self.current_token.type == TOKENS['LPAREN']:
-            bases = result.register(self.sequence_expr('tuple'))
+            bases = result.register(self.sequence_expr('tuple', should_sequence=True))
             if result.error:
                 return result
 
-            bases = bases.elements if isinstance(bases, PysSequenceNode) else [bases]
+            end = bases.position.end
+            bases = bases.elements
 
         else:
             bases = []
@@ -1525,7 +1519,7 @@ class PysParser(Pys):
         self.advance()
         self.skip(result)
 
-        on_keyword_state = False
+        seen_kwargs = False
         parameters = []
 
         while self.current_token.type not in parenthesises_map.values():
@@ -1544,12 +1538,12 @@ class PysParser(Pys):
                 self.advance()
                 self.skip(result)
 
-                on_keyword_state = True
+                seen_kwargs = True
 
-            elif on_keyword_state:
+            elif seen_kwargs:
                 return result.failure(self.error("expected '=' (follows keyword argument)"))
 
-            if on_keyword_state:
+            if seen_kwargs:
                 value = result.register(self.expr(), True)
                 if result.error:
                     return result
