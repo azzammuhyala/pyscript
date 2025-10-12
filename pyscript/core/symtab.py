@@ -1,6 +1,6 @@
 from .bases import Pys
 from .constants import TOKENS
-from .utils import inplace_functions_map, get_similarity_ratio
+from .utils import inplace_functions_map, get_closest
 
 class PysSymbolTable(Pys):
 
@@ -10,7 +10,7 @@ class PysSymbolTable(Pys):
         self.module = None
         self.symbols = {}
 
-    def find_closest(self, name, cutoff=0.6):
+    def find_closest(self, name):
         symbols = set(self.symbols.keys())
 
         parent = self.parent
@@ -24,19 +24,7 @@ class PysSymbolTable(Pys):
         if builtins is not undefined:
             symbols.update(dir(builtins))
 
-        if not symbols:
-            return None
-
-        best_match = None
-        best_score = 0.0
-
-        for sym in symbols:
-            score = get_similarity_ratio(name, sym)
-            if score > best_score:
-                best_score = score
-                best_match = sym
-
-        return best_match if best_score >= cutoff else None
+        return get_closest(symbols, name)
 
     def get(self, name):
         from .singletons import undefined

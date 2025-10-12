@@ -1,4 +1,4 @@
-# PyScript Language📖
+# PyScript
 
 <p align="center">
     <img src="https://github.com/azzammuhyala/pyscript/blob/main/PyScript.png?raw=true" alt="PyScript Logo" width="200">
@@ -238,7 +238,7 @@ Anda sudah sampai akhir, harusnya Anda sudah cukup bisa menulis dan memahami syn
 2. Buat program untuk mencari nilai faktorial.
 3. Buat program untuk mencari nilai fibonaci.
 4. Buat program gim sederhana yakni tebak angka.
-5. Buat program gim ular menggunakan _egine_ atau modul Python [PyGame](https://pygame.org).
+5. Buat program gim ular menggunakan _egine_ [PyGame](https://pygame.org).
 
 _Good Luck :)_
 

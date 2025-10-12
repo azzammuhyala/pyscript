@@ -12,7 +12,7 @@ KEYWORDS = _pyscript.constants.KEYWORDS.copy()
 
 # flags
 DEFAULT = _pyscript.constants.DEFAULT
-OPTIMIZE = _pyscript.constants.OPTIMIZE
+COMMENT = _pyscript.constants.COMMENT
 REVERSE_POW_XOR = _pyscript.constants.REVERSE_POW_XOR
 
 # highlight formatter
@@ -21,14 +21,18 @@ HLFMT_ANSI = _pyscript.highlight.HLFMT_ANSI
 
 class Parser {
 
-    func __init__(self, source) {
+    func __init__(self, source, flags=DEFAULT) {
         self.file = _pyscript.buffer.PysFileBuffer(source)
+        self.flags = flags
     }
 
-    func tokenize(self, allowed_comment_token=False) {
-        lexer = _pyscript.lexer.PysLexer(self.file, allowed_comment_token=allowed_comment_token)
-        [tokens, error] = lexer.make_tokens()
+    func tokenize(self) {
+        lexer = _pyscript.lexer.PysLexer(
+            file=self.file,
+            flags=self.flags
+        )
 
+        [tokens, error] = lexer.make_tokens()
         if error
             throw error.exception
 
@@ -39,9 +43,13 @@ class Parser {
         if (mode not in {'exec', 'eval'})
             throw ValueError("ast() mode must be 'exec' or 'eval'")
 
-        parser = _pyscript.parser.PysParser(self.file, self.tokenize())
-        ast = parser.parse(mode == 'exec' ? None : parser.expr)
+        parser = _pyscript.parser.PysParser(
+            file=self.file,
+            tokens=self.tokenize(),
+            flags=self.flags
+        )
 
+        ast = parser.parse(mode == 'exec' ? None : parser.expr)
         if (ast.error)
             throw ast.error.exception
 
@@ -50,17 +58,18 @@ class Parser {
 
     func check(self, mode='exec') {
         validator = _pyscript.validator.PysValidator(self.file)
-        error = validator.visit(self.ast(mode=mode))
 
+        error = validator.visit(self.ast(mode=mode))
         if error
             throw error.exception
     }
 
     func highlight(self, format=None, max_parenthesis_level=3) {
         return _pyscript.highlight.pys_highlight(
-            self.file,
+            source=self.file,
             format=format,
-            max_parenthesis_level=max_parenthesis_level
+            max_parenthesis_level=max_parenthesis_level,
+            flags=self.flags
         )
     }
 
@@ -68,14 +77,14 @@ class Parser {
 
 # wrap functions
 
-func tokenize(source, allowed_comment_token=False)
-    return Parser(source).tokenize(allowed_comment_token=allowed_comment_token)
+func tokenize(source, flags=DEFAULT)
+    return Parser(source, flags).tokenize()
 
-func ast(source, mode='exec')
-    return Parser(source).ast(mode=mode)
+func ast(source, mode='exec', flags=DEFAULT)
+    return Parser(source, flags).ast(mode=mode)
 
-func check(source, mode='exec')
-    return Parser(source).check(mode=mode)
+func check(source, mode='exec', flags=DEFAULT)
+    return Parser(source, flags).check(mode=mode)
 
-func highlight(source, format=None, max_parenthesis_level=3)
-    return Parser(source).highlight(format=format, max_parenthesis_level=max_parenthesis_level)
+func highlight(source, format=None, max_parenthesis_level=3, flags=COMMENT)
+    return Parser(source, flags).highlight(format=format, max_parenthesis_level=max_parenthesis_level)

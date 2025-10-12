@@ -248,13 +248,13 @@ class PysFunctionNode(PysNode):
 
 class PysCallNode(PysNode):
 
-    def __init__(self, name, args, position):
+    def __init__(self, name, arguments, position):
         self.position = position
         self.name = name
-        self.args = args
+        self.arguments = arguments
 
     def __repr__(self):
-        return 'Call(name={!r}, args={!r})'.format(self.name, self.args)
+        return 'Call(name={!r}, arguments={!r})'.format(self.name, self.arguments)
 
 class PysReturnNode(PysNode):
 

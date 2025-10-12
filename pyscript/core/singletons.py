@@ -5,14 +5,13 @@ _singleton_objects = {}
 class PysSingleton(Pys):
     pass
 
-class UndefinedType(PysSingleton):
+class PysUndefinedType(PysSingleton):
 
     __slots__ = ()
 
     def __new__(cls):
         if _singleton_objects.get('undefined', None) is None:
             _singleton_objects['undefined'] = super().__new__(cls)
-
         return _singleton_objects['undefined']
 
     def __repr__(self):
@@ -21,7 +20,7 @@ class UndefinedType(PysSingleton):
     def __bool__(self):
         return False
 
-class VersionInfo(PysSingleton, tuple):
+class PysVersionInfo(PysSingleton, tuple):
 
     __slots__ = ()
 
@@ -29,7 +28,6 @@ class VersionInfo(PysSingleton, tuple):
         if _singleton_objects.get('version_info', None) is None:
             from .version import __version__
             _singleton_objects['version_info'] = super().__new__(cls, map(int, __version__.split('.')))
-
         return _singleton_objects['version_info']
 
     def __repr__(self):
@@ -49,7 +47,7 @@ class VersionInfo(PysSingleton, tuple):
     def micro(self):
         return self[2]
 
-class Hook(PysSingleton):
+class PysHook(PysSingleton):
 
     __slots__ = ('display', 'exception')
 
@@ -62,4 +60,4 @@ class Hook(PysSingleton):
 
         return _singleton_objects['hook']
 
-undefined = UndefinedType()
+undefined = PysUndefinedType()

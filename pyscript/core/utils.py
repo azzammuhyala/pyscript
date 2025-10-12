@@ -49,12 +49,9 @@ parenthesises_map = {
     TOKENS['LBRACE']: TOKENS['RBRACE']
 }
 
-def sanitize_newline(newline, string):
-    return newline.join(string.splitlines())
-
 def to_str(object):
     if isinstance(object, str):
-        return sanitize_newline('\n', object)
+        return object.replace('\r\n', '\n')
 
     elif isinstance(object, (bytes, bytearray)):
         return to_str(object.decode(detect_encoding(object), 'surrogatepass'))
@@ -91,6 +88,15 @@ def join_with_conjunction(sequence, func=None, conjunction='and'):
 
     return result
 
+def space_indent(string, length):
+    result = ''
+    prefix = ' ' * length
+
+    for line in to_str(string).splitlines(True):
+        result += prefix + line
+
+    return result
+
 def normalize_path(*paths, absolute=True):
     path = os.path.normpath(os.path.sep.join(map(to_str, paths)))
     if absolute:
@@ -108,6 +114,27 @@ def get_similarity_ratio(string1, string2):
 
     return 0.0 if max_bigrams_count == 0 else len(bigram1 & bigram2) / max_bigrams_count
 
+def get_closest(names, name, cutoff=0.6):
+    best_match = None
+    best_score = 0.0
+
+    for element in (names if isinstance(names, set) else set(names)):
+        score = get_similarity_ratio(name, element)
+        if score >= cutoff and score > best_score:
+            best_score = score
+            best_match = element
+
+    return best_match
+
+def get_locals(deep=1):
+    frame = currentframe()
+
+    while deep > 0 and frame:
+        frame = frame.f_back
+        deep -= 1
+
+    return (frame.f_locals if isinstance(frame.f_locals, dict) else dict(frame.f_locals)) if frame else {}
+
 def is_object_of(obj, class_or_tuple):
     return isinstance(obj, class_or_tuple) or (isinstance(obj, type) and issubclass(obj, class_or_tuple))
 
@@ -119,146 +146,15 @@ def supported_method(object, name, *args, **kwargs):
         return False, None
 
     if callable(method):
-
         try:
-
             result = method(*args, **kwargs)
             if result is NotImplemented:
                 return False, None
-
             return True, result
-
         except NotImplementedError:
             return False, None
 
     return False, None
-
-def get_caller_locals(deep=1):
-    frame = currentframe()
-
-    while deep > 0 and frame:
-        frame = frame.f_back
-        deep -= 1
-
-    return frame.f_locals if frame else {}
-
-def get_line_column_by_index(index, file):
-    return file.text.count('\n', 0, index) + 1, index - file.text.rfind('\n', 0, index)
-
-def format_highlighted_text_with_arrow(position):
-    string = ''
-
-    line_start, column_start = get_line_column_by_index(position.start, position.file)
-    line_end, column_end = get_line_column_by_index(position.end, position.file)
-
-    start = position.file.text.rfind('\n', 0, position.start) + 1
-    end = position.file.text.find('\n', start + 1)
-    if end == -1:
-        end = len(position.file.text)
-
-    if position.file.text[position.start:position.end] in {'', '\n'}:
-        line = position.file.text[start:end].lstrip('\n')
-
-        string += line + '\n'
-        string += ' ' * len(line) + '^'
-
-    else:
-        lines = []
-        count = line_end - line_start + 1
-
-        for i in range(count):
-            line = position.file.text[start:end].lstrip('\n')
-
-            lines.append(
-                (
-                    line, len(line.lstrip()),
-                    column_start - 1 if i == 0 else 0, column_end - 1 if i == count - 1 else len(line)
-                )
-            )
-
-            start = end
-            end = position.file.text.find('\n', start + 1)
-            if end == -1:
-                end = len(position.file.text)
-
-        removed_indent = min(len(line) - no_indent for line, no_indent, _, _ in lines)
-
-        for i, (line, no_indent, start, end) in enumerate(lines):
-            line = line[removed_indent:]
-            string += line + '\n'
-
-            if i == 0:
-                arrow = '^' * (end - start)
-                line_arrow = ' ' * (start - removed_indent) + arrow
-
-            else:
-                indent = len(line) - no_indent
-                arrow = '^' * (end - start - (removed_indent + indent))
-                line_arrow = ' ' * indent + arrow
-
-            if arrow and len(line_arrow) - 1 <= len(line):
-                string += line_arrow + '\n'
-
-    return string.replace('\t', ' ')
-
-def generate_string_traceback(exception):
-    frames = []
-    stack = set()
-
-    context = exception.context
-    position = exception.position
-    id_context = id(context)
-
-    while context and id_context not in stack:
-        stack.add(id_context)
-
-        frames.append(
-            '  File "{}", line {}{}\n    {}'.format(
-                position.file.name,
-                get_line_column_by_index(position.start, position.file)[0],
-                '' if context.name is None else ', in {}'.format(context.name),
-                '\n    '.join(format_highlighted_text_with_arrow(position).splitlines())
-            )
-        )
-
-        position = context.parent_entry_position
-        context = context.parent
-        id_context = id(context)
-
-    frames.reverse()
-
-    strings_traceback = ''
-    last_frame = ''
-    found_duplicated_frame = 0
-
-    for frame in frames:
-        if frame == last_frame:
-            found_duplicated_frame += 1
-
-        else:
-            if found_duplicated_frame > 0:
-                strings_traceback += '  [Previous line repeated {} more times]\n'.format(found_duplicated_frame)
-                found_duplicated_frame = 0
-
-            strings_traceback += frame + '\n'
-            last_frame = frame
-
-    if found_duplicated_frame > 0:
-        strings_traceback += '  [Previous line repeated {} more times]\n'.format(found_duplicated_frame)
-
-    if id_context in stack:
-        strings_traceback += '  [Previous lines repeated]\n'
-
-    if isinstance(exception.exception, type):
-        name = exception.exception.__name__
-        message = ''
-    else:
-        name = type(exception.exception).__name__
-        message = str(exception.exception)
-
-    result = 'Traceback (most recent call last):\n{}{}'.format(strings_traceback, name)
-
-    return result + ': ' + message if message else result
 
 def build_symbol_table(file, globals=None):
     from .objects import PysModule
@@ -288,7 +184,7 @@ def print_display(value):
         print(repr(value))
 
 def print_traceback(exception):
-    for line in generate_string_traceback(exception).splitlines():
+    for line in exception.string_traceback().splitlines():
         print(line, file=sys.stderr)
 
 hook.exception = print_traceback

@@ -98,8 +98,18 @@ class PysRunTimeResult(PysResult):
 
 class PysExecuteResult(PysResult):
 
-    def __init__(self, error, result, context, future):
-        self.error = error
-        self.result = result
+    def __init__(self, mode, flags, context):
+        self.mode = mode
+        self.flags = flags
         self.context = context
-        self.future = future
+
+        self.error = None
+        self.value = None
+
+    def success(self, value):
+        self.value = value
+        return self
+
+    def failure(self, error):
+        self.error = error
+        return self

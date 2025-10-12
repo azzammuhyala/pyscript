@@ -4,6 +4,7 @@ if TYPE_CHECKING:
     from .core.buffer import PysFileBuffer
     from .core.highlight import _HighlightFormatter
     from .core.position import PysPosition
+    from .core.results import PysExecuteResult
     from .core.symtab import PysSymbolTable
 
     from io import IOBase
@@ -14,6 +15,8 @@ DEFAULT: int
 OPTIMIZE: int
 SILENT: int
 RETRES: int
+COMMENT: int
+REVERSE_POW_XOR: int
 
 HLFMT_HTML: _HighlightFormatter
 HLFMT_ANSI: _HighlightFormatter
@@ -38,13 +41,13 @@ def pys_exec(
     source: Union[str, bytes, bytearray, IOBase, PysFileBuffer],
     globals: Optional[Union[Dict[str, Any], PysSymbolTable]] = None,
     flags: int = DEFAULT
-) -> None: ...
+) -> Union[None, PysExecuteResult]: ...
 
 def pys_eval(
     source: Union[str, bytes, bytearray, IOBase, PysFileBuffer],
     globals: Optional[Union[Dict[str, Any], PysSymbolTable]] = None,
     flags: int = DEFAULT
-) -> Any: ...
+) -> Union[Any, PysExecuteResult]: ...
 
 __version__: str
 __date__: str

@@ -1,5 +1,5 @@
 from .bases import Pys
-from .constants import TOKENS, KEYWORDS
+from .constants import TOKENS, KEYWORDS, DEFAULT, COMMENT
 from .context import PysContext
 from .exceptions import PysException
 from .position import PysPosition
@@ -11,14 +11,14 @@ import sys
 
 class PysLexer(Pys):
 
-    def __init__(self, file, context_parent=None, context_parent_entry_position=None, allowed_comment_token=False):
+    def __init__(self, file, flags=DEFAULT, context_parent=None, context_parent_entry_position=None):
         self.file = file
+        self.flags = flags
         self.context_parent = context_parent
         self.context_parent_entry_position = context_parent_entry_position
-        self.allowed_comment_token = allowed_comment_token
 
     def update_current_char(self):
-        self.current_char = self.file.text[self.index] if 0 <= self.index < len(self.file.text) else None
+        self.current_character = self.file.text[self.index] if 0 <= self.index < len(self.file.text) else None
 
     def advance(self):
         if self.error is None:
@@ -43,12 +43,11 @@ class PysLexer(Pys):
 
     def throw(self, start, message, end=None):
         if self.error is None:
-            self.current_char = None
+            self.current_character = None
             self.tokens = []
             self.error = PysException(
                 SyntaxError(message),
                 PysContext(
-                    name=None,
                     file=self.file,
                     parent=self.context_parent,
                     parent_entry_position=self.context_parent_entry_position
@@ -56,139 +55,133 @@ class PysLexer(Pys):
                 PysPosition(self.file, start, end or self.index)
             )
 
-    def not_eof(self):
-        return self.current_char is not None
+    def not_end_of_file(self):
+        return self.current_character is not None
 
-    def char_eq(self, character):
-        return self.not_eof() and self.current_char == character
+    def character_in(self, characters):
+        return self.not_end_of_file() and self.current_character in characters
 
-    def char_ne(self, character):
-        return self.not_eof() and self.current_char != character
-
-    def char_in(self, characters):
-        return self.not_eof() and self.current_char in characters
-
-    def char_are(self, string_method, *args, **kwargs):
-        return self.not_eof() and getattr(self.current_char, string_method)(*args, **kwargs)
+    def character_are(self, string_method, *args, **kwargs):
+        return self.not_end_of_file() and getattr(self.current_character, string_method)(*args, **kwargs)
 
     def make_tokens(self):
         self.index = -1
         self.tokens = []
         self.error = None
-        self.current_char = None
+        self.current_character = None
 
         self.advance()
 
-        while self.not_eof():
+        while self.not_end_of_file():
 
-            if self.char_eq('\n'):
+            if self.current_character == '\n':
                 self.add_token(TOKENS['NEWLINE'])
                 self.advance()
 
-            elif self.char_eq('\\'):
+            elif self.current_character == '\\':
                 self.make_back_slash()
 
-            elif self.char_are('isspace'):
+            elif self.character_are('isspace'):
                 self.advance()
 
-            elif self.char_in('0123456789.'):
+            elif self.character_in('0123456789.'):
                 self.make_number()
 
-            elif self.char_in('BRbr"\''):
+            elif self.character_in('BRbr"\''):
                 self.make_string()
 
-            elif self.char_are('isidentifier'):
+            elif self.character_are('isidentifier'):
                 self.make_identifier()
 
-            elif self.char_eq('$'):
+            elif self.current_character == '$':
                 self.make_dollar()
 
-            elif self.char_eq('+'):
+            elif self.current_character == '+':
                 self.make_plus()
 
-            elif self.char_eq('-'):
+            elif self.current_character == '-':
                 self.make_minus()
 
-            elif self.char_eq('*'):
+            elif self.current_character == '*':
                 self.make_mul()
 
-            elif self.char_eq('/'):
+            elif self.current_character == '/':
                 self.make_div()
 
-            elif self.char_eq('%'):
+            elif self.current_character == '%':
                 self.make_mod()
 
-            elif self.char_eq('@'):
+            elif self.current_character == '@':
                 self.make_at()
 
-            elif self.char_eq('&'):
+            elif self.current_character == '&':
                 self.make_and()
 
-            elif self.char_eq('|'):
+            elif self.current_character == '|':
                 self.make_or()
 
-            elif self.char_eq('^'):
+            elif self.current_character == '^':
                 self.make_xor()
 
-            elif self.char_eq('~'):
+            elif self.current_character == '~':
                 self.make_not()
 
-            elif self.char_eq('='):
+            elif self.current_character == '=':
                 self.make_equal()
 
-            elif self.char_eq('!'):
+            elif self.current_character == '!':
                 self.make_not_equal()
 
-            elif self.char_eq('<'):
+            elif self.current_character == '<':
                 self.make_lt()
 
-            elif self.char_eq('>'):
+            elif self.current_character == '>':
                 self.make_gt()
 
-            elif self.char_eq('?'):
+            elif self.current_character == '?':
                 self.make_question()
 
-            elif self.char_eq('#'):
+            elif self.current_character == '#':
                 self.make_comment()
 
-            elif self.char_eq('('):
+            elif self.current_character == '(':
                 self.add_token(TOKENS['LPAREN'])
                 self.advance()
 
-            elif self.char_eq(')'):
+            elif self.current_character == ')':
                 self.add_token(TOKENS['RPAREN'])
                 self.advance()
 
-            elif self.char_eq('['):
+            elif self.current_character == '[':
                 self.add_token(TOKENS['LSQUARE'])
                 self.advance()
 
-            elif self.char_eq(']'):
+            elif self.current_character == ']':
                 self.add_token(TOKENS['RSQUARE'])
                 self.advance()
 
-            elif self.char_eq('{'):
+            elif self.current_character == '{':
                 self.add_token(TOKENS['LBRACE'])
                 self.advance()
 
-            elif self.char_eq('}'):
+            elif self.current_character == '}':
                 self.add_token(TOKENS['RBRACE'])
                 self.advance()
 
-            elif self.char_eq(':'):
+            elif self.current_character == ':':
                 self.add_token(TOKENS['COLON'])
                 self.advance()
 
-            elif self.char_eq(','):
+            elif self.current_character == ',':
                 self.add_token(TOKENS['COMMA'])
                 self.advance()
 
-            elif self.char_eq(';'):
+            elif self.current_character == ';':
                 self.add_token(TOKENS['SEMICOLON'])
                 self.advance()
 
             else:
-                char = self.current_char
+                char = self.current_character
 
                 self.advance()
                 self.throw(self.index - 1, "invalid character '{}' (U+{:08X})".format(char, ord(char)))
@@ -200,7 +193,7 @@ class PysLexer(Pys):
     def make_back_slash(self):
         self.advance()
 
-        if self.char_ne('\n'):
+        if self.current_character != '\n':
             self.advance()
             self.throw(self.index - 1, "unexpected character after line continuation character")
 
@@ -215,7 +208,7 @@ class PysLexer(Pys):
         is_complex = False
         is_underscore = False
 
-        if self.char_eq('.'):
+        if self.current_character == '.':
             format = float
             number = '.'
 
@@ -227,27 +220,27 @@ class PysLexer(Pys):
                 self.add_token(TOKENS['ELLIPSIS'], start)
                 return
 
-            elif not self.char_in('0123456789'):
+            elif not self.character_in('0123456789'):
                 self.add_token(TOKENS['DOT'], start)
                 return
 
-        while self.char_in('0123456789'):
-            number += self.current_char
+        while self.character_in('0123456789'):
+            number += self.current_character
             self.advance()
 
             is_underscore = False
 
-            if self.char_eq('_'):
+            if self.current_character == '_':
                 is_underscore = True
                 self.advance()
 
-            elif self.char_eq('.') and not is_scientific and format is int:
+            elif self.current_character == '.' and not is_scientific and format is int:
                 format = float
 
                 number += '.'
                 self.advance()
 
-            elif self.char_in('BOXbox') and not is_scientific:
+            elif self.character_in('BOXbox') and not is_scientific:
                 if number != '0':
                     self.throw(start, "invalid decimal literal")
                     return
@@ -255,7 +248,7 @@ class PysLexer(Pys):
                 format = str
                 number = ''
 
-                character_base = self.char_are('lower')
+                character_base = self.character_are('lower')
 
                 if character_base == 'b':
                     base = 2
@@ -269,56 +262,45 @@ class PysLexer(Pys):
 
                 self.advance()
 
-                while self.char_in(literal):
-                    number += self.current_char
+                while self.character_in(literal):
+                    number += self.current_character
                     self.advance()
 
                     is_underscore = False
 
-                    if self.char_eq('_'):
+                    if self.current_character == '_':
                         is_underscore = True
                         self.advance()
 
                 if not number:
-                    self.throw(self.index - 1, "invalid decimal literal")
-
-                if self.char_in('jJ'):
-                    is_complex = True
                     self.advance()
+                    self.throw(self.index - 1, "invalid decimal literal")
 
                 break
 
-            elif self.char_in('eE') and not is_scientific:
+            elif self.character_in('eE') and not is_scientific:
                 format = float
                 is_scientific = True
                 number += 'e'
 
                 self.advance()
 
-                if self.char_in('+-'):
-                    number += self.current_char
+                if self.character_in('+-'):
+                    number += self.current_character
                     self.advance()
 
-            elif self.char_in('jJ'):
-                is_complex = True
-                self.advance()
-                break
-
         if is_underscore or (is_scientific and number.endswith(('e', '-', '+'))):
+            self.advance()
             self.throw(self.index - 1, "invalid decimal literal")
 
-        if self.char_eq('.'):
+        if self.character_in('jJ'):
+            is_complex = True
             self.advance()
-
-            if format is float or is_complex or is_scientific:
-                self.throw(self.index - 1, "invalid decimal literal")
-
-            format = float
 
         if self.error is None:
 
-            def wrap(obj, *args):
-                result = obj(number, *args)
+            def wrap(cls, *args):
+                result = cls(number, *args)
                 return complex(0, result) if is_complex else result
 
             if format is float:
@@ -336,24 +318,25 @@ class PysLexer(Pys):
         is_bytes = False
         is_raw = False
 
-        if self.char_in('BRbr'):
-            if self.char_in('Bb'):
+        if self.character_in('BRbr'):
+            if self.character_in('Bb'):
                 is_bytes = True
                 self.advance()
 
-            if self.char_in('Rr'):
+            if self.character_in('Rr'):
                 is_raw = True
                 self.advance()
 
-            if not self.char_in('"\''):
+            if not self.character_in('"\''):
                 self.reverse(self.index - start)
                 self.make_identifier()
                 return
 
-        prefix = self.current_char
+        prefix = self.current_character
+        triple_prefix = prefix * 3
 
         def triple_quote():
-            return self.file.text[self.index:self.index + 3] == prefix * 3
+            return self.file.text[self.index:self.index + 3] == triple_prefix
 
         is_triple_quote = triple_quote()
         warning_displayed = False
@@ -370,33 +353,33 @@ class PysLexer(Pys):
             self.advance()
             self.advance()
 
-        while self.not_eof() and not (triple_quote() if is_triple_quote else self.char_in(prefix + '\n')):
+        while self.not_end_of_file() and not (triple_quote() if is_triple_quote else self.character_in(prefix + '\n')):
 
-            if self.char_eq('\\'):
+            if self.current_character == '\\':
                 self.advance()
 
                 if is_raw:
                     string += '\\'
-                    if self.char_in('\\\'"\n'):
-                        string += self.current_char
+                    if self.character_in('\\\'"\n'):
+                        string += self.current_character
                         self.advance()
 
-                elif self.char_in('\\\'"nrtbfav\n'):
-                    if self.char_in('\\\'"'):
-                        string += self.current_char
-                    elif self.char_eq('n'):
+                elif self.character_in('\\\'"nrtbfav\n'):
+                    if self.character_in('\\\'"'):
+                        string += self.current_character
+                    elif self.current_character == 'n':
                         string += '\n'
-                    elif self.char_eq('r'):
+                    elif self.current_character == 'r':
                         string += '\r'
-                    elif self.char_eq('t'):
+                    elif self.current_character == 't':
                         string += '\t'
-                    elif self.char_eq('b'):
+                    elif self.current_character == 'b':
                         string += '\b'
-                    elif self.char_eq('f'):
+                    elif self.current_character == 'f':
                         string += '\f'
-                    elif self.char_eq('a'):
+                    elif self.current_character == 'a':
                         string += '\a'
-                    elif self.char_eq('v'):
+                    elif self.current_character == 'v':
                         string += '\v'
 
                     self.advance()
@@ -404,16 +387,16 @@ class PysLexer(Pys):
                 elif decoded_error_message is None:
                     escape = ''
 
-                    if self.char_in('01234567'):
+                    if self.character_in('01234567'):
 
-                        while self.char_in('01234567') and len(escape) < 3:
-                            escape += self.current_char
+                        while self.character_in('01234567') and len(escape) < 3:
+                            escape += self.current_character
                             self.advance()
 
                         string += chr(int(escape, 8))
 
-                    elif self.char_in('xuU'):
-                        base = self.current_char
+                    elif self.character_in('xuU'):
+                        base = self.current_character
 
                         if base == 'x':
                             length = 2
@@ -424,8 +407,8 @@ class PysLexer(Pys):
 
                         self.advance()
 
-                        while self.char_in('0123456789ABCDEFabcdef') and len(escape) < length:
-                            escape += self.current_char
+                        while self.character_in('0123456789ABCDEFabcdef') and len(escape) < length:
+                            escape += self.current_character
                             self.advance()
 
                         if len(escape) != length:
@@ -437,20 +420,20 @@ class PysLexer(Pys):
                             except:
                                 decode_error("codec can't decode bytes: illegal Unicode character")
 
-                    elif self.char_eq('N'):
+                    elif self.current_character == 'N':
                         self.advance()
 
-                        if self.current_char != '{':
+                        if self.current_character != '{':
                             decode_error("malformed \\N character escape")
                             continue
 
                         self.advance()
 
-                        while self.char_ne('}'):
-                            escape += self.current_char
+                        while self.not_end_of_file() and self.current_character != '}':
+                            escape += self.current_character
                             self.advance()
 
-                        if self.current_char == '}':
+                        if self.current_character == '}':
                             try:
                                 string += unicode_lookup(escape)
                             except:
@@ -462,25 +445,25 @@ class PysLexer(Pys):
                             decode_error("malformed \\N character escape")
 
                     else:
-                        if not self.not_eof():
+                        if not self.not_end_of_file():
                             string += '\\'
                             break
 
                         if not warning_displayed:
                             warning_displayed = True
                             print(
-                                "SyntaxWarning: invalid escape sequence '\\{}'".format(self.current_char),
+                                "SyntaxWarning: invalid escape sequence '\\{}'".format(self.current_character),
                                 file=sys.stderr
                             )
 
-                        string += '\\' + self.current_char
+                        string += '\\' + self.current_character
                         self.advance()
 
             else:
-                string += self.current_char
+                string += self.current_character
                 self.advance()
 
-        if not (triple_quote() if is_triple_quote else self.char_eq(prefix)):
+        if not (triple_quote() if is_triple_quote else self.current_character == prefix):
             self.throw(start, "unterminated bytes literal" if is_bytes else "unterminated string literal", start + 1)
 
         elif decoded_error_message is not None:
@@ -503,14 +486,12 @@ class PysLexer(Pys):
         start = start if as_identifier else self.index
         name = ''
 
-        while self.not_eof() and (name + self.current_char).isidentifier():
-            name += self.current_char
+        while self.not_end_of_file() and (name + self.current_character).isidentifier():
+            name += self.current_character
             self.advance()
 
         self.add_token(
-            TOKENS['KEYWORD']
-                if not as_identifier and name in KEYWORDS.values() else
-            TOKENS['IDENTIFIER'],
+            TOKENS['KEYWORD'] if not as_identifier and name in KEYWORDS.values() else TOKENS['IDENTIFIER'],
             start,
             name
         )
@@ -520,10 +501,10 @@ class PysLexer(Pys):
 
         self.advance()
 
-        while self.char_ne('\n') and self.char_are('isspace'):
+        while self.not_end_of_file() and self.current_character != '\n' and self.character_are('isspace'):
             self.advance()
 
-        if not self.char_are('isidentifier'):
+        if not self.character_are('isidentifier'):
             self.advance()
             self.throw(self.index - 1, "expected identifier")
 
@@ -535,11 +516,11 @@ class PysLexer(Pys):
 
         self.advance()
 
-        if self.char_eq('='):
+        if self.current_character == '=':
             type = TOKENS['EPLUS']
             self.advance()
 
-        elif self.char_eq('+'):
+        elif self.current_character == '+':
             type = TOKENS['INCREMENT']
             self.advance()
 
@@ -551,11 +532,11 @@ class PysLexer(Pys):
 
         self.advance()
 
-        if self.char_eq('='):
+        if self.current_character == '=':
             type = TOKENS['EMINUS']
             self.advance()
 
-        elif self.char_eq('-'):
+        elif self.current_character == '-':
             type = TOKENS['DECREMENT']
             self.advance()
 
@@ -567,15 +548,15 @@ class PysLexer(Pys):
 
         self.advance()
 
-        if self.char_eq('='):
+        if self.current_character == '=':
             type = TOKENS['EMUL']
             self.advance()
 
-        elif self.char_eq('*'):
+        elif self.current_character == '*':
             type = TOKENS['POW']
             self.advance()
 
-        if type == TOKENS['POW'] and self.char_eq('='):
+        if type == TOKENS['POW'] and self.current_character == '=':
             type = TOKENS['EPOW']
             self.advance()
 
@@ -587,15 +568,15 @@ class PysLexer(Pys):
 
         self.advance()
 
-        if self.char_eq('='):
+        if self.current_character == '=':
             type = TOKENS['EDIV']
             self.advance()
 
-        elif self.char_eq('/'):
+        elif self.current_character == '/':
             type = TOKENS['FDIV']
             self.advance()
 
-        if type == TOKENS['FDIV'] and self.char_eq('='):
+        if type == TOKENS['FDIV'] and self.current_character == '=':
             type = TOKENS['EFDIV']
             self.advance()
 
@@ -607,7 +588,7 @@ class PysLexer(Pys):
 
         self.advance()
 
-        if self.char_eq('='):
+        if self.current_character == '=':
             type = TOKENS['EMOD']
             self.advance()
 
@@ -619,7 +600,7 @@ class PysLexer(Pys):
 
         self.advance()
 
-        if self.char_eq('='):
+        if self.current_character == '=':
             type = TOKENS['EAT']
             self.advance()
 
@@ -631,7 +612,7 @@ class PysLexer(Pys):
 
         self.advance()
 
-        if self.char_eq('='):
+        if self.current_character == '=':
             type = TOKENS['EAND']
             self.advance()
 
@@ -643,7 +624,7 @@ class PysLexer(Pys):
 
         self.advance()
 
-        if self.char_eq('='):
+        if self.current_character == '=':
             type = TOKENS['EOR']
             self.advance()
 
@@ -655,7 +636,7 @@ class PysLexer(Pys):
 
         self.advance()
 
-        if self.current_char == '=':
+        if self.current_character == '=':
             type = TOKENS['EXOR']
             self.advance()
 
@@ -667,10 +648,10 @@ class PysLexer(Pys):
 
         self.advance()
 
-        if self.char_eq('='):
+        if self.current_character == '=':
             type = TOKENS['CE']
             self.advance()
-        elif self.char_eq('!'):
+        elif self.current_character == '!':
             type = TOKENS['NCE']
             self.advance()
 
@@ -682,7 +663,7 @@ class PysLexer(Pys):
 
         self.advance()
 
-        if self.char_eq('='):
+        if self.current_character == '=':
             type = TOKENS['EE']
             self.advance()
 
@@ -694,7 +675,7 @@ class PysLexer(Pys):
 
         self.advance()
 
-        if self.char_ne('='):
+        if self.current_character != '=':
             self.advance()
             self.throw(self.index - 1, "expected '='")
 
@@ -707,14 +688,14 @@ class PysLexer(Pys):
 
         self.advance()
 
-        if self.char_eq('='):
+        if self.current_character == '=':
             type = TOKENS['LTE']
             self.advance()
-        elif self.char_eq('<'):
+        elif self.current_character == '<':
             type = TOKENS['LSHIFT']
             self.advance()
 
-        if type == TOKENS['LSHIFT'] and self.char_eq('='):
+        if type == TOKENS['LSHIFT'] and self.current_character == '=':
             type = TOKENS['ELSHIFT']
             self.advance()
 
@@ -726,14 +707,14 @@ class PysLexer(Pys):
 
         self.advance()
 
-        if self.char_eq('='):
+        if self.current_character == '=':
             type = TOKENS['GTE']
             self.advance()
-        elif self.char_eq('>'):
+        elif self.current_character == '>':
             type = TOKENS['RSHIFT']
             self.advance()
 
-        if type == TOKENS['RSHIFT'] and self.char_eq('='):
+        if type == TOKENS['RSHIFT'] and self.current_character == '=':
             type = TOKENS['ERSHIFT']
             self.advance()
 
@@ -745,7 +726,7 @@ class PysLexer(Pys):
 
         self.advance()
 
-        if self.char_eq('?'):
+        if self.current_character == '?':
             type = TOKENS['NULLISH']
             self.advance()
 
@@ -757,9 +738,9 @@ class PysLexer(Pys):
 
         self.advance()
 
-        while self.char_ne('\n'):
-            comment += self.current_char
+        while self.not_end_of_file() and self.current_character != '\n':
+            comment += self.current_character
             self.advance()
 
-        if self.allowed_comment_token:
+        if self.flags & COMMENT:
             self.add_token(TOKENS['COMMENT'], start, comment)

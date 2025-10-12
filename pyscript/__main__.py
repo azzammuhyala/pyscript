@@ -60,6 +60,7 @@ args = parser.parse_args()
 if args.highlight and args.file is None:
     parser.error("file path require")
 
+code = 0
 flags = DEFAULT
 
 if args.optimize:
@@ -113,9 +114,10 @@ if args.file is not None:
         code = handle_execute(result)
 
         if args.inspect:
-            pys_shell(flags=flags, future=result.future, symbol_table=result.context.symbol_table)
-        else:
-            exit(code)
+            code = pys_shell(
+                symbol_table=result.context.symbol_table,
+                flags=result.flags
+            )
 
 elif args.command is not None:
     file = PysFileBuffer(args.command)
@@ -123,16 +125,16 @@ elif args.command is not None:
     symtab = build_symbol_table(file)
     symtab.set('__name__', '__main__')
 
-    exit(
-        handle_execute(
-            pys_runner(
-                file=file,
-                mode='exec',
-                symbol_table=symtab,
-                flags=flags
-            )
+    code = handle_execute(
+        pys_runner(
+            file=file,
+            mode='exec',
+            symbol_table=symtab,
+            flags=flags
         )
     )
 
 else:
-    pys_shell(flags=flags)
+    code = pys_shell(flags=flags)
+
+sys.exit(code)

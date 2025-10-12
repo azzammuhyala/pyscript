@@ -10,7 +10,7 @@ from .parser import PysParser
 from .position import PysPosition
 from .results import PysExecuteResult
 from .symtab import PysSymbolTable
-from .utils import is_object_of, get_caller_locals, build_symbol_table, print_display
+from .utils import is_object_of, get_locals, build_symbol_table, print_display
 from .validator import PysValidator
 from .version import version
 
@@ -21,71 +21,78 @@ def pys_runner(
     mode,
     symbol_table,
     flags=DEFAULT,
-    future=DEFAULT,
     context_parent=None,
     context_parent_entry_position=None
 ):
+
     context = PysContext(
-        name='<program>',
         file=file,
+        name='<program>',
         symbol_table=symbol_table,
         parent=context_parent,
         parent_entry_position=context_parent_entry_position
     )
 
-    parser = None
+    result = PysExecuteResult(mode, flags, context)
 
     try:
 
         try:
-            lexer = PysLexer(file, context_parent, context_parent_entry_position)
+
+            lexer = PysLexer(
+                file=file,
+                flags=flags,
+                context_parent=context_parent,
+                context_parent_entry_position=context_parent_entry_position
+            )
+
             tokens, error = lexer.make_tokens()
-
             if error:
-                return PysExecuteResult(error, None, context, future)
+                return result.failure(error)
 
-            parser = PysParser(file, tokens, context_parent, context_parent_entry_position, future)
+            parser = PysParser(
+                file=file,
+                tokens=tokens,
+                flags=flags,
+                context_parent=context_parent,
+                context_parent_entry_position=context_parent_entry_position
+            )
+
             ast = parser.parse(None if mode == 'exec' else parser.expr)
-
             if ast.error:
-                return PysExecuteResult(ast.error, None, context, future)
+                return result.failure(ast.error)
 
-            validator = PysValidator(file, context_parent, context_parent_entry_position)
+            validator = PysValidator(
+                file=file,
+                context_parent=context_parent,
+                context_parent_entry_position=context_parent_entry_position
+            )
+
             error = validator.visit(ast.node)
-
             if error:
-                return PysExecuteResult(error, None, context, future)
+                return result.failure(error)
 
         except RecursionError:
-            return PysExecuteResult(
+            return result.failure(
                 PysException(
                     RecursionError("maximum recursion depth exceeded during complication"),
                     context,
                     PysPosition(file, 0, 0)
-                ),
-                None,
-                context,
-                future
+                )
             )
 
-        interpreter = PysInterpreter(flags)
-        result = interpreter.visit(ast.node, context)
+        result.flags = parser.flags
 
-        if result.error:
-            return PysExecuteResult(result.error, None, context, parser.future)
-        return PysExecuteResult(None, result.value, context, parser.future)
+        interpreter = PysInterpreter(result.flags)
+        interpreter_result = interpreter.visit(ast.node, context)
+
+        if interpreter_result.error:
+            return result.failure(interpreter_result.error)
+
+        return result.success(interpreter_result.value)
 
     except KeyboardInterrupt as e:
-        return PysExecuteResult(
-            PysException(
-                e,
-                context,
-                PysPosition(file, 0, 0)
-            ),
-            None,
-            context,
-            future if parser is None else parser.future
-        )
+        return result.failure(PysException(e, context, PysPosition(file, 0, 0)))
 
 def pys_exec(source, globals=None, flags=DEFAULT):
     """
@@ -104,7 +111,7 @@ def pys_exec(source, globals=None, flags=DEFAULT):
     file = PysFileBuffer(source)
 
     if globals is None:
-        globals = build_symbol_table(file, get_caller_locals(2))
+        globals = build_symbol_table(file, get_locals(2))
     elif isinstance(globals, dict):
         globals = build_symbol_table(file, globals)
     elif not isinstance(globals, PysSymbolTable):
@@ -143,7 +150,7 @@ def pys_eval(source, globals=None, flags=DEFAULT):
     file = PysFileBuffer(source)
 
     if globals is None:
-        globals = build_symbol_table(file, get_caller_locals(2))
+        globals = build_symbol_table(file, get_locals(2))
     elif isinstance(globals, dict):
         globals = build_symbol_table(file, globals)
     elif not isinstance(globals, PysSymbolTable):
@@ -165,9 +172,9 @@ def pys_eval(source, globals=None, flags=DEFAULT):
     elif result.error and not (flags & SILENT):
         raise result.error.exception
 
-    return result.result
+    return result.value
 
-def pys_shell(flags=DEFAULT, future=DEFAULT, symbol_table=None):
+def pys_shell(symbol_table=None, flags=DEFAULT):
     """
     Start an interactive PyScript shell.
     """
@@ -214,7 +221,7 @@ def pys_shell(flags=DEFAULT, future=DEFAULT, symbol_table=None):
             else:
                 text = input('>>> ')
                 if text == '!exit':
-                    break
+                    return 0
 
             next_line = False
             in_decorator = False
@@ -223,20 +230,20 @@ def pys_shell(flags=DEFAULT, future=DEFAULT, symbol_table=None):
             i = 0
 
             while i < len(text):
-                char = text[i]
+                character = text[i]
 
-                if char == '\\':
+                if character == '\\':
                     i += 1
-                    char = text[i:i+1]
+                    character = text[i:i+1]
 
-                    if char == '':
+                    if character == '':
                         next_line = True
                         break
 
-                    if in_string and char in '\'"':
+                    if in_string and character in '\'"':
                         i += 1
 
-                elif char in '\'"':
+                elif character in '\'"':
                     bind_3 = text[i:i+3]
 
                     if is_triple_string:
@@ -251,27 +258,27 @@ def pys_shell(flags=DEFAULT, future=DEFAULT, symbol_table=None):
                             is_triple_string = True
                             i += 2
 
-                        if in_string and string_prefix == char:
+                        if in_string and string_prefix == character:
                             in_string = False
                         else:
-                            string_prefix = char
+                            string_prefix = character
                             in_string = True
 
                 if not in_string:
 
-                    if char == '#':
+                    if character == '#':
                         break
 
-                    elif is_space and char == '@':
+                    elif is_space and character == '@':
                         in_decorator = True
 
-                    elif char in '([{':
+                    elif character in '([{':
                         parenthesis_level += 1
 
-                    elif char in ')]}':
+                    elif character in ')]}':
                         parenthesis_level -= 1
 
-                    if not char.isspace():
+                    if not character.isspace():
                         is_space = False
 
                 i += 1
@@ -288,17 +295,15 @@ def pys_shell(flags=DEFAULT, future=DEFAULT, symbol_table=None):
                     file=PysFileBuffer(full_text + text, '<pyscript-shell-{}>'.format(line)),
                     mode='exec',
                     symbol_table=symbol_table,
-                    flags=flags,
-                    future=future
+                    flags=flags
                 )
+
+                flags = result.flags
 
                 reset_next_line()
 
                 if result.error and is_object_of(result.error.exception, SystemExit):
-                    exit(result.error.exception.code)
-                    break
-
-                future = result.future
+                    return result.error.exception.code
 
                 code = handle_execute(result)
                 if code == 0:
@@ -306,7 +311,7 @@ def pys_shell(flags=DEFAULT, future=DEFAULT, symbol_table=None):
 
         except KeyboardInterrupt:
             reset_next_line()
-            print('\rKeyboardInterrupt. Type "exit" or "!exit" to exit the program. ', file=sys.stderr)
+            print('\rKeyboardInterrupt. Type "exit" or "!exit" to exit the program.', file=sys.stderr)
 
         except EOFError:
-            break
+            return 1

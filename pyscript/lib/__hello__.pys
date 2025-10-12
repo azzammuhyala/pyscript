@@ -1,5 +1,5 @@
-func hello()
+func main()
     print("Hello World!")
 
 if (__name__ == '__main__')
-    hello()
+    main()

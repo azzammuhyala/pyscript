@@ -1,15 +1,17 @@
 from .bases import Pys
-from .constants import TOKENS, KEYWORDS, DEFAULT, OPTIMIZE
+from .constants import TOKENS, KEYWORDS, PYTHON_EXTENSIONS, DEFAULT, OPTIMIZE
 from .context import PysContext
 from .exceptions import PysException
 from .handlers import handle_call, handle_exception
 from .nodes import PysSequenceNode, PysIdentifierNode, PysAttributeNode, PysSubscriptNode
 from .objects import PysFunction
-from .pysbuiltins import require, pyimport, ce, nce, increment, decrement
+from .pysbuiltins import ce, nce, increment, decrement
 from .results import PysRunTimeResult
 from .singletons import undefined
 from .symtab import PysClassSymbolTable
-from .utils import inplace_functions_map, keyword_identifiers_map, is_object_of, Iterable
+from .utils import inplace_functions_map, keyword_identifiers_map, get_closest, is_object_of, Iterable
+
+import os
 
 class PysInterpreter(Pys):
 
@@ -71,7 +73,7 @@ class PysInterpreter(Pys):
             if value is undefined:
                 closest_symbol = context.symbol_table.find_closest(node.token.value)
 
-                return result.failure(
+                result.failure(
                     PysException(
                         NameError(
                             "{!r} is not defined{}".format(
@@ -152,7 +154,7 @@ class PysInterpreter(Pys):
             for i, operand in enumerate(node.operations):
                 right = result.register(self.visit(node.expressions[i + 1], context))
                 if result.should_return():
-                    return result
+                    break
 
                 if operand.match(TOKENS['KEYWORD'], KEYWORDS['in']):
                     comparison = left in right
@@ -197,15 +199,9 @@ class PysInterpreter(Pys):
         if result.should_return():
             return result
 
-        if condition:
-            value = result.register(self.visit(node.valid, context))
-            if result.should_return():
-                return result
-
-        else:
-            value = result.register(self.visit(node.invalid, context))
-            if result.should_return():
-                return result
+        value = result.register(self.visit(node.valid if condition else node.invalid, context))
+        if result.should_return():
+            return result
 
         return result.success(value)
 
@@ -216,40 +212,29 @@ class PysInterpreter(Pys):
         if result.should_return():
             return result
 
+        return_right = True
+
         if node.operand.match(TOKENS['KEYWORD'], KEYWORDS['and']):
-            if left:
-                right = result.register(self.visit(node.right, context))
-                if result.should_return():
-                    return result
-
-                return result.success(right)
-
-            return result.success(left)
+            if not left:
+                return result.success(left)
 
         elif node.operand.match(TOKENS['KEYWORD'], KEYWORDS['or']):
-            if not left:
-                right = result.register(self.visit(node.right, context))
-                if result.should_return():
-                    return result
-
-                return result.success(right)
-
-            return result.success(left)
+            if left:
+                return result.success(left)
 
         elif node.operand.type == TOKENS['NULLISH']:
-            if left is None:
-                right = result.register(self.visit(node.right, context))
-                if result.should_return():
-                    return result
-
-                return result.success(right)
-
-            return result.success(left)
+            if left is not None:
+                return result.success(left)
 
         else:
-            right = result.register(self.visit(node.right, context))
-            if result.should_return():
-                return result
+            return_right = False
+
+        right = result.register(self.visit(node.right, context))
+        if result.should_return():
+            return result
+
+        if return_right:
+            return result.success(right)
 
         with handle_exception(result, context, node.position):
 
@@ -305,7 +290,6 @@ class PysInterpreter(Pys):
 
             elif node.operand.type in (TOKENS['INCREMENT'], TOKENS['DECREMENT']):
                 new_value = value
-
                 value = increment(value) if node.operand.type == TOKENS['INCREMENT'] else decrement(value)
 
                 result.register(self.visit_unpack_AssignNode(node.value, context, value))
@@ -326,12 +310,43 @@ class PysInterpreter(Pys):
         name, as_name = node.name
 
         with handle_exception(result, context, name.position):
-            handle_call(require, context, name.position, self.flags)
+            name_string = name.value
 
-            try:
-                module = require(name.value)
-            except ModuleNotFoundError:
-                module = pyimport(name.value)
+            file, extension = os.path.splitext(name_string)
+
+            if extension in PYTHON_EXTENSIONS:
+                name_string = file
+                use_python_package = True
+            else:
+                use_python_package = False
+
+            if not use_python_package:
+                require = context.symbol_table.get('require')
+
+                if require is undefined:
+                    use_python_package = True
+                else:
+                    handle_call(require, context, name.position, self.flags)
+                    try:
+                        module = require(name_string)
+                    except ModuleNotFoundError:
+                        use_python_package = True
+
+            if use_python_package:
+                pyimport = context.symbol_table.get('pyimport')
+
+                if pyimport is undefined:
+                    result.failure(
+                        PysException(
+                            NameError("'pyimport' is not defined"),
+                            context,
+                            node.position
+                        )
+                    )
+
+                else:
+                    handle_call(pyimport, context, name.position, self.flags)
+                    module = pyimport(name_string)
 
         if result.should_return():
             return result
@@ -344,7 +359,8 @@ class PysInterpreter(Pys):
 
             with handle_exception(result, context, name.position):
                 for package in all_packages:
-                    context.symbol_table.set(package, getattr(module, package))
+                    if package in module.__dict__:
+                        context.symbol_table.set(package, getattr(module, package))
 
             if result.should_return():
                 return result
@@ -363,10 +379,12 @@ class PysInterpreter(Pys):
                     return result
 
         elif not (name.type == TOKENS['STRING'] and as_name is None):
-            context.symbol_table.set(
-                (name if as_name is None else as_name).value,
-                module
-            )
+
+            with handle_exception(result, context, node.position):
+                context.symbol_table.set((name if as_name is None else as_name).value, module)
+
+            if result.should_return():
+                return result
 
         return result.success(None)
 
@@ -433,8 +451,14 @@ class PysInterpreter(Pys):
         result.register(self.visit(node.body, context))
 
         if node.catch_body and result.error:
+
             if node.error_variable:
-                context.symbol_table.set(node.error_variable.value, result.error.exception)
+
+                with handle_exception(result, node.error_variable.position):
+                    context.symbol_table.set(node.error_variable.value, result.error.exception)
+
+                if result.should_return():
+                    return result
 
             result.error = None
             result.register(self.visit(node.catch_body, context))
@@ -617,8 +641,9 @@ class PysInterpreter(Pys):
                 return result
 
         class_context = PysContext(
-            name=node.name.value,
             file=context.file,
+            name=node.name.value,
+            qualname=('' if context.qualname is None else context.qualname + '.') + node.name.value,
             symbol_table=PysClassSymbolTable(context.symbol_table),
             parent=context,
             parent_entry_position=node.position
@@ -630,6 +655,7 @@ class PysInterpreter(Pys):
 
         with handle_exception(result, context, node.position):
             cls = type(node.name.value, tuple(bases), class_context.symbol_table.symbols)
+            cls.__qualname__ = class_context.qualname
 
         if result.should_return():
             return result
@@ -645,7 +671,11 @@ class PysInterpreter(Pys):
             if result.should_return():
                 return result
 
-        context.symbol_table.set(node.name.value, cls)
+        with handle_exception(result, context, node.position):
+            context.symbol_table.set(node.name.value, cls)
+
+        if result.should_return():
+            return result
 
         return result.success(None)
 
@@ -668,6 +698,7 @@ class PysInterpreter(Pys):
 
         func = PysFunction(
             name=None if node.name is None else node.name.value,
+            qualname=context.qualname,
             parameters=parameters,
             body=node.body,
             position=node.position,
@@ -686,7 +717,12 @@ class PysInterpreter(Pys):
                 return result
 
         if node.name is not None:
-            context.symbol_table.set(node.name.value, func)
+
+            with handle_exception(result, context, node.position):
+                context.symbol_table.set(node.name.value, func)
+
+            if result.should_return():
+                return result
 
         return result.success(func)
 
@@ -700,15 +736,15 @@ class PysInterpreter(Pys):
         args = []
         kwargs = {}
 
-        for arg in node.args:
+        for argument in node.arguments:
 
-            if isinstance(arg, tuple):
-                kwargs[arg[0].value] = result.register(self.visit(arg[1], context))
+            if isinstance(argument, tuple):
+                kwargs[argument[0].value] = result.register(self.visit(argument[1], context))
                 if result.should_return():
                     return result
 
             else:
-                args.append(result.register(self.visit(arg, context)))
+                args.append(result.register(self.visit(argument, context)))
                 if result.should_return():
                     return result
 
@@ -744,17 +780,17 @@ class PysInterpreter(Pys):
                     success = context.symbol_table.remove(target.token.value)
 
                     if not success:
-                        closest_symbol = context.symbol_table.find_closest(target.token.value)
+                        closest_symbol = get_closest(context.symbol_table.symbols.keys(), target.token.value)
 
                         result.failure(
                             PysException(
                                 NameError(
-                                    "{!r} is not defined{}".format(
-                                        target.token.value,
-                                        '' if closest_symbol is None else ". Did you mean {!r}?".format(closest_symbol)
-                                    )
-                                    if context.symbol_table.get(target.token.value) is undefined else
-                                    "{!r} is not defined on local".format(target.token.value)
+                                    (
+                                        "{!r} is not defined".format(target.token.value)
+                                        if context.symbol_table.get(target.token.value) is undefined else
+                                        "{!r} is not defined on local".format(target.token.value)
+                                    ) +
+                                    ('' if closest_symbol is None else ". Did you mean {!r}?".format(closest_symbol))
                                 ),
                                 context,
                                 target.position
@@ -974,15 +1010,16 @@ class PysInterpreter(Pys):
                 success = context.symbol_table.set(node.token.value, value, operand)
 
                 if not success:
-                    closest_symbol = context.symbol_table.find_closest(node.token.value)
+                    closest_symbol = get_closest(context.symbol_table.symbols.keys(), node.token.value)
 
                     result.failure(
                         PysException(
                             NameError(
-                                "{!r} is not defined{}".format(
-                                    node.token.value,
-                                    '' if closest_symbol is None else ". Did you mean {!r}?".format(closest_symbol)
-                                )
+                                (
+                                    "{!r} is not defined".format(node.token.value)
+                                    if context.symbol_table.get(node.token.value) is undefined else
+                                    "{!r} is not defined on local".format(node.token.value)
+                                ) + ('' if closest_symbol is None else ". Did you mean {!r}?".format(closest_symbol))
                             ),
                             context,
                             node.position

@@ -1,19 +1,19 @@
-from .objects import PysModule, PysChainFunction
+from .objects import PysModule, PysPythonFunction
 from .utils import is_object_of as isobjectof
 
 from importlib import import_module as pyimport
 
 class _Printer:
 
-    def __init__(self, name, content):
+    def __init__(self, name, text):
         self.name = name
-        self.content = content
+        self.text = text
 
     def __repr__(self):
         return 'Type {}() to see the full information text.'.format(self.name)
 
     def __call__(self):
-        print(self.content)
+        print(self.text)
 
 license = _Printer(
     'license',
@@ -23,7 +23,7 @@ license = _Printer(
     "For more information see on https://github.com/azzammuhyala/pyscript."
 )
 
-def require(chain, name):
+def require(pyfunc, name):
     from .buffer import PysFileBuffer
     from .cache import loading_modules, library, modules
     from .constants import LIBRARY_PATH
@@ -33,7 +33,7 @@ def require(chain, name):
     import os
 
     name = to_str(name)
-    dirname = os.path.dirname(chain.__code__.context.file.name) or os.getcwd()
+    dirname = os.path.dirname(pyfunc.__code__.context.file.name) or os.getcwd()
 
     if name == '_pyscript':
         from .. import core
@@ -60,7 +60,7 @@ def require(chain, name):
     if path in loading_modules:
         raise ImportError(
             "cannot import module name {!r} from partially initialized module {!r}, mostly during circular import"
-            .format(filename, chain.__code__.context.file.name)
+            .format(filename, pyfunc.__code__.context.file.name)
         )
 
     loading_modules.add(path)
@@ -84,10 +84,10 @@ def require(chain, name):
             result = pys_runner(
                 file=file,
                 mode='exec',
-                flags=chain.__code__.flags,
+                flags=pyfunc.__code__.flags,
                 symbol_table=symtab,
-                context_parent=chain.__code__.context,
-                context_parent_entry_position=chain.__code__.position
+                context_parent=pyfunc.__code__.context,
+                context_parent_entry_position=pyfunc.__code__.position
             )
 
             if result.error:
@@ -102,8 +102,8 @@ def require(chain, name):
         if path in loading_modules:
             loading_modules.remove(path)
 
-def globals(chain):
-    symbol_table = chain.__code__.context.symbol_table.parent
+def globals(pyfunc):
+    symbol_table = pyfunc.__code__.context.symbol_table.parent
 
     if symbol_table:
         result = {}
@@ -115,28 +115,26 @@ def globals(chain):
         return result
 
     else:
-        return chain.__code__.context.symbol_table.symbols
+        return pyfunc.__code__.context.symbol_table.symbols
 
-def locals(chain):
-    return chain.__code__.context.symbol_table.symbols
+def locals(pyfunc):
+    return pyfunc.__code__.context.symbol_table.symbols
 
-def vars(chain, object=None):
+def vars(pyfunc, object=None):
     if object is None:
-        return chain.__code__.context.symbol_table.symbols
+        return pyfunc.__code__.context.symbol_table.symbols
 
     from builtins import vars
-
     return vars(object)
 
-def dir(chain, *args):
+def dir(pyfunc, *args):
     if len(args) == 0:
-        return sorted(chain.__code__.context.symbol_table.symbols.keys())
+        return sorted(pyfunc.__code__.context.symbol_table.symbols.keys())
 
     from builtins import dir
-
     return dir(*args)
 
-def exec(chain, source, globals=None):
+def exec(pyfunc, source, globals=None):
     if not isinstance(globals, (type(None), dict)):
         raise TypeError("exec(): globals must be dict")
 
@@ -149,10 +147,10 @@ def exec(chain, source, globals=None):
     result = pys_runner(
         file=file,
         mode='exec',
-        flags=chain.__code__.flags,
-        symbol_table=chain.__code__.context.symbol_table if globals is None else build_symbol_table(file, globals),
-        context_parent=chain.__code__.context,
-        context_parent_entry_position=chain.__code__.position
+        flags=pyfunc.__code__.flags,
+        symbol_table=pyfunc.__code__.context.symbol_table if globals is None else build_symbol_table(file, globals),
+        context_parent=pyfunc.__code__.context,
+        context_parent_entry_position=pyfunc.__code__.position
     )
 
     if result.error:
@@ -161,7 +159,7 @@ def exec(chain, source, globals=None):
 
         raise PysShouldReturn(PysRunTimeResult().failure(result.error))
 
-def eval(chain, source, globals=None):
+def eval(pyfunc, source, globals=None):
     if not isinstance(globals, (type(None), dict)):
         raise TypeError("eval(): globals must be dict")
 
@@ -174,10 +172,10 @@ def eval(chain, source, globals=None):
     result = pys_runner(
         file=file,
         mode='eval',
-        flags=chain.__code__.flags,
-        symbol_table=chain.__code__.context.symbol_table if globals is None else build_symbol_table(file, globals),
-        context_parent=chain.__code__.context,
-        context_parent_entry_position=chain.__code__.position
+        flags=pyfunc.__code__.flags,
+        symbol_table=pyfunc.__code__.context.symbol_table if globals is None else build_symbol_table(file, globals),
+        context_parent=pyfunc.__code__.context,
+        context_parent_entry_position=pyfunc.__code__.position
     )
 
     if result.error:
@@ -186,7 +184,7 @@ def eval(chain, source, globals=None):
 
         raise PysShouldReturn(PysRunTimeResult().failure(result.error))
 
-    return result.result
+    return result.value
 
 def ce(a, b, *, rel_tol=1e-9, abs_tol=0):
     if isinstance(a, (int, float)) and isinstance(b, (int, float)):
@@ -223,7 +221,6 @@ def nce(a, b, *, rel_tol=1e-9, abs_tol=0):
             success, result = supported_method(a, '__ce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
             if not success:
                 success, result = supported_method(b, '__ce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
-
             result = not result
 
     if not success:
@@ -243,7 +240,6 @@ def increment(object):
     from .utils import supported_method
 
     success, result = supported_method(object, '__increment__')
-
     if not success:
         raise TypeError("unsupported operand type(s) for ++ or increment(): {!r}".format(type(object).__name__))
 
@@ -256,7 +252,6 @@ def decrement(object):
     from .utils import supported_method
 
     success, result = supported_method(object, '__decrement__')
-
     if not success:
         raise TypeError("unsupported operand type(s) for -- or decrement(): {!r}".format(type(object).__name__))
 
@@ -270,13 +265,13 @@ def comprehension(init, wrap, condition=None):
 
     return map(wrap, init if condition is None else filter(condition, init))
 
-require = PysChainFunction(require)
-globals = PysChainFunction(globals)
-locals = PysChainFunction(locals)
-vars = PysChainFunction(vars)
-dir = PysChainFunction(dir)
-exec = PysChainFunction(exec)
-eval = PysChainFunction(eval)
+require = PysPythonFunction(require)
+globals = PysPythonFunction(globals)
+locals = PysPythonFunction(locals)
+vars = PysPythonFunction(vars)
+dir = PysPythonFunction(dir)
+exec = PysPythonFunction(exec)
+eval = PysPythonFunction(eval)
 
 pys_builtins = PysModule(
     'built-in',
@@ -303,12 +298,11 @@ pys_builtins.decrement = decrement
 pys_builtins.comprehension = comprehension
 pys_builtins.isobjectof = isobjectof
 
-import builtins
-
 _blacklist = {'compile', 'copyright', 'credits', 'dir', 'eval', 'exec', 'globals', 'license', 'locals', 'vars'}
 
+import builtins
 for name in dir(builtins):
     if not (name.startswith('_') or name in _blacklist):
         setattr(pys_builtins, name, getattr(builtins, name))
 
-del builtins, PysModule, PysChainFunction, _Printer, _blacklist, name
+del builtins, PysModule, PysPythonFunction, _Printer, _blacklist, name

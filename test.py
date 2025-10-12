@@ -1,8 +1,8 @@
-import pyscript
-
 source = """
 
 """
+
+import pyscript
 
 from subprocess import run
 from html import escape
@@ -15,7 +15,7 @@ def pyscript_tester():
 
 def pyscript_doc():
     formatter = pyscript.core.highlight._HighlightFormatter(
-        lambda position, content: pyscript.core.utils.sanitize_newline('<br>', escape(content)),
+        lambda position, content: '<br>'.join(escape(content).splitlines()),
         lambda position, type: '<span id="{}">'.format(type),
         lambda position, type: '</span>',
         lambda position: '<br>'
@@ -28,5 +28,4 @@ def pyscript_doc():
     )
 
 if __name__ == '__main__':
-    pyscript_tester()
-    pyscript_doc()
+    pass

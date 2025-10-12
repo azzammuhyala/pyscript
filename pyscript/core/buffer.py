@@ -23,9 +23,3 @@ class PysFileBuffer(PysBuffer):
 
     def __repr__(self):
         return '<FileBuffer from {!r}>'.format(self.name)
-
-class PysCode(PysBuffer):
-
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)

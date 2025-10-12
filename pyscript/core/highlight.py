@@ -1,10 +1,10 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
-from .constants import TOKENS, KEYWORDS, HIGHLIGHT, DEFAULT, SILENT
+from .constants import TOKENS, KEYWORDS, HIGHLIGHT, SILENT, COMMENT
 from .lexer import PysLexer
 from .position import PysPosition
 from .pysbuiltins import pys_builtins
-from .utils import parenthesises_map, sanitize_newline
+from .utils import parenthesises_map
 
 from html import escape as html_escape
 
@@ -19,10 +19,7 @@ class _HighlightFormatter(Pys):
         self._type = 'start'
         self._open = False
 
-    def __call__(self, *args, **kwargs):
-        return self.formater(*args, **kwargs)
-
-    def formater(self, type, position, content):
+    def __call__(self, type, position, content):
         contented = self.content_block(position, content)
         result = ''
 
@@ -37,6 +34,8 @@ class _HighlightFormatter(Pys):
             if self._open:
                 result += self.close_block(position, self._type)
                 self._open = False
+
+            type = 'start'
 
         elif type == self._type and self._open:
             result += contented
@@ -63,20 +62,20 @@ def _ansi_open_block(position, type):
     )
 
 HLFMT_HTML = _HighlightFormatter(
-    lambda position, content: sanitize_newline('<br>', html_escape(content)),
+    lambda position, content: '<br>'.join(html_escape(content).splitlines()),
     lambda position, type: '<span style="color:{}">'.format(HIGHLIGHT.get(type, 'default')),
     lambda position, type: '</span>',
     lambda position: '<br>'
 )
 
 HLFMT_ANSI = _HighlightFormatter(
-    lambda position, content: sanitize_newline('\n', content),
+    lambda position, content: content,
     _ansi_open_block,
     lambda position, type: '\x1b[0m',
     lambda position: '\n'
 )
 
-def pys_highlight(source, format=None, max_parenthesis_level=3, flags=DEFAULT):
+def pys_highlight(source, format=None, max_parenthesis_level=3, flags=COMMENT):
     """
     Highlight a PyScript code from source given.
 
@@ -103,7 +102,10 @@ def pys_highlight(source, format=None, max_parenthesis_level=3, flags=DEFAULT):
     elif max_parenthesis_level < 0:
         raise ValueError("pys_highlight(): max_parenthesis_level must be grather than 0")
 
-    lexer = PysLexer(file, allowed_comment_token=True)
+    if not isinstance(flags, int):
+        raise TypeError("pys_highlight(): flags must be integer")
+
+    lexer = PysLexer(file=file, flags=flags)
     tokens, error = lexer.make_tokens()
 
     if error and not (flags & SILENT):

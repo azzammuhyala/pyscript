@@ -128,9 +128,13 @@ HIGHLIGHT = {
     'comment': '#549952'
 }
 
+# python extensions file
+PYTHON_EXTENSIONS = {'.ipy', '.py', '.pyc', '.pyi', '.pyo', '.pyp', '.pyw', '.pyz', '.pyproj', '.rpy', '.xpy'}
+
 # flags
 DEFAULT = 0
 OPTIMIZE = 1 << 1
 SILENT = 1 << 2
 RETRES = 1 << 3
-REVERSE_POW_XOR = 1 << 25
+COMMENT = 1 << 4
+REVERSE_POW_XOR = 1 << 20

@@ -22,7 +22,6 @@ class PysValidator(Pys):
             self.error = PysException(
                 SyntaxError(message),
                 PysContext(
-                    name=None,
                     file=self.file,
                     parent=self.context,
                     parent_entry_position=self.context_parent_entry_position
@@ -105,7 +104,7 @@ class PysValidator(Pys):
             if not isinstance(node.value, (PysIdentifierNode, PysAttributeNode, PysSubscriptNode)):
                 self.throw(
                     "cannot {} literal".format('increase' if node.operand.type == TOKENS['INCREMENT'] else 'decrease'),
-                    node.position
+                    node.value.position
                 )
                 return
 
@@ -290,7 +289,7 @@ class PysValidator(Pys):
 
         names = set()
 
-        for element in node.args:
+        for element in node.arguments:
             value = element
 
             if isinstance(element, tuple):

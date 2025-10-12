@@ -10,12 +10,12 @@ from .utils import parenthesises_sequence_map, parenthesises_map
 
 class PysParser(Pys):
 
-    def __init__(self, file, tokens, context_parent=None, context_parent_entry_position=None, future=DEFAULT):
+    def __init__(self, file, tokens, flags=DEFAULT, context_parent=None, context_parent_entry_position=None):
         self.file = file
         self.tokens = tokens
+        self.flags = flags
         self.context = context_parent
         self.context_parent_entry_position = context_parent_entry_position
-        self.future = future
 
         self.token_index = -1
         self.parenthesis_level = 0
@@ -38,7 +38,6 @@ class PysParser(Pys):
         return PysException(
             SyntaxError(message),
             PysContext(
-                name=None,
                 file=self.file,
                 parent=self.context,
                 parent_entry_position=self.context_parent_entry_position
@@ -221,7 +220,7 @@ class PysParser(Pys):
                     self.current_token.position,
                     'reversed'
                 )
-                if self.future & REVERSE_POW_XOR and self.current_token.type in (TOKENS['EPOW'], TOKENS['EXOR']) else
+                if self.flags & REVERSE_POW_XOR and self.current_token.type in (TOKENS['EPOW'], TOKENS['EXOR']) else
                 self.current_token
             )
 
@@ -329,7 +328,7 @@ class PysParser(Pys):
             self.arith,
             (
                 TOKENS['AND'], TOKENS['OR'],
-                TOKENS['POW'] if self.future & REVERSE_POW_XOR else TOKENS['XOR'],
+                TOKENS['POW'] if self.flags & REVERSE_POW_XOR else TOKENS['XOR'],
                 TOKENS['LSHIFT'], TOKENS['RSHIFT']
             ),
             is_bitwise=True
@@ -374,10 +373,10 @@ class PysParser(Pys):
         if result.error:
             return result
 
-        if self.current_token.type == (TOKENS['XOR'] if self.future & REVERSE_POW_XOR else TOKENS['POW']):
+        if self.current_token.type == (TOKENS['XOR'] if self.flags & REVERSE_POW_XOR else TOKENS['POW']):
             operand = (
                 PysToken(TOKENS['POW'], self.current_token.position, 'reversed')
-                    if self.future & REVERSE_POW_XOR else
+                    if self.flags & REVERSE_POW_XOR else
                 self.current_token
             )
 
@@ -431,39 +430,39 @@ class PysParser(Pys):
                 self.advance()
                 self.skip(result)
 
-                seen_kwargs = False
-                args = []
+                seen_keyword_argument = False
+                arguments = []
 
                 while self.current_token.type not in parenthesises_map.values():
 
-                    arg_or_keyword = result.register(self.expr(), True)
+                    argument_or_keyword = result.register(self.expr(), True)
                     if result.error:
                         return result
 
                     if self.current_token.type == TOKENS['EQ']:
-                        if not isinstance(arg_or_keyword, PysIdentifierNode):
+                        if not isinstance(argument_or_keyword, PysIdentifierNode):
                             return result.failure(
-                                self.error("expected identifier (before '=')", arg_or_keyword.position)
+                                self.error("expected identifier (before '=')", argument_or_keyword.position)
                             )
 
                         result.register_advancement()
                         self.advance()
                         self.skip(result)
 
-                        seen_kwargs = True
+                        seen_keyword_argument = True
 
-                    elif seen_kwargs:
+                    elif seen_keyword_argument:
                         return result.failure(self.error("expected '=' (follows keyword argument)"))
 
-                    if seen_kwargs:
+                    if seen_keyword_argument:
                         value = result.register(self.expr(), True)
                         if result.error:
                             return result
 
-                        args.append((arg_or_keyword.token, value))
+                        arguments.append((argument_or_keyword.token, value))
 
                     else:
-                        args.append(arg_or_keyword)
+                        arguments.append(argument_or_keyword)
 
                     self.skip(result)
 
@@ -485,7 +484,7 @@ class PysParser(Pys):
 
                 self.skip_expr(result)
 
-                node = PysCallNode(node, args, PysPosition(self.file, start, end))
+                node = PysCallNode(node, arguments, PysPosition(self.file, start, end))
                 start = self.current_token.position.start
 
             elif self.current_token.type == TOKENS['LSQUARE']:
@@ -1519,7 +1518,7 @@ class PysParser(Pys):
         self.advance()
         self.skip(result)
 
-        seen_kwargs = False
+        seen_keyword_argument = False
         parameters = []
 
         while self.current_token.type not in parenthesises_map.values():
@@ -1538,12 +1537,12 @@ class PysParser(Pys):
                 self.advance()
                 self.skip(result)
 
-                seen_kwargs = True
+                seen_keyword_argument = True
 
-            elif seen_kwargs:
+            elif seen_keyword_argument:
                 return result.failure(self.error("expected '=' (follows keyword argument)"))
 
-            if seen_kwargs:
+            if seen_keyword_argument:
                 value = result.register(self.expr(), True)
                 if result.error:
                     return result
@@ -1787,7 +1786,7 @@ class PysParser(Pys):
         while self.current_token.type in operators or (self.current_token.type, self.current_token.value) in operators:
             operand = (
                 PysToken(TOKENS['XOR'], self.current_token.position, 'reversed')
-                    if is_bitwise and self.future & REVERSE_POW_XOR and self.current_token.type == TOKENS['POW'] else
+                    if is_bitwise and self.flags & REVERSE_POW_XOR and self.current_token.type == TOKENS['POW'] else
                 self.current_token
             )
 
@@ -1859,7 +1858,7 @@ class PysParser(Pys):
             return result.failure(self.error("not a chance"))
 
         elif name == 'reverse_pow_xor':
-            self.future |= REVERSE_POW_XOR
+            self.flags |= REVERSE_POW_XOR
             return result.success(False)
 
         return result.failure(self.error("future feature {} is not defined".format(name)))
