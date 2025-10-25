@@ -5,7 +5,7 @@ PYSCRIPT_PATH = os.path.sep.join(__file__.split(os.path.sep)[:-2])
 LIBRARY_PATH = os.path.join(PYSCRIPT_PATH, 'lib')
 
 # tokens offset
-DOUBLE = 0xFF
+DOUBLE = 0xFF * 1
 TRIPLE = 0xFF * 2
 WITH_EQ = 0xFF * 3
 SPECIAL = 0xFF * 4
@@ -17,6 +17,8 @@ TOKENS = {
     'IDENTIFIER': 2,
     'NUMBER': 3,
     'STRING': 4,
+    'NOTIN': 5,
+    'ISNOT': 6,
     'PLUS': ord('+'),
     'MINUS': ord('-'),
     'MUL': ord('*'),
@@ -33,6 +35,8 @@ TOKENS = {
     'RSHIFT': ord('>') + DOUBLE,
     'INCREMENT': ord('+') + DOUBLE,
     'DECREMENT': ord('-') + DOUBLE,
+    'CAND': ord('&') + DOUBLE,
+    'COR': ord('|') + DOUBLE,
     'LPAREN': ord('('),
     'RPAREN': ord(')'),
     'LSQUARE': ord('['),
@@ -69,9 +73,7 @@ TOKENS = {
     'ELLIPSIS': ord('.') + TRIPLE,
     'SEMICOLON': ord(';'),
     'NEWLINE': ord('\n'),
-    'COMMENT': ord('#'),
-    'NOTIN': 5,
-    'ISNOT': 6
+    'COMMENT': ord('#')
 }
 
 # keywords
@@ -79,6 +81,9 @@ KEYWORDS = {
     'False': 'False',
     'None': 'None',
     'True': 'True',
+    'false': 'false',
+    'none': 'none',
+    'true': 'true',
     'and': 'and',
     'as': 'as',
     'assert': 'assert',
@@ -96,6 +101,7 @@ KEYWORDS = {
     'for': 'for',
     'from': 'from',
     'func': 'func',
+    'global': 'global',
     'if': 'if',
     'import': 'import',
     'in': 'in',
@@ -133,8 +139,8 @@ PYTHON_EXTENSIONS = {'.ipy', '.py', '.pyc', '.pyi', '.pyo', '.pyp', '.pyw', '.py
 
 # flags
 DEFAULT = 0
-OPTIMIZE = 1 << 1
-SILENT = 1 << 2
-RETRES = 1 << 3
-COMMENT = 1 << 4
-REVERSE_POW_XOR = 1 << 20
+OPTIMIZE = 1 << 0
+SILENT = 1 << 1
+RETRES = 1 << 2
+COMMENT = 1 << 3
+REVERSE_POW_XOR = 1 << 10

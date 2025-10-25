@@ -1,5 +1,4 @@
-from .cache import library, hook
-from .constants import LIBRARY_PATH, TOKENS, KEYWORDS
+from .constants import TOKENS, KEYWORDS
 
 try:
     from collections.abc import Iterable
@@ -31,9 +30,9 @@ inplace_functions_map = {
 }
 
 keyword_identifiers_map = {
-    KEYWORDS['True']: True,
-    KEYWORDS['False']: False,
-    KEYWORDS['None']: None
+    KEYWORDS['true']: True,
+    KEYWORDS['false']: False,
+    KEYWORDS['none']: None
 }
 
 parenthesises_sequence_map = {
@@ -49,59 +48,62 @@ parenthesises_map = {
     TOKENS['LBRACE']: TOKENS['RBRACE']
 }
 
-def to_str(object):
-    if isinstance(object, str):
-        return object.replace('\r\n', '\n')
+left_parenthesises = set(parenthesises_map.keys())
+right_parenthesises = set(parenthesises_map.values())
+parenthesises = left_parenthesises | right_parenthesises
 
-    elif isinstance(object, (bytes, bytearray)):
-        return to_str(object.decode(detect_encoding(object), 'surrogatepass'))
+highlight_keyword_identifiers = {
+    KEYWORDS['of'], KEYWORDS['in'], KEYWORDS['is'],
+    KEYWORDS['and'], KEYWORDS['or'], KEYWORDS['not'],
+    KEYWORDS['False'], KEYWORDS['None'], KEYWORDS['True'],
+    KEYWORDS['false'], KEYWORDS['none'], KEYWORDS['true']
+}
 
-    elif isinstance(object, IOBase):
-        if not object.readable():
+builtins_blacklist = {'compile', 'copyright', 'credits', 'dir', 'eval', 'exec', 'globals', 'license', 'locals', 'vars'}
+
+def to_str(obj):
+    if isinstance(obj, str):
+        return obj.replace('\r\n', '\n').replace('\r', '\n')
+
+    elif isinstance(obj, (bytes, bytearray)):
+        return to_str(obj.decode(detect_encoding(obj), 'surrogatepass'))
+
+    elif isinstance(obj, IOBase):
+        if not obj.readable():
             raise TypeError("unreadable IO")
-        return to_str(object.read())
+        return to_str(obj.read())
 
-    elif isinstance(object, BaseException):
-        return to_str(str(object))
+    elif isinstance(obj, BaseException):
+        return to_str(str(obj))
 
-    elif isinstance(object, type) and issubclass(object, BaseException):
+    elif isinstance(obj, type) and issubclass(obj, BaseException):
         return ''
 
     raise TypeError('not a string')
 
-def join_with_conjunction(sequence, func=None, conjunction='and'):
-    if func is None:
-        func = to_str
+def join_with_conjunction(iterable, func=to_str, conjunction='and'):
+    sequence = list(map(func, iterable))
+    length = len(sequence)
 
-    if len(sequence) == 1:
-        return func(sequence[0])
-    elif len(sequence) == 2:
-        return func(sequence[0]) + ' ' + conjunction + ' ' + func(sequence[1])
+    if length == 1:
+        return sequence[0]
+    elif length == 2:
+        return '{} {} {}'.format(sequence[0], conjunction, sequence[1])
 
-    result = ''
-
-    for i, element in enumerate(sequence):
-        if i == len(sequence) - 1:
-            result += conjunction + ' ' + func(element)
-        else:
-            result += func(element) + ', '
-
-    return result
+    return '{}, {} {}'.format(', '.join(sequence[:-1]), conjunction, sequence[-1])
 
 def space_indent(string, length):
-    result = ''
     prefix = ' ' * length
-
-    for line in to_str(string).splitlines(True):
-        result += prefix + line
-
-    return result
+    return '\n'.join(prefix + line for line in to_str(string).splitlines())
 
 def normalize_path(*paths, absolute=True):
     path = os.path.normpath(os.path.sep.join(map(to_str, paths)))
     if absolute:
         return os.path.abspath(path)
     return path
+
+def is_object_of(obj, class_or_tuple):
+    return isinstance(obj, class_or_tuple) or (isinstance(obj, type) and issubclass(obj, class_or_tuple))
 
 def get_similarity_ratio(string1, string2):
     string1 = [char for char in string1.lower() if not char.isspace()]
@@ -135,10 +137,8 @@ def get_locals(deep=1):
 
     return (frame.f_locals if isinstance(frame.f_locals, dict) else dict(frame.f_locals)) if frame else {}
 
-def is_object_of(obj, class_or_tuple):
-    return isinstance(obj, class_or_tuple) or (isinstance(obj, type) and issubclass(obj, class_or_tuple))
-
-def supported_method(object, name, *args, **kwargs):
+def supported_method(pyfunc, object, name, *args, **kwargs):
+    from .handlers import handle_call
     from .singletons import undefined
 
     method = getattr(object, name, undefined)
@@ -146,6 +146,9 @@ def supported_method(object, name, *args, **kwargs):
         return False, None
 
     if callable(method):
+        code = pyfunc.__code__
+        handle_call(method, code.context, code.position)
+
         try:
             result = method(*args, **kwargs)
             if result is NotImplemented:
@@ -156,29 +159,6 @@ def supported_method(object, name, *args, **kwargs):
 
     return False, None
 
-def build_symbol_table(file, globals=None):
-    from .objects import PysModule
-    from .singletons import undefined
-    from .symtab import PysSymbolTable
-
-    symtab = PysSymbolTable()
-
-    symtab.module = PysModule(os.path.basename(file.name))
-
-    if globals is not None:
-        symtab.module.__dict__ = globals
-
-    symtab.symbols = symtab.module.__dict__
-
-    if symtab.get('__builtins__') is undefined:
-        from .pysbuiltins import pys_builtins
-        symtab.set('__builtins__', pys_builtins)
-
-    if globals is None:
-        symtab.set('__file__', file.name)
-
-    return symtab
-
 def print_display(value):
     if value is not None:
         print(repr(value))
@@ -186,11 +166,3 @@ def print_display(value):
 def print_traceback(exception):
     for line in exception.string_traceback().splitlines():
         print(line, file=sys.stderr)
-
-hook.exception = print_traceback
-
-try:
-    for lib in os.listdir(LIBRARY_PATH):
-        library.add(os.path.splitext(lib)[0])
-except BaseException as e:
-    print("Error: cannot load library folder {}: {}".format(LIBRARY_PATH, e), file=sys.stderr)

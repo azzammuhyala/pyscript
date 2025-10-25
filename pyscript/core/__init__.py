@@ -3,6 +3,7 @@ PyScript implementations.
 """
 
 from . import (
+    analyzer,
     bases,
     buffer,
     cache,
@@ -24,11 +25,11 @@ from . import (
     symtab,
     token,
     utils,
-    validator,
     version
 )
 
-__all__ = [
+__all__ = (
+    'analyzer',
     'bases',
     'buffer',
     'cache',
@@ -50,6 +51,5 @@ __all__ = [
     'symtab',
     'token',
     'utils',
-    'validator',
     'version'
-]
+)

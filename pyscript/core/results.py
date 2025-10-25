@@ -6,12 +6,13 @@ class PysResult(Pys):
 class PysParserResult(PysResult):
 
     def __init__(self):
-        self.error = None
-        self.node = None
-        self.fatal = False
         self.last_registered_advance_count = 0
         self.advance_count = 0
         self.to_reverse_count = 0
+        self.fatal = False
+
+        self.node = None
+        self.error = None
 
     def register_advancement(self):
         self.last_registered_advance_count += 1
@@ -20,8 +21,10 @@ class PysParserResult(PysResult):
     def register(self, result, require=False):
         self.last_registered_advance_count = result.advance_count
         self.advance_count += result.advance_count
-        self.error = result.error
         self.fatal = require or result.fatal
+
+        self.error = result.error
+
         return result.node
 
     def try_register(self, result):
@@ -46,19 +49,21 @@ class PysRunTimeResult(PysResult):
         self.reset()
 
     def reset(self):
-        self.value = None
-        self.error = None
+        self.should_continue = False
+        self.should_break = False
         self.func_return_value = None
         self.func_should_return = False
-        self.loop_should_continue = False
-        self.loop_should_break = False
+
+        self.value = None
+        self.error = None
 
     def register(self, result):
         self.error = result.error
+
+        self.should_continue = result.should_continue
+        self.should_break = result.should_break
         self.func_return_value = result.func_return_value
         self.func_should_return = result.func_should_return
-        self.loop_should_continue = result.loop_should_continue
-        self.loop_should_break = result.loop_should_break
 
         return result.value
 
@@ -75,12 +80,12 @@ class PysRunTimeResult(PysResult):
 
     def success_continue(self):
         self.reset()
-        self.loop_should_continue = True
+        self.should_continue = True
         return self
 
     def success_break(self):
         self.reset()
-        self.loop_should_break = True
+        self.should_break = True
         return self
 
     def failure(self, error):
@@ -92,19 +97,18 @@ class PysRunTimeResult(PysResult):
         return (
             self.error or
             self.func_should_return or
-            self.loop_should_continue or
-            self.loop_should_break
+            self.should_continue or
+            self.should_break
         )
 
 class PysExecuteResult(PysResult):
 
-    def __init__(self, mode, flags, context):
+    def __init__(self, mode, context):
         self.mode = mode
-        self.flags = flags
         self.context = context
 
-        self.error = None
         self.value = None
+        self.error = None
 
     def success(self, value):
         self.value = value

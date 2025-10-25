@@ -1,9 +1,10 @@
-from .cache import hook
 from .exceptions import PysException, PysShouldReturn
 from .objects import PysPythonFunction, PysFunction
 from .position import PysPosition
 from .results import PysRunTimeResult
 from .utils import is_object_of, print_traceback
+
+from . import cache
 
 from contextlib import contextmanager
 from types import MethodType
@@ -17,41 +18,41 @@ def handle_exception(result, context, position):
     except BaseException as e:
         result.failure(PysException(e, context, position))
 
-def handle_call(object, context, position, flags):
+def handle_call(object, context, position):
     if isinstance(object, PysFunction):
-        object.__code__.call_context = context
-        object.__code__.position = position
-        object.__code__.flags = flags
+        code = object.__code__
+        code.call_context = context
+        code.position = position
 
     elif isinstance(object, PysPythonFunction):
-        object.__code__.context = context
-        object.__code__.position = position
-        object.__code__.flags = flags
+        code = object.__code__
+        code.context = context
+        code.position = position
 
     elif isinstance(object, type):
         for call in ('__new__', '__init__'):
-            handle_call(getattr(object, call, None), context, position, flags)
+            handle_call(getattr(object, call, None), context, position)
 
     elif isinstance(object, MethodType):
-        handle_call(object.__func__, context, position, flags)
+        handle_call(object.__func__, context, position)
 
 def handle_execute(result):
     result_runtime = PysRunTimeResult()
 
-    with handle_exception(result_runtime, result.context, PysPosition(result.context.file, 0, 0)):
+    with handle_exception(result_runtime, result.context, PysPosition(result.context.file, -1, -1)):
 
         if result.error:
             if is_object_of(result.error.exception, SystemExit):
                 return result.error.exception.code
-            if hook.exception is not None:
-                hook.exception(result.error)
+            if cache.hook.exception is not None:
+                cache.hook.exception(result.error)
             return 1
 
-        elif hook.display is not None:
+        elif cache.hook.display is not None:
             if result.mode == 'exec' and len(result.value) == 1:
-                hook.display(result.value[0])
+                cache.hook.display(result.value[0])
             elif result.mode == 'eval':
-                hook.display(result.value)
+                cache.hook.display(result.value)
 
     if result_runtime.should_return():
         if result_runtime.error:

@@ -1,2 +1,4 @@
 class Pys:
-    pass
+    """
+    Base class for all PyScript objects.
+    """

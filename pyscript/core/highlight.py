@@ -4,7 +4,13 @@ from .constants import TOKENS, KEYWORDS, HIGHLIGHT, SILENT, COMMENT
 from .lexer import PysLexer
 from .position import PysPosition
 from .pysbuiltins import pys_builtins
-from .utils import parenthesises_map
+from .utils import (
+    parenthesises_map,
+    left_parenthesises,
+    right_parenthesises,
+    parenthesises,
+    highlight_keyword_identifiers
+)
 
 from html import escape as html_escape
 
@@ -20,7 +26,6 @@ class _HighlightFormatter(Pys):
         self._open = False
 
     def __call__(self, type, position, content):
-        contented = self.content_block(position, content)
         result = ''
 
         if type == 'newline':
@@ -38,14 +43,13 @@ class _HighlightFormatter(Pys):
             type = 'start'
 
         elif type == self._type and self._open:
-            result += contented
+            result += self.content_block(position, content)
 
         else:
             if self._open:
                 result += self.close_block(position, self._type)
 
-            result += self.open_block(position, type)
-            result += contented
+            result += self.open_block(position, type) + self.content_block(position, content)
 
             self._open = True
 
@@ -105,55 +109,59 @@ def pys_highlight(source, format=None, max_parenthesis_level=3, flags=COMMENT):
     if not isinstance(flags, int):
         raise TypeError("pys_highlight(): flags must be integer")
 
-    lexer = PysLexer(file=file, flags=flags)
-    tokens, error = lexer.make_tokens()
+    lexer = PysLexer(
+        file=file,
+        flags=flags
+    )
 
+    tokens, error = lexer.make_tokens()
     if error and not (flags & SILENT):
         raise error.exception
 
     result = ''
     last_index = 0
     parenthesis_level = 0
-
     parenthesises_level = {
         TOKENS['RPAREN']: 0,
         TOKENS['RSQUARE']: 0,
         TOKENS['RBRACE']: 0
     }
 
-    for i, token in enumerate(tokens):
+    text = file.text
 
-        if token.type in (TOKENS['RPAREN'], TOKENS['RSQUARE'], TOKENS['RBRACE']):
-            parenthesises_level[token.type] -= 1
+    for i, token in enumerate(tokens):
+        ttype = token.type
+
+        if ttype in right_parenthesises:
+            parenthesises_level[ttype] -= 1
             parenthesis_level -= 1
 
-        if token.type == TOKENS['EOF']:
+        if ttype == TOKENS['EOF']:
             type_fmt = 'end'
 
-        elif token.type == TOKENS['KEYWORD']:
-            type_fmt = 'keyword-identifier' if token.value in {
-                KEYWORDS['of'], KEYWORDS['in'], KEYWORDS['is'],
-                KEYWORDS['and'], KEYWORDS['or'], KEYWORDS['not'],
-                KEYWORDS['False'], KEYWORDS['None'], KEYWORDS['True']
-            } else 'keyword'
+        elif ttype == TOKENS['KEYWORD']:
+            type_fmt = 'keyword-identifier' if token.value in highlight_keyword_identifiers else 'keyword'
 
-        elif token.type == TOKENS['NUMBER']:
+        elif ttype == TOKENS['NUMBER']:
             type_fmt = 'number'
 
-        elif token.type == TOKENS['STRING']:
+        elif ttype == TOKENS['STRING']:
             type_fmt = 'string'
 
-        elif token.type == TOKENS['IDENTIFIER']:
+        elif ttype == TOKENS['IDENTIFIER']:
             obj = getattr(pys_builtins, token.value, None)
 
             if isinstance(obj, type):
                 type_fmt = 'identifier-class'
+
             elif callable(obj):
                 type_fmt = 'identifier-call'
+
             else:
                 type_fmt = 'identifier-const' if token.value.isupper() else 'identifier'
 
-                if (i + 1 < len(tokens) and tokens[i + 1].type == TOKENS['LPAREN']):
+                j = i + 1
+                if (j < len(tokens) and tokens[j].type == TOKENS['LPAREN']):
                     type_fmt = 'identifier-call'
 
                 j = i - 1
@@ -165,43 +173,38 @@ def pys_highlight(source, format=None, max_parenthesis_level=3, flags=COMMENT):
                 elif tokens[j].match(TOKENS['KEYWORD'], KEYWORDS['func']):
                     type_fmt = 'identifier-call'
 
-        elif token.type in (
-            TOKENS['RPAREN'], TOKENS['RSQUARE'], TOKENS['RBRACE'],
-            TOKENS['LPAREN'], TOKENS['LSQUARE'], TOKENS['LBRACE']
-        ):
+        elif ttype in parenthesises:
             type_fmt = 'parenthesis-{}'.format(
                 'unmatch'
                 if
-                    parenthesises_level[parenthesises_map.get(token.type, token.type)] < 0 or
+                    parenthesises_level[parenthesises_map.get(ttype, ttype)] < 0 or
                     parenthesis_level < 0
                 else
                 parenthesis_level % max_parenthesis_level
             )
 
-        elif token.type == TOKENS['NEWLINE']:
+        elif ttype == TOKENS['NEWLINE']:
             type_fmt = 'newline'
 
-        elif token.type == TOKENS['COMMENT']:
+        elif ttype == TOKENS['COMMENT']:
             type_fmt = 'comment'
 
         else:
             type_fmt = 'default'
 
-        space = file.text[last_index:token.position.start]
+        space = text[last_index:token.position.start]
         if space:
-            result += format('default', PysPosition(token.position.file, last_index, token.position.start), space)
+            result += format('default', PysPosition(file, last_index, token.position.start), space)
 
-        result += format(type_fmt, token.position, file.text[token.position.start:token.position.end])
+        result += format(type_fmt, token.position, text[token.position.start:token.position.end])
+
+        if ttype in left_parenthesises:
+            parenthesises_level[parenthesises_map[ttype]] += 1
+            parenthesis_level += 1
+
+        elif ttype == TOKENS['EOF']:
+            break
 
         last_index = token.position.end
 
-        if token.type in (TOKENS['LPAREN'], TOKENS['LSQUARE'], TOKENS['LBRACE']):
-            parenthesises_level[parenthesises_map[token.type]] += 1
-            parenthesis_level += 1
-
-        if token.type == TOKENS['EOF']:
-            break
-
     return result
-
-del _ansi_open_block

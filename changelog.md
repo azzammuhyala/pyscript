@@ -1,28 +1,29 @@
 # Change Log
 
-## [1.2.3] - 12-10-2025
+## [1.3.0] - 25-10-2025
 
 ### Added
-- `qualname` on `pyscript.core.context.PysContext`.
-- Flag `COMMENT` (replace `allowed_comment_token` on `pyscript.core.lexer.PysLexer`).
+- `pyscript.core.position.PysPosition.is_positionless()`, check a `PysPosition` object whether it has a position or not
+  (A position will be considered to exist if the `start` and `end` indexes are positive and `start` less than `end`).
+- `else` block in the `try` block. Executed when the `try` block succeeds without an exception.
+- `pyscript.core.parser.PysParser.incremental`, evaluates the increment `++`, and decrement `--` expressions right-hand
+  side operations.
+- `require('sys').executable`, shell executable.
+- `require('sys').hook.ps1`, a main string prompt on an interactive shell.
+- `require('sys').hook.ps2`, a continuation string prompt on an interactive shell.
+- Conditional expressions can be written directly without parentheses.
+- Keywords `true` (A.K.A `True`), `false` (A.K.A `False`), and `none` (A.K.A `None`).
+- Library `jsdict`, dict object that imitates an object (dictionary) in JavaScript.
+- Separate documentation.
+- Statement `global`, allows assign and delete the value of the outer variable scope.
 
 ### Fixed
-- `pyscript.__main__` improvements.
-- `pyscript.core.exceptions` improvements.
-- `pyscript.core.handlers` improvements.
-- `pyscript.core.objects` improvements.
-- `pyscript.core.buffer.PysCode` object are moved to `pyscript.core.objects`
-- `pyscript.core.interpreter.PysInterpreter` improvements.
+- Change name `pyscript.core.validator.PysValidator` to `pyscript.core.analyzer.PysAnalyzer`.
+- `flags` moved to `pyscript.core.context.PysContext`.
 - `pyscript.core.lexer.PysLexer` improvements.
+- `pyscript.core.interpreter.PysInterpreter` improvements and performances.
 - `pyscript.core.parser.PysParser` improvements.
-- `pyscript.core.position.PysPosition` improvements.
-- `pyscript.core.results.PysExecuteResult` improvements.
-- `pyscript.core.utils.format_highlighted_text_with_arrow` function are moved to `pyscript.core.position.PysPosition`
-  A.K.A function method with name `format_arrow`.
-- `pyscript.core.utils.generate_string_traceback` function are moved to `pyscript.core.exceptions.PysException`
-  A.K.A function method with name `string_traceback`.
-- Name changes on all objects in `pyscript.core.singletons`.
-
-### Removed
-- Function `pyscript.core.utils.get_line_column_by_index`
-- Function `pyscript.code.utils.sanitize_newline`.
+- `pyscript.core.objects` improvements.
+- `pyscript.core.pysbuiltins` improvements.
+- `pyscript.core.symtab.PysSymbolTable` improvements.
+- `pyscript.core.utils` improvements.

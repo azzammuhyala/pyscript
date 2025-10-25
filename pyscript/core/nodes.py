@@ -173,16 +173,17 @@ class PysSwitchNode(PysNode):
 
 class PysTryNode(PysNode):
 
-    def __init__(self, body, error_variable, catch_body, finally_body, position):
+    def __init__(self, body, error_variable, catch_body, else_body, finally_body, position):
         self.position = position
         self.body = body
         self.error_variable = error_variable
         self.catch_body = catch_body
+        self.else_body = else_body
         self.finally_body = finally_body
 
     def __repr__(self):
-        return 'Try(body={!r}, error_variable={!r}, catch_body={!r}, finally_body={!r})'.format(
-            self.body, self.error_variable, self.catch_body, self.finally_body
+        return 'Try(body={!r}, error_variable={!r}, catch_body={!r}, else_body={!r}, finally_body={!r})'.format(
+            self.body, self.error_variable, self.catch_body, self.else_body, self.finally_body
         )
 
 class PysForNode(PysNode):
@@ -264,6 +265,15 @@ class PysReturnNode(PysNode):
 
     def __repr__(self):
         return 'Return(value={!r})'.format(self.value)
+
+class PysGlobalNode(PysNode):
+
+    def __init__(self, names, position):
+        self.position = position
+        self.names = names
+
+    def __repr__(self):
+        return 'Global(names={!r})'.format(self.names)
 
 class PysDeleteNode(PysNode):
 

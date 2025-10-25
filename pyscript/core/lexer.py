@@ -30,6 +30,15 @@ class PysLexer(Pys):
             self.index -= amount
             self.update_current_char()
 
+    def not_end_of_file(self):
+        return self.current_character is not None
+
+    def character_in(self, characters):
+        return self.not_end_of_file() and self.current_character in characters
+
+    def character_are(self, string_method, *args, **kwargs):
+        return self.not_end_of_file() and getattr(self.current_character, string_method)(*args, **kwargs)
+
     def add_token(self, type, start=None, value=None):
         if self.error is None:
 
@@ -45,24 +54,17 @@ class PysLexer(Pys):
         if self.error is None:
             self.current_character = None
             self.tokens = []
+
             self.error = PysException(
                 SyntaxError(message),
                 PysContext(
                     file=self.file,
+                    flags=self.flags,
                     parent=self.context_parent,
                     parent_entry_position=self.context_parent_entry_position
                 ),
                 PysPosition(self.file, start, end or self.index)
             )
-
-    def not_end_of_file(self):
-        return self.current_character is not None
-
-    def character_in(self, characters):
-        return self.not_end_of_file() and self.current_character in characters
-
-    def character_are(self, string_method, *args, **kwargs):
-        return self.not_end_of_file() and getattr(self.current_character, string_method)(*args, **kwargs)
 
     def make_tokens(self):
         self.index = -1
@@ -195,23 +197,14 @@ class PysLexer(Pys):
 
         if self.current_character != '\n':
             self.advance()
-            self.throw(self.index - 1, "unexpected character after line continuation character")
+            self.throw(self.index - 1, "expected newline character")
 
         self.advance()
 
     def make_number(self):
         start = self.index
-        format = int
-        number = ''
-
-        is_scientific = False
-        is_complex = False
-        is_underscore = False
 
         if self.current_character == '.':
-            format = float
-            number = '.'
-
             self.advance()
 
             if self.file.text[self.index:self.index + 2] == '..':
@@ -223,6 +216,17 @@ class PysLexer(Pys):
             elif not self.character_in('0123456789'):
                 self.add_token(TOKENS['DOT'], start)
                 return
+
+            format = float
+            number = '.'
+
+        else:
+            format = int
+            number = ''
+
+        is_scientific = False
+        is_complex = False
+        is_underscore = False
 
         while self.character_in('0123456789'):
             number += self.current_character
@@ -281,8 +285,8 @@ class PysLexer(Pys):
             elif self.character_in('eE') and not is_scientific:
                 format = float
                 is_scientific = True
-                number += 'e'
 
+                number += 'e'
                 self.advance()
 
                 if self.character_in('+-'):
@@ -299,26 +303,24 @@ class PysLexer(Pys):
 
         if self.error is None:
 
-            def wrap(cls, *args):
-                result = cls(number, *args)
-                return complex(0, result) if is_complex else result
-
             if format is float:
-                self.add_token(TOKENS['NUMBER'], start, wrap(float))
-
+                result = float(number)
             elif format is str:
-                self.add_token(TOKENS['NUMBER'], start, wrap(int, base))
-
+                result = int(number, base)
             elif format is int:
-                self.add_token(TOKENS['NUMBER'], start, wrap(int))
+                result = int(number)
+
+            self.add_token(TOKENS['NUMBER'], start, complex(0, result) if is_complex else result)
 
     def make_string(self):
-        string = ''
         start = self.index
+        string = ''
+
         is_bytes = False
         is_raw = False
 
         if self.character_in('BRbr'):
+
             if self.character_in('Bb'):
                 is_bytes = True
                 self.advance()
@@ -342,29 +344,41 @@ class PysLexer(Pys):
         warning_displayed = False
         decoded_error_message = None
 
-        def decode_error(message):
+        def decode_error(is_unicode, start, end, message):
             nonlocal decoded_error_message
             if decoded_error_message is None:
-                decoded_error_message = message
+                decoded_error_message = (
+                    "(unicode error) 'unicodeescape' codec can't decode bytes in position {}-{}: {}"
+                    if is_unicode else
+                    "codec can't decode bytes in position {}-{}: {}"
+                ).format(start, end, message)
 
         self.advance()
 
         if is_triple_quote:
             self.advance()
             self.advance()
+            start_string = self.index
+
+        else:
+            start_string = self.index
 
         while self.not_end_of_file() and not (triple_quote() if is_triple_quote else self.character_in(prefix + '\n')):
 
             if self.current_character == '\\':
+                start_escape = self.index - start_string
+
                 self.advance()
 
                 if is_raw:
                     string += '\\'
+
                     if self.character_in('\\\'"\n'):
                         string += self.current_character
                         self.advance()
 
                 elif self.character_in('\\\'"nrtbfav\n'):
+
                     if self.character_in('\\\'"'):
                         string += self.current_character
                     elif self.current_character == 'n':
@@ -405,6 +419,8 @@ class PysLexer(Pys):
                         elif base == 'U':
                             length = 8
 
+                        end_escape = self.index - start_string
+
                         self.advance()
 
                         while self.character_in('0123456789ABCDEFabcdef') and len(escape) < length:
@@ -412,19 +428,30 @@ class PysLexer(Pys):
                             self.advance()
 
                         if len(escape) != length:
-                            decode_error("codec can't decode bytes, truncated \\{}{} escape".format(base, 'X' * length))
+                            decode_error(
+                                False, start_escape, end_escape,
+                                "truncated \\{}{} escape".format(base, 'X' * length)
+                            )
 
                         else:
                             try:
                                 string += chr(int(escape, 16))
-                            except:
-                                decode_error("codec can't decode bytes: illegal Unicode character")
+                            except (ValueError, OverflowError):
+                                decode_error(
+                                    False, start_escape, self.index - start_string,
+                                    "illegal Unicode character"
+                                )
 
                     elif self.current_character == 'N':
+                        end_escape = self.index - start_string
+
                         self.advance()
 
                         if self.current_character != '{':
-                            decode_error("malformed \\N character escape")
+                            decode_error(
+                                True, start_escape, end_escape,
+                                "malformed \\N character escape"
+                            )
                             continue
 
                         self.advance()
@@ -436,13 +463,19 @@ class PysLexer(Pys):
                         if self.current_character == '}':
                             try:
                                 string += unicode_lookup(escape)
-                            except:
-                                decode_error("codec can't decode bytes, unknown Unicode character name")
+                            except KeyError:
+                                decode_error(
+                                    True, start_escape, self.index - start_string,
+                                    "unknown Unicode character name"
+                                )
 
                             self.advance()
 
                         else:
-                            decode_error("malformed \\N character escape")
+                            decode_error(
+                                True, start_escape, end_escape,
+                                "malformed \\N character escape"
+                            )
 
                     else:
                         if not self.not_end_of_file():
@@ -477,10 +510,13 @@ class PysLexer(Pys):
                 self.advance()
                 self.advance()
 
-            try:
-                self.add_token(TOKENS['STRING'], start, string.encode('ascii') if is_bytes else string)
-            except:
-                self.throw(start, "invalid bytes literal")
+            if is_bytes:
+                try:
+                    string = string.encode('ascii')
+                except UnicodeEncodeError:
+                    self.throw(start, "invalid bytes literal")
+
+            self.add_token(TOKENS['STRING'], start, string)
 
     def make_identifier(self, as_identifier=False, start=None):
         start = start if as_identifier else self.index
@@ -616,6 +652,10 @@ class PysLexer(Pys):
             type = TOKENS['EAND']
             self.advance()
 
+        elif self.current_character == '&':
+            type = TOKENS['CAND']
+            self.advance()
+
         self.add_token(type, start)
 
     def make_or(self):
@@ -626,6 +666,10 @@ class PysLexer(Pys):
 
         if self.current_character == '=':
             type = TOKENS['EOR']
+            self.advance()
+
+        elif self.current_character == '|':
+            type = TOKENS['COR']
             self.advance()
 
         self.add_token(type, start)

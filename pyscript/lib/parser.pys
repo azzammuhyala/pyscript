@@ -1,4 +1,4 @@
-import _pyscript  # get module pyscript/core
+import _pyscript  # get a core from PyScript module (pyscript.core)
 
 # tokens offset
 DOUBLE = _pyscript.constants.DOUBLE
@@ -40,7 +40,7 @@ class Parser {
     }
 
     func ast(self, mode='exec') {
-        if (mode not in {'exec', 'eval'})
+        if mode not in {'exec', 'eval'}
             throw ValueError("ast() mode must be 'exec' or 'eval'")
 
         parser = _pyscript.parser.PysParser(
@@ -50,16 +50,19 @@ class Parser {
         )
 
         ast = parser.parse(mode == 'exec' ? None : parser.expr)
-        if (ast.error)
+        if ast.error
             throw ast.error.exception
 
         return ast.node
     }
 
-    func check(self, mode='exec') {
-        validator = _pyscript.validator.PysValidator(self.file)
+    func analyze(self, mode='exec') {
+        analyzer = _pyscript.analyzer.PysAnalyzer(
+            file=self.file,
+            flags=self.flags
+        )
 
-        error = validator.visit(self.ast(mode=mode))
+        error = analyzer.visit(self.ast(mode=mode))
         if error
             throw error.exception
     }
@@ -83,8 +86,8 @@ func tokenize(source, flags=DEFAULT)
 func ast(source, mode='exec', flags=DEFAULT)
     return Parser(source, flags).ast(mode=mode)
 
-func check(source, mode='exec', flags=DEFAULT)
-    return Parser(source, flags).check(mode=mode)
+func analyze(source, mode='exec', flags=DEFAULT)
+    return Parser(source, flags).analyze(mode=mode)
 
 func highlight(source, format=None, max_parenthesis_level=3, flags=COMMENT)
     return Parser(source, flags).highlight(format=format, max_parenthesis_level=max_parenthesis_level)

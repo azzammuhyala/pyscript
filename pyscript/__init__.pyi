@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Union, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, Literal, Union, Optional, Tuple
 
 if TYPE_CHECKING:
     from .core.buffer import PysFileBuffer
@@ -34,7 +34,7 @@ def pys_highlight(
             'end'
         ], PysPosition, str], str]] = None,
     max_parenthesis_level: int = 3,
-    flags: int = DEFAULT
+    flags: int = COMMENT
 ) -> str: ...
 
 def pys_exec(
@@ -51,4 +51,4 @@ def pys_eval(
 
 __version__: str
 __date__: str
-__all__: List[str]
+__all__: Tuple[str]

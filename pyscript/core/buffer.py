@@ -9,6 +9,7 @@ class PysBuffer(Pys):
 class PysFileBuffer(PysBuffer):
 
     def __init__(self, text, name=None):
+
         if isinstance(text, PysFileBuffer):
             self.text = to_str(text.text)
             self.name = to_str(text.name if name is None else name)

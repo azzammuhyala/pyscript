@@ -1,0 +1,359 @@
+import random  # for randomizing bomb placement
+import os      # to clear up the terminal
+
+# for recursive settings (in Python, the maximum recursive runs may not be the same)
+sys = pyimport('sys')
+
+RECURSION_LIMIT = 4_000  # how many recursive functions can be performed
+CELL_SIZE = (20, 10)     # board size
+BOMBS_COUNT = 30         # number of bombs
+CELL_COLORS = {
+    1:  (50 ,50 ,200),
+    2:  (50 ,200,50 ),
+    3:  (200,50 ,50 ),
+    4:  (252,140,3  ),
+    5:  (98 ,3  ,252),
+    6:  (150,50 ,150),
+    7:  (43 ,19 ,25 ),
+    8:  (25 ,25 ,25 ),
+    9:  (255,0  ,0  ),  # bomb
+    10: (200,20 ,20 )   # flag
+}
+
+sys.setrecursionlimit(RECURSION_LIMIT)
+
+# set text color and style on ANSI code based
+func rgb(color, bold=false, italic=false, under=false, striket=false) {
+    styles = []
+
+    if bold
+        styles.append('1')
+    if italic
+        styles.append('3')
+    if under
+        styles.append('4')
+    if striket
+        styles.append('9')
+
+    return '{}\x1b[38;2;{}m'.format(
+        styles ? '\x1b[{}m'.format(';'.join(styles)) : '',
+        ';'.join(map(str, color))
+    )
+}
+
+class MineSweeper {
+
+    func __init__(self, cellSize, bombsCount) {
+        self.cellSize = cellSize
+        self.bombsCount = bombsCount
+    }
+
+    # create empty dug, flags and board
+    func makeNewEmptyBoard(self) {
+        [w, h] = self.cellSize
+
+        self.dug = set()
+        self.flags = set()
+        self.board = list(
+            comprehension(
+                range(h),
+                func (i) return list(
+                    comprehension(
+                        range(w),
+                        func (i) return 0
+                    )
+                )
+            )
+        )
+    }
+
+    # create a new board (the makeNewEmptyBoard function should have been called)
+    func makeNewBoard(self, position) {
+        [w, h] = self.cellSize
+        [col, row] = position
+
+        # STEP 1: position the bomb
+
+        # the starting position of the player should be chosen as the section where there should be no bombs to avoid
+        # losing at the start of the game
+        [illegalXMin, illegalYMin] = (max(0, col - 1), max(0, row - 1))
+        [illegalXMax, illegalYMax] = (min(w, col + 2), min(h, row + 2))
+
+        # place bombs randomly on the board
+        bombsPlanted = 0
+
+        while (bombsPlanted < self.bombsCount) {
+            col = random.randint(0, w - 1)
+            row = random.randint(0, h - 1)
+
+            # if there is already a bomb in this position or the position is close to the initial position the player
+            # chooses, then continue selecting another bomb location
+            if (self.board[row][col] == 9 or (illegalXMin <= col <= illegalXMax and illegalYMin <= row <= illegalYMax))
+                continue
+
+            # place bomb
+            self.board[row][col] = 9
+            bombsPlanted++
+        }
+
+        # STEP 2: determines the value of the number of bombs in the 9x9 area in each cell
+
+        for (row of range(h)) {
+            for (col of range(w)) {
+
+                # cell are bomb
+                if (self.board[row][col] == 9)
+                    continue
+
+                # STEP 3: determine the number of bombs around the 9x9 area
+                number = 0
+
+                for (r of range(max(0, row - 1), min(h, row + 2))) {
+                    for (c of range(max(0, col - 1), min(w, col + 2))) {
+                        # is a middle cell
+                        if (col == c and r == row)
+                            continue
+
+                        # if there is a bomb
+                        if (self.board[r][c] == 9)
+                            number++
+                    }
+                }
+
+                # set cell value
+                self.board[row][col] = number
+            }
+        }
+    }
+
+    # dig a cell and determine whether chooses a cell containing a bomb or not
+    func dig(self, position, recursive=false) {
+        [w, h] = self.cellSize
+        [col, row] = position
+
+        # if the cell is marked with a flag then it is safe without doing anything
+        if (position in self.flags)
+            return true
+
+        # save dig position
+        self.dug.add(position)
+
+        cell = self.board[row][col]
+
+        # if the cell is a bomb, then lose
+        if (cell == 9)
+            return false
+
+        # chording mechanism
+
+        if recursive
+            chording = false
+
+        else {
+
+            # marked with a flag
+            if (position in self.flags)
+                chording = false
+            # cell have not been dug
+            elif (position not in self.dug)
+                chording = false
+            # cell value is not between 1 to 7 (8 is not included because all 9x9 cells are bombs)
+            elif (not (0 < cell < 8))
+                chording = false
+
+            else {
+                # count the number of flags in a 9x9 area
+                count = 0
+
+                for (r of range(max(0, row - 1), min(h, row + 2))) {
+                    for (c of range(max(0, col - 1), min(w, col + 2))) {
+                        if ((c, r) in self.flags)
+                            count++
+                    }
+                }
+
+                # If the cell marked with the flag has the same number as this cell value, then chording is active
+                chording = cell == count
+            }
+        }
+
+        # if sell is a number then it is safe without doing recursion (except if chording is active)
+        if (cell > 0 and not chording)
+            return true
+
+        # dig recursive 9x9 cell
+        for (r of range(max(0, row - 1), min(h, row + 2))) {
+            for (c of range(max(0, col - 1), min(w, col + 2))) {
+                pos = (c, r)
+
+                # the marked position is dug
+                if (pos in self.dug)
+                    continue
+
+                safe = self.dig(pos, recursive=true)
+
+                # if the cell is a bomb, then lose
+                if (not safe)
+                    return false
+            }
+        }
+
+        # everything is successful and safe
+        return true
+    }
+
+    # set the flag position (toggle)
+    func setFlag(self, position) {
+        [col, row] = position
+
+        # if the position has been dug
+        if (position in self.dug)
+            return;
+
+        if (position in self.flags)
+            self.flags.remove(position)
+        else
+            self.flags.add(position)
+    }
+
+    # displays the board
+    func showBoard(self, showAll=false) {
+        [w, h] = self.cellSize
+
+        columnNumber = '    {} '.format(' '.join(map(func (x) return format(x, '^3'), range(1, w + 1))))
+
+        buffer = '\x1b[H{}\n'.format(columnNumber)
+
+        for (row of range(h)) {
+            buffer += '   +{}\n{:>3}'.format('---+' * w, row + 1)
+
+            for (col of range(w)) {
+                position = (col, row)
+
+                if (position in self.dug or showAll) {
+                    cell = self.board[row][col]
+
+                    buffer += '|'
+
+                    if (cell == 0)
+                        buffer += '   '
+                    elif (cell == 9)
+                        buffer += '{} * \x1b[0m'.format(rgb(CELL_COLORS[9]))
+                    else
+                        buffer += '{}{:^3}\x1b[0m'.format(rgb(CELL_COLORS[cell]), cell)
+                }
+
+                elif (position in self.flags)
+                    buffer += '| {}F\x1b[0m '.format(rgb(CELL_COLORS[10], bold=true, italic=true))
+
+                else
+                    buffer += '| # '
+
+            }
+
+            buffer += '|{:<3}\n'.format(row + 1)
+        }
+
+        buffer += '   +{}\n{}'.format('---+' * w, columnNumber)
+
+        print(buffer)
+    }
+
+    # gets the position and set it as a flag on user input
+    func getPositionByUser(self) {
+        while true {
+            position = input('Choose location (col row): ').strip().split()
+            setFlag = false
+
+            if (len(position) == 3) {
+                if (position[0].lower() == 'f')
+                    position = position[1:]
+                elif (position[-1].lower() == 'f')
+                    position = position[:-1]
+                else {
+                    print('Invalid position')
+                    continue
+                }
+
+                setFlag = true
+            }
+
+            elif (len(position) != 2) {
+                print('Invalid position')
+                continue
+            }
+
+            try {
+                position = tuple(map(func (x) return int(x) - 1, position))
+            }
+
+            catch (e) {
+                if isobjectof(e, BaseException)
+                    throw e
+                print('Invalid position')
+            }
+
+            else {
+                [w, h] = self.cellSize
+                [col, row] = position
+
+                if (0 <= col < w and 0 <= row < h) {
+                    return (position, setFlag)
+                }
+
+                print('Invalid position')
+            }
+        }
+    }
+
+    # main function
+    func main(self) {
+        [w, h] = self.cellSize
+        maxDug = w * h - self.bombsCount  # maximum dig that indicates finished without lose
+
+        # clear up screen
+        os.system(os.name == 'nt' ? 'cls' : 'clear')
+
+        # create an empty board and display the board
+        self.makeNewEmptyBoard()
+        self.showBoard(showAll=true)
+
+        # get first position
+        [position, setFlag] = self.getPositionByUser()
+
+        # make board and dig out
+        self.makeNewBoard(position)
+        safe = self.dig(position)
+
+        # loop until everything has been dug up or lost
+        while (len(self.dug) < maxDug and safe) {
+            # show board
+            self.showBoard()
+
+            # get a position
+            [position, setFlag] = self.getPositionByUser()
+
+            if setFlag
+                # if setting the flag
+                self.setFlag(position)
+            else
+                # dig
+                safe = self.dig(position)
+        }
+
+        # show board and bombs
+        self.showBoard(showAll=true)
+
+        # determine win and lose
+        print(safe ? '\x1b[32mYou Win!\x1b[0m' : '\x1b[31mYou Lose!\x1b[0m')
+    }
+
+}
+
+# wrap function
+
+func play(cellSize=CELL_SIZE, bombsCount=BOMBS_COUNT)
+    MineSweeper(cellSize, bombsCount).main()
+
+if (__name__ == '__main__')
+    play()

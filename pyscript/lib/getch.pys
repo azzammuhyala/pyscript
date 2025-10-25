@@ -1,6 +1,7 @@
 sys = pyimport('sys')
 
-if (sys.platform == 'win32') {
+if sys.platform == 'win32'
+{
     from msvcrt import getch
 }
 

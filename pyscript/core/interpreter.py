@@ -1,5 +1,5 @@
 from .bases import Pys
-from .constants import TOKENS, KEYWORDS, PYTHON_EXTENSIONS, DEFAULT, OPTIMIZE
+from .constants import TOKENS, KEYWORDS, PYTHON_EXTENSIONS, OPTIMIZE
 from .context import PysContext
 from .exceptions import PysException
 from .handlers import handle_call, handle_exception
@@ -9,14 +9,11 @@ from .pysbuiltins import ce, nce, increment, decrement
 from .results import PysRunTimeResult
 from .singletons import undefined
 from .symtab import PysClassSymbolTable
-from .utils import inplace_functions_map, keyword_identifiers_map, get_closest, is_object_of, Iterable
+from .utils import inplace_functions_map, keyword_identifiers_map, is_object_of, get_closest, Iterable
 
 import os
 
 class PysInterpreter(Pys):
-
-    def __init__(self, flags=DEFAULT):
-        self.flags = flags
 
     def visit(self, node, context):
         return getattr(self, 'visit_' + type(node).__name__[3:])(node, context)
@@ -29,37 +26,44 @@ class PysInterpreter(Pys):
 
     def visit_SequenceNode(self, node, context):
         result = PysRunTimeResult()
+
         elements = []
 
-        if node.type == 'dict':
+        register = result.register
+        should_return = result.should_return
+        visit = self.visit
+        append = elements.append
+        ntype = node.type
+
+        if ntype == 'dict':
 
             for key, value in node.elements:
-                key = result.register(self.visit(key, context))
-                if result.should_return():
+                key = register(visit(key, context))
+                if should_return():
                     return result
 
-                value = result.register(self.visit(value, context))
-                if result.should_return():
+                value = register(visit(value, context))
+                if should_return():
                     return result
 
-                elements.append((key, value))
+                append((key, value))
 
         else:
 
             for element in node.elements:
-                elements.append(result.register(self.visit(element, context)))
-                if result.should_return():
+                append(register(visit(element, context)))
+                if should_return():
                     return result
 
         with handle_exception(result, context, node.position):
-            if node.type == 'tuple':
+            if ntype == 'tuple':
                 elements = tuple(elements)
-            elif node.type == 'dict':
+            elif ntype == 'dict':
                 elements = dict(elements)
-            elif node.type == 'set':
+            elif ntype == 'set':
                 elements = set(elements)
 
-        if result.should_return():
+        if should_return():
             return result
 
         return result.success(elements)
@@ -67,22 +71,26 @@ class PysInterpreter(Pys):
     def visit_IdentifierNode(self, node, context):
         result = PysRunTimeResult()
 
-        with handle_exception(result, context, node.position):
-            value = context.symbol_table.get(node.token.value)
+        position = node.position
+        name = node.token.value
+        symbol_table = context.symbol_table
+
+        with handle_exception(result, context, position):
+            value = symbol_table.get(name)
 
             if value is undefined:
-                closest_symbol = context.symbol_table.find_closest(node.token.value)
+                closest_symbol = symbol_table.find_closest(name)
 
                 result.failure(
                     PysException(
                         NameError(
                             "{!r} is not defined{}".format(
-                                node.token.value,
+                                name,
                                 '' if closest_symbol is None else ". Did you mean {!r}?".format(closest_symbol)
                             )
                         ),
                         context,
-                        node.position
+                        position
                     )
                 )
 
@@ -92,19 +100,22 @@ class PysInterpreter(Pys):
         return result.success(value)
 
     def visit_KeywordNode(self, node, context):
-        return PysRunTimeResult().success(keyword_identifiers_map[node.token.value])
+        return PysRunTimeResult().success(keyword_identifiers_map[node.token.value.lower()])
 
     def visit_AttributeNode(self, node, context):
         result = PysRunTimeResult()
 
+        should_return = result.should_return
+        attribute = node.attribute
+
         object = result.register(self.visit(node.object, context))
-        if result.should_return():
+        if should_return():
             return result
 
-        with handle_exception(result, context, node.attribute.position):
-            value = getattr(object, node.attribute.value)
+        with handle_exception(result, context, attribute.position):
+            value = getattr(object, attribute.value)
 
-        if result.should_return():
+        if should_return():
             return result
 
         return result.success(value)
@@ -112,18 +123,21 @@ class PysInterpreter(Pys):
     def visit_SubscriptNode(self, node, context):
         result = PysRunTimeResult()
 
-        object = result.register(self.visit(node.object, context))
-        if result.should_return():
+        register = result.register
+        should_return = result.should_return
+
+        object = register(self.visit(node.object, context))
+        if should_return():
             return result
 
-        slice = result.register(self.visit_slice_from_SubscriptNode(node.slice, context))
-        if result.should_return():
+        slice = register(self.visit_slice_from_SubscriptNode(node.slice, context))
+        if should_return():
             return result
 
         with handle_exception(result, context, node.position):
             value = object[slice]
 
-        if result.should_return():
+        if should_return():
             return result
 
         return result.success(value)
@@ -131,12 +145,15 @@ class PysInterpreter(Pys):
     def visit_AssignNode(self, node, context):
         result = PysRunTimeResult()
 
-        value = result.register(self.visit(node.value, context))
-        if result.should_return():
+        register = result.register
+        should_return = result.should_return
+
+        value = register(self.visit(node.value, context))
+        if should_return():
             return result
 
-        result.register(self.visit_unpack_AssignNode(node.target, context, value, node.operand.type))
-        if result.should_return():
+        register(self.visit_unpack_AssignNode(node.target, context, value, node.operand.type))
+        if should_return():
             return result
 
         return result.success(value)
@@ -144,41 +161,52 @@ class PysInterpreter(Pys):
     def visit_ChainOperatorNode(self, node, context):
         result = PysRunTimeResult()
 
-        left = result.register(self.visit(node.expressions[0], context))
-        if result.should_return():
+        register = result.register
+        should_return = result.should_return
+        visit = self.visit
+        position = node.position
+        expressions = node.expressions
+
+        left = register(visit(expressions[0], context))
+        if should_return():
             return result
 
-        with handle_exception(result, context, node.position):
+        with handle_exception(result, context, position):
             value = True
 
             for i, operand in enumerate(node.operations):
-                right = result.register(self.visit(node.expressions[i + 1], context))
-                if result.should_return():
+                omatch = operand.match
+                otype = operand.type
+
+                right = register(visit(expressions[i + 1], context))
+                if should_return():
                     break
 
-                if operand.match(TOKENS['KEYWORD'], KEYWORDS['in']):
+                if omatch(TOKENS['KEYWORD'], KEYWORDS['in']):
                     comparison = left in right
-                elif operand.match(TOKENS['KEYWORD'], KEYWORDS['is']):
+                elif omatch(TOKENS['KEYWORD'], KEYWORDS['is']):
                     comparison = left is right
-                elif operand.type == TOKENS['NOTIN']:
+                elif otype == TOKENS['NOTIN']:
                     comparison = left not in right
-                elif operand.type == TOKENS['ISNOT']:
+                elif otype == TOKENS['ISNOT']:
                     comparison = left is not right
-                elif operand.type == TOKENS['EE']:
+                elif otype == TOKENS['EE']:
                     comparison = left == right
-                elif operand.type == TOKENS['NE']:
+                elif otype == TOKENS['NE']:
                     comparison = left != right
-                elif operand.type == TOKENS['CE']:
+                elif otype == TOKENS['CE']:
+                    handle_call(ce, context, position)
                     comparison = ce(left, right)
-                elif operand.type == TOKENS['NCE']:
+                elif otype == TOKENS['NCE']:
+                    handle_call(nce, context, position)
                     comparison = nce(left, right)
-                elif operand.type == TOKENS['LT']:
+                elif otype == TOKENS['LT']:
                     comparison = left < right
-                elif operand.type == TOKENS['GT']:
+                elif otype == TOKENS['GT']:
                     comparison = left > right
-                elif operand.type == TOKENS['LTE']:
+                elif otype == TOKENS['LTE']:
                     comparison = left <= right
-                elif operand.type == TOKENS['GTE']:
+                elif otype == TOKENS['GTE']:
                     comparison = left >= right
 
                 if not comparison:
@@ -187,7 +215,7 @@ class PysInterpreter(Pys):
 
                 left = right
 
-        if result.should_return():
+        if should_return():
             return result
 
         return result.success(value)
@@ -195,12 +223,16 @@ class PysInterpreter(Pys):
     def visit_TernaryOperatorNode(self, node, context):
         result = PysRunTimeResult()
 
-        condition = result.register(self.visit(node.condition, context))
-        if result.should_return():
+        register = result.register
+        should_return = result.should_return
+        visit = self.visit
+
+        condition = register(visit(node.condition, context))
+        if should_return():
             return result
 
-        value = result.register(self.visit(node.valid if condition else node.invalid, context))
-        if result.should_return():
+        value = register(visit(node.valid if condition else node.invalid, context))
+        if should_return():
             return result
 
         return result.success(value)
@@ -208,29 +240,35 @@ class PysInterpreter(Pys):
     def visit_BinaryOperatorNode(self, node, context):
         result = PysRunTimeResult()
 
-        left = result.register(self.visit(node.left, context))
-        if result.should_return():
+        register = result.register
+        should_return = result.should_return
+        visit = self.visit
+        omatch = node.operand.match
+        otype = node.operand.type
+
+        left = register(visit(node.left, context))
+        if should_return():
             return result
 
         return_right = True
 
-        if node.operand.match(TOKENS['KEYWORD'], KEYWORDS['and']):
+        if omatch(TOKENS['KEYWORD'], KEYWORDS['and']) or otype == TOKENS['CAND']:
             if not left:
                 return result.success(left)
 
-        elif node.operand.match(TOKENS['KEYWORD'], KEYWORDS['or']):
+        elif omatch(TOKENS['KEYWORD'], KEYWORDS['or']) or otype == TOKENS['COR']:
             if left:
                 return result.success(left)
 
-        elif node.operand.type == TOKENS['NULLISH']:
+        elif otype == TOKENS['NULLISH']:
             if left is not None:
                 return result.success(left)
 
         else:
             return_right = False
 
-        right = result.register(self.visit(node.right, context))
-        if result.should_return():
+        right = register(visit(node.right, context))
+        if should_return():
             return result
 
         if return_right:
@@ -238,34 +276,34 @@ class PysInterpreter(Pys):
 
         with handle_exception(result, context, node.position):
 
-            if node.operand.type == TOKENS['PLUS']:
+            if otype == TOKENS['PLUS']:
                 value = left + right
-            elif node.operand.type == TOKENS['MINUS']:
+            elif otype == TOKENS['MINUS']:
                 value = left - right
-            elif node.operand.type == TOKENS['MUL']:
+            elif otype == TOKENS['MUL']:
                 value = left * right
-            elif node.operand.type == TOKENS['DIV']:
+            elif otype == TOKENS['DIV']:
                 value = left / right
-            elif node.operand.type == TOKENS['FDIV']:
+            elif otype == TOKENS['FDIV']:
                 value = left // right
-            elif node.operand.type == TOKENS['MOD']:
+            elif otype == TOKENS['MOD']:
                 value = left % right
-            elif node.operand.type == TOKENS['AT']:
+            elif otype == TOKENS['AT']:
                 value = left @ right
-            elif node.operand.type == TOKENS['POW']:
+            elif otype == TOKENS['POW']:
                 value = left ** right
-            elif node.operand.type == TOKENS['AND']:
+            elif otype == TOKENS['AND']:
                 value = left & right
-            elif node.operand.type == TOKENS['OR']:
+            elif otype == TOKENS['OR']:
                 value = left | right
-            elif node.operand.type == TOKENS['XOR']:
+            elif otype == TOKENS['XOR']:
                 value = left ^ right
-            elif node.operand.type == TOKENS['LSHIFT']:
+            elif otype == TOKENS['LSHIFT']:
                 value = left << right
-            elif node.operand.type == TOKENS['RSHIFT']:
+            elif otype == TOKENS['RSHIFT']:
                 value = left >> right
 
-        if result.should_return():
+        if should_return():
             return result
 
         return result.success(value)
@@ -273,33 +311,41 @@ class PysInterpreter(Pys):
     def visit_UnaryOperatorNode(self, node, context):
         result = PysRunTimeResult()
 
-        value = result.register(self.visit(node.value, context))
-        if result.should_return():
+        register = result.register
+        should_return = result.should_return
+        visit = self.visit
+        position = node.position
+        otype = node.operand.type
+
+        value = register(visit(node.value, context))
+        if should_return():
             return result
 
-        with handle_exception(result, context, node.position):
+        with handle_exception(result, context, position):
 
             if node.operand.match(TOKENS['KEYWORD'], KEYWORDS['not']):
                 new_value = not value
-            elif node.operand.type == TOKENS['PLUS']:
+            elif otype == TOKENS['PLUS']:
                 new_value = +value
-            elif node.operand.type == TOKENS['MINUS']:
+            elif otype == TOKENS['MINUS']:
                 new_value = -value
-            elif node.operand.type == TOKENS['NOT']:
+            elif otype == TOKENS['NOT']:
                 new_value = ~value
 
-            elif node.operand.type in (TOKENS['INCREMENT'], TOKENS['DECREMENT']):
+            elif otype in (TOKENS['INCREMENT'], TOKENS['DECREMENT']):
                 new_value = value
-                value = increment(value) if node.operand.type == TOKENS['INCREMENT'] else decrement(value)
 
-                result.register(self.visit_unpack_AssignNode(node.value, context, value))
-                if result.should_return():
-                    return result
+                func = increment if otype == TOKENS['INCREMENT'] else decrement
+
+                handle_call(func, context, position)
+                value = func(value)
 
                 if node.operand_position == 'left':
                     new_value = value
 
-        if result.should_return():
+                register(self.visit_unpack_AssignNode(node.value, context, value))
+
+        if should_return():
             return result
 
         return result.success(new_value)
@@ -307,33 +353,36 @@ class PysInterpreter(Pys):
     def visit_ImportNode(self, node, context):
         result = PysRunTimeResult()
 
+        should_return = result.should_return
+        get_symbol = context.symbol_table.get
+        set_symbol = context.symbol_table.set
+        packages = node.packages
         name, as_name = node.name
 
         with handle_exception(result, context, name.position):
-            name_string = name.value
-
-            file, extension = os.path.splitext(name_string)
+            name_module = name.value
+            file, extension = os.path.splitext(name_module)
 
             if extension in PYTHON_EXTENSIONS:
-                name_string = file
+                name_module = file
                 use_python_package = True
             else:
                 use_python_package = False
 
             if not use_python_package:
-                require = context.symbol_table.get('require')
+                require = get_symbol('require')
 
                 if require is undefined:
                     use_python_package = True
                 else:
-                    handle_call(require, context, name.position, self.flags)
+                    handle_call(require, context, name.position)
                     try:
-                        module = require(name_string)
+                        module = require(name_module)
                     except ModuleNotFoundError:
                         use_python_package = True
 
             if use_python_package:
-                pyimport = context.symbol_table.get('pyimport')
+                pyimport = get_symbol('pyimport')
 
                 if pyimport is undefined:
                     result.failure(
@@ -345,45 +394,41 @@ class PysInterpreter(Pys):
                     )
 
                 else:
-                    handle_call(pyimport, context, name.position, self.flags)
-                    module = pyimport(name_string)
+                    handle_call(pyimport, context, name.position)
+                    module = pyimport(name_module)
 
-        if result.should_return():
+        if should_return():
             return result
 
-        if node.packages == 'all':
-            all_packages = getattr(
-                module, '__all__',
-                (package for package in dir(module) if not package.startswith('_'))
-            )
+        if packages == 'all':
 
             with handle_exception(result, context, name.position):
-                for package in all_packages:
-                    if package in module.__dict__:
-                        context.symbol_table.set(package, getattr(module, package))
+                for package in getattr(module, '__all__',
+                                       (package for package in dir(module) if not package.startswith('_'))):
+                    set_symbol(package, getattr(module, package))
 
-            if result.should_return():
+            if should_return():
                 return result
 
-        elif node.packages:
+        elif packages:
 
-            for package, as_package in node.packages:
+            for package, as_package in packages:
 
                 with handle_exception(result, context, package.position):
-                    context.symbol_table.set(
+                    set_symbol(
                         (package if as_package is None else as_package).value,
                         getattr(module, package.value)
                     )
 
-                if result.should_return():
+                if should_return():
                     return result
 
         elif not (name.type == TOKENS['STRING'] and as_name is None):
 
             with handle_exception(result, context, node.position):
-                context.symbol_table.set((name if as_name is None else as_name).value, module)
+                set_symbol((name if as_name is None else as_name).value, module)
 
-            if result.should_return():
+            if should_return():
                 return result
 
         return result.success(None)
@@ -391,21 +436,26 @@ class PysInterpreter(Pys):
     def visit_IfNode(self, node, context):
         result = PysRunTimeResult()
 
+        register = result.register
+        should_return = result.should_return
+        visit = self.visit
+        else_body = node.else_body
+
         for condition, body in node.cases_body:
-            condition_value = result.register(self.visit(condition, context))
-            if result.should_return():
+            condition_value = register(visit(condition, context))
+            if should_return():
                 return result
 
             if condition_value:
-                result.register(self.visit(body, context))
-                if result.should_return():
+                register(visit(body, context))
+                if should_return():
                     return result
 
                 return result.success(None)
 
-        if node.else_body:
-            result.register(self.visit(node.else_body, context))
-            if result.should_return():
+        if else_body:
+            register(visit(else_body, context))
+            if should_return():
                 return result
 
         return result.success(None)
@@ -413,64 +463,93 @@ class PysInterpreter(Pys):
     def visit_SwitchNode(self, node, context):
         result = PysRunTimeResult()
 
-        target = result.register(self.visit(node.target, context))
-        if result.should_return():
-            return result
+        register = result.register
+        should_return = result.should_return
+        visit = self.visit
+        default_body = node.default_body
 
         fall_through = False
+        no_match_found = True
+
+        target = register(visit(node.target, context))
+        if should_return():
+            return result
 
         for condition, body in node.cases_body:
-            case = result.register(self.visit(condition, context))
-            if result.should_return():
+            case = register(visit(condition, context))
+            if should_return():
                 return result
 
-            if fall_through or target == case:
-                result.register(self.visit(body, context))
-                if result.should_return() and not result.loop_should_break:
+            with handle_exception(result, context, condition.position):
+                equal = target == case
+
+            if should_return():
+                return result
+
+            if fall_through or equal:
+                no_match_found = False
+
+                register(visit(body, context))
+                if should_return() and not result.should_break:
                     return result
 
-                if result.loop_should_break:
-                    result.loop_should_break = False
+                if result.should_break:
+                    result.should_break = False
                     fall_through = False
                 else:
                     fall_through = True
 
-        if fall_through and node.default_body:
-            result.register(self.visit(node.default_body, context))
-            if result.should_return() and not result.loop_should_break:
+        if (fall_through or no_match_found) and default_body:
+            register(visit(default_body, context))
+            if should_return() and not result.should_break:
                 return result
 
-            if result.loop_should_break:
-                result.loop_should_break = False
+            result.should_break = False
 
         return result.success(None)
 
     def visit_TryNode(self, node, context):
         result = PysRunTimeResult()
 
-        result.register(self.visit(node.body, context))
+        register = result.register
+        should_return = result.should_return
+        visit = self.visit
+        catch_body = node.catch_body
+        error_variable = node.error_variable
+        else_body = node.else_body
+        finally_body = node.finally_body
 
-        if node.catch_body and result.error:
+        register(visit(node.body, context))
 
-            if node.error_variable:
+        if catch_body:
 
-                with handle_exception(result, node.error_variable.position):
-                    context.symbol_table.set(node.error_variable.value, result.error.exception)
+            if result.error:
 
-                if result.should_return():
-                    return result
+                if error_variable:
 
-            result.error = None
-            result.register(self.visit(node.catch_body, context))
+                    with handle_exception(result, context, error_variable.position):
+                        context.symbol_table.set(error_variable.value, result.error.exception)
+                        result.error = None
 
-        if node.finally_body:
+                    if should_return():
+                        return result
+
+                else:
+                    result.error = None
+
+                register(visit(catch_body, context))
+
+            elif else_body:
+                register(visit(else_body, context))
+
+        if finally_body:
             finally_result = PysRunTimeResult()
 
-            finally_result.register(self.visit(node.finally_body, context))
+            finally_result.register(visit(finally_body, context))
             if finally_result.should_return():
                 return finally_result
 
-        if result.should_return():
+        if should_return():
             return result
 
         return result.success(None)
@@ -478,26 +557,36 @@ class PysInterpreter(Pys):
     def visit_ForNode(self, node, context):
         result = PysRunTimeResult()
 
-        target = node.init[0]
+        register = result.register
+        should_return = result.should_return
+        visit = self.visit
+        init = node.init
+        init_length = len(init)
+        body = node.body
+        else_body = node.else_body
 
-        if len(node.init) == 2:
-            iterator = node.init[1]
+        target = init[0]
 
-            iter_object = result.register(self.visit(iterator, context))
-            if result.should_return():
+        if init_length == 2:
+            iterator = init[1]
+            target_position = target.position
+            visit_unpack_AssignNode = self.visit_unpack_AssignNode
+
+            iter_object = register(visit(iterator, context))
+            if should_return():
                 return result
 
             with handle_exception(result, context, iterator.position):
                 iter_object = iter(iter_object)
 
-            if result.should_return():
+            if should_return():
                 return result
 
             def condition():
-                with handle_exception(result, context, target.position):
-                    result.register(self.visit_unpack_AssignNode(target, context, next(iter_object)))
+                with handle_exception(result, context, target_position):
+                    register(visit_unpack_AssignNode(target, context, next(iter_object)))
 
-                if result.should_return():
+                if should_return():
                     if is_object_of(result.error.exception, StopIteration):
                         result.error = None
                     return False
@@ -507,61 +596,63 @@ class PysInterpreter(Pys):
             def update():
                 pass
 
-        elif len(node.init) == 3:
-            conditor = node.init[1]
-            updater = node.init[2]
+        elif init_length == 3:
+            conditor = init[1]
+            updater = init[2]
 
             if target:
-                result.register(self.visit(target, context))
-                if result.should_return():
+                register(visit(target, context))
+                if should_return():
                     return result
 
             if conditor:
                 def condition():
-                    value = result.register(self.visit(conditor, context))
-                    if result.should_return():
+                    value = register(visit(conditor, context))
+                    if should_return():
                         return False
                     return value
+
             else:
                 def condition():
                     return True
 
             if updater:
                 def update():
-                    result.register(self.visit(updater, context))
+                    register(visit(updater, context))
+
             else:
                 def update():
                     pass
 
         while True:
             done = condition()
-            if result.should_return():
+            if should_return():
                 return result
 
             if not done:
                 break
 
-            if node.body:
-                result.register(self.visit(node.body, context))
-                if result.should_return() and not result.loop_should_continue and not result.loop_should_break:
+            if body:
+                register(visit(body, context))
+                if should_return() and not result.should_continue and not result.should_break:
                     return result
 
-                if result.loop_should_continue:
-                    result.loop_should_continue = False
+                if result.should_continue:
+                    result.should_continue = False
 
-                elif result.loop_should_break:
+                elif result.should_break:
                     break
 
             update()
-            if result.should_return():
+            if should_return():
                 return result
 
-        if result.loop_should_break:
-            result.loop_should_break = False
+        if result.should_break:
+            result.should_break = False
 
-        elif node.else_body:
-            result.register(self.visit(node.else_body, context))
-            if result.should_return():
+        elif else_body:
+            register(visit(else_body, context))
+            if should_return():
                 return result
 
         return result.success(None)
@@ -569,31 +660,38 @@ class PysInterpreter(Pys):
     def visit_WhileNode(self, node, context):
         result = PysRunTimeResult()
 
+        register = result.register
+        should_return = result.should_return
+        visit = self.visit
+        ncondition = node.condition
+        body = node.body
+        else_body = node.else_body
+
         while True:
-            condition = result.register(self.visit(node.condition, context))
-            if result.should_return():
+            condition = register(visit(ncondition, context))
+            if should_return():
                 return result
 
             if not condition:
                 break
 
-            if node.body:
-                result.register(self.visit(node.body, context))
-                if result.should_return() and not result.loop_should_continue and not result.loop_should_break:
+            if body:
+                register(visit(body, context))
+                if should_return() and not result.should_continue and not result.should_break:
                     return result
 
-                if result.loop_should_continue:
-                    result.loop_should_continue = False
+                if result.should_continue:
+                    result.should_continue = False
 
-                elif result.loop_should_break:
+                elif result.should_break:
                     break
 
-        if result.loop_should_break:
-            result.loop_should_break = False
+        if result.should_break:
+            result.should_break = False
 
-        elif node.else_body:
-            result.register(self.visit(node.else_body, context))
-            if result.should_return():
+        elif else_body:
+            register(visit(else_body, context))
+            if should_return():
                 return result
 
         return result.success(None)
@@ -601,31 +699,38 @@ class PysInterpreter(Pys):
     def visit_DoWhileNode(self, node, context):
         result = PysRunTimeResult()
 
+        register = result.register
+        should_return = result.should_return
+        visit = self.visit
+        ncondition = node.condition
+        body = node.body
+        else_body = node.else_body
+
         while True:
-            if node.body:
-                result.register(self.visit(node.body, context))
-                if result.should_return() and not result.loop_should_continue and not result.loop_should_break:
+            if body:
+                register(visit(body, context))
+                if should_return() and not result.should_continue and not result.should_break:
                     return result
 
-                if result.loop_should_continue:
-                    result.loop_should_continue = False
+                if result.should_continue:
+                    result.should_continue = False
 
-                elif result.loop_should_break:
+                elif result.should_break:
                     break
 
-            condition = result.register(self.visit(node.condition, context))
-            if result.should_return():
+            condition = register(visit(ncondition, context))
+            if should_return():
                 return result
 
             if not condition:
                 break
 
-        if result.loop_should_break:
-            result.loop_should_break = False
+        if result.should_break:
+            result.should_break = False
 
-        elif node.else_body:
-            result.register(self.visit(node.else_body, context))
-            if result.should_return():
+        elif else_body:
+            register(visit(else_body, context))
+            if should_return():
                 return result
 
         return result.success(None)
@@ -635,46 +740,54 @@ class PysInterpreter(Pys):
 
         bases = []
 
+        register = result.register
+        should_return = result.should_return
+        visit = self.visit
+        append = bases.append
+        name = node.name.value
+        qualname = context.qualname
+        symbol_table = context.symbol_table
+
         for base in node.bases:
-            bases.append(result.register(self.visit(base, context)))
-            if result.should_return():
+            append(register(visit(base, context)))
+            if should_return():
                 return result
 
         class_context = PysContext(
             file=context.file,
-            name=node.name.value,
-            qualname=('' if context.qualname is None else context.qualname + '.') + node.name.value,
-            symbol_table=PysClassSymbolTable(context.symbol_table),
+            name=name,
+            qualname=('' if qualname is None else qualname + '.') + name,
+            symbol_table=PysClassSymbolTable(symbol_table),
             parent=context,
             parent_entry_position=node.position
         )
 
-        result.register(self.visit(node.body, class_context))
-        if result.should_return():
+        register(visit(node.body, class_context))
+        if should_return():
             return result
 
         with handle_exception(result, context, node.position):
-            cls = type(node.name.value, tuple(bases), class_context.symbol_table.symbols)
+            cls = type(name, tuple(bases), class_context.symbol_table.symbols)
             cls.__qualname__ = class_context.qualname
 
-        if result.should_return():
+        if should_return():
             return result
 
         for decorator in reversed(node.decorators):
-            decorator_func = result.register(self.visit(decorator, context))
-            if result.should_return():
+            decorator_func = register(visit(decorator, context))
+            if should_return():
                 return result
 
             with handle_exception(result, context, decorator.position):
                 cls = decorator_func(cls)
 
-            if result.should_return():
+            if should_return():
                 return result
 
         with handle_exception(result, context, node.position):
-            context.symbol_table.set(node.name.value, cls)
+            symbol_table.set(name, cls)
 
-        if result.should_return():
+        if should_return():
             return result
 
         return result.success(None)
@@ -684,20 +797,26 @@ class PysInterpreter(Pys):
 
         parameters = []
 
+        register = result.register
+        should_return = result.should_return
+        visit = self.visit
+        append = parameters.append
+        name = node.name
+
         for parameter in node.parameters:
 
             if isinstance(parameter, tuple):
-                value = result.register(self.visit(parameter[1], context))
-                if result.should_return():
+                value = register(visit(parameter[1], context))
+                if should_return():
                     return result
 
-                parameters.append((parameter[0].value, value))
+                append((parameter[0].value, value))
 
             else:
-                parameters.append(parameter.value)
+                append(parameter.value)
 
         func = PysFunction(
-            name=None if node.name is None else node.name.value,
+            name=None if name is None else name.value,
             qualname=context.qualname,
             parameters=parameters,
             body=node.body,
@@ -706,22 +825,22 @@ class PysInterpreter(Pys):
         )
 
         for decorator in reversed(node.decorators):
-            decorator_func = result.register(self.visit(decorator, context))
-            if result.should_return():
+            decorator_func = register(visit(decorator, context))
+            if should_return():
                 return result
 
             with handle_exception(result, context, decorator.position):
                 func = decorator_func(func)
 
-            if result.should_return():
+            if should_return():
                 return result
 
-        if node.name is not None:
+        if name is not None:
 
             with handle_exception(result, context, node.position):
-                context.symbol_table.set(node.name.value, func)
+                context.symbol_table.set(name.value, func)
 
-            if result.should_return():
+            if should_return():
                 return result
 
         return result.success(func)
@@ -729,30 +848,37 @@ class PysInterpreter(Pys):
     def visit_CallNode(self, node, context):
         result = PysRunTimeResult()
 
-        name = result.register(self.visit(node.name, context))
-        if result.should_return():
-            return result
-
         args = []
         kwargs = {}
+
+        register = result.register
+        should_return = result.should_return
+        visit = self.visit
+        append = args.append
+        setitem = kwargs.__setitem__
+        position = node.position
+
+        name = register(visit(node.name, context))
+        if should_return():
+            return result
 
         for argument in node.arguments:
 
             if isinstance(argument, tuple):
-                kwargs[argument[0].value] = result.register(self.visit(argument[1], context))
-                if result.should_return():
+                setitem(argument[0].value, register(visit(argument[1], context)))
+                if should_return():
                     return result
 
             else:
-                args.append(result.register(self.visit(argument, context)))
-                if result.should_return():
+                append(register(visit(argument, context)))
+                if should_return():
                     return result
 
-        with handle_exception(result, context, node.position):
-            handle_call(name, context, node.position, self.flags)
+        with handle_exception(result, context, position):
+            handle_call(name, context, position)
             value = name(*args, **kwargs)
 
-        if result.should_return():
+        if should_return():
             return result
 
         return result.success(value)
@@ -769,26 +895,36 @@ class PysInterpreter(Pys):
 
         return result.success_return(None)
 
+    def visit_GlobalNode(self, node, context):
+        context.symbol_table.globals.update(name.value for name in node.names)
+        return PysRunTimeResult().success(None)
+
     def visit_DeleteNode(self, node, context):
         result = PysRunTimeResult()
+
+        register = result.register
+        should_return = result.should_return
+        visit = self.visit
+        symbol_table = context.symbol_table
 
         for target in node.targets:
 
             if isinstance(target, PysIdentifierNode):
 
                 with handle_exception(result, context, target.position):
-                    success = context.symbol_table.remove(target.token.value)
+                    name = target.token.value
+                    success = symbol_table.remove(name)
 
                     if not success:
-                        closest_symbol = get_closest(context.symbol_table.symbols.keys(), target.token.value)
+                        closest_symbol = get_closest(symbol_table.symbols.keys(), name)
 
                         result.failure(
                             PysException(
                                 NameError(
                                     (
-                                        "{!r} is not defined".format(target.token.value)
-                                        if context.symbol_table.get(target.token.value) is undefined else
-                                        "{!r} is not defined on local".format(target.token.value)
+                                        "{!r} is not defined".format(name)
+                                        if symbol_table.get(name) is undefined else
+                                        "{!r} is not defined on local".format(name)
                                     ) +
                                     ('' if closest_symbol is None else ". Did you mean {!r}?".format(closest_symbol))
                                 ),
@@ -797,33 +933,33 @@ class PysInterpreter(Pys):
                             )
                         )
 
-                if result.should_return():
+                if should_return():
                     return result
 
             elif isinstance(target, PysSubscriptNode):
-                object = result.register(self.visit(target.object, context))
-                if result.should_return():
+                object = register(visit(target.object, context))
+                if should_return():
                     return result
 
-                slice = result.register(self.visit_slice_from_SubscriptNode(target.slice, context))
-                if result.should_return():
+                slice = register(self.visit_slice_from_SubscriptNode(target.slice, context))
+                if should_return():
                     return result
 
                 with handle_exception(result, context, target.position):
                     del object[slice]
 
-                if result.should_return():
+                if should_return():
                     return result
 
             elif isinstance(target, PysAttributeNode):
-                object = result.register(self.visit(target.object, context))
-                if result.should_return():
+                object = register(visit(target.object, context))
+                if should_return():
                     return result
 
                 with handle_exception(result, context, target.position):
                     delattr(object, target.attribute.value)
 
-                if result.should_return():
+                if should_return():
                     return result
 
         return result.success(None)
@@ -849,16 +985,20 @@ class PysInterpreter(Pys):
     def visit_AssertNode(self, node, context):
         result = PysRunTimeResult()
 
-        if not (self.flags & OPTIMIZE):
-            condition = result.register(self.visit(node.condition, context))
-            if result.should_return():
+        if not (context.flags & OPTIMIZE):
+            register = result.register
+            should_return = result.should_return
+            visit = self.visit
+
+            condition = register(visit(node.condition, context))
+            if should_return():
                 return result
 
             if not condition:
 
                 if node.message:
-                    message = result.register(self.visit(node.message, context))
-                    if result.should_return():
+                    message = register(visit(node.message, context))
+                    if should_return():
                         return result
 
                     return result.failure(PysException(AssertionError(message), context, node.position))
@@ -879,12 +1019,19 @@ class PysInterpreter(Pys):
     def visit_slice_from_SubscriptNode(self, node, context):
         result = PysRunTimeResult()
 
+        register = result.register
+        should_return = result.should_return
+        visit = self.visit
+
         if isinstance(node, list):
             slices = []
 
+            append = slices.append
+            visit_slice_from_SubscriptNode = self.visit_slice_from_SubscriptNode
+
             for element in node:
-                slices.append(result.register(self.visit_slice_from_SubscriptNode(element, context)))
-                if result.should_return():
+                append(register(visit_slice_from_SubscriptNode(element, context)))
+                if should_return():
                     return result
 
             return result.success(tuple(slices))
@@ -893,31 +1040,35 @@ class PysInterpreter(Pys):
             start, stop, step = node
 
             if start is not None:
-                start = result.register(self.visit(start, context))
-                if result.should_return():
+                start = register(visit(start, context))
+                if should_return():
                     return result
 
             if stop is not None:
-                stop = result.register(self.visit(stop, context))
-                if result.should_return():
+                stop = register(visit(stop, context))
+                if should_return():
                     return result
 
             if step is not None:
-                step = result.register(self.visit(step, context))
-                if result.should_return():
+                step = register(visit(step, context))
+                if should_return():
                     return result
 
             return result.success(slice(start, stop, step))
 
         else:
-            value = result.register(self.visit(node, context))
-            if result.should_return():
+            value = register(visit(node, context))
+            if should_return():
                 return result
 
             return result.success(value)
 
     def visit_unpack_AssignNode(self, node, context, value, operand=TOKENS['EQ']):
         result = PysRunTimeResult()
+
+        register = result.register
+        should_return = result.should_return
+        visit = self.visit
 
         if isinstance(node, PysSequenceNode):
 
@@ -933,12 +1084,14 @@ class PysInterpreter(Pys):
             count = 0
 
             with handle_exception(result, context, node.position):
+                elements = node.elements
+                elements_length = len(elements)
 
                 for i, element in enumerate(value):
 
-                    if i < len(node.elements):
-                        result.register(self.visit_unpack_AssignNode(node.elements[i], context, element, operand))
-                        if result.should_return():
+                    if i < elements_length:
+                        register(self.visit_unpack_AssignNode(elements[i], context, element, operand))
+                        if should_return():
                             return result
 
                         count += 1
@@ -946,7 +1099,7 @@ class PysInterpreter(Pys):
                     else:
                         result.failure(
                             PysException(
-                                ValueError("to many values to unpack (expected {})".format(len(node.elements))),
+                                ValueError("to many values to unpack (expected {})".format(elements_length)),
                                 context,
                                 node.position
                             )
@@ -954,14 +1107,14 @@ class PysInterpreter(Pys):
 
                         break
 
-            if result.should_return():
+            if should_return():
                 return result
 
-            if count < len(node.elements):
+            if count < elements_length:
                 return result.failure(
                     PysException(
                         ValueError(
-                            "not enough values to unpack (expected {}, got {})".format(len(node.elements), count)
+                            "not enough values to unpack (expected {}, got {})".format(elements_length, count)
                         ),
                         context,
                         node.position
@@ -969,12 +1122,12 @@ class PysInterpreter(Pys):
                 )
 
         elif isinstance(node, PysSubscriptNode):
-            object = result.register(self.visit(node.object, context))
-            if result.should_return():
+            object = register(visit(node.object, context))
+            if should_return():
                 return result
 
-            slice = result.register(self.visit_slice_from_SubscriptNode(node.slice, context))
-            if result.should_return():
+            slice = register(self.visit_slice_from_SubscriptNode(node.slice, context))
+            if should_return():
                 return result
 
             with handle_exception(result, context, node.position):
@@ -983,42 +1136,47 @@ class PysInterpreter(Pys):
                 else:
                     object[slice] = inplace_functions_map[operand](object[slice], value)
 
-            if result.should_return():
+            if should_return():
                 return result
 
         elif isinstance(node, PysAttributeNode):
-            object = result.register(self.visit(node.object, context))
-            if result.should_return():
+            object = register(visit(node.object, context))
+            if should_return():
                 return result
+
+            attribute = node.attribute.value
 
             with handle_exception(result, context, node.position):
                 if operand == TOKENS['EQ']:
-                    setattr(object, node.attribute.value, value)
+                    setattr(object, attribute, value)
                 else:
                     setattr(
                         object,
-                        node.attribute.value,
-                        inplace_functions_map[operand](getattr(object, node.attribute.value), value)
+                        attribute,
+                        inplace_functions_map[operand](getattr(object, attribute), value)
                     )
 
-            if result.should_return():
+            if should_return():
                 return result
 
         elif isinstance(node, PysIdentifierNode):
 
             with handle_exception(result, context, node.position):
-                success = context.symbol_table.set(node.token.value, value, operand)
+                symbol_table = context.symbol_table
+                name = node.token.value
+
+                success = symbol_table.set(name, value, operand)
 
                 if not success:
-                    closest_symbol = get_closest(context.symbol_table.symbols.keys(), node.token.value)
+                    closest_symbol = get_closest(symbol_table.symbols.keys(), name)
 
                     result.failure(
                         PysException(
                             NameError(
                                 (
-                                    "{!r} is not defined".format(node.token.value)
-                                    if context.symbol_table.get(node.token.value) is undefined else
-                                    "{!r} is not defined on local".format(node.token.value)
+                                    "{!r} is not defined".format(name)
+                                    if symbol_table.get(name) is undefined else
+                                    "{!r} is not defined on local".format(name)
                                 ) + ('' if closest_symbol is None else ". Did you mean {!r}?".format(closest_symbol))
                             ),
                             context,
@@ -1026,7 +1184,9 @@ class PysInterpreter(Pys):
                         )
                     )
 
-            if result.should_return():
+            if should_return():
                 return result
 
         return result.success(None)
+
+interpreter = PysInterpreter()

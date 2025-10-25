@@ -12,74 +12,81 @@ class PysPosition(Pys):
 
     @property
     def start_line(self):
-        return self.file.text.count('\n', 0, self.start) + 1
-
-    @property
-    def end_line(self):
-        return self.file.text.count('\n', 0, self.end) + 1
+        return -1 if self.is_positionless() else self.file.text.count('\n', 0, self.start) + 1
 
     @property
     def start_column(self):
-        return self.start - self.file.text.rfind('\n', 0, self.start)
+        return -1 if self.is_positionless() else self.start - self.file.text.rfind('\n', 0, self.start)
+
+    @property
+    def end_line(self):
+        return -1 if self.is_positionless() else self.file.text.count('\n', 0, self.end) + 1
 
     @property
     def end_column(self):
-        return self.end - self.file.text.rfind('\n', 0, self.end)
+        return -1 if self.is_positionless() else self.end - self.file.text.rfind('\n', 0, self.end)
+
+    def is_positionless(self):
+        start, end = self.start, self.end
+        return start < 0 or end < 0 or start > end
 
     def format_arrow(self):
-        string = ''
+        if self.is_positionless():
+            return ''
 
         line_start = self.start_line
-        column_start = self.start_column
         line_end = self.end_line
+        column_start = self.start_column
         column_end = self.end_column
 
-        start = self.file.text.rfind('\n', 0, self.start) + 1
-        end = self.file.text.find('\n', start + 1)
+        text = self.file.text
+
+        start = text.rfind('\n', 0, self.start) + 1
+        end = text.find('\n', start + 1)
         if end == -1:
-            end = len(self.file.text)
+            end = len(text)
 
-        if self.file.text[self.start:self.end] in {'', '\n'}:
-            line = self.file.text[start:end].lstrip('\n')
+        if text[self.start:self.end] in {'', '\n'}:
+            line = text[start:end].lstrip().replace('\t', ' ')
+            return '{}\n{}^'.format(line, ' ' * len(line))
 
-            string += line + '\n'
-            string += ' ' * len(line) + '^'
+        result = []
+        lines = []
+        count = line_end - line_start + 1
 
-        else:
-            lines = []
-            count = line_end - line_start + 1
+        for i in range(count):
+            line = text[start:end].lstrip('\n')
 
-            for i in range(count):
-                line = self.file.text[start:end].lstrip('\n')
-
-                lines.append(
-                    (
-                        line, len(line.lstrip()),
-                        column_start - 1 if i == 0 else 0, column_end - 1 if i == count - 1 else len(line)
-                    )
+            lines.append(
+                (
+                    line,
+                    len(line.lstrip()),
+                    column_start - 1 if i == 0 else 0,
+                    column_end - 1 if i == count - 1 else len(line)
                 )
+            )
 
-                start = end
-                end = self.file.text.find('\n', start + 1)
-                if end == -1:
-                    end = len(self.file.text)
+            start = end
+            end = text.find('\n', start + 1)
+            if end == -1:
+                end = len(text)
 
-            removed_indent = min(len(line) - no_indent for line, no_indent, _, _ in lines)
+        removed_indent = min(len(line) - line_code_length for line, line_code_length, _, _ in lines)
 
-            for i, (line, no_indent, start, end) in enumerate(lines):
-                line = line[removed_indent:]
-                string += line + '\n'
+        for i, (line, line_code_length, start, end) in enumerate(lines):
+            line = line[removed_indent:]
+            result.append(line)
 
-                if i == 0:
-                    arrow = '^' * (end - start)
-                    line_arrow = ' ' * (start - removed_indent) + arrow
+            if i == 0:
+                arrow = '^' * (end - start)
+                line_arrow = ' ' * (start - removed_indent) + arrow
 
-                else:
-                    indent = len(line) - no_indent
-                    arrow = '^' * (end - start - (removed_indent + indent))
-                    line_arrow = ' ' * indent + arrow
+            else:
+                indent = len(line) - line_code_length
+                arrow = '^' * (end - start - (removed_indent + indent))
+                line_arrow = ' ' * indent + arrow
 
-                if arrow and len(line_arrow) - 1 <= len(line):
-                    string += line_arrow + '\n'
+            if arrow and len(line_arrow) - 1 <= len(line):
+                result.append(line_arrow)
 
-        return string.rstrip().replace('\t', ' ')
+        return '\n'.join(result).replace('\t', ' ')

@@ -15,7 +15,7 @@ from .core.highlight import HLFMT_HTML, HLFMT_ANSI, pys_highlight
 from .core.runner import pys_exec, pys_eval
 from .core.version import __version__, __date__
 
-__all__ = [
+__all__ = (
     'core',
     'DEFAULT',
     'OPTIMIZE',
@@ -28,6 +28,6 @@ __all__ = [
     'pys_highlight',
     'pys_exec',
     'pys_eval'
-]
+)
 
 del sys

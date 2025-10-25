@@ -7,7 +7,7 @@ class Clock {
     __slots__ = ()
 
     func __new__(cls) {
-        if (not isinstance(_clockAttr.get('instance', None), Clock))
+        if not isinstance(_clockAttr.get('instance', None), Clock)
             _clockAttr['instance'] = super(Clock, Clock).__new__(Clock)
 
         _clockAttr['last_tick'] = time.monotonic()
@@ -22,9 +22,9 @@ class Clock {
         current_time = time.monotonic()
         elapsed_time = current_time - _clockAttr['last_tick']
 
-        if (framerate > 0) {
+        if framerate > 0 {
             min_frame_time = 1 / framerate
-            if (elapsed_time < min_frame_time)
+            if elapsed_time < min_frame_time
                 time.sleep(min_frame_time - elapsed_time)
         }
 

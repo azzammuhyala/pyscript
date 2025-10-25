@@ -1,0 +1,62 @@
+_SILENT = false
+
+undefined = none
+
+class UndefinedType {
+
+    func __new__(cls) {
+        if not isinstance(undefined, UndefinedType) {
+            global undefined
+            undefined = super(UndefinedType, UndefinedType).__new__(cls)
+        }
+
+        return undefined
+    }
+
+    func __copy__(self)
+        return self
+
+    func __deepcopy__(self, memo)
+        return self
+
+    func __repr__(self)
+        return 'undefined'
+
+    func __bool__(self)
+        return false
+
+}
+
+UndefinedType()
+
+func silent(boolean) {
+    global _SILENT
+    _SILENT = bool(boolean)
+}
+
+func issilent() {
+    return _SILENT
+}
+
+class jsdict(dict) {
+
+    func __repr__(self) {
+        return 'jsdict({})'.format(super(jsdict, self).__repr__())
+    }
+
+    func __getattr__(self, name) {
+        return _SILENT ? self.get(name, undefined) : self[name]
+    }
+
+    func __setattr__(self, name, value) {
+        self[name] = value
+    }
+
+    func __delattr__(self, name) {
+        if (_SILENT and name not in self)
+            return;
+
+        del self[name]
+    }
+
+}

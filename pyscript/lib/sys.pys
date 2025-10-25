@@ -1,7 +1,9 @@
-import _pyscript
+_pyscript = require('_pyscript')
+_sys = pyimport('sys')
 
-flags = _pyscript.objects.PysPythonFunction(func(pyfunc) return pyfunc.__code__.flags)()
+executable = '{} -m pyscript'.format(_sys.executable)
 getcontext = _pyscript.objects.PysPythonFunction(func(pyfunc) return pyfunc.__code__.context)
+flags = getcontext().flags
 hook = _pyscript.cache.hook
 loading_modules = _pyscript.cache.loading_modules
 library = _pyscript.cache.library

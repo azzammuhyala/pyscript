@@ -1,9 +1,5 @@
-from .singletons import PysVersionInfo
-
-__version__ = '1.2.3'
-__date__ = '12 October 2025, 13:15 UTC+7'
+__version__ = '1.3.0'
+__date__ = '25 October 2025, 17:00 UTC+7'
 
 version = '{} ({})'.format(__version__, __date__)
-version_info = PysVersionInfo()
-
-del PysVersionInfo
+version_info = None

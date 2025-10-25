@@ -1,13 +1,14 @@
 from .bases import Pys
-from .constants import TOKENS
+from .constants import TOKENS, DEFAULT
 from .context import PysContext
 from .exceptions import PysException
-from .nodes import PysSequenceNode, PysIdentifierNode, PysAttributeNode, PysSubscriptNode
+from .nodes import PysSequenceNode, PysIdentifierNode, PysKeywordNode, PysAttributeNode, PysSubscriptNode
 
-class PysValidator(Pys):
+class PysAnalyzer(Pys):
 
-    def __init__(self, file, context_parent=None, context_parent_entry_position=None):
+    def __init__(self, file, flags=DEFAULT, context_parent=None, context_parent_entry_position=None):
         self.file = file
+        self.flags = flags
         self.context = context_parent
         self.context_parent_entry_position = context_parent_entry_position
 
@@ -23,6 +24,7 @@ class PysValidator(Pys):
                 SyntaxError(message),
                 PysContext(
                     file=self.file,
+                    flags=self.flags,
                     parent=self.context,
                     parent_entry_position=self.context_parent_entry_position
                 ),
@@ -31,7 +33,6 @@ class PysValidator(Pys):
 
     def visit(self, node):
         func = getattr(self, 'visit_' + type(node).__name__[3:], None)
-
         if not self.error and func:
             func(node)
 
@@ -101,11 +102,14 @@ class PysValidator(Pys):
 
     def visit_UnaryOperatorNode(self, node):
         if node.operand.type in (TOKENS['INCREMENT'], TOKENS['DECREMENT']):
-            if not isinstance(node.value, (PysIdentifierNode, PysAttributeNode, PysSubscriptNode)):
-                self.throw(
-                    "cannot {} literal".format('increase' if node.operand.type == TOKENS['INCREMENT'] else 'decrease'),
-                    node.value.position
-                )
+            operator = 'increase' if node.operand.type == TOKENS['INCREMENT'] else 'decrease'
+
+            if isinstance(node.value, PysKeywordNode):
+                self.throw("cannot {} {}".format(operator, node.value.token.value), node.value.position)
+                return
+
+            elif not isinstance(node.value, (PysIdentifierNode, PysAttributeNode, PysSubscriptNode)):
+                self.throw("cannot {} literal".format(operator), node.value.position)
                 return
 
         self.visit(node.value)
@@ -153,6 +157,11 @@ class PysValidator(Pys):
 
         if node.catch_body:
             self.visit(node.catch_body)
+            if self.error:
+                return
+
+        if node.else_body:
+            self.visit(node.else_body)
             if self.error:
                 return
 
@@ -314,6 +323,10 @@ class PysValidator(Pys):
         if node.value:
             self.visit(node.value)
 
+    def visit_GlobalNode(self, node):
+        if self.in_function == 0:
+            self.throw("global outside of function", node.position)
+
     def visit_DeleteNode(self, node):
         for element in node.targets:
 
@@ -330,6 +343,10 @@ class PysValidator(Pys):
                 self.visit(element.object)
                 if self.error:
                     return
+
+            elif isinstance(element, PysKeywordNode):
+                self.throw("cannot delete {}".format(element.token.value), element.position)
+                return
 
             elif not isinstance(element, PysIdentifierNode):
                 self.throw("cannot delete literal", element.position)
@@ -386,6 +403,9 @@ class PysValidator(Pys):
 
         elif isinstance(node, PysAttributeNode):
             self.visit(node.object)
+
+        elif isinstance(node, PysKeywordNode):
+            self.throw("cannot assign to {}".format(node.token.value), node.position)
 
         elif not isinstance(node, PysIdentifierNode):
             self.throw(message, node.position)

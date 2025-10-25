@@ -1,18 +1,19 @@
+from .analyzer import PysAnalyzer
 from .buffer import PysFileBuffer
-from .cache import hook
-from .constants import DEFAULT, SILENT, RETRES
+from .constants import DEFAULT, SILENT, RETRES, COMMENT
 from .context import PysContext
 from .exceptions import PysException
 from .handlers import handle_execute
-from .interpreter import PysInterpreter
+from .interpreter import interpreter
 from .lexer import PysLexer
 from .parser import PysParser
 from .position import PysPosition
 from .results import PysExecuteResult
-from .symtab import PysSymbolTable
-from .utils import is_object_of, get_locals, build_symbol_table, print_display
-from .validator import PysValidator
+from .symtab import PysSymbolTable, build_symbol_table
+from .utils import is_object_of, get_locals, print_display
 from .version import version
+
+from . import cache
 
 import sys
 
@@ -20,7 +21,7 @@ def pys_runner(
     file,
     mode,
     symbol_table,
-    flags=DEFAULT,
+    flags=None,
     context_parent=None,
     context_parent_entry_position=None
 ):
@@ -28,12 +29,13 @@ def pys_runner(
     context = PysContext(
         file=file,
         name='<program>',
+        flags=flags,
         symbol_table=symbol_table,
         parent=context_parent,
         parent_entry_position=context_parent_entry_position
     )
 
-    result = PysExecuteResult(mode, flags, context)
+    result = PysExecuteResult(mode, context)
 
     try:
 
@@ -41,7 +43,7 @@ def pys_runner(
 
             lexer = PysLexer(
                 file=file,
-                flags=flags,
+                flags=context.flags & ~COMMENT,
                 context_parent=context_parent,
                 context_parent_entry_position=context_parent_entry_position
             )
@@ -53,7 +55,7 @@ def pys_runner(
             parser = PysParser(
                 file=file,
                 tokens=tokens,
-                flags=flags,
+                flags=context.flags,
                 context_parent=context_parent,
                 context_parent_entry_position=context_parent_entry_position
             )
@@ -62,13 +64,14 @@ def pys_runner(
             if ast.error:
                 return result.failure(ast.error)
 
-            validator = PysValidator(
+            analyzer = PysAnalyzer(
                 file=file,
+                flags=parser.flags,
                 context_parent=context_parent,
                 context_parent_entry_position=context_parent_entry_position
             )
 
-            error = validator.visit(ast.node)
+            error = analyzer.visit(ast.node)
             if error:
                 return result.failure(error)
 
@@ -77,22 +80,21 @@ def pys_runner(
                 PysException(
                     RecursionError("maximum recursion depth exceeded during complication"),
                     context,
-                    PysPosition(file, 0, 0)
+                    PysPosition(file, -1, -1)
                 )
             )
 
-        result.flags = parser.flags
+        context.flags = parser.flags
 
-        interpreter = PysInterpreter(result.flags)
-        interpreter_result = interpreter.visit(ast.node, context)
+        runtime_result = interpreter.visit(ast.node, context)
 
-        if interpreter_result.error:
-            return result.failure(interpreter_result.error)
+        if runtime_result.error:
+            return result.failure(runtime_result.error)
 
-        return result.success(interpreter_result.value)
+        return result.success(runtime_result.value)
 
     except KeyboardInterrupt as e:
-        return result.failure(PysException(e, context, PysPosition(file, 0, 0)))
+        return result.failure(PysException(e, context, PysPosition(file, -1, -1)))
 
 def pys_exec(source, globals=None, flags=DEFAULT):
     """
@@ -187,10 +189,9 @@ def pys_shell(symbol_table=None, flags=DEFAULT):
         symbol_table = build_symbol_table(PysFileBuffer('', '<pyscript-shell>'))
         symbol_table.set('__name__', '__main__')
 
-    hook.display = print_display
+    cache.hook.display = print_display
 
     line = 0
-
     parenthesis_level = 0
     in_string = False
     in_decorator = False
@@ -215,11 +216,12 @@ def pys_shell(symbol_table=None, flags=DEFAULT):
     while True:
 
         try:
+
             if is_next_line():
-                text = input('... ')
+                text = input(cache.hook.ps2)
 
             else:
-                text = input('>>> ')
+                text = input(cache.hook.ps1)
                 if text == '!exit':
                     return 0
 
@@ -298,7 +300,7 @@ def pys_shell(symbol_table=None, flags=DEFAULT):
                     flags=flags
                 )
 
-                flags = result.flags
+                flags = result.context.flags
 
                 reset_next_line()
 
@@ -314,4 +316,4 @@ def pys_shell(symbol_table=None, flags=DEFAULT):
             print('\rKeyboardInterrupt. Type "exit" or "!exit" to exit the program.', file=sys.stderr)
 
         except EOFError:
-            return 1
+            return 0

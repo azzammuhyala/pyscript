@@ -15,18 +15,20 @@ class PysException(Pys):
         return '<Exception of {!r}>'.format(self.exception)
 
     def string_traceback(self):
-        frames = []
-
         context = self.context
         position = self.position
 
+        frames = []
+
         while context:
+            is_positionless = position.is_positionless()
+
             frames.append(
-                '  File "{}", line {}{}\n{}'.format(
+                '  File "{}"{}{}{}'.format(
                     position.file.name,
-                    position.start_line,
+                    '' if is_positionless else ', line {}'.format(position.start_line),
                     '' if context.name is None else ', in {}'.format(context.name),
-                    space_indent(position.format_arrow(), 4)
+                    '' if is_positionless else '\n{}'.format(space_indent(position.format_arrow(), 4))
                 )
             )
 
@@ -56,9 +58,9 @@ class PysException(Pys):
 
         if isinstance(self.exception, type):
             return result + self.exception.__name__
-        else:
-            message = str(self.exception)
-            return '{}{}{}'.format(result, type(self.exception).__name__, ': ' + message if message else '')
+
+        message = str(self.exception)
+        return result + type(self.exception).__name__ + (': ' + message if message else '')
 
 class PysShouldReturn(Pys, BaseException):
 
@@ -74,6 +76,6 @@ class PysShouldReturn(Pys, BaseException):
 
         if isinstance(exception, type):
             return exception.__name__
-        else:
-            message = str(exception)
-            return type(exception).__name__ + (': ' + message if message else '')
+
+        message = str(exception)
+        return type(exception).__name__ + (': ' + message if message else '')
