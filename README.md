@@ -19,6 +19,10 @@ language was created as a relatively complex project. Using Python as the founda
 understand syntax makes it easy to understand how the language is built without having to understand complex
 instructions like those in C, C++, and other low-level languages.
 
-To learn more about PyScript's syntax and packages, you can check out the
-[PyScript documentation here](https://azzammuhyala.github.io/pyscript) or see on
+To learn more about PyScript, you can see on [PyScript documentation here](https://azzammuhyala.github.io/pyscript) or 
 [PyScript repository](https://github.com/azzammuhyala/pyscript).
+
+## Behind it
+This language created from based up on a
+[YouTube tutorial](https://www.youtube.com/playlist?list=PLZQftyCk7_SdoVexSmwy_tBgs7P0b97yD). At least, it takes
+about 6 months to learn it, and also need to learn general things that exist in other programming languages.

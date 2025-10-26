@@ -41,6 +41,10 @@ func rgb(color, bold=false, italic=false, under=false, striket=false) {
     )
 }
 
+# clear up screen
+func clear()
+    os.system(os.name == 'nt' ? 'cls' : 'clear')
+
 class MineSweeper {
 
     func __init__(self, cellSize, bombsCount) {
@@ -96,16 +100,15 @@ class MineSweeper {
             bombsPlanted++
         }
 
-        # STEP 2: determines the value of the number of bombs in the 9x9 area in each cell
+        # STEP 2: determines the value of the number of bombs in the 3x3 area in each cell
 
         for (row of range(h)) {
             for (col of range(w)) {
-
                 # cell are bomb
                 if (self.board[row][col] == 9)
                     continue
 
-                # STEP 3: determine the number of bombs around the 9x9 area
+                # STEP 3: determine the number of bombs around the 3x3 area
                 number = 0
 
                 for (r of range(max(0, row - 1), min(h, row + 2))) {
@@ -135,9 +138,6 @@ class MineSweeper {
         if (position in self.flags)
             return true
 
-        # save dig position
-        self.dug.add(position)
-
         cell = self.board[row][col]
 
         # if the cell is a bomb, then lose
@@ -145,24 +145,22 @@ class MineSweeper {
             return false
 
         # chording mechanism
-
         if recursive
             chording = false
 
         else {
-
             # marked with a flag
             if (position in self.flags)
                 chording = false
             # cell have not been dug
             elif (position not in self.dug)
                 chording = false
-            # cell value is not between 1 to 7 (8 is not included because all 9x9 cells are bombs)
+            # cell value is not between 1 to 7 (8 is not included because all 3x3 cells are bombs)
             elif (not (0 < cell < 8))
                 chording = false
 
             else {
-                # count the number of flags in a 9x9 area
+                # count the number of flags in a 3x3 area
                 count = 0
 
                 for (r of range(max(0, row - 1), min(h, row + 2))) {
@@ -177,11 +175,14 @@ class MineSweeper {
             }
         }
 
+        # save dig position
+        self.dug.add(position)
+
         # if sell is a number then it is safe without doing recursion (except if chording is active)
         if (cell > 0 and not chording)
             return true
 
-        # dig recursive 9x9 cell
+        # dig recursive 3x3 area
         for (r of range(max(0, row - 1), min(h, row + 2))) {
             for (c of range(max(0, col - 1), min(w, col + 2))) {
                 pos = (c, r)
@@ -222,7 +223,12 @@ class MineSweeper {
 
         columnNumber = '    {} '.format(' '.join(map(func (x) return format(x, '^3'), range(1, w + 1))))
 
-        buffer = '\x1b[H{}\n'.format(columnNumber)
+        buffer = '\x1b[H'
+        buffer += '{}Flags\x1b[0m: {} \n'.format(
+            rgb(CELL_COLORS[10], bold=true, italic=true),
+            self.bombsCount - len(self.flags)
+        )
+        buffer += '{}\n'.format(columnNumber)
 
         for (row of range(h)) {
             buffer += '   +{}\n{:>3}'.format('---+' * w, row + 1)
@@ -262,7 +268,15 @@ class MineSweeper {
     # gets the position and set it as a flag on user input
     func getPositionByUser(self) {
         while true {
-            position = input('Choose location (col row): ').strip().split()
+            result = input('Choose location (col row): ').strip()
+
+            if (result == 'c') {
+                clear()
+                self.showBoard()
+                continue
+            }
+
+            position = result.split()
             setFlag = false
 
             if (len(position) == 3) {
@@ -297,9 +311,8 @@ class MineSweeper {
                 [w, h] = self.cellSize
                 [col, row] = position
 
-                if (0 <= col < w and 0 <= row < h) {
+                if (0 <= col < w and 0 <= row < h)
                     return (position, setFlag)
-                }
 
                 print('Invalid position')
             }
@@ -311,11 +324,9 @@ class MineSweeper {
         [w, h] = self.cellSize
         maxDug = w * h - self.bombsCount  # maximum dig that indicates finished without lose
 
-        # clear up screen
-        os.system(os.name == 'nt' ? 'cls' : 'clear')
-
         # create an empty board and display the board
         self.makeNewEmptyBoard()
+        clear()
         self.showBoard(showAll=true)
 
         # get first position
@@ -342,6 +353,7 @@ class MineSweeper {
         }
 
         # show board and bombs
+        clear()
         self.showBoard(showAll=true)
 
         # determine win and lose

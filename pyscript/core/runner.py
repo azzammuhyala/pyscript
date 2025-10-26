@@ -313,7 +313,7 @@ def pys_shell(symbol_table=None, flags=DEFAULT):
 
         except KeyboardInterrupt:
             reset_next_line()
-            print('\rKeyboardInterrupt. Type "exit" or "!exit" to exit the program.', file=sys.stderr)
+            print('\rKeyboardInterrupt. Type "exit" or "!exit" to exit.', file=sys.stderr)
 
         except EOFError:
             return 0
