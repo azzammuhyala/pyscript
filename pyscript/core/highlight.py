@@ -1,6 +1,6 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
-from .constants import TOKENS, KEYWORDS, HIGHLIGHT, SILENT, COMMENT
+from .constants import TOKENS, KEYWORDS, HIGHLIGHT, DEFAULT, SILENT, COMMENT
 from .lexer import PysLexer
 from .position import PysPosition
 from .pysbuiltins import pys_builtins
@@ -49,7 +49,8 @@ class _HighlightFormatter(Pys):
             if self._open:
                 result += self.close_block(position, self._type)
 
-            result += self.open_block(position, type) + self.content_block(position, content)
+            result += self.open_block(position, type) + \
+                      self.content_block(position, content)
 
             self._open = True
 
@@ -79,7 +80,7 @@ HLFMT_ANSI = _HighlightFormatter(
     lambda position: '\n'
 )
 
-def pys_highlight(source, format=None, max_parenthesis_level=3, flags=COMMENT):
+def pys_highlight(source, format=None, max_parenthesis_level=3, flags=DEFAULT):
     """
     Highlight a PyScript code from source given.
 
@@ -111,7 +112,7 @@ def pys_highlight(source, format=None, max_parenthesis_level=3, flags=COMMENT):
 
     lexer = PysLexer(
         file=file,
-        flags=flags
+        flags=flags | COMMENT
     )
 
     tokens, error = lexer.make_tokens()
@@ -119,7 +120,7 @@ def pys_highlight(source, format=None, max_parenthesis_level=3, flags=COMMENT):
         raise error.exception
 
     result = ''
-    last_index = 0
+    last_index_position = 0
     parenthesis_level = 0
     parenthesises_level = {
         TOKENS['RPAREN']: 0,
@@ -131,6 +132,7 @@ def pys_highlight(source, format=None, max_parenthesis_level=3, flags=COMMENT):
 
     for i, token in enumerate(tokens):
         ttype = token.type
+        tvalue = token.value
 
         if ttype in right_parenthesises:
             parenthesises_level[ttype] -= 1
@@ -140,7 +142,7 @@ def pys_highlight(source, format=None, max_parenthesis_level=3, flags=COMMENT):
             type_fmt = 'end'
 
         elif ttype == TOKENS['KEYWORD']:
-            type_fmt = 'keyword-identifier' if token.value in highlight_keyword_identifiers else 'keyword'
+            type_fmt = 'keyword-identifier' if tvalue in highlight_keyword_identifiers else 'keyword'
 
         elif ttype == TOKENS['NUMBER']:
             type_fmt = 'number'
@@ -149,7 +151,7 @@ def pys_highlight(source, format=None, max_parenthesis_level=3, flags=COMMENT):
             type_fmt = 'string'
 
         elif ttype == TOKENS['IDENTIFIER']:
-            obj = getattr(pys_builtins, token.value, None)
+            obj = pys_builtins.__dict__.get(tvalue, None)
 
             if isinstance(obj, type):
                 type_fmt = 'identifier-class'
@@ -158,7 +160,7 @@ def pys_highlight(source, format=None, max_parenthesis_level=3, flags=COMMENT):
                 type_fmt = 'identifier-call'
 
             else:
-                type_fmt = 'identifier-const' if token.value.isupper() else 'identifier'
+                type_fmt = 'identifier-const' if tvalue.isupper() else 'identifier'
 
                 j = i + 1
                 if (j < len(tokens) and tokens[j].type == TOKENS['LPAREN']):
@@ -192,9 +194,9 @@ def pys_highlight(source, format=None, max_parenthesis_level=3, flags=COMMENT):
         else:
             type_fmt = 'default'
 
-        space = text[last_index:token.position.start]
+        space = text[last_index_position:token.position.start]
         if space:
-            result += format('default', PysPosition(file, last_index, token.position.start), space)
+            result += format('default', PysPosition(file, last_index_position, token.position.start), space)
 
         result += format(type_fmt, token.position, text[token.position.start:token.position.end])
 
@@ -205,6 +207,6 @@ def pys_highlight(source, format=None, max_parenthesis_level=3, flags=COMMENT):
         elif ttype == TOKENS['EOF']:
             break
 
-        last_index = token.position.end
+        last_index_position = token.position.end
 
     return result

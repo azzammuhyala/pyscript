@@ -22,15 +22,14 @@ class PysStringNode(PysNode):
     def __repr__(self):
         return 'String(value={!r})'.format(self.token.value)
 
-class PysSequenceNode(PysNode):
+class PysKeywordNode(PysNode):
 
-    def __init__(self, type, elements, position):
-        self.position = position
-        self.type = type
-        self.elements = elements
+    def __init__(self, token):
+        self.position = token.position
+        self.token = token
 
     def __repr__(self):
-        return 'Sequence(type={!r}, elements={!r})'.format(self.type, self.elements)
+        return 'Keyword(name={!r})'.format(self.token.value)
 
 class PysIdentifierNode(PysNode):
 
@@ -41,14 +40,15 @@ class PysIdentifierNode(PysNode):
     def __repr__(self):
         return 'Identifier(name={!r})'.format(self.token.value)
 
-class PysKeywordNode(PysNode):
+class PysSequenceNode(PysNode):
 
-    def __init__(self, token):
-        self.position = token.position
-        self.token = token
+    def __init__(self, type, elements, position):
+        self.position = position
+        self.type = type
+        self.elements = elements
 
     def __repr__(self):
-        return 'Keyword(name={!r})'.format(self.token.value)
+        return 'Sequence(type={!r}, elements={!r})'.format(self.type, self.elements)
 
 class PysAttributeNode(PysNode):
 
@@ -70,17 +70,6 @@ class PysSubscriptNode(PysNode):
     def __repr__(self):
         return 'Subscript(object={!r}, slice={!r})'.format(self.object, self.slice)
 
-class PysAssignNode(PysNode):
-
-    def __init__(self, target, operand, value):
-        self.position = PysPosition(target.position.file, target.position.start, value.position.end)
-        self.target = target
-        self.operand = operand
-        self.value = value
-
-    def __repr__(self):
-        return 'Assign(target={!r}, operand={!r}, value={!r})'.format(self.target, self.operand, self.value)
-
 class PysChainOperatorNode(PysNode):
 
     def __init__(self, operations, expressions):
@@ -98,15 +87,21 @@ class PysChainOperatorNode(PysNode):
 
 class PysTernaryOperatorNode(PysNode):
 
-    def __init__(self, condition, valid, invalid):
-        self.position = PysPosition(condition.position.file, condition.position.start, invalid.position.end)
+    def __init__(self, condition, valid, invalid, style):
+        self.position = (
+            PysPosition(condition.position.file, condition.position.start, invalid.position.end)
+            if style == 'general' else
+            PysPosition(condition.position.file, valid.position.start, invalid.position.end)
+        )
+
         self.condition = condition
         self.valid = valid
         self.invalid = invalid
+        self.style = style
 
     def __repr__(self):
-        return 'TernaryOperator(condition={!r}, valid={!r}, invalid={!r})'.format(
-            self.condition, self.valid, self.invalid
+        return 'TernaryOperator(condition={!r}, valid={!r}, invalid={!r}, style={!r})'.format(
+            self.condition, self.valid, self.invalid, self.style
         )
 
 class PysBinaryOperatorNode(PysNode):
@@ -138,6 +133,17 @@ class PysUnaryOperatorNode(PysNode):
             self.operand, self.value, self.operand_position
         )
 
+class PysAssignNode(PysNode):
+
+    def __init__(self, target, operand, value):
+        self.position = PysPosition(target.position.file, target.position.start, value.position.end)
+        self.target = target
+        self.operand = operand
+        self.value = value
+
+    def __repr__(self):
+        return 'Assign(target={!r}, operand={!r}, value={!r})'.format(self.target, self.operand, self.value)
+
 class PysImportNode(PysNode):
 
     def __init__(self, name, packages, position):
@@ -160,42 +166,52 @@ class PysIfNode(PysNode):
 
 class PysSwitchNode(PysNode):
 
-    def __init__(self, target, cases_body, default_body, position):
+    def __init__(self, target, case_cases, default_body, position):
         self.position = position
         self.target = target
-        self.cases_body = cases_body
+        self.case_cases = case_cases
         self.default_body = default_body
 
     def __repr__(self):
-        return 'Switch(target={!r}, cases_body={!r}, default_body={!r})'.format(
-            self.target, self.cases_body, self.default_body
+        return 'Switch(target={!r}, case_cases={!r}, default_body={!r})'.format(
+            self.target, self.case_cases, self.default_body
         )
 
 class PysTryNode(PysNode):
 
-    def __init__(self, body, error_variable, catch_body, else_body, finally_body, position):
+    def __init__(self, body, catch_cases, else_body, finally_body, position):
         self.position = position
         self.body = body
-        self.error_variable = error_variable
-        self.catch_body = catch_body
+        self.catch_cases = catch_cases
         self.else_body = else_body
         self.finally_body = finally_body
 
     def __repr__(self):
-        return 'Try(body={!r}, error_variable={!r}, catch_body={!r}, else_body={!r}, finally_body={!r})'.format(
-            self.body, self.error_variable, self.catch_body, self.else_body, self.finally_body
+        return 'Try(body={!r}, catch_cases={!r}, else_body={!r}, finally_body={!r})'.format(
+            self.body, self.catch_cases, self.else_body, self.finally_body
         )
+
+class PysWithNode(PysNode):
+
+    def __init__(self, context, alias, body, position):
+        self.position = position
+        self.context = context
+        self.alias = alias
+        self.body = body
+
+    def __repr__(self):
+        return 'With(context={!r}, alias={!r}, body={!r})'.format(self.context, self.alias, self.body)
 
 class PysForNode(PysNode):
 
-    def __init__(self, init, body, else_body, position):
+    def __init__(self, header, body, else_body, position):
         self.position = position
-        self.init = init
+        self.header = header
         self.body = body
         self.else_body = else_body
 
     def __repr__(self):
-        return 'For(init={!r}, body={!r}, else_body={!r})'.format(self.init, self.body, self.else_body)
+        return 'For(header={!r}, body={!r}, else_body={!r})'.format(self.header, self.body, self.else_body)
 
 class PysWhileNode(PysNode):
 
@@ -249,13 +265,13 @@ class PysFunctionNode(PysNode):
 
 class PysCallNode(PysNode):
 
-    def __init__(self, name, arguments, position):
+    def __init__(self, target, arguments, position):
         self.position = position
-        self.name = name
+        self.target = target
         self.arguments = arguments
 
     def __repr__(self):
-        return 'Call(name={!r}, arguments={!r})'.format(self.name, self.arguments)
+        return 'Call(target={!r}, arguments={!r})'.format(self.target, self.arguments)
 
 class PysReturnNode(PysNode):
 
@@ -265,24 +281,6 @@ class PysReturnNode(PysNode):
 
     def __repr__(self):
         return 'Return(value={!r})'.format(self.value)
-
-class PysGlobalNode(PysNode):
-
-    def __init__(self, names, position):
-        self.position = position
-        self.names = names
-
-    def __repr__(self):
-        return 'Global(names={!r})'.format(self.names)
-
-class PysDeleteNode(PysNode):
-
-    def __init__(self, targets, position):
-        self.position = position
-        self.targets = targets
-
-    def __repr__(self):
-        return 'Delete(targets={!r})'.format(self.targets)
 
 class PysThrowNode(PysNode):
 

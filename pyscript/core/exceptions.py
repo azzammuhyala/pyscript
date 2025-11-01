@@ -3,10 +3,13 @@ from .utils import space_indent
 
 class PysException(Pys):
 
-    def __init__(self, exception, context, position):
+    __slots__ = ('exception', 'context', 'position', 'other_exception')
+
+    def __init__(self, exception, context, position, other_exception=None):
         self.exception = exception
         self.context = context
         self.position = position
+        self.other_exception = other_exception
 
     def __str__(self):
         return str(self.exception)
@@ -57,10 +60,17 @@ class PysException(Pys):
         result = 'Traceback (most recent call last):\n' + strings_traceback
 
         if isinstance(self.exception, type):
-            return result + self.exception.__name__
+            result += self.exception.__name__
+        else:
+            message = str(self.exception)
+            result += type(self.exception).__name__ + (': ' + message if message else '')
 
-        message = str(self.exception)
-        return result + type(self.exception).__name__ + (': ' + message if message else '')
+        return (
+            '{}\n\nDuring handling of the above exception, another exception occurred:\n\n{}'
+            .format(self.other_exception.string_traceback(), result)
+            if self.other_exception else
+            result
+        )
 
 class PysShouldReturn(Pys, BaseException):
 

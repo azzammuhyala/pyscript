@@ -45,8 +45,7 @@ class PysParserResult(PysResult):
 
 class PysRunTimeResult(PysResult):
 
-    def __init__(self):
-        self.reset()
+    __slots__ = ('should_continue', 'should_break', 'func_return_value', 'func_should_return', 'value', 'error')
 
     def reset(self):
         self.should_continue = False
@@ -56,6 +55,8 @@ class PysRunTimeResult(PysResult):
 
         self.value = None
         self.error = None
+
+    __init__ = reset
 
     def register(self, result):
         self.error = result.error
@@ -103,8 +104,7 @@ class PysRunTimeResult(PysResult):
 
 class PysExecuteResult(PysResult):
 
-    def __init__(self, mode, context):
-        self.mode = mode
+    def __init__(self, context):
         self.context = context
 
         self.value = None

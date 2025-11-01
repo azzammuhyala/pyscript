@@ -4,7 +4,7 @@ import os      # to clear up the terminal
 # for recursive settings (in Python, the maximum recursive runs may not be the same)
 sys = pyimport('sys')
 
-RECURSION_LIMIT = 4_000  # how many recursive functions can be performed
+RECURSION_LIMIT = 5_000  # how many recursive functions can be performed
 CELL_SIZE = (20, 10)     # board size
 BOMBS_COUNT = 30         # number of bombs
 CELL_COLORS = {
@@ -325,9 +325,9 @@ class MineSweeper {
         maxDug = w * h - self.bombsCount  # maximum dig that indicates finished without lose
 
         # create an empty board and display the board
-        self.makeNewEmptyBoard()
         clear()
-        self.showBoard(showAll=true)
+        self.makeNewEmptyBoard()
+        self.showBoard()
 
         # get first position
         [position, setFlag] = self.getPositionByUser()

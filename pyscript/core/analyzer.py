@@ -12,12 +12,6 @@ class PysAnalyzer(Pys):
         self.context = context_parent
         self.context_parent_entry_position = context_parent_entry_position
 
-        self.in_loop = 0
-        self.in_function = 0
-        self.in_switch = 0
-
-        self.error = None
-
     def throw(self, message, position):
         if self.error is None:
             self.error = PysException(
@@ -31,16 +25,58 @@ class PysAnalyzer(Pys):
                 position
             )
 
+    def analyze(self, node):
+        self.in_loop = 0
+        self.in_function = 0
+        self.in_switch = 0
+
+        self.error = None
+
+        self.visit(node)
+
+        return self.error
+
     def visit(self, node):
         func = getattr(self, 'visit_' + type(node).__name__[3:], None)
         if not self.error and func:
             func(node)
 
-        return self.error
-
     def visit_SequenceNode(self, node):
-        if node.type == 'dict':
+
+        if node.type == 'del':
+
+            for element in node.elements:
+
+                if isinstance(element, PysSubscriptNode):
+                    self.visit(element.object)
+                    if self.error:
+                        return
+
+                    self.check_valid_slice_from_SubscriptNode(element.slice)
+                    if self.error:
+                        return
+
+                elif isinstance(element, PysAttributeNode):
+                    self.visit(element.object)
+                    if self.error:
+                        return
+
+                elif isinstance(element, PysKeywordNode):
+                    self.throw("cannot delete {}".format(element.token.value), element.position)
+                    return
+
+                elif not isinstance(element, PysIdentifierNode):
+                    self.throw("cannot delete literal", element.position)
+                    return
+
+        elif node.type == 'global':
+            if self.in_function == 0:
+                self.throw("global outside of function", node.position)
+
+        elif node.type == 'dict':
+
             for key, value in node.elements:
+
                 self.visit(key)
                 if self.error:
                     return
@@ -55,26 +91,15 @@ class PysAnalyzer(Pys):
                 if self.error:
                     return
 
+    def visit_AttributeNode(self, node):
+        self.visit(node.object)
+
     def visit_SubscriptNode(self, node):
         self.visit(node.object)
         if self.error:
             return
 
         self.check_valid_slice_from_SubscriptNode(node.slice)
-
-    def visit_AttributeNode(self, node):
-        self.visit(node.object)
-
-    def visit_AssignNode(self, node):
-        self.check_valid_AssignNode(
-            node.target,
-            "cannot assign to expression here. Maybe you meant '==' instead of '='?"
-        )
-
-        if self.error:
-            return
-
-        self.visit(node.value)
 
     def visit_ChainOperatorNode(self, node):
         for expression in node.expressions:
@@ -83,13 +108,23 @@ class PysAnalyzer(Pys):
                 return
 
     def visit_TernaryOperatorNode(self, node):
-        self.visit(node.condition)
-        if self.error:
-            return
+        if node.style == 'general':
+            self.visit(node.condition)
+            if self.error:
+                return
 
-        self.visit(node.valid)
-        if self.error:
-            return
+            self.visit(node.valid)
+            if self.error:
+                return
+
+        else:
+            self.visit(node.valid)
+            if self.error:
+                return
+
+            self.visit(node.condition)
+            if self.error:
+                return
 
         self.visit(node.invalid)
 
@@ -114,6 +149,17 @@ class PysAnalyzer(Pys):
 
         self.visit(node.value)
 
+    def visit_AssignNode(self, node):
+        self.check_valid_AssignNode(
+            node.target,
+            "cannot assign to expression here. Maybe you meant '==' instead of '='?"
+        )
+
+        if self.error:
+            return
+
+        self.visit(node.value)
+
     def visit_IfNode(self, node):
         for condition, body in node.cases_body:
             self.visit(condition)
@@ -134,7 +180,7 @@ class PysAnalyzer(Pys):
 
         self.in_switch += 1
 
-        for condition, body in node.cases_body:
+        for condition, body in node.case_cases:
             self.visit(condition)
             if self.error:
                 return
@@ -155,8 +201,8 @@ class PysAnalyzer(Pys):
         if self.error:
             return
 
-        if node.catch_body:
-            self.visit(node.catch_body)
+        for _, body in node.catch_cases:
+            self.visit(body)
             if self.error:
                 return
 
@@ -168,18 +214,27 @@ class PysAnalyzer(Pys):
         if node.finally_body:
             self.visit(node.finally_body)
 
+    def visit_WithNode(self, node):
+        self.visit(node.context)
+        if self.error:
+            return
+
+        self.visit(node.body)
+
     def visit_ForNode(self, node):
-        if len(node.init) == 2:
-            self.check_valid_AssignNode(node.init[0], "cannot assign to expression")
+        if len(node.header) == 2:
+            declaration, iterable = node.header
+
+            self.check_valid_AssignNode(declaration, "cannot assign to expression")
             if self.error:
                 return
 
-            self.visit(node.init[1])
+            self.visit(iterable)
             if self.error:
                 return
 
-        elif len(node.init) == 3:
-            for element in node.init:
+        elif len(node.header) == 3:
+            for element in node.header:
                 self.visit(element)
                 if self.error:
                     return
@@ -261,42 +316,44 @@ class PysAnalyzer(Pys):
             if self.error:
                 return
 
-        names = set()
+        parameter_names = set()
 
         for element in node.parameters:
             token = (element[0] if isinstance(element, tuple) else element)
             name = token.value
 
-            if name in names:
+            if name in parameter_names:
                 return self.throw("duplicate argument {!r} in function definition".format(name), token.position)
 
-            names.add(name)
+            parameter_names.add(name)
 
             if isinstance(element, tuple):
                 self.visit(element[1])
                 if self.error:
                     return
 
-        in_loop, in_function, in_switch = self.in_loop, self.in_function, self.in_switch
+        in_loop, in_switch = self.in_loop, self.in_switch
 
         self.in_loop = 0
-        self.in_function = 1
         self.in_switch = 0
+
+        self.in_function += 1
 
         self.visit(node.body)
         if self.error:
             return
 
+        self.in_function -= 1
+
         self.in_loop = in_loop
-        self.in_function = in_function
         self.in_switch = in_switch
 
     def visit_CallNode(self, node):
-        self.visit(node.name)
+        self.visit(node.target)
         if self.error:
             return
 
-        names = set()
+        keyword_argument_names = set()
 
         for element in node.arguments:
             value = element
@@ -305,11 +362,11 @@ class PysAnalyzer(Pys):
                 token, value = element
                 name = token.value
 
-                if name in names:
+                if name in keyword_argument_names:
                     self.throw("duplicate argument {!r} in call definition".format(name), token.position)
                     return
 
-                names.add(name)
+                keyword_argument_names.add(name)
 
             self.visit(value)
             if self.error:
@@ -322,35 +379,6 @@ class PysAnalyzer(Pys):
 
         if node.value:
             self.visit(node.value)
-
-    def visit_GlobalNode(self, node):
-        if self.in_function == 0:
-            self.throw("global outside of function", node.position)
-
-    def visit_DeleteNode(self, node):
-        for element in node.targets:
-
-            if isinstance(element, PysSubscriptNode):
-                self.visit(element.object)
-                if self.error:
-                    return
-
-                self.check_valid_slice_from_SubscriptNode(element.slice)
-                if self.error:
-                    return
-
-            elif isinstance(element, PysAttributeNode):
-                self.visit(element.object)
-                if self.error:
-                    return
-
-            elif isinstance(element, PysKeywordNode):
-                self.throw("cannot delete {}".format(element.token.value), element.position)
-                return
-
-            elif not isinstance(element, PysIdentifierNode):
-                self.throw("cannot delete literal", element.position)
-                return
 
     def visit_ThrowNode(self, node):
         self.visit(node.target)

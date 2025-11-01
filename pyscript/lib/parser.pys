@@ -22,11 +22,45 @@ HLFMT_ANSI = _pyscript.highlight.HLFMT_ANSI
 class Parser {
 
     func __init__(self, source, flags=DEFAULT) {
-        self.file = _pyscript.buffer.PysFileBuffer(source)
+
+        # source is a list of tokens
+        if isinstance(source, list) {
+            if not source
+                # if the source list is empty (if it's empty there should be at least a PysToken(EOF))
+                throw ValueError("empty list")
+
+            if not all(comprehension(source, func(token) return isinstance(token, _pyscript.token.PysToken)))
+                # if the list order one of which isn't a PysToken object
+                throw TypeError("invalid list of token")
+
+            self._compiled = 'tokenize'
+            self.source = source
+            self.file = source[0].position.file
+        }
+
+        # source is an AST
+        elif isinstance(source, _pyscript.nodes.PysNode) {
+            self._compiled = 'ast'
+            self.source = source
+            self.file = source.position.file
+        }
+
+        # source is an object that is supported and converted to a buffer
+        else {
+            self._compiled = 'none'
+            self.source = source
+            self.file = _pyscript.buffer.PysFileBuffer(source)
+        }
+
         self.flags = flags
     }
 
     func tokenize(self) {
+        if self._compiled == 'tokenize'
+            return self.source
+        elif self._compiled == 'ast'
+            throw TypeError("tokenize(): can't tokenize AST source")
+
         lexer = _pyscript.lexer.PysLexer(
             file=self.file,
             flags=self.flags
@@ -41,11 +75,18 @@ class Parser {
 
     func ast(self, mode='exec') {
         if mode not in {'exec', 'eval'}
-            throw ValueError("ast() mode must be 'exec' or 'eval'")
+            throw ValueError("ast(): mode must be 'exec' or 'eval'")
+
+        if self._compiled == 'tokenize'
+            tokens = self.source
+        elif self._compiled == 'ast'
+            return self.source
+        else
+            tokens = self.tokenize()
 
         parser = _pyscript.parser.PysParser(
             file=self.file,
-            tokens=self.tokenize(),
+            tokens=tokens,
             flags=self.flags
         )
 
@@ -57,17 +98,23 @@ class Parser {
     }
 
     func analyze(self, mode='exec') {
+        if self._compiled == 'ast'
+            ast = self.source
+        else
+            ast = self.ast(mode=mode)
+
         analyzer = _pyscript.analyzer.PysAnalyzer(
             file=self.file,
             flags=self.flags
         )
 
-        error = analyzer.visit(self.ast(mode=mode))
+        error = analyzer.analyze(ast)
         if error
             throw error.exception
     }
 
     func highlight(self, format=None, max_parenthesis_level=3) {
+        # this function only supports direct source buffers
         return _pyscript.highlight.pys_highlight(
             source=self.file,
             format=format,
@@ -89,5 +136,5 @@ func ast(source, mode='exec', flags=DEFAULT)
 func analyze(source, mode='exec', flags=DEFAULT)
     return Parser(source, flags).analyze(mode=mode)
 
-func highlight(source, format=None, max_parenthesis_level=3, flags=COMMENT)
+func highlight(source, format=None, max_parenthesis_level=3, flags=DEFAULT)
     return Parser(source, flags).highlight(format=format, max_parenthesis_level=max_parenthesis_level)

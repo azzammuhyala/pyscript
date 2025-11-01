@@ -14,8 +14,8 @@ import sys
 import os
 
 inplace_functions_map = {
-    TOKENS['EPLUS']: operator.iadd,
-    TOKENS['EMINUS']: operator.isub,
+    TOKENS['EADD']: operator.iadd,
+    TOKENS['ESUB']: operator.isub,
     TOKENS['EMUL']: operator.imul,
     TOKENS['EDIV']: operator.itruediv,
     TOKENS['EFDIV']: operator.ifloordiv,
@@ -30,6 +30,9 @@ inplace_functions_map = {
 }
 
 keyword_identifiers_map = {
+    KEYWORDS['True']: True,
+    KEYWORDS['False']: False,
+    KEYWORDS['None']: None,
     KEYWORDS['true']: True,
     KEYWORDS['false']: False,
     KEYWORDS['none']: None
@@ -104,6 +107,9 @@ def normalize_path(*paths, absolute=True):
 
 def is_object_of(obj, class_or_tuple):
     return isinstance(obj, class_or_tuple) or (isinstance(obj, type) and issubclass(obj, class_or_tuple))
+
+def get_name(obj):
+    return obj.__name__ if isinstance(obj, type) else type(obj).__name__
 
 def get_similarity_ratio(string1, string2):
     string1 = [char for char in string1.lower() if not char.isspace()]

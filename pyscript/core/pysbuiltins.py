@@ -1,7 +1,9 @@
 from .buffer import PysFileBuffer
 from .cache import loading_modules, library, modules
 from .constants import LIBRARY_PATH
+from .exceptions import PysShouldReturn
 from .objects import PysModule, PysPythonFunction
+from .results import PysRunTimeResult
 from .symtab import build_symbol_table
 from .utils import (
     builtins_blacklist,
@@ -13,9 +15,16 @@ from .utils import (
 
 from math import isclose
 from importlib import import_module as pyimport
+from os import getcwd
+from os.path import (
+    dirname as pdirname,
+    join as pjoin,
+    isdir as pisdir,
+    exists as pexists,
+    basename as pbasename
+)
 
 import builtins
-import os
 
 class _Printer:
 
@@ -37,9 +46,9 @@ license = _Printer(
     "For more information see on https://github.com/azzammuhyala/pyscript."
 )
 
+@PysPythonFunction
 def require(pyfunc, name):
     name = to_str(name)
-    dirname = os.path.dirname(pyfunc.__code__.context.file.name) or os.getcwd()
 
     if name == '_pyscript':
         from .. import core
@@ -48,30 +57,37 @@ def require(pyfunc, name):
     elif name == 'builtins':
         return pys_builtins
 
-    elif name in library:
-        path = os.path.join(LIBRARY_PATH, name)
-        if not os.path.isdir(path):
+    normalize = True
+
+    if name in library:
+        path = pjoin(LIBRARY_PATH, name)
+        if not pisdir(path):
             path += '.pys'
-        if not os.path.exists(path):
-            path = normalize_path(dirname, name, absolute=False)
+        if pexists(path):
+            normalize = False
 
-    else:
-        path = normalize_path(dirname, name, absolute=False)
+    if normalize:
+        path = normalize_path(
+            pdirname(pyfunc.__code__.context.file.name) or getcwd(),
+            name,
+            absolute=False
+        )
 
-    filename = os.path.basename(path)
+    module_name = pbasename(path)
 
-    if os.path.isdir(path):
-        path = os.path.join(path, '__init__.pys')
+    if pisdir(path):
+        path = pjoin(path, '__init__.pys')
 
     if path in loading_modules:
         raise ImportError(
             "cannot import module name {!r} from partially initialized module {!r}, mostly during circular import"
-            .format(filename, pyfunc.__code__.context.file.name)
+            .format(module_name, pyfunc.__code__.context.file.name)
         )
 
     loading_modules.add(path)
 
     try:
+
         package = modules.get(path, None)
 
         if package is None:
@@ -79,9 +95,9 @@ def require(pyfunc, name):
                 with open(path, 'r') as file:
                     file = PysFileBuffer(file.read(), path)
             except FileNotFoundError:
-                raise ModuleNotFoundError("No module named {!r}".format(filename))
+                raise ModuleNotFoundError("No module named {!r}".format(module_name))
             except BaseException as e:
-                raise ImportError("Cannot import module named {!r}: {}".format(filename, e))
+                raise ImportError("Cannot import module named {!r}: {}".format(module_name, e))
 
             symtab = build_symbol_table(file)
 
@@ -99,9 +115,6 @@ def require(pyfunc, name):
             )
 
             if result.error:
-                from .exceptions import PysShouldReturn
-                from .results import PysRunTimeResult
-
                 raise PysShouldReturn(PysRunTimeResult().failure(result.error))
 
         return package
@@ -110,6 +123,7 @@ def require(pyfunc, name):
         if path in loading_modules:
             loading_modules.remove(path)
 
+@PysPythonFunction
 def globals(pyfunc):
     symbol_table = pyfunc.__code__.context.symbol_table.parent
 
@@ -125,21 +139,25 @@ def globals(pyfunc):
     else:
         return pyfunc.__code__.context.symbol_table.symbols
 
+@PysPythonFunction
 def locals(pyfunc):
     return pyfunc.__code__.context.symbol_table.symbols
 
+@PysPythonFunction
 def vars(pyfunc, object=None):
     if object is None:
         return pyfunc.__code__.context.symbol_table.symbols
 
     return builtins.vars(object)
 
+@PysPythonFunction
 def dir(pyfunc, *args):
     if len(args) == 0:
         return list(pyfunc.__code__.context.symbol_table.symbols.keys())
 
     return builtins.dir(*args)
 
+@PysPythonFunction
 def exec(pyfunc, source, globals=None):
     if not isinstance(globals, (type(None), dict)):
         raise TypeError("exec(): globals must be dict")
@@ -157,11 +175,9 @@ def exec(pyfunc, source, globals=None):
     )
 
     if result.error:
-        from .exceptions import PysShouldReturn
-        from .results import PysRunTimeResult
-
         raise PysShouldReturn(PysRunTimeResult().failure(result.error))
 
+@PysPythonFunction
 def eval(pyfunc, source, globals=None):
     if not isinstance(globals, (type(None), dict)):
         raise TypeError("eval(): globals must be dict")
@@ -179,13 +195,11 @@ def eval(pyfunc, source, globals=None):
     )
 
     if result.error:
-        from .exceptions import PysShouldReturn
-        from .results import PysRunTimeResult
-
         raise PysShouldReturn(PysRunTimeResult().failure(result.error))
 
     return result.value
 
+@PysPythonFunction
 def ce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
     if isinstance(a, (int, float)) and isinstance(b, (int, float)):
         return isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
@@ -204,6 +218,7 @@ def ce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
 
     return result
 
+@PysPythonFunction
 def nce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
     if isinstance(a, (int, float)) and isinstance(b, (int, float)):
         return not isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
@@ -227,6 +242,7 @@ def nce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
 
     return result
 
+@PysPythonFunction
 def increment(pyfunc, object):
     if isinstance(object, (int, float)):
         return object + 1
@@ -237,6 +253,7 @@ def increment(pyfunc, object):
 
     return result
 
+@PysPythonFunction
 def decrement(pyfunc, object):
     if isinstance(object, (int, float)):
         return object - 1
@@ -254,18 +271,6 @@ def comprehension(init, wrap, condition=None):
         raise TypeError("comprehension(): condition must be callable")
 
     return map(wrap, init if condition is None else filter(condition, init))
-
-require = PysPythonFunction(require)
-globals = PysPythonFunction(globals)
-locals = PysPythonFunction(locals)
-vars = PysPythonFunction(vars)
-dir = PysPythonFunction(dir)
-exec = PysPythonFunction(exec)
-eval = PysPythonFunction(eval)
-ce = PysPythonFunction(ce)
-nce = PysPythonFunction(nce)
-increment = PysPythonFunction(increment)
-decrement = PysPythonFunction(decrement)
 
 pys_builtins = PysModule(
     'built-in',

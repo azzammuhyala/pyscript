@@ -1,5 +1,7 @@
 from .bases import Pys
 
+from types import MethodType
+
 class PysObject(Pys):
     pass
 
@@ -53,6 +55,9 @@ class PysPythonFunction(PysObject):
     def __repr__(self):
         return '<python function {}>'.format(self.__name__)
 
+    def __get__(self, instance, owner):
+        return self if instance is None else MethodType(self, instance)
+
     def __call__(self, *args, **kwargs):
         func = self.__func__
         code = self.__code__
@@ -63,14 +68,14 @@ class PysPythonFunction(PysObject):
 class PysFunction(PysObject):
 
     def __init__(self, name, qualname, parameters, body, position, context):
-        from .context import PysContext
+        from .context import PysContext, PysClassContext
         from .exceptions import PysException, PysShouldReturn
-        from .interpreter import interpreter
+        from .interpreter import visit
         from .results import PysRunTimeResult
         from .symtab import PysSymbolTable
         from .utils import join_with_conjunction, get_closest
 
-        from types import MethodType
+        context = context.parent if isinstance(context, PysClassContext) else context
 
         self.__name__ = '<function>' if name is None else name
         self.__qualname__ = ('' if qualname is None else qualname + '.') + self.__name__
@@ -83,13 +88,12 @@ class PysFunction(PysObject):
             PysContext=PysContext,
             PysException=PysException,
             PysShouldReturn=PysShouldReturn,
+            visit=visit,
             PysRunTimeResult=PysRunTimeResult,
             PysSymbolTable=PysSymbolTable,
             join_with_conjunction=join_with_conjunction,
             get_closest=get_closest,
-            MethodType=MethodType,
 
-            interpreter=interpreter,
             call_context=context,
             argument_names=tuple(item for item in parameters if not isinstance(item, tuple)),
             keyword_argument_names=tuple(item[0] for item in parameters if isinstance(item, tuple)),
@@ -101,7 +105,7 @@ class PysFunction(PysObject):
         return '<function {} at 0x{:016X}>'.format(self.__qualname__, id(self))
 
     def __get__(self, instance, owner):
-        return self if instance is None else self.__code__.MethodType(self, instance)
+        return self if instance is None else MethodType(self, instance)
 
     def __call__(self, *args, **kwargs):
         qualname = self.__qualname__
@@ -115,19 +119,12 @@ class PysFunction(PysObject):
 
         result = code.PysRunTimeResult()
 
-        context = code.PysContext(
-            file=code_context.file,
-            name=self.__name__,
-            qualname=qualname,
-            symbol_table=code.PysSymbolTable(code_context.symbol_table),
-            parent=code_call_context,
-            parent_entry_position=code_position
-        )
+        symbol_table = code.PysSymbolTable(code_context.symbol_table)
 
         registered_arguments = set()
 
         add_argument = registered_arguments.add
-        set_symbol = context.symbol_table.set
+        set_symbol = symbol_table.set
 
         for name, arg in zip(code.argument_names, args):
             set_symbol(name, arg)
@@ -222,7 +219,20 @@ class PysFunction(PysObject):
                 )
             )
 
-        result.register(code.interpreter.visit(code.body, context))
+        result.register(
+            code.visit(
+                code.body,
+                code.PysContext(
+                    file=code_context.file,
+                    name=self.__name__,
+                    qualname=qualname,
+                    symbol_table=symbol_table,
+                    parent=code_call_context,
+                    parent_entry_position=code_position
+                )
+            )
+        )
+
         if result.should_return() and not result.func_should_return:
             raise code.PysShouldReturn(result)
 

@@ -67,12 +67,11 @@ class PysLexer(Pys):
             )
 
     def make_tokens(self):
-        self.index = -1
+        self.index = 0
         self.tokens = []
         self.error = None
-        self.current_character = None
 
-        self.advance()
+        self.update_current_char()
 
         while self.not_end_of_file():
 
@@ -99,10 +98,10 @@ class PysLexer(Pys):
                 self.make_dollar()
 
             elif self.current_character == '+':
-                self.make_plus()
+                self.make_add()
 
             elif self.current_character == '-':
-                self.make_minus()
+                self.make_sub()
 
             elif self.current_character == '*':
                 self.make_mul()
@@ -546,14 +545,14 @@ class PysLexer(Pys):
 
         self.make_identifier(as_identifier=True, start=start)
 
-    def make_plus(self):
+    def make_add(self):
         start = self.index
-        type = TOKENS['PLUS']
+        type = TOKENS['ADD']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EPLUS']
+            type = TOKENS['EADD']
             self.advance()
 
         elif self.current_character == '+':
@@ -562,14 +561,14 @@ class PysLexer(Pys):
 
         self.add_token(type, start)
 
-    def make_minus(self):
+    def make_sub(self):
         start = self.index
-        type = TOKENS['MINUS']
+        type = TOKENS['SUB']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EMINUS']
+            type = TOKENS['ESUB']
             self.advance()
 
         elif self.current_character == '-':
@@ -715,15 +714,14 @@ class PysLexer(Pys):
 
     def make_not_equal(self):
         start = self.index
-        type = TOKENS['NE']
+        type = TOKENS['CNOT']
 
         self.advance()
 
-        if self.current_character != '=':
+        if self.current_character == '=':
+            type = TOKENS['NE']
             self.advance()
-            self.throw(self.index - 1, "expected '='")
 
-        self.advance()
         self.add_token(type, start)
 
     def make_lt(self):

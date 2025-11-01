@@ -6,17 +6,30 @@ from .utils import is_object_of, print_traceback
 
 from . import cache
 
-from contextlib import contextmanager
 from types import MethodType
 
-@contextmanager
-def handle_exception(result, context, position):
-    try:
-        yield
-    except PysShouldReturn as e:
-        result.register(e.result)
-    except BaseException as e:
-        result.failure(PysException(e, context, position))
+class handle_exception:
+
+    __slots__ = ('result', 'context', 'position')
+
+    def __init__(self, result, context, position):
+        self.result = result
+        self.context = context
+        self.position = position
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is None:
+            return False
+
+        elif exc_type is PysShouldReturn:
+            self.result.register(exc_val.result)
+            return True
+
+        self.result.failure(PysException(exc_type if exc_val is None else exc_val, self.context, self.position))
+        return True
 
 def handle_call(object, context, position):
     if isinstance(object, PysFunction):
@@ -31,7 +44,9 @@ def handle_call(object, context, position):
 
     elif isinstance(object, type):
         for call in ('__new__', '__init__'):
-            handle_call(getattr(object, call, None), context, position)
+            method = getattr(object, call, None)
+            if method is not None:
+                handle_call(method, context, position)
 
     elif isinstance(object, MethodType):
         handle_call(object.__func__, context, position)
@@ -49,10 +64,7 @@ def handle_execute(result):
             return 1
 
         elif cache.hook.display is not None:
-            if result.mode == 'exec' and len(result.value) == 1:
-                cache.hook.display(result.value[0])
-            elif result.mode == 'eval':
-                cache.hook.display(result.value)
+            cache.hook.display(result.value)
 
     if result_runtime.should_return():
         if result_runtime.error:

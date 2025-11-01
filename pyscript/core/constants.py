@@ -19,8 +19,8 @@ TOKENS = {
     'STRING': 4,
     'NOTIN': 5,
     'ISNOT': 6,
-    'PLUS': ord('+'),
-    'MINUS': ord('-'),
+    'ADD': ord('+'),
+    'SUB': ord('-'),
     'MUL': ord('*'),
     'DIV': ord('/'),
     'FDIV': ord('/') + DOUBLE,
@@ -37,6 +37,7 @@ TOKENS = {
     'DECREMENT': ord('-') + DOUBLE,
     'CAND': ord('&') + DOUBLE,
     'COR': ord('|') + DOUBLE,
+    'CNOT': ord('!'),
     'LPAREN': ord('('),
     'RPAREN': ord(')'),
     'LSQUARE': ord('['),
@@ -52,8 +53,8 @@ TOKENS = {
     'GT': ord('>'),
     'LTE': ord('<') + WITH_EQ,
     'GTE': ord('>') + WITH_EQ,
-    'EPLUS': ord('+') + WITH_EQ,
-    'EMINUS': ord('-') + WITH_EQ,
+    'EADD': ord('+') + WITH_EQ,
+    'ESUB': ord('-') + WITH_EQ,
     'EMUL': ord('*') + WITH_EQ,
     'EDIV': ord('/') + WITH_EQ,
     'EFDIV': ord('/') + DOUBLE + WITH_EQ,
@@ -97,6 +98,7 @@ KEYWORDS = {
     'do': 'do',
     'elif': 'elif',
     'else': 'else',
+    'extends': 'extends',
     'finally': 'finally',
     'for': 'for',
     'from': 'from',
@@ -113,7 +115,8 @@ KEYWORDS = {
     'switch': 'switch',
     'throw': 'throw',
     'try': 'try',
-    'while': 'while'
+    'while': 'while',
+    'with': 'with'
 }
 
 # default color highlight
@@ -135,7 +138,7 @@ HIGHLIGHT = {
 }
 
 # python extensions file
-PYTHON_EXTENSIONS = {'.ipy', '.py', '.pyc', '.pyi', '.pyo', '.pyp', '.pyw', '.pyz', '.pyproj', '.rpy', '.xpy'}
+PYTHON_EXTENSIONS = {'.ipy', '.py', '.pyc', '.pyd', '.pyi', '.pyo', '.pyp', '.pyw', '.pyz', '.pyproj', '.rpy', '.xpy'}
 
 # flags
 DEFAULT = 0

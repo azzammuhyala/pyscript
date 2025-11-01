@@ -7,6 +7,8 @@ import os
 
 class PysSymbolTable(Pys):
 
+    __slots__ = ('parent', 'symbols', 'globals')
+
     def __init__(self, parent=None):
         self.parent = parent.parent if isinstance(parent, PysClassSymbolTable) else parent
         self.symbols = {}
@@ -51,10 +53,8 @@ class PysSymbolTable(Pys):
             return True
 
         if name not in self.symbols:
-
             if name in self.globals and self.parent:
                 return self.parent.set(name, value, operand)
-
             return False
 
         self.symbols[name] = inplace_functions_map[operand](self.symbols[name], value)
@@ -62,16 +62,16 @@ class PysSymbolTable(Pys):
 
     def remove(self, name):
         if name not in self.symbols:
-
             if name in self.globals and self.parent:
                 return self.parent.remove(name)
-
             return False
 
         del self.symbols[name]
         return True
 
 class PysClassSymbolTable(PysSymbolTable):
+
+    __slots__ = ()
 
     def __init__(self, parent):
         super().__init__(parent)

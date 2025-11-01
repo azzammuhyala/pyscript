@@ -1,9 +1,8 @@
-from .bases import Pys
 from .constants import TOKENS, KEYWORDS, PYTHON_EXTENSIONS, OPTIMIZE
-from .context import PysContext
+from .context import PysClassContext
 from .exceptions import PysException
 from .handlers import handle_call, handle_exception
-from .nodes import PysSequenceNode, PysIdentifierNode, PysAttributeNode, PysSubscriptNode
+from .nodes import PysNode, PysSequenceNode, PysIdentifierNode, PysAttributeNode, PysSubscriptNode
 from .objects import PysFunction
 from .pysbuiltins import ce, nce, increment, decrement
 from .results import PysRunTimeResult
@@ -11,246 +10,336 @@ from .singletons import undefined
 from .symtab import PysClassSymbolTable
 from .utils import inplace_functions_map, keyword_identifiers_map, is_object_of, get_closest, Iterable
 
-import os
+from os.path import splitext as split_file_extension
 
-class PysInterpreter(Pys):
+def visit(node, context):
+    return visitors[type(node)](node, context)
 
-    def visit(self, node, context):
-        return getattr(self, 'visit_' + type(node).__name__[3:])(node, context)
+def visit_NumberNode(node, context):
+    return PysRunTimeResult().success(node.token.value)
 
-    def visit_NumberNode(self, node, context):
-        return PysRunTimeResult().success(node.token.value)
+def visit_StringNode(node, context):
+    return PysRunTimeResult().success(node.token.value)
 
-    def visit_StringNode(self, node, context):
-        return PysRunTimeResult().success(node.token.value)
+def visit_SequenceNode(node, context):
+    result = PysRunTimeResult()
 
-    def visit_SequenceNode(self, node, context):
-        result = PysRunTimeResult()
+    register = result.register
+    should_return = result.should_return
+    ntype = node.type
 
-        elements = []
+    if ntype == 'statements':
+        elements = node.elements
 
-        register = result.register
-        should_return = result.should_return
-        visit = self.visit
-        append = elements.append
-        ntype = node.type
+        if len(elements) == 1:
+            value = register(visit(elements[0], context))
+            if should_return():
+                return result
 
-        if ntype == 'dict':
+            return result.success(value)
 
-            for key, value in node.elements:
-                key = register(visit(key, context))
+        for element in elements:
+            register(visit(element, context))
+            if should_return():
+                return result
+
+        return result.success(None)
+
+    elif ntype == 'global':
+        context.symbol_table.globals.update(name.value for name in node.elements)
+        return result.success(None)
+
+    elif ntype == 'del':
+        symbol_table = context.symbol_table
+
+        for element in node.elements:
+
+            if isinstance(element, PysIdentifierNode):
+                name = element.token.value
+
+                with handle_exception(result, context, element.position):
+
+                    if not symbol_table.remove(name):
+                        closest_symbol = get_closest(symbol_table.symbols.keys(), name)
+
+                        return result.failure(
+                            PysException(
+                                NameError(
+                                    (
+                                        "{!r} is not defined".format(name)
+                                        if symbol_table.get(name) is undefined else
+                                        "{!r} is not defined on local".format(name)
+                                    )
+                                    +
+                                    (
+                                        ''
+                                        if closest_symbol is None else
+                                        ". Did you mean {!r}?".format(closest_symbol)
+                                    )
+                                ),
+                                context,
+                                element.position
+                            )
+                        )
+
                 if should_return():
                     return result
 
-                value = register(visit(value, context))
+            elif isinstance(element, PysSubscriptNode):
+                object = register(visit(element.object, context))
                 if should_return():
                     return result
 
-                append((key, value))
-
-        else:
-
-            for element in node.elements:
-                append(register(visit(element, context)))
+                slice = register(visit_slice_from_SubscriptNode(element.slice, context))
                 if should_return():
                     return result
 
-        with handle_exception(result, context, node.position):
-            if ntype == 'tuple':
-                elements = tuple(elements)
-            elif ntype == 'dict':
-                elements = dict(elements)
-            elif ntype == 'set':
-                elements = set(elements)
+                with handle_exception(result, context, element.position):
+                    del object[slice]
 
-        if should_return():
-            return result
+                if should_return():
+                    return result
+
+            elif isinstance(element, PysAttributeNode):
+                object = register(visit(element.object, context))
+                if should_return():
+                    return result
+
+                with handle_exception(result, context, element.position):
+                    delattr(object, element.attribute.value)
+
+                if should_return():
+                    return result
+
+        return result.success(None)
+
+    elif ntype == 'dict':
+        elements = {}
+        setitem = elements.__setitem__
+
+        for nkey, nvalue in node.elements:
+            key = register(visit(nkey, context))
+            if should_return():
+                return result
+
+            value = register(visit(nvalue, context))
+            if should_return():
+                return result
+
+            with handle_exception(result, context, nkey.position):
+                setitem(key, value)
+
+            if should_return():
+                return result
 
         return result.success(elements)
 
-    def visit_IdentifierNode(self, node, context):
-        result = PysRunTimeResult()
+    elif ntype == 'set':
+        elements = set()
+        add = elements.add
 
-        position = node.position
-        name = node.token.value
-        symbol_table = context.symbol_table
+        for element in node.elements:
 
-        with handle_exception(result, context, position):
-            value = symbol_table.get(name)
+            with handle_exception(result, context, element.position):
+                add(register(visit(element, context)))
 
-            if value is undefined:
-                closest_symbol = symbol_table.find_closest(name)
+            if should_return():
+                return result
 
-                result.failure(
-                    PysException(
-                        NameError(
-                            "{!r} is not defined{}".format(
-                                name,
-                                '' if closest_symbol is None else ". Did you mean {!r}?".format(closest_symbol)
-                            )
-                        ),
-                        context,
-                        position
-                    )
+        return result.success(elements)
+
+    elements = []
+    append = elements.append
+
+    for element in node.elements:
+        append(register(visit(element, context)))
+        if should_return():
+            return result
+
+    if ntype == 'list':
+        return result.success(elements)
+    elif ntype == 'tuple':
+        return result.success(tuple(elements))
+
+def visit_IdentifierNode(node, context):
+    result = PysRunTimeResult()
+
+    position = node.position
+    name = node.token.value
+    symbol_table = context.symbol_table
+
+    with handle_exception(result, context, position):
+        value = symbol_table.get(name)
+
+        if value is undefined:
+            closest_symbol = symbol_table.find_closest(name)
+
+            return result.failure(
+                PysException(
+                    NameError(
+                        "{!r} is not defined{}".format(
+                            name,
+                            '' if closest_symbol is None else ". Did you mean {!r}?".format(closest_symbol)
+                        )
+                    ),
+                    context,
+                    position
                 )
+            )
 
-        if result.should_return():
-            return result
+    if result.should_return():
+        return result
 
-        return result.success(value)
+    return result.success(value)
 
-    def visit_KeywordNode(self, node, context):
-        return PysRunTimeResult().success(keyword_identifiers_map[node.token.value.lower()])
+def visit_KeywordNode(node, context):
+    return PysRunTimeResult().success(keyword_identifiers_map[node.token.value])
 
-    def visit_AttributeNode(self, node, context):
-        result = PysRunTimeResult()
+def visit_AttributeNode(node, context):
+    result = PysRunTimeResult()
 
-        should_return = result.should_return
-        attribute = node.attribute
+    should_return = result.should_return
+    attribute = node.attribute
 
-        object = result.register(self.visit(node.object, context))
-        if should_return():
-            return result
+    object = result.register(visit(node.object, context))
+    if should_return():
+        return result
 
-        with handle_exception(result, context, attribute.position):
-            value = getattr(object, attribute.value)
+    with handle_exception(result, context, attribute.position):
+        return result.success(getattr(object, attribute.value))
 
-        if should_return():
-            return result
+    if should_return():
+        return result
 
-        return result.success(value)
+def visit_SubscriptNode(node, context):
+    result = PysRunTimeResult()
 
-    def visit_SubscriptNode(self, node, context):
-        result = PysRunTimeResult()
+    register = result.register
+    should_return = result.should_return
 
-        register = result.register
-        should_return = result.should_return
+    object = register(visit(node.object, context))
+    if should_return():
+        return result
 
-        object = register(self.visit(node.object, context))
-        if should_return():
-            return result
+    slice = register(visit_slice_from_SubscriptNode(node.slice, context))
+    if should_return():
+        return result
 
-        slice = register(self.visit_slice_from_SubscriptNode(node.slice, context))
-        if should_return():
-            return result
+    with handle_exception(result, context, node.position):
+        return result.success(object[slice])
 
-        with handle_exception(result, context, node.position):
-            value = object[slice]
+    if should_return():
+        return result
 
-        if should_return():
-            return result
+def visit_AssignNode(node, context):
+    result = PysRunTimeResult()
 
-        return result.success(value)
+    register = result.register
+    should_return = result.should_return
 
-    def visit_AssignNode(self, node, context):
-        result = PysRunTimeResult()
+    value = register(visit(node.value, context))
+    if should_return():
+        return result
 
-        register = result.register
-        should_return = result.should_return
+    register(visit_unpack_AssignNode(node.target, context, value, node.operand.type))
+    if should_return():
+        return result
 
-        value = register(self.visit(node.value, context))
-        if should_return():
-            return result
+    return result.success(value)
 
-        register(self.visit_unpack_AssignNode(node.target, context, value, node.operand.type))
-        if should_return():
-            return result
+def visit_ChainOperatorNode(node, context):
+    result = PysRunTimeResult()
 
-        return result.success(value)
+    register = result.register
+    should_return = result.should_return
+    position = node.position
+    expressions = node.expressions
 
-    def visit_ChainOperatorNode(self, node, context):
-        result = PysRunTimeResult()
+    left = register(visit(expressions[0], context))
+    if should_return():
+        return result
 
-        register = result.register
-        should_return = result.should_return
-        visit = self.visit
-        position = node.position
-        expressions = node.expressions
+    with handle_exception(result, context, position):
 
-        left = register(visit(expressions[0], context))
-        if should_return():
-            return result
+        for i, operand in enumerate(node.operations):
+            omatch = operand.match
+            otype = operand.type
 
-        with handle_exception(result, context, position):
-            value = True
+            right = register(visit(expressions[i + 1], context))
+            if should_return():
+                return result
 
-            for i, operand in enumerate(node.operations):
-                omatch = operand.match
-                otype = operand.type
+            if omatch(TOKENS['KEYWORD'], KEYWORDS['in']):
+                value = left in right
+            elif omatch(TOKENS['KEYWORD'], KEYWORDS['is']):
+                value = left is right
+            elif otype == TOKENS['NOTIN']:
+                value = left not in right
+            elif otype == TOKENS['ISNOT']:
+                value = left is not right
+            elif otype == TOKENS['EE']:
+                value = left == right
+            elif otype == TOKENS['NE']:
+                value = left != right
+            elif otype == TOKENS['CE']:
+                handle_call(ce, context, position)
+                value = ce(left, right)
+            elif otype == TOKENS['NCE']:
+                handle_call(nce, context, position)
+                value = nce(left, right)
+            elif otype == TOKENS['LT']:
+                value = left < right
+            elif otype == TOKENS['GT']:
+                value = left > right
+            elif otype == TOKENS['LTE']:
+                value = left <= right
+            elif otype == TOKENS['GTE']:
+                value = left >= right
 
-                right = register(visit(expressions[i + 1], context))
-                if should_return():
-                    break
+            if not value:
+                break
 
-                if omatch(TOKENS['KEYWORD'], KEYWORDS['in']):
-                    comparison = left in right
-                elif omatch(TOKENS['KEYWORD'], KEYWORDS['is']):
-                    comparison = left is right
-                elif otype == TOKENS['NOTIN']:
-                    comparison = left not in right
-                elif otype == TOKENS['ISNOT']:
-                    comparison = left is not right
-                elif otype == TOKENS['EE']:
-                    comparison = left == right
-                elif otype == TOKENS['NE']:
-                    comparison = left != right
-                elif otype == TOKENS['CE']:
-                    handle_call(ce, context, position)
-                    comparison = ce(left, right)
-                elif otype == TOKENS['NCE']:
-                    handle_call(nce, context, position)
-                    comparison = nce(left, right)
-                elif otype == TOKENS['LT']:
-                    comparison = left < right
-                elif otype == TOKENS['GT']:
-                    comparison = left > right
-                elif otype == TOKENS['LTE']:
-                    comparison = left <= right
-                elif otype == TOKENS['GTE']:
-                    comparison = left >= right
+            left = right
 
-                if not comparison:
-                    value = False
-                    break
+    if should_return():
+        return result
 
-                left = right
+    return result.success(value)
 
-        if should_return():
-            return result
+def visit_TernaryOperatorNode(node, context):
+    result = PysRunTimeResult()
 
-        return result.success(value)
+    register = result.register
+    should_return = result.should_return
+    ncondition = node.condition
 
-    def visit_TernaryOperatorNode(self, node, context):
-        result = PysRunTimeResult()
+    condition = register(visit(ncondition, context))
+    if should_return():
+        return result
 
-        register = result.register
-        should_return = result.should_return
-        visit = self.visit
-
-        condition = register(visit(node.condition, context))
-        if should_return():
-            return result
-
+    with handle_exception(result, context, ncondition.position):
         value = register(visit(node.valid if condition else node.invalid, context))
-        if should_return():
-            return result
 
-        return result.success(value)
+    if should_return():
+        return result
 
-    def visit_BinaryOperatorNode(self, node, context):
-        result = PysRunTimeResult()
+    return result.success(value)
 
-        register = result.register
-        should_return = result.should_return
-        visit = self.visit
-        omatch = node.operand.match
-        otype = node.operand.type
+def visit_BinaryOperatorNode(node, context):
+    result = PysRunTimeResult()
 
-        left = register(visit(node.left, context))
-        if should_return():
-            return result
+    register = result.register
+    should_return = result.should_return
+    omatch = node.operand.match
+    otype = node.operand.type
 
-        return_right = True
+    left = register(visit(node.left, context))
+    if should_return():
+        return result
+
+    return_right = True
+
+    with handle_exception(result, context, node.position):
 
         if omatch(TOKENS['KEYWORD'], KEYWORDS['and']) or otype == TOKENS['CAND']:
             if not left:
@@ -273,726 +362,734 @@ class PysInterpreter(Pys):
 
         if return_right:
             return result.success(right)
+        elif otype == TOKENS['ADD']:
+            return result.success(left + right)
+        elif otype == TOKENS['SUB']:
+            return result.success(left - right)
+        elif otype == TOKENS['MUL']:
+            return result.success(left * right)
+        elif otype == TOKENS['DIV']:
+            return result.success(left / right)
+        elif otype == TOKENS['FDIV']:
+            return result.success(left // right)
+        elif otype == TOKENS['MOD']:
+            return result.success(left % right)
+        elif otype == TOKENS['AT']:
+            return result.success(left @ right)
+        elif otype == TOKENS['POW']:
+            return result.success(left ** right)
+        elif otype == TOKENS['AND']:
+            return result.success(left & right)
+        elif otype == TOKENS['OR']:
+            return result.success(left | right)
+        elif otype == TOKENS['XOR']:
+            return result.success(left ^ right)
+        elif otype == TOKENS['LSHIFT']:
+            return result.success(left << right)
+        elif otype == TOKENS['RSHIFT']:
+            return result.success(left >> right)
 
-        with handle_exception(result, context, node.position):
+    if should_return():
+        return result
 
-            if otype == TOKENS['PLUS']:
-                value = left + right
-            elif otype == TOKENS['MINUS']:
-                value = left - right
-            elif otype == TOKENS['MUL']:
-                value = left * right
-            elif otype == TOKENS['DIV']:
-                value = left / right
-            elif otype == TOKENS['FDIV']:
-                value = left // right
-            elif otype == TOKENS['MOD']:
-                value = left % right
-            elif otype == TOKENS['AT']:
-                value = left @ right
-            elif otype == TOKENS['POW']:
-                value = left ** right
-            elif otype == TOKENS['AND']:
-                value = left & right
-            elif otype == TOKENS['OR']:
-                value = left | right
-            elif otype == TOKENS['XOR']:
-                value = left ^ right
-            elif otype == TOKENS['LSHIFT']:
-                value = left << right
-            elif otype == TOKENS['RSHIFT']:
-                value = left >> right
+def visit_UnaryOperatorNode(node, context):
+    result = PysRunTimeResult()
 
-        if should_return():
-            return result
+    register = result.register
+    should_return = result.should_return
+    position = node.position
+    otype = node.operand.type
 
-        return result.success(value)
+    value = register(visit(node.value, context))
+    if should_return():
+        return result
 
-    def visit_UnaryOperatorNode(self, node, context):
-        result = PysRunTimeResult()
+    with handle_exception(result, context, position):
 
-        register = result.register
-        should_return = result.should_return
-        visit = self.visit
-        position = node.position
-        otype = node.operand.type
+        if node.operand.match(TOKENS['KEYWORD'], KEYWORDS['not']) or otype == TOKENS['CNOT']:
+            return result.success(not value)
+        elif otype == TOKENS['ADD']:
+            return result.success(+value)
+        elif otype == TOKENS['SUB']:
+            return result.success(-value)
+        elif otype == TOKENS['NOT']:
+            return result.success(~value)
 
-        value = register(visit(node.value, context))
-        if should_return():
-            return result
+        elif otype in (TOKENS['INCREMENT'], TOKENS['DECREMENT']):
+            func = increment if otype == TOKENS['INCREMENT'] else decrement
 
-        with handle_exception(result, context, position):
+            handle_call(func, context, position)
 
-            if node.operand.match(TOKENS['KEYWORD'], KEYWORDS['not']):
-                new_value = not value
-            elif otype == TOKENS['PLUS']:
-                new_value = +value
-            elif otype == TOKENS['MINUS']:
-                new_value = -value
-            elif otype == TOKENS['NOT']:
-                new_value = ~value
-
-            elif otype in (TOKENS['INCREMENT'], TOKENS['DECREMENT']):
+            new_value = value
+            value = func(value)
+            if node.operand_position == 'left':
                 new_value = value
 
-                func = increment if otype == TOKENS['INCREMENT'] else decrement
+            register(visit_unpack_AssignNode(node.value, context, value))
+            if should_return():
+                return result
 
-                handle_call(func, context, position)
-                value = func(value)
+            return result.success(new_value)
 
-                if node.operand_position == 'left':
-                    new_value = value
+    if should_return():
+        return result
 
-                register(self.visit_unpack_AssignNode(node.value, context, value))
+def visit_ImportNode(node, context):
+    result = PysRunTimeResult()
 
-        if should_return():
-            return result
+    should_return = result.should_return
+    get_symbol = context.symbol_table.get
+    set_symbol = context.symbol_table.set
+    packages = node.packages
+    name, as_name = node.name
 
-        return result.success(new_value)
+    with handle_exception(result, context, name.position):
+        name_module = name.value
+        file, extension = split_file_extension(name_module)
 
-    def visit_ImportNode(self, node, context):
-        result = PysRunTimeResult()
+        if extension in PYTHON_EXTENSIONS:
+            name_module = file
+            use_python_package = True
+        else:
+            use_python_package = False
 
-        should_return = result.should_return
-        get_symbol = context.symbol_table.get
-        set_symbol = context.symbol_table.set
-        packages = node.packages
-        name, as_name = node.name
+        if not use_python_package:
+            require = get_symbol('require')
 
-        with handle_exception(result, context, name.position):
-            name_module = name.value
-            file, extension = os.path.splitext(name_module)
-
-            if extension in PYTHON_EXTENSIONS:
-                name_module = file
+            if require is undefined:
                 use_python_package = True
             else:
-                use_python_package = False
-
-            if not use_python_package:
-                require = get_symbol('require')
-
-                if require is undefined:
+                handle_call(require, context, name.position)
+                try:
+                    module = require(name_module)
+                except ModuleNotFoundError:
                     use_python_package = True
-                else:
-                    handle_call(require, context, name.position)
-                    try:
-                        module = require(name_module)
-                    except ModuleNotFoundError:
-                        use_python_package = True
 
-            if use_python_package:
-                pyimport = get_symbol('pyimport')
+        if use_python_package:
+            pyimport = get_symbol('pyimport')
 
-                if pyimport is undefined:
-                    result.failure(
-                        PysException(
-                            NameError("'pyimport' is not defined"),
-                            context,
-                            node.position
-                        )
+            if pyimport is undefined:
+                return result.failure(
+                    PysException(
+                        NameError("'pyimport' is not defined"),
+                        context,
+                        node.position
                     )
+                )
 
-                else:
-                    handle_call(pyimport, context, name.position)
-                    module = pyimport(name_module)
+            handle_call(pyimport, context, name.position)
+            module = pyimport(name_module)
+
+    if should_return():
+        return result
+
+    if packages == 'all':
+
+        with handle_exception(result, context, name.position):
+            for package in getattr(
+                module, '__all__',
+                (package for package in dir(module) if not package.startswith('_'))
+            ):
+                set_symbol(package, getattr(module, package))
 
         if should_return():
             return result
 
-        if packages == 'all':
+    elif packages:
 
-            with handle_exception(result, context, name.position):
-                for package in getattr(module, '__all__',
-                                       (package for package in dir(module) if not package.startswith('_'))):
-                    set_symbol(package, getattr(module, package))
+        for package, as_package in packages:
 
-            if should_return():
-                return result
-
-        elif packages:
-
-            for package, as_package in packages:
-
-                with handle_exception(result, context, package.position):
-                    set_symbol(
-                        (package if as_package is None else as_package).value,
-                        getattr(module, package.value)
-                    )
-
-                if should_return():
-                    return result
-
-        elif not (name.type == TOKENS['STRING'] and as_name is None):
-
-            with handle_exception(result, context, node.position):
-                set_symbol((name if as_name is None else as_name).value, module)
+            with handle_exception(result, context, package.position):
+                set_symbol(
+                    (package if as_package is None else as_package).value,
+                    getattr(module, package.value)
+                )
 
             if should_return():
                 return result
 
-        return result.success(None)
+    elif not (name.type == TOKENS['STRING'] and as_name is None):
 
-    def visit_IfNode(self, node, context):
-        result = PysRunTimeResult()
+        with handle_exception(result, context, node.position):
+            set_symbol((name if as_name is None else as_name).value, module)
 
-        register = result.register
-        should_return = result.should_return
-        visit = self.visit
-        else_body = node.else_body
-
-        for condition, body in node.cases_body:
-            condition_value = register(visit(condition, context))
-            if should_return():
-                return result
-
-            if condition_value:
-                register(visit(body, context))
-                if should_return():
-                    return result
-
-                return result.success(None)
-
-        if else_body:
-            register(visit(else_body, context))
-            if should_return():
-                return result
-
-        return result.success(None)
-
-    def visit_SwitchNode(self, node, context):
-        result = PysRunTimeResult()
-
-        register = result.register
-        should_return = result.should_return
-        visit = self.visit
-        default_body = node.default_body
-
-        fall_through = False
-        no_match_found = True
-
-        target = register(visit(node.target, context))
         if should_return():
             return result
 
-        for condition, body in node.cases_body:
-            case = register(visit(condition, context))
+    return result.success(None)
+
+def visit_IfNode(node, context):
+    result = PysRunTimeResult()
+
+    register = result.register
+    should_return = result.should_return
+    else_body = node.else_body
+
+    for condition, body in node.cases_body:
+        condition_value = register(visit(condition, context))
+        if should_return():
+            return result
+
+        with handle_exception(result, context, condition.position):
+            condition_value = True if condition_value else False
+
+        if should_return():
+            return result
+
+        if condition_value:
+            register(visit(body, context))
             if should_return():
                 return result
 
-            with handle_exception(result, context, condition.position):
-                equal = target == case
+            return result.success(None)
 
-            if should_return():
-                return result
+    if else_body:
+        register(visit(else_body, context))
+        if should_return():
+            return result
 
-            if fall_through or equal:
-                no_match_found = False
+    return result.success(None)
 
-                register(visit(body, context))
-                if should_return() and not result.should_break:
-                    return result
+def visit_SwitchNode(node, context):
+    result = PysRunTimeResult()
 
-                if result.should_break:
-                    result.should_break = False
-                    fall_through = False
-                else:
-                    fall_through = True
+    register = result.register
+    should_return = result.should_return
+    default_body = node.default_body
 
-        if (fall_through or no_match_found) and default_body:
-            register(visit(default_body, context))
+    fall_through = False
+    no_match_found = True
+
+    target = register(visit(node.target, context))
+    if should_return():
+        return result
+
+    for condition, body in node.case_cases:
+        case = register(visit(condition, context))
+        if should_return():
+            return result
+
+        with handle_exception(result, context, condition.position):
+            equal = True if target == case else False
+
+        if should_return():
+            return result
+
+        if fall_through or equal:
+            no_match_found = False
+
+            register(visit(body, context))
             if should_return() and not result.should_break:
                 return result
 
-            result.should_break = False
+            if result.should_break:
+                result.should_break = False
+                fall_through = False
+            else:
+                fall_through = True
 
-        return result.success(None)
+    if (fall_through or no_match_found) and default_body:
+        register(visit(default_body, context))
+        if should_return() and not result.should_break:
+            return result
 
-    def visit_TryNode(self, node, context):
-        result = PysRunTimeResult()
+        result.should_break = False
 
-        register = result.register
-        should_return = result.should_return
-        visit = self.visit
-        catch_body = node.catch_body
-        error_variable = node.error_variable
-        else_body = node.else_body
-        finally_body = node.finally_body
+    return result.success(None)
 
-        register(visit(node.body, context))
+def visit_TryNode(node, context):
+    result = PysRunTimeResult()
 
-        if catch_body:
+    register = result.register
+    should_return = result.should_return
+    else_body = node.else_body
+    finally_body = node.finally_body
 
-            if result.error:
+    register(visit(node.body, context))
 
-                if error_variable:
+    error = result.error
 
-                    with handle_exception(result, context, error_variable.position):
-                        context.symbol_table.set(error_variable.value, result.error.exception)
-                        result.error = None
+    if error:
+        exception = error.exception
+        result.error = None
+
+        for (error_name, parameter), body in node.catch_cases:
+
+            if error_name:
+                error_name = register(visit(error_name, context))
+                if should_return():
+                    return result
+
+            if error_name is None or is_object_of(exception, error_name):
+
+                if parameter:
+
+                    with handle_exception(result, context, parameter.position):
+                        context.symbol_table.set(parameter.value, error.exception)
 
                     if should_return():
                         return result
 
-                else:
-                    result.error = None
+                register(visit(body, context))
+                if result.error:
+                    result.error.other_exception = error
 
-                register(visit(catch_body, context))
+                break
 
-            elif else_body:
-                register(visit(else_body, context))
+        else:
+            result.error = error
 
-        if finally_body:
-            finally_result = PysRunTimeResult()
+    elif else_body:
+        register(visit(else_body, context))
 
-            finally_result.register(visit(finally_body, context))
-            if finally_result.should_return():
-                return finally_result
+    if finally_body:
+        finally_result = PysRunTimeResult()
+
+        finally_result.register(visit(finally_body, context))
+        if finally_result.should_return():
+            if finally_result.error:
+                finally_result.error.other_exception = result.error
+            return finally_result
+
+    if should_return():
+        return result
+
+    return result.success(None)
+
+def visit_WithNode(node, context):
+    result = PysRunTimeResult()
+
+    register = result.register
+    should_return = result.should_return
+    ncontext = node.context
+    ncontext_position = ncontext.position
+    alias = node.alias
+
+    context_value = register(visit(ncontext, context))
+    if should_return():
+        return result
+
+    with handle_exception(result, context, ncontext_position):
+        enter = context_value.__enter__
+        handle_call(enter, context, ncontext_position)
+        enter_value = enter()
+
+    if should_return():
+        return result
+
+    if alias:
+
+        with handle_exception(result, context, alias.position):
+            context.symbol_table.set(alias.value, enter_value)
 
         if should_return():
             return result
 
-        return result.success(None)
+    register(visit(node.body, context))
 
-    def visit_ForNode(self, node, context):
-        result = PysRunTimeResult()
+    error = result.error
 
-        register = result.register
-        should_return = result.should_return
-        visit = self.visit
-        init = node.init
-        init_length = len(init)
-        body = node.body
-        else_body = node.else_body
+    with handle_exception(result, context, ncontext_position):
+        exit = context_value.__exit__
+        handle_call(exit, context, ncontext_position)
 
-        target = init[0]
+        if error:
+            exception = error.exception
+            if isinstance(exception, type):
+                consumed = exit(exception, None, error)
+            else:
+                consumed = exit(type(exception), exception, error)
+        else:
+            consumed = exit(None, None, None)
 
-        if init_length == 2:
-            iterator = init[1]
-            target_position = target.position
-            visit_unpack_AssignNode = self.visit_unpack_AssignNode
+        if consumed:
+            result.error = None
 
-            iter_object = register(visit(iterator, context))
+    if should_return():
+        if result.error and result.error is not error:
+            result.error.other_exception = error
+        return result
+
+    return result.success(None)
+
+def visit_ForNode(node, context):
+    result = PysRunTimeResult()
+
+    register = result.register
+    should_return = result.should_return
+    header = node.header
+    header_length = len(header)
+    body = node.body
+    else_body = node.else_body
+
+    if header_length == 2:
+        declaration, iteration = header
+        iteration_position = iteration.position
+
+        iteration_object = register(visit(iteration, context))
+        if should_return():
+            return result
+
+        with handle_exception(result, context, iteration_position):
+            handle_call(getattr(iteration_object, '__iter__', None), context, iteration_position)
+            iteration_object = iter(iteration_object)
+
+        if should_return():
+            return result
+
+        def condition():
+            with handle_exception(result, context, iteration_position):
+                handle_call(iteration_object.__next__, context, iteration_position)
+                register(visit_unpack_AssignNode(declaration, context, next(iteration_object)))
+
+            if should_return():
+                if is_object_of(result.error.exception, StopIteration):
+                    result.error = None
+                return False
+
+            return True
+
+        def update():
+            pass
+
+    elif header_length == 3:
+        declaration, ncondition, nupdate = header
+
+        if declaration:
+            register(visit(declaration, context))
             if should_return():
                 return result
 
-            with handle_exception(result, context, iterator.position):
-                iter_object = iter(iter_object)
-
-            if should_return():
-                return result
+        if ncondition:
+            ncondition_position = ncondition.position
 
             def condition():
-                with handle_exception(result, context, target_position):
-                    register(visit_unpack_AssignNode(target, context, next(iter_object)))
-
+                value = register(visit(ncondition, context))
                 if should_return():
-                    if is_object_of(result.error.exception, StopIteration):
-                        result.error = None
                     return False
 
+                with handle_exception(result, context, ncondition_position):
+                    return True if value else False
+
+                if should_return():
+                    return False
+
+        else:
+            def condition():
                 return True
 
+        if nupdate:
+            def update():
+                register(visit(nupdate, context))
+
+        else:
             def update():
                 pass
 
-        elif init_length == 3:
-            conditor = init[1]
-            updater = init[2]
+    while True:
+        done = condition()
+        if should_return():
+            return result
 
-            if target:
-                register(visit(target, context))
-                if should_return():
-                    return result
+        if not done:
+            break
 
-            if conditor:
-                def condition():
-                    value = register(visit(conditor, context))
-                    if should_return():
-                        return False
-                    return value
-
-            else:
-                def condition():
-                    return True
-
-            if updater:
-                def update():
-                    register(visit(updater, context))
-
-            else:
-                def update():
-                    pass
-
-        while True:
-            done = condition()
-            if should_return():
+        if body:
+            register(visit(body, context))
+            if should_return() and not result.should_continue and not result.should_break:
                 return result
 
-            if not done:
+            if result.should_continue:
+                result.should_continue = False
+
+            elif result.should_break:
                 break
 
-            if body:
-                register(visit(body, context))
-                if should_return() and not result.should_continue and not result.should_break:
-                    return result
+        update()
+        if should_return():
+            return result
 
-                if result.should_continue:
-                    result.should_continue = False
+    if result.should_break:
+        result.should_break = False
 
-                elif result.should_break:
-                    break
+    elif else_body:
+        register(visit(else_body, context))
+        if should_return():
+            return result
 
-            update()
-            if should_return():
-                return result
+    return result.success(None)
 
-        if result.should_break:
-            result.should_break = False
+def visit_WhileNode(node, context):
+    result = PysRunTimeResult()
 
-        elif else_body:
-            register(visit(else_body, context))
-            if should_return():
-                return result
+    register = result.register
+    should_return = result.should_return
+    ncondition = node.condition
+    ncondition_position = ncondition.position
+    body = node.body
+    else_body = node.else_body
 
-        return result.success(None)
+    while True:
+        condition = register(visit(ncondition, context))
+        if should_return():
+            return result
 
-    def visit_WhileNode(self, node, context):
-        result = PysRunTimeResult()
-
-        register = result.register
-        should_return = result.should_return
-        visit = self.visit
-        ncondition = node.condition
-        body = node.body
-        else_body = node.else_body
-
-        while True:
-            condition = register(visit(ncondition, context))
-            if should_return():
-                return result
-
+        with handle_exception(result, context, ncondition_position):
             if not condition:
                 break
 
-            if body:
-                register(visit(body, context))
-                if should_return() and not result.should_continue and not result.should_break:
-                    return result
+        if should_return():
+            return result
 
-                if result.should_continue:
-                    result.should_continue = False
-
-                elif result.should_break:
-                    break
-
-        if result.should_break:
-            result.should_break = False
-
-        elif else_body:
-            register(visit(else_body, context))
-            if should_return():
+        if body:
+            register(visit(body, context))
+            if should_return() and not result.should_continue and not result.should_break:
                 return result
 
-        return result.success(None)
+            if result.should_continue:
+                result.should_continue = False
 
-    def visit_DoWhileNode(self, node, context):
-        result = PysRunTimeResult()
+            elif result.should_break:
+                break
 
-        register = result.register
-        should_return = result.should_return
-        visit = self.visit
-        ncondition = node.condition
-        body = node.body
-        else_body = node.else_body
+    if result.should_break:
+        result.should_break = False
 
-        while True:
-            if body:
-                register(visit(body, context))
-                if should_return() and not result.should_continue and not result.should_break:
-                    return result
+    elif else_body:
+        register(visit(else_body, context))
+        if should_return():
+            return result
 
-                if result.should_continue:
-                    result.should_continue = False
+    return result.success(None)
 
-                elif result.should_break:
-                    break
+def visit_DoWhileNode(node, context):
+    result = PysRunTimeResult()
 
-            condition = register(visit(ncondition, context))
-            if should_return():
+    register = result.register
+    should_return = result.should_return
+    ncondition = node.condition
+    ncondition_position = ncondition.position
+    body = node.body
+    else_body = node.else_body
+
+    while True:
+        if body:
+            register(visit(body, context))
+            if should_return() and not result.should_continue and not result.should_break:
                 return result
 
+            if result.should_continue:
+                result.should_continue = False
+
+            elif result.should_break:
+                break
+
+        condition = register(visit(ncondition, context))
+        if should_return():
+            return result
+
+        with handle_exception(result, context, ncondition_position):
             if not condition:
                 break
 
-        if result.should_break:
-            result.should_break = False
-
-        elif else_body:
-            register(visit(else_body, context))
-            if should_return():
-                return result
-
-        return result.success(None)
-
-    def visit_ClassNode(self, node, context):
-        result = PysRunTimeResult()
-
-        bases = []
-
-        register = result.register
-        should_return = result.should_return
-        visit = self.visit
-        append = bases.append
-        name = node.name.value
-        qualname = context.qualname
-        symbol_table = context.symbol_table
-
-        for base in node.bases:
-            append(register(visit(base, context)))
-            if should_return():
-                return result
-
-        class_context = PysContext(
-            file=context.file,
-            name=name,
-            qualname=('' if qualname is None else qualname + '.') + name,
-            symbol_table=PysClassSymbolTable(symbol_table),
-            parent=context,
-            parent_entry_position=node.position
-        )
-
-        register(visit(node.body, class_context))
         if should_return():
             return result
+
+    if result.should_break:
+        result.should_break = False
+
+    elif else_body:
+        register(visit(else_body, context))
+        if should_return():
+            return result
+
+    return result.success(None)
+
+def visit_ClassNode(node, context):
+    result = PysRunTimeResult()
+
+    bases = []
+
+    register = result.register
+    should_return = result.should_return
+    append = bases.append
+    name = node.name.value
+    symbol_table = context.symbol_table
+
+    for base in node.bases:
+        append(register(visit(base, context)))
+        if should_return():
+            return result
+
+    class_context = PysClassContext(
+        name=name,
+        symbol_table=PysClassSymbolTable(symbol_table),
+        parent=context,
+        parent_entry_position=node.position
+    )
+
+    register(visit(node.body, class_context))
+    if should_return():
+        return result
+
+    with handle_exception(result, context, node.position):
+        cls = type(name, tuple(bases), class_context.symbol_table.symbols)
+        cls.__qualname__ = class_context.qualname
+
+    if should_return():
+        return result
+
+    for decorator in reversed(node.decorators):
+        decorator_func = register(visit(decorator, context))
+        if should_return():
+            return result
+
+        with handle_exception(result, context, decorator.position):
+            cls = decorator_func(cls)
+
+        if should_return():
+            return result
+
+    with handle_exception(result, context, node.position):
+        symbol_table.set(name, cls)
+
+    if should_return():
+        return result
+
+    return result.success(None)
+
+def visit_FunctionNode(node, context):
+    result = PysRunTimeResult()
+
+    parameters = []
+
+    register = result.register
+    should_return = result.should_return
+    append = parameters.append
+    name = node.name
+
+    for parameter in node.parameters:
+
+        if isinstance(parameter, tuple):
+            value = register(visit(parameter[1], context))
+            if should_return():
+                return result
+
+            append((parameter[0].value, value))
+
+        else:
+            append(parameter.value)
+
+    func = PysFunction(
+        name=None if name is None else name.value,
+        qualname=context.qualname,
+        parameters=parameters,
+        body=node.body,
+        position=node.position,
+        context=context
+    )
+
+    for decorator in reversed(node.decorators):
+        decorator_func = register(visit(decorator, context))
+        if should_return():
+            return result
+
+        with handle_exception(result, context, decorator.position):
+            func = decorator_func(func)
+
+        if should_return():
+            return result
+
+    if name is not None:
 
         with handle_exception(result, context, node.position):
-            cls = type(name, tuple(bases), class_context.symbol_table.symbols)
-            cls.__qualname__ = class_context.qualname
+            context.symbol_table.set(name.value, func)
 
         if should_return():
             return result
 
-        for decorator in reversed(node.decorators):
-            decorator_func = register(visit(decorator, context))
+    return result.success(func)
+
+def visit_CallNode(node, context):
+    result = PysRunTimeResult()
+
+    args = []
+    kwargs = {}
+
+    register = result.register
+    should_return = result.should_return
+    append = args.append
+    setitem = kwargs.__setitem__
+    position = node.position
+
+    target = register(visit(node.target, context))
+    if should_return():
+        return result
+
+    for argument in node.arguments:
+
+        if isinstance(argument, tuple):
+            setitem(argument[0].value, register(visit(argument[1], context)))
             if should_return():
                 return result
 
-            with handle_exception(result, context, decorator.position):
-                cls = decorator_func(cls)
-
+        else:
+            append(register(visit(argument, context)))
             if should_return():
                 return result
 
-        with handle_exception(result, context, node.position):
-            symbol_table.set(name, cls)
+    with handle_exception(result, context, position):
+        handle_call(target, context, position)
+        value = target(*args, **kwargs)
 
-        if should_return():
-            return result
+    if should_return():
+        return result
 
-        return result.success(None)
+    return result.success(value)
 
-    def visit_FunctionNode(self, node, context):
-        result = PysRunTimeResult()
+def visit_ReturnNode(node, context):
+    result = PysRunTimeResult()
 
-        parameters = []
-
-        register = result.register
-        should_return = result.should_return
-        visit = self.visit
-        append = parameters.append
-        name = node.name
-
-        for parameter in node.parameters:
-
-            if isinstance(parameter, tuple):
-                value = register(visit(parameter[1], context))
-                if should_return():
-                    return result
-
-                append((parameter[0].value, value))
-
-            else:
-                append(parameter.value)
-
-        func = PysFunction(
-            name=None if name is None else name.value,
-            qualname=context.qualname,
-            parameters=parameters,
-            body=node.body,
-            position=node.position,
-            context=context
-        )
-
-        for decorator in reversed(node.decorators):
-            decorator_func = register(visit(decorator, context))
-            if should_return():
-                return result
-
-            with handle_exception(result, context, decorator.position):
-                func = decorator_func(func)
-
-            if should_return():
-                return result
-
-        if name is not None:
-
-            with handle_exception(result, context, node.position):
-                context.symbol_table.set(name.value, func)
-
-            if should_return():
-                return result
-
-        return result.success(func)
-
-    def visit_CallNode(self, node, context):
-        result = PysRunTimeResult()
-
-        args = []
-        kwargs = {}
-
-        register = result.register
-        should_return = result.should_return
-        visit = self.visit
-        append = args.append
-        setitem = kwargs.__setitem__
-        position = node.position
-
-        name = register(visit(node.name, context))
-        if should_return():
-            return result
-
-        for argument in node.arguments:
-
-            if isinstance(argument, tuple):
-                setitem(argument[0].value, register(visit(argument[1], context)))
-                if should_return():
-                    return result
-
-            else:
-                append(register(visit(argument, context)))
-                if should_return():
-                    return result
-
-        with handle_exception(result, context, position):
-            handle_call(name, context, position)
-            value = name(*args, **kwargs)
-
-        if should_return():
-            return result
-
-        return result.success(value)
-
-    def visit_ReturnNode(self, node, context):
-        result = PysRunTimeResult()
-
-        if node.value:
-            value = result.register(self.visit(node.value, context))
-            if result.should_return():
-                return result
-
-            return result.success_return(value)
-
-        return result.success_return(None)
-
-    def visit_GlobalNode(self, node, context):
-        context.symbol_table.globals.update(name.value for name in node.names)
-        return PysRunTimeResult().success(None)
-
-    def visit_DeleteNode(self, node, context):
-        result = PysRunTimeResult()
-
-        register = result.register
-        should_return = result.should_return
-        visit = self.visit
-        symbol_table = context.symbol_table
-
-        for target in node.targets:
-
-            if isinstance(target, PysIdentifierNode):
-
-                with handle_exception(result, context, target.position):
-                    name = target.token.value
-                    success = symbol_table.remove(name)
-
-                    if not success:
-                        closest_symbol = get_closest(symbol_table.symbols.keys(), name)
-
-                        result.failure(
-                            PysException(
-                                NameError(
-                                    (
-                                        "{!r} is not defined".format(name)
-                                        if symbol_table.get(name) is undefined else
-                                        "{!r} is not defined on local".format(name)
-                                    ) +
-                                    ('' if closest_symbol is None else ". Did you mean {!r}?".format(closest_symbol))
-                                ),
-                                context,
-                                target.position
-                            )
-                        )
-
-                if should_return():
-                    return result
-
-            elif isinstance(target, PysSubscriptNode):
-                object = register(visit(target.object, context))
-                if should_return():
-                    return result
-
-                slice = register(self.visit_slice_from_SubscriptNode(target.slice, context))
-                if should_return():
-                    return result
-
-                with handle_exception(result, context, target.position):
-                    del object[slice]
-
-                if should_return():
-                    return result
-
-            elif isinstance(target, PysAttributeNode):
-                object = register(visit(target.object, context))
-                if should_return():
-                    return result
-
-                with handle_exception(result, context, target.position):
-                    delattr(object, target.attribute.value)
-
-                if should_return():
-                    return result
-
-        return result.success(None)
-
-    def visit_ThrowNode(self, node, context):
-        result = PysRunTimeResult()
-
-        target = result.register(self.visit(node.target, context))
+    if node.value:
+        value = result.register(visit(node.value, context))
         if result.should_return():
             return result
 
-        if not is_object_of(target, BaseException):
-            return result.failure(
-                PysException(
-                    TypeError("exceptions must derive from BaseException"),
-                    context,
-                    node.target.position
-                )
+        return result.success_return(value)
+
+    return result.success_return(None)
+
+def visit_ThrowNode(node, context):
+    result = PysRunTimeResult()
+
+    target = result.register(visit(node.target, context))
+    if result.should_return():
+        return result
+
+    if not is_object_of(target, BaseException):
+        return result.failure(
+            PysException(
+                TypeError("exceptions must derive from BaseException"),
+                context,
+                node.target.position
             )
+        )
 
-        return result.failure(PysException(target, context, node.position))
+    return result.failure(PysException(target, context, node.position))
 
-    def visit_AssertNode(self, node, context):
-        result = PysRunTimeResult()
+def visit_AssertNode(node, context):
+    result = PysRunTimeResult()
 
-        if not (context.flags & OPTIMIZE):
-            register = result.register
-            should_return = result.should_return
-            visit = self.visit
+    if not (context.flags & OPTIMIZE):
+        register = result.register
+        should_return = result.should_return
+        ncondition = node.condition
 
-            condition = register(visit(node.condition, context))
-            if should_return():
-                return result
+        condition = register(visit(ncondition, context))
+        if should_return():
+            return result
+
+        with handle_exception(result, context, ncondition.position):
 
             if not condition:
 
@@ -1005,188 +1102,187 @@ class PysInterpreter(Pys):
 
                 return result.failure(PysException(AssertionError, context, node.position))
 
-        return result.success(None)
+        if should_return():
+            return result
 
-    def visit_EllipsisNode(self, node, context):
-        return PysRunTimeResult().success(Ellipsis)
+    return result.success(None)
 
-    def visit_ContinueNode(self, node, context):
-        return PysRunTimeResult().success_continue()
+def visit_EllipsisNode(node, context):
+    return PysRunTimeResult().success(Ellipsis)
 
-    def visit_BreakNode(self, node, context):
-        return PysRunTimeResult().success_break()
+def visit_ContinueNode(node, context):
+    return PysRunTimeResult().success_continue()
 
-    def visit_slice_from_SubscriptNode(self, node, context):
-        result = PysRunTimeResult()
+def visit_BreakNode(node, context):
+    return PysRunTimeResult().success_break()
 
-        register = result.register
-        should_return = result.should_return
-        visit = self.visit
+def visit_slice_from_SubscriptNode(node, context):
+    result = PysRunTimeResult()
 
-        if isinstance(node, list):
-            slices = []
+    register = result.register
+    should_return = result.should_return
 
-            append = slices.append
-            visit_slice_from_SubscriptNode = self.visit_slice_from_SubscriptNode
+    if isinstance(node, list):
+        slices = []
 
-            for element in node:
-                append(register(visit_slice_from_SubscriptNode(element, context)))
-                if should_return():
-                    return result
+        append = slices.append
 
-            return result.success(tuple(slices))
-
-        elif isinstance(node, tuple):
-            start, stop, step = node
-
-            if start is not None:
-                start = register(visit(start, context))
-                if should_return():
-                    return result
-
-            if stop is not None:
-                stop = register(visit(stop, context))
-                if should_return():
-                    return result
-
-            if step is not None:
-                step = register(visit(step, context))
-                if should_return():
-                    return result
-
-            return result.success(slice(start, stop, step))
-
-        else:
-            value = register(visit(node, context))
+        for element in node:
+            append(register(visit_slice_from_SubscriptNode(element, context)))
             if should_return():
                 return result
 
-            return result.success(value)
+        return result.success(tuple(slices))
 
-    def visit_unpack_AssignNode(self, node, context, value, operand=TOKENS['EQ']):
-        result = PysRunTimeResult()
+    elif isinstance(node, tuple):
+        start, stop, step = node
 
-        register = result.register
-        should_return = result.should_return
-        visit = self.visit
+        if start is not None:
+            start = register(visit(start, context))
+            if should_return():
+                return result
 
-        if isinstance(node, PysSequenceNode):
+        if stop is not None:
+            stop = register(visit(stop, context))
+            if should_return():
+                return result
 
-            if not isinstance(value, Iterable):
-                return result.failure(
-                    PysException(
-                        TypeError("cannot unpack non-iterable"),
-                        context,
-                        node.position
-                    )
+        if step is not None:
+            step = register(visit(step, context))
+            if should_return():
+                return result
+
+        return result.success(slice(start, stop, step))
+
+    else:
+        value = register(visit(node, context))
+        if should_return():
+            return result
+
+        return result.success(value)
+
+def visit_unpack_AssignNode(node, context, value, operand=TOKENS['EQ']):
+    result = PysRunTimeResult()
+
+    register = result.register
+    should_return = result.should_return
+
+    if isinstance(node, PysSequenceNode):
+        position = node.position
+
+        if not isinstance(value, Iterable):
+            return result.failure(
+                PysException(
+                    TypeError("cannot unpack non-iterable"),
+                    context,
+                    position
                 )
+            )
 
-            count = 0
+        elements = node.elements
+        count = 0
 
-            with handle_exception(result, context, node.position):
-                elements = node.elements
-                elements_length = len(elements)
+        with handle_exception(result, context, position):
 
-                for i, element in enumerate(value):
+            for element, element_value in zip(elements, value):
+                register(visit_unpack_AssignNode(element, context, element_value, operand))
+                if should_return():
+                    return result
 
-                    if i < elements_length:
-                        register(self.visit_unpack_AssignNode(elements[i], context, element, operand))
-                        if should_return():
-                            return result
+                count += 1
 
-                        count += 1
+        if should_return():
+            return result
 
-                    else:
-                        result.failure(
-                            PysException(
-                                ValueError("to many values to unpack (expected {})".format(elements_length)),
-                                context,
-                                node.position
-                            )
-                        )
+        length = len(elements)
 
-                        break
+        if count < length:
+            return result.failure(
+                PysException(
+                    ValueError(
+                        "not enough values to unpack (expected {}, got {})".format(length, count)
+                    ),
+                    context,
+                    node.position
+                )
+            )
 
-            if should_return():
-                return result
+        elif count > length:
+            return result.failure(
+                PysException(
+                    ValueError("to many values to unpack (expected {})".format(length)),
+                    context,
+                    node.position
+                )
+            )
 
-            if count < elements_length:
-                return result.failure(
+    elif isinstance(node, PysSubscriptNode):
+        object = register(visit(node.object, context))
+        if should_return():
+            return result
+
+        slice = register(visit_slice_from_SubscriptNode(node.slice, context))
+        if should_return():
+            return result
+
+        with handle_exception(result, context, node.position):
+            object[slice] = value if operand == TOKENS['EQ'] else inplace_functions_map[operand](object[slice], value)
+
+        if should_return():
+            return result
+
+    elif isinstance(node, PysAttributeNode):
+        object = register(visit(node.object, context))
+        if should_return():
+            return result
+
+        attribute = node.attribute.value
+
+        with handle_exception(result, context, node.position):
+            setattr(
+                object,
+                attribute,
+                value if operand == TOKENS['EQ'] else inplace_functions_map[operand](getattr(object, attribute), value)
+            )
+
+        if should_return():
+            return result
+
+    elif isinstance(node, PysIdentifierNode):
+        symbol_table = context.symbol_table
+        name = node.token.value
+
+        with handle_exception(result, context, node.position):
+
+            if not symbol_table.set(name, value, operand):
+                closest_symbol = get_closest(symbol_table.symbols.keys(), name)
+
+                result.failure(
                     PysException(
-                        ValueError(
-                            "not enough values to unpack (expected {}, got {})".format(elements_length, count)
+                        NameError(
+                            (
+                                "{!r} is not defined".format(name)
+                                if symbol_table.get(name) is undefined else
+                                "{!r} is not defined on local".format(name)
+                            )
+                            +
+                            (
+                                ''
+                                if closest_symbol is None else
+                                ". Did you mean {!r}?".format(closest_symbol)
+                            )
                         ),
                         context,
                         node.position
                     )
                 )
 
-        elif isinstance(node, PysSubscriptNode):
-            object = register(visit(node.object, context))
-            if should_return():
-                return result
+        if should_return():
+            return result
 
-            slice = register(self.visit_slice_from_SubscriptNode(node.slice, context))
-            if should_return():
-                return result
+    return result.success(None)
 
-            with handle_exception(result, context, node.position):
-                if operand == TOKENS['EQ']:
-                    object[slice] = value
-                else:
-                    object[slice] = inplace_functions_map[operand](object[slice], value)
-
-            if should_return():
-                return result
-
-        elif isinstance(node, PysAttributeNode):
-            object = register(visit(node.object, context))
-            if should_return():
-                return result
-
-            attribute = node.attribute.value
-
-            with handle_exception(result, context, node.position):
-                if operand == TOKENS['EQ']:
-                    setattr(object, attribute, value)
-                else:
-                    setattr(
-                        object,
-                        attribute,
-                        inplace_functions_map[operand](getattr(object, attribute), value)
-                    )
-
-            if should_return():
-                return result
-
-        elif isinstance(node, PysIdentifierNode):
-
-            with handle_exception(result, context, node.position):
-                symbol_table = context.symbol_table
-                name = node.token.value
-
-                success = symbol_table.set(name, value, operand)
-
-                if not success:
-                    closest_symbol = get_closest(symbol_table.symbols.keys(), name)
-
-                    result.failure(
-                        PysException(
-                            NameError(
-                                (
-                                    "{!r} is not defined".format(name)
-                                    if symbol_table.get(name) is undefined else
-                                    "{!r} is not defined on local".format(name)
-                                ) + ('' if closest_symbol is None else ". Did you mean {!r}?".format(closest_symbol))
-                            ),
-                            context,
-                            node.position
-                        )
-                    )
-
-            if should_return():
-                return result
-
-        return result.success(None)
-
-interpreter = PysInterpreter()
+visitors = {
+    class_node: globals()['visit_{}'.format(class_node.__name__[3:])]
+    for class_node in PysNode.__subclasses__()
+}

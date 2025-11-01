@@ -3,12 +3,12 @@ from .buffer import PysFileBuffer
 from .constants import DEFAULT, SILENT, RETRES, COMMENT
 from .context import PysContext
 from .exceptions import PysException
-from .handlers import handle_execute
-from .interpreter import interpreter
+from .handlers import handle_exception, handle_execute
+from .interpreter import visit
 from .lexer import PysLexer
 from .parser import PysParser
 from .position import PysPosition
-from .results import PysExecuteResult
+from .results import PysRunTimeResult, PysExecuteResult
 from .symtab import PysSymbolTable, build_symbol_table
 from .utils import is_object_of, get_locals, print_display
 from .version import version
@@ -35,9 +35,11 @@ def pys_runner(
         parent_entry_position=context_parent_entry_position
     )
 
-    result = PysExecuteResult(mode, context)
+    result = PysExecuteResult(context)
+    runtime_runner_result = PysRunTimeResult()
+    position = PysPosition(file, -1, -1)
 
-    try:
+    with handle_exception(runtime_runner_result, context, position):
 
         try:
 
@@ -71,7 +73,7 @@ def pys_runner(
                 context_parent_entry_position=context_parent_entry_position
             )
 
-            error = analyzer.visit(ast.node)
+            error = analyzer.analyze(ast.node)
             if error:
                 return result.failure(error)
 
@@ -80,21 +82,22 @@ def pys_runner(
                 PysException(
                     RecursionError("maximum recursion depth exceeded during complication"),
                     context,
-                    PysPosition(file, -1, -1)
+                    position
                 )
             )
 
         context.flags = parser.flags
 
-        runtime_result = interpreter.visit(ast.node, context)
+        runtime_result = visit(ast.node, context)
 
-        if runtime_result.error:
-            return result.failure(runtime_result.error)
+        return (
+            result.failure(runtime_result.error)
+            if runtime_result.error else
+            result.success(runtime_result.value)
+        )
 
-        return result.success(runtime_result.value)
-
-    except KeyboardInterrupt as e:
-        return result.failure(PysException(e, context, PysPosition(file, -1, -1)))
+    if runtime_runner_result.error:
+        return result.failure(runtime_runner_result.error)
 
 def pys_exec(source, globals=None, flags=DEFAULT):
     """
@@ -222,7 +225,7 @@ def pys_shell(symbol_table=None, flags=DEFAULT):
 
             else:
                 text = input(cache.hook.ps1)
-                if text == '!exit':
+                if text == '/exit':
                     return 0
 
             next_line = False
@@ -313,7 +316,7 @@ def pys_shell(symbol_table=None, flags=DEFAULT):
 
         except KeyboardInterrupt:
             reset_next_line()
-            print('\rKeyboardInterrupt. Type "exit" or "!exit" to exit.', file=sys.stderr)
+            print('\rKeyboardInterrupt. Type "exit" or "/exit" to exit.', file=sys.stderr)
 
         except EOFError:
             return 0
