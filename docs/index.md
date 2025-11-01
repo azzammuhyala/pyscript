@@ -28,24 +28,24 @@ You can see the source code from [GitHub here](https://github.com/azzammuhyala/p
 
     - Expressions
 
-        - [func](syntax/expressions/func.md)
-        - [Ternary](syntax/expressions/ternary.md)
-        - [Logic](syntax/expressions/logic.md)
-        - [Member](syntax/expressions/member.md)
-        - [Comp](syntax/expressions/comp.md)
-        - [Bitwise](syntax/expressions/bitwise.md)
-        - [Arith](syntax/expressions/arith.md)
-        - [Term](syntax/expressions/term.md)
-        - [Factor](syntax/expressions/factor.md)
-        - [Power](syntax/expressions/power.md)
-        - [Incremental](syntax/expressions/incremental.md)
-        - [Nullish](syntax/expressions/nullish.md)
-        - [Primary](syntax/expressions/primary.md)
         - [Atom](syntax/expressions/atom.md)
         - [tuple](syntax/expressions/tuple.md)
         - [list](syntax/expressions/list.md)
         - [dict](syntax/expressions/dict.md)
         - [set](syntax/expressions/set.md)
+        - [Primary](syntax/expressions/primary.md)
+        - [Incremental](syntax/expressions/incremental.md)
+        - [Power](syntax/expressions/power.md)
+        - [Factor](syntax/expressions/factor.md)
+        - [Term](syntax/expressions/term.md)
+        - [Arith](syntax/expressions/arith.md)
+        - [Bitwise](syntax/expressions/bitwise.md)
+        - [Comp](syntax/expressions/comp.md)
+        - [Member](syntax/expressions/member.md)
+        - [Logic](syntax/expressions/logic.md)
+        - [Nullish](syntax/expressions/nullish.md)
+        - [Ternary](syntax/expressions/ternary.md)
+        - [func](syntax/expressions/func.md)
 
     - Statements
 
@@ -53,10 +53,11 @@ You can see the source code from [GitHub here](https://github.com/azzammuhyala/p
         - [if-elif-else](syntax/statements/if-elif-else.md)
         - [switch-case-default](syntax/statements/switch-case-default.md)
         - [try-catch-else-finally](syntax/statements/try-catch-else-finally.md)
+        - [with-as](syntax/statements/with-as.md)
         - [for-else](syntax/statements/for-else.md)
         - [while-else](syntax/statements/while-else.md)
         - [do-while-else](syntax/statements/do-while-else.md)
-        - [class](syntax/statements/class.md)
+        - [class-extends](syntax/statements/class-extends.md)
         - [return](syntax/statements/return.md)
         - [global](syntax/statements/global.md)
         - [del](syntax/statements/del.md)
@@ -66,4 +67,38 @@ You can see the source code from [GitHub here](https://github.com/azzammuhyala/p
 
 - [PyScript Builtins](builtins/index.md)
 
+    - [pyimport](builtins/builtins/pyimport.md)
+    - [require](builtins/builtins/require.md)
+    - [globals](builtins/builtins/globals.md)
+    - [locals](builtins/builtins/locals.md)
+    - [vars](builtins/builtins/vars.md)
+    - [dir](builtins/builtins/dir.md)
+    - [exec](builtins/builtins/exec.md)
+    - [eval](builtins/builtins/eval.md)
+    - [ce](builtins/builtins/ce.md)
+    - [nce](builtins/builtins/nce.md)
+    - [increment](builtins/builtins/increment.md)
+    - [decrement](builtins/builtins/decrement.md)
+    - [comprehension](builtins/builtins/comprehension.md)
+    - [isobjectof](builtins/builtins/isobjectof.md)
+
 - [PyScript Packages](packages/index.md)
+
+    - PyScript Library
+
+        - [brainfuck](packages/pyscript-library/brainfuck.md)
+        - [clock](packages/pyscript-library/clock.md)
+        - [getch](packages/pyscript-library/getch.md)
+        - [jsdict](packages/pyscript-library/jsdict.md)
+        - [parser](packages/pyscript-library/parser.md)
+        - [sys](packages/pyscript-library/sys.md)
+
+    - PyScript Python Packages
+
+        - [Constants](packages/pyscript-python-packages/constants.md)
+
+        - Functions
+
+            - [pys_eval](packages/pyscript-python-packages/functions/pys_eval.md)
+            - [pys_exec](packages/pyscript-python-packages/functions/pys_exec.md)
+            - [pys_highlight](packages/pyscript-python-packages/functions/pys_highlight.md)
