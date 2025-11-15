@@ -1,9 +1,11 @@
 # PyScript Documention
+> Note: This documentation is still empty or incomplete
+
 PyScript is a simple programming language built on top of Python. It combines some syntax from Python and JavaScript, so
 if you're already familiar with Python or JavaScript, or both, it should be quite easy to learn.
 
 ## Installation
-First, you'll need to download Python. Make sure you're using the latest version, above `3.5`, to ensure the code runs
+First, you'll need to download Python. Make sure you're using the latest version, above `3.10`, to ensure the code runs
 correctly. Visit the official [Python website](https://python.org) to download it.
 
 Next, after downloading and configuring the Python application, you can download the PyScript interpreter from
@@ -102,3 +104,4 @@ You can see the source code from [GitHub here](https://github.com/azzammuhyala/p
             - [pys_eval](packages/pyscript-python-packages/functions/pys_eval.md)
             - [pys_exec](packages/pyscript-python-packages/functions/pys_exec.md)
             - [pys_highlight](packages/pyscript-python-packages/functions/pys_highlight.md)
+            - [pys_shell](packages/pyscript-python-packages/functions/pys_shell.md)
