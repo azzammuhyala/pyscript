@@ -1,16 +1,16 @@
 from .buffer import PysFileBuffer
-from .cache import loading_modules, library, modules
+from .cache import loading_modules, modules, library, undefined
 from .constants import LIBRARY_PATH
 from .exceptions import PysShouldReturn
+from .handlers import handle_call
 from .objects import PysModule, PysPythonFunction
 from .results import PysRunTimeResult
 from .symtab import build_symbol_table
-from .utils import (
-    builtins_blacklist,
-    to_str,
+from .utils.constants import BLACKLIST_PYTHON_BUILTINS
+from .utils.general import (
+    tostr,
     normalize_path,
-    is_object_of as isobjectof,
-    supported_method
+    is_object_of as isobjectof
 )
 
 from math import isclose
@@ -26,6 +26,26 @@ from os.path import (
 
 import builtins
 
+def _supported_method(pyfunc, object, name, *args, **kwargs):
+
+    method = getattr(object, name, undefined)
+    if method is undefined:
+        return False, None
+
+    if callable(method):
+        code = pyfunc.__code__
+        handle_call(method, code.context, code.position)
+
+        try:
+            result = method(*args, **kwargs)
+            if result is NotImplemented:
+                return False, None
+            return True, result
+        except NotImplementedError:
+            return False, None
+
+    return False, None
+
 class _Printer:
 
     def __init__(self, name, text):
@@ -33,7 +53,7 @@ class _Printer:
         self.text = text
 
     def __repr__(self):
-        return 'Type {}() to see the full information text.'.format(self.name)
+        return f'Type {self.name}() to see the full information text.'
 
     def __call__(self):
         print(self.text)
@@ -48,7 +68,7 @@ license = _Printer(
 
 @PysPythonFunction
 def require(pyfunc, name):
-    name = to_str(name)
+    name = tostr(name)
 
     if name == '_pyscript':
         from .. import core
@@ -80,8 +100,8 @@ def require(pyfunc, name):
 
     if path in loading_modules:
         raise ImportError(
-            "cannot import module name {!r} from partially initialized module {!r}, mostly during circular import"
-            .format(module_name, pyfunc.__code__.context.file.name)
+            f"cannot import module name {module_name!r} "
+            f"from partially initialized module {pyfunc.__code__.context.file.name!r}, mostly during circular import"
         )
 
     loading_modules.add(path)
@@ -95,13 +115,13 @@ def require(pyfunc, name):
                 with open(path, 'r') as file:
                     file = PysFileBuffer(file.read(), path)
             except FileNotFoundError:
-                raise ModuleNotFoundError("No module named {!r}".format(module_name))
+                raise ModuleNotFoundError(f"No module named {module_name!r}")
             except BaseException as e:
-                raise ImportError("Cannot import module named {!r}: {}".format(module_name, e))
+                raise ImportError(f"Cannot import module named {module_name!r}: {e}")
 
             symtab = build_symbol_table(file)
 
-            modules[path] = package = PysModule('')
+            package = PysModule('')
             package.__dict__ = symtab.symbols
 
             from .runner import pys_runner
@@ -116,6 +136,8 @@ def require(pyfunc, name):
 
             if result.error:
                 raise PysShouldReturn(PysRunTimeResult().failure(result.error))
+
+            modules[path] = package
 
         return package
 
@@ -169,7 +191,9 @@ def exec(pyfunc, source, globals=None):
     result = pys_runner(
         file=file,
         mode='exec',
-        symbol_table=pyfunc.__code__.context.symbol_table if globals is None else build_symbol_table(file, globals),
+        symbol_table=pyfunc.__code__.context.symbol_table
+                     if globals is None else
+                     build_symbol_table(file, globals),
         context_parent=pyfunc.__code__.context,
         context_parent_entry_position=pyfunc.__code__.position
     )
@@ -189,7 +213,9 @@ def eval(pyfunc, source, globals=None):
     result = pys_runner(
         file=file,
         mode='eval',
-        symbol_table=pyfunc.__code__.context.symbol_table if globals is None else build_symbol_table(file, globals),
+        symbol_table=pyfunc.__code__.context.symbol_table
+                     if globals is None else
+                     build_symbol_table(file, globals),
         context_parent=pyfunc.__code__.context,
         context_parent_entry_position=pyfunc.__code__.position
     )
@@ -204,17 +230,13 @@ def ce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
     if isinstance(a, (int, float)) and isinstance(b, (int, float)):
         return isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
 
-    success, result = supported_method(pyfunc, a, '__ce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
+    success, result = _supported_method(pyfunc, a, '__ce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
     if not success:
-        success, result = supported_method(pyfunc, b, '__ce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
-
-    if not success:
-        raise TypeError(
-            "unsupported operand type(s) for ~= or ce(): {!r} and {!r}".format(
-                type(a).__name__,
-                type(b).__name__
+        success, result = _supported_method(pyfunc, b, '__ce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
+        if not success:
+            raise TypeError(
+                f"unsupported operand type(s) for ~= or ce(): {type(a).__name__!r} and {type(b).__name__!r}"
             )
-        )
 
     return result
 
@@ -223,22 +245,19 @@ def nce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
     if isinstance(a, (int, float)) and isinstance(b, (int, float)):
         return not isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
 
-    success, result = supported_method(pyfunc, a, '__nce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
+    success, result = _supported_method(pyfunc, a, '__nce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
     if not success:
-        success, result = supported_method(pyfunc, b, '__nce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
+        success, result = _supported_method(pyfunc, b, '__nce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
         if not success:
-            success, result = supported_method(pyfunc, a, '__ce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
+            success, result = _supported_method(pyfunc, a, '__ce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
             if not success:
-                success, result = supported_method(pyfunc, b, '__ce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
-            result = not result
+                success, result = _supported_method(pyfunc, b, '__ce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
+                if not success:
+                    raise TypeError(
+                        f"unsupported operand type(s) for ~! or nce(): {type(a).__name__!r} and {type(b).__name__!r}"
+                    )
 
-    if not success:
-        raise TypeError(
-            "unsupported operand type(s) for ~! or nce(): {!r} and {!r}".format(
-                type(a).__name__,
-                type(b).__name__
-            )
-        )
+            result = not result
 
     return result
 
@@ -247,9 +266,9 @@ def increment(pyfunc, object):
     if isinstance(object, (int, float)):
         return object + 1
 
-    success, result = supported_method(pyfunc, object, '__increment__')
+    success, result = _supported_method(pyfunc, object, '__increment__')
     if not success:
-        raise TypeError("unsupported operand type(s) for ++ or increment(): {!r}".format(type(object).__name__))
+        raise TypeError(f"bad operand type for unary ++ or increment(): {type(object).__name__!r}")
 
     return result
 
@@ -258,9 +277,9 @@ def decrement(pyfunc, object):
     if isinstance(object, (int, float)):
         return object - 1
 
-    success, result = supported_method(pyfunc, object, '__decrement__')
+    success, result = _supported_method(pyfunc, object, '__decrement__')
     if not success:
-        raise TypeError("unsupported operand type(s) for -- or decrement(): {!r}".format(type(object).__name__))
+        raise TypeError(f"bad operand type for unary -- or decrement(): {type(object).__name__!r}")
 
     return result
 
@@ -282,7 +301,7 @@ pys_builtins = PysModule(
 pys_builtins.__dict__.update(
     (name, getattr(builtins, name))
     for name in builtins.dir(builtins)
-    if not (name.startswith('_') or name in builtins_blacklist)
+    if not (name.startswith('_') or name in BLACKLIST_PYTHON_BUILTINS)
 )
 
 pys_builtins.__file__ = __file__

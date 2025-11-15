@@ -1,19 +1,27 @@
-from .constants import TOKENS, KEYWORDS, PYTHON_EXTENSIONS, OPTIMIZE
+from .constants import (
+    TOKENS, KEYWORDS,
+    DEBUG,
+    NSEQ_STATEMENTS, NSEQ_GLOBAL, NSEQ_DEL, NSEQ_DICT, NSEQ_SET, NSEQ_LIST, NSEQ_TUPLE,
+    NUNR_LEFT,
+    NIMP_ALL
+)
+from .cache import undefined
 from .context import PysClassContext
 from .exceptions import PysException
-from .handlers import handle_call, handle_exception
-from .nodes import PysNode, PysSequenceNode, PysIdentifierNode, PysAttributeNode, PysSubscriptNode
+from .handlers import handle_exception, handle_call
+from .nodes import PysNode, PysIdentifierNode, PysSequenceNode, PysAttributeNode, PysSubscriptNode
 from .objects import PysFunction
 from .pysbuiltins import ce, nce, increment, decrement
 from .results import PysRunTimeResult
-from .singletons import undefined
 from .symtab import PysClassSymbolTable
-from .utils import inplace_functions_map, keyword_identifiers_map, is_object_of, get_closest, Iterable
+from .utils.constants import BINARY_FUNCTIONS_MAP, UNARY_FUNCTIONS_MAP, KEYWORDS_TO_VALUES_MAP, PYTHON_EXTENSIONS
+from .utils.general import setimuattr, get_closest, get_error_args, is_object_of
 
+from collections.abc import Iterable
 from os.path import splitext as split_file_extension
 
 def visit(node, context):
-    return visitors[type(node)](node, context)
+    return visitors[node.__class__](node, context)
 
 def visit_NumberNode(node, context):
     return PysRunTimeResult().success(node.token.value)
@@ -28,7 +36,7 @@ def visit_SequenceNode(node, context):
     should_return = result.should_return
     ntype = node.type
 
-    if ntype == 'statements':
+    if ntype == NSEQ_STATEMENTS:
         elements = node.elements
 
         if len(elements) == 1:
@@ -45,11 +53,11 @@ def visit_SequenceNode(node, context):
 
         return result.success(None)
 
-    elif ntype == 'global':
+    elif ntype == NSEQ_GLOBAL:
         context.symbol_table.globals.update(name.value for name in node.elements)
         return result.success(None)
 
-    elif ntype == 'del':
+    elif ntype == NSEQ_DEL:
         symbol_table = context.symbol_table
 
         for element in node.elements:
@@ -66,15 +74,15 @@ def visit_SequenceNode(node, context):
                             PysException(
                                 NameError(
                                     (
-                                        "{!r} is not defined".format(name)
+                                        f"{name!r} is not defined"
                                         if symbol_table.get(name) is undefined else
-                                        "{!r} is not defined on local".format(name)
+                                        f"{name!r} is not defined on local"
                                     )
                                     +
                                     (
                                         ''
                                         if closest_symbol is None else
-                                        ". Did you mean {!r}?".format(closest_symbol)
+                                        f". Did you mean {closest_symbol!r}?"
                                     )
                                 ),
                                 context,
@@ -86,34 +94,34 @@ def visit_SequenceNode(node, context):
                     return result
 
             elif isinstance(element, PysSubscriptNode):
-                object = register(visit(element.object, context))
+                target = register(visit(element.target, context))
                 if should_return():
                     return result
 
-                slice = register(visit_slice_from_SubscriptNode(element.slice, context))
+                slice = register(visit_slice_SubscriptNode(element.slice, context))
                 if should_return():
                     return result
 
                 with handle_exception(result, context, element.position):
-                    del object[slice]
+                    del target[slice]
 
                 if should_return():
                     return result
 
             elif isinstance(element, PysAttributeNode):
-                object = register(visit(element.object, context))
+                target = register(visit(element.target, context))
                 if should_return():
                     return result
 
                 with handle_exception(result, context, element.position):
-                    delattr(object, element.attribute.value)
+                    delattr(target, element.attribute.value)
 
                 if should_return():
                     return result
 
         return result.success(None)
 
-    elif ntype == 'dict':
+    elif ntype == NSEQ_DICT:
         elements = {}
         setitem = elements.__setitem__
 
@@ -134,7 +142,7 @@ def visit_SequenceNode(node, context):
 
         return result.success(elements)
 
-    elif ntype == 'set':
+    elif ntype == NSEQ_SET:
         elements = set()
         add = elements.add
 
@@ -156,9 +164,9 @@ def visit_SequenceNode(node, context):
         if should_return():
             return result
 
-    if ntype == 'list':
+    if ntype == NSEQ_LIST:
         return result.success(elements)
-    elif ntype == 'tuple':
+    elif ntype == NSEQ_TUPLE:
         return result.success(tuple(elements))
 
 def visit_IdentifierNode(node, context):
@@ -177,9 +185,11 @@ def visit_IdentifierNode(node, context):
             return result.failure(
                 PysException(
                     NameError(
-                        "{!r} is not defined{}".format(
-                            name,
-                            '' if closest_symbol is None else ". Did you mean {!r}?".format(closest_symbol)
+                        f"{name!r} is not defined" +
+                        (
+                            ''
+                            if closest_symbol is None else
+                            f". Did you mean {closest_symbol!r}?"
                         )
                     ),
                     context,
@@ -193,7 +203,13 @@ def visit_IdentifierNode(node, context):
     return result.success(value)
 
 def visit_KeywordNode(node, context):
-    return PysRunTimeResult().success(keyword_identifiers_map[node.token.value])
+    value = node.token.value
+
+    return PysRunTimeResult().success(
+        bool(context.flags & DEBUG)
+        if value == KEYWORDS['__debug__'] else
+        KEYWORDS_TO_VALUES_MAP[value]
+    )
 
 def visit_AttributeNode(node, context):
     result = PysRunTimeResult()
@@ -201,12 +217,12 @@ def visit_AttributeNode(node, context):
     should_return = result.should_return
     attribute = node.attribute
 
-    object = result.register(visit(node.object, context))
+    target = result.register(visit(node.target, context))
     if should_return():
         return result
 
     with handle_exception(result, context, attribute.position):
-        return result.success(getattr(object, attribute.value))
+        return result.success(getattr(target, attribute.value))
 
     if should_return():
         return result
@@ -217,16 +233,16 @@ def visit_SubscriptNode(node, context):
     register = result.register
     should_return = result.should_return
 
-    object = register(visit(node.object, context))
+    target = register(visit(node.target, context))
     if should_return():
         return result
 
-    slice = register(visit_slice_from_SubscriptNode(node.slice, context))
+    slice = register(visit_slice_SubscriptNode(node.slice, context))
     if should_return():
         return result
 
     with handle_exception(result, context, node.position):
-        return result.success(object[slice])
+        return result.success(target[slice])
 
     if should_return():
         return result
@@ -241,7 +257,7 @@ def visit_AssignNode(node, context):
     if should_return():
         return result
 
-    register(visit_unpack_AssignNode(node.target, context, value, node.operand.type))
+    register(visit_declaration_AssignNode(node.target, context, value, node.operand.type))
     if should_return():
         return result
 
@@ -273,28 +289,14 @@ def visit_ChainOperatorNode(node, context):
                 value = left in right
             elif omatch(TOKENS['KEYWORD'], KEYWORDS['is']):
                 value = left is right
-            elif otype == TOKENS['NOTIN']:
-                value = left not in right
-            elif otype == TOKENS['ISNOT']:
-                value = left is not right
-            elif otype == TOKENS['EE']:
-                value = left == right
-            elif otype == TOKENS['NE']:
-                value = left != right
             elif otype == TOKENS['CE']:
                 handle_call(ce, context, position)
                 value = ce(left, right)
             elif otype == TOKENS['NCE']:
                 handle_call(nce, context, position)
                 value = nce(left, right)
-            elif otype == TOKENS['LT']:
-                value = left < right
-            elif otype == TOKENS['GT']:
-                value = left > right
-            elif otype == TOKENS['LTE']:
-                value = left <= right
-            elif otype == TOKENS['GTE']:
-                value = left >= right
+            else:
+                value = BINARY_FUNCTIONS_MAP[otype](left, right)
 
             if not value:
                 break
@@ -342,17 +344,11 @@ def visit_BinaryOperatorNode(node, context):
     with handle_exception(result, context, node.position):
 
         if omatch(TOKENS['KEYWORD'], KEYWORDS['and']) or otype == TOKENS['CAND']:
-            if not left:
-                return result.success(left)
-
+            if not left: return result.success(left)
         elif omatch(TOKENS['KEYWORD'], KEYWORDS['or']) or otype == TOKENS['COR']:
-            if left:
-                return result.success(left)
-
+            if left: return result.success(left)
         elif otype == TOKENS['NULLISH']:
-            if left is not None:
-                return result.success(left)
-
+            if left is not None: return result.success(left)
         else:
             return_right = False
 
@@ -360,34 +356,11 @@ def visit_BinaryOperatorNode(node, context):
         if should_return():
             return result
 
-        if return_right:
-            return result.success(right)
-        elif otype == TOKENS['ADD']:
-            return result.success(left + right)
-        elif otype == TOKENS['SUB']:
-            return result.success(left - right)
-        elif otype == TOKENS['MUL']:
-            return result.success(left * right)
-        elif otype == TOKENS['DIV']:
-            return result.success(left / right)
-        elif otype == TOKENS['FDIV']:
-            return result.success(left // right)
-        elif otype == TOKENS['MOD']:
-            return result.success(left % right)
-        elif otype == TOKENS['AT']:
-            return result.success(left @ right)
-        elif otype == TOKENS['POW']:
-            return result.success(left ** right)
-        elif otype == TOKENS['AND']:
-            return result.success(left & right)
-        elif otype == TOKENS['OR']:
-            return result.success(left | right)
-        elif otype == TOKENS['XOR']:
-            return result.success(left ^ right)
-        elif otype == TOKENS['LSHIFT']:
-            return result.success(left << right)
-        elif otype == TOKENS['RSHIFT']:
-            return result.success(left >> right)
+        return result.success(
+            right
+            if return_right else
+            BINARY_FUNCTIONS_MAP[otype](left, right)
+        )
 
     if should_return():
         return result
@@ -408,28 +381,24 @@ def visit_UnaryOperatorNode(node, context):
 
         if node.operand.match(TOKENS['KEYWORD'], KEYWORDS['not']) or otype == TOKENS['CNOT']:
             return result.success(not value)
-        elif otype == TOKENS['ADD']:
-            return result.success(+value)
-        elif otype == TOKENS['SUB']:
-            return result.success(-value)
-        elif otype == TOKENS['NOT']:
-            return result.success(~value)
 
         elif otype in (TOKENS['INCREMENT'], TOKENS['DECREMENT']):
-            func = increment if otype == TOKENS['INCREMENT'] else decrement
-
-            handle_call(func, context, position)
-
             new_value = value
+
+            func = increment if otype == TOKENS['INCREMENT'] else decrement
+            handle_call(func, context, position)
             value = func(value)
-            if node.operand_position == 'left':
+
+            if node.operand_position == NUNR_LEFT:
                 new_value = value
 
-            register(visit_unpack_AssignNode(node.value, context, value))
+            register(visit_declaration_AssignNode(node.value, context, value))
             if should_return():
                 return result
 
             return result.success(new_value)
+
+        return result.success(UNARY_FUNCTIONS_MAP[otype](value))
 
     if should_return():
         return result
@@ -442,8 +411,9 @@ def visit_ImportNode(node, context):
     set_symbol = context.symbol_table.set
     packages = node.packages
     name, as_name = node.name
+    name_position = name.position
 
-    with handle_exception(result, context, name.position):
+    with handle_exception(result, context, name_position):
         name_module = name.value
         file, extension = split_file_extension(name_module)
 
@@ -459,7 +429,7 @@ def visit_ImportNode(node, context):
             if require is undefined:
                 use_python_package = True
             else:
-                handle_call(require, context, name.position)
+                handle_call(require, context, name_position)
                 try:
                     module = require(name_module)
                 except ModuleNotFoundError:
@@ -469,23 +439,26 @@ def visit_ImportNode(node, context):
             pyimport = get_symbol('pyimport')
 
             if pyimport is undefined:
-                return result.failure(
-                    PysException(
-                        NameError("'pyimport' is not defined"),
-                        context,
-                        node.position
-                    )
-                )
+                pyimport = get_symbol('__import__')
 
-            handle_call(pyimport, context, name.position)
+                if pyimport is undefined:
+                    return result.failure(
+                        PysException(
+                            NameError("'require', 'pyimport', and '__import__' is not defined"),
+                            context,
+                            node.position
+                        )
+                    )
+
+            handle_call(pyimport, context, name_position)
             module = pyimport(name_module)
 
     if should_return():
         return result
 
-    if packages == 'all':
+    if packages == NIMP_ALL:
 
-        with handle_exception(result, context, name.position):
+        with handle_exception(result, context, name_position):
             for package in getattr(
                 module, '__all__',
                 (package for package in dir(module) if not package.startswith('_'))
@@ -616,11 +589,22 @@ def visit_TryNode(node, context):
         for (error_name, parameter), body in node.catch_cases:
 
             if error_name:
-                error_name = register(visit(error_name, context))
-                if should_return():
-                    return result
+                error_cls = register(visit_IdentifierNode(error_name, context))
+                if result.error:
+                    setimuattr(result.error, 'other', error)
+                    break
 
-            if error_name is None or is_object_of(exception, error_name):
+                if not (isinstance(error_cls, type) and issubclass(error_cls, BaseException)):
+                    return result.failure(
+                        PysException(
+                            TypeError("catching classes that do not inherit from BaseException is not allowed"),
+                            context,
+                            error_name.position,
+                            error
+                        )
+                    )
+
+            if error_name is None or is_object_of(exception, error_cls):
 
                 if parameter:
 
@@ -632,7 +616,7 @@ def visit_TryNode(node, context):
 
                 register(visit(body, context))
                 if result.error:
-                    result.error.other_exception = error
+                    setimuattr(result.error, 'other', error)
 
                 break
 
@@ -648,7 +632,7 @@ def visit_TryNode(node, context):
         finally_result.register(visit(finally_body, context))
         if finally_result.should_return():
             if finally_result.error:
-                finally_result.error.other_exception = result.error
+                setimuattr(finally_result.error, 'other', result.error)
             return finally_result
 
     if should_return():
@@ -692,22 +676,12 @@ def visit_WithNode(node, context):
     with handle_exception(result, context, ncontext_position):
         exit = context_value.__exit__
         handle_call(exit, context, ncontext_position)
-
-        if error:
-            exception = error.exception
-            if isinstance(exception, type):
-                consumed = exit(exception, None, error)
-            else:
-                consumed = exit(type(exception), exception, error)
-        else:
-            consumed = exit(None, None, None)
-
-        if consumed:
+        if exit(*get_error_args(error)):
             result.error = None
 
     if should_return():
         if result.error and result.error is not error:
-            result.error.other_exception = error
+            setimuattr(result.error, 'other', error)
         return result
 
     return result.success(None)
@@ -740,7 +714,7 @@ def visit_ForNode(node, context):
         def condition():
             with handle_exception(result, context, iteration_position):
                 handle_call(iteration_object.__next__, context, iteration_position)
-                register(visit_unpack_AssignNode(declaration, context, next(iteration_object)))
+                register(visit_declaration_AssignNode(declaration, context, next(iteration_object)))
 
             if should_return():
                 if is_object_of(result.error.exception, StopIteration):
@@ -770,9 +744,6 @@ def visit_ForNode(node, context):
 
                 with handle_exception(result, context, ncondition_position):
                     return True if value else False
-
-                if should_return():
-                    return False
 
         else:
             def condition():
@@ -1080,7 +1051,7 @@ def visit_ThrowNode(node, context):
 def visit_AssertNode(node, context):
     result = PysRunTimeResult()
 
-    if not (context.flags & OPTIMIZE):
+    if not (context.flags & DEBUG):
         register = result.register
         should_return = result.should_return
         ncondition = node.condition
@@ -1116,26 +1087,28 @@ def visit_ContinueNode(node, context):
 def visit_BreakNode(node, context):
     return PysRunTimeResult().success_break()
 
-def visit_slice_from_SubscriptNode(node, context):
+def visit_slice_SubscriptNode(node, context):
     result = PysRunTimeResult()
 
     register = result.register
     should_return = result.should_return
 
-    if isinstance(node, list):
+    if isinstance(node, tuple):
         slices = []
 
         append = slices.append
 
         for element in node:
-            append(register(visit_slice_from_SubscriptNode(element, context)))
+            append(register(visit_slice_SubscriptNode(element, context)))
             if should_return():
                 return result
 
         return result.success(tuple(slices))
 
-    elif isinstance(node, tuple):
-        start, stop, step = node
+    elif isinstance(node, slice):
+        start = node.start
+        stop = node.stop
+        step = node.step
 
         if start is not None:
             start = register(visit(start, context))
@@ -1161,7 +1134,7 @@ def visit_slice_from_SubscriptNode(node, context):
 
         return result.success(value)
 
-def visit_unpack_AssignNode(node, context, value, operand=TOKENS['EQ']):
+def visit_declaration_AssignNode(node, context, value, operand=TOKENS['EQ']):
     result = PysRunTimeResult()
 
     register = result.register
@@ -1173,7 +1146,7 @@ def visit_unpack_AssignNode(node, context, value, operand=TOKENS['EQ']):
         if not isinstance(value, Iterable):
             return result.failure(
                 PysException(
-                    TypeError("cannot unpack non-iterable"),
+                    TypeError(f"cannot unpack non-iterable {type(value).__name__} object"),
                     context,
                     position
                 )
@@ -1185,7 +1158,7 @@ def visit_unpack_AssignNode(node, context, value, operand=TOKENS['EQ']):
         with handle_exception(result, context, position):
 
             for element, element_value in zip(elements, value):
-                register(visit_unpack_AssignNode(element, context, element_value, operand))
+                register(visit_declaration_AssignNode(element, context, element_value, operand))
                 if should_return():
                     return result
 
@@ -1199,9 +1172,7 @@ def visit_unpack_AssignNode(node, context, value, operand=TOKENS['EQ']):
         if count < length:
             return result.failure(
                 PysException(
-                    ValueError(
-                        "not enough values to unpack (expected {}, got {})".format(length, count)
-                    ),
+                    ValueError(f"not enough values to unpack (expected {length}, got {count})"),
                     context,
                     node.position
                 )
@@ -1210,29 +1181,33 @@ def visit_unpack_AssignNode(node, context, value, operand=TOKENS['EQ']):
         elif count > length:
             return result.failure(
                 PysException(
-                    ValueError("to many values to unpack (expected {})".format(length)),
+                    ValueError(f"to many values to unpack (expected {length})"),
                     context,
                     node.position
                 )
             )
 
     elif isinstance(node, PysSubscriptNode):
-        object = register(visit(node.object, context))
+        target = register(visit(node.target, context))
         if should_return():
             return result
 
-        slice = register(visit_slice_from_SubscriptNode(node.slice, context))
+        slice = register(visit_slice_SubscriptNode(node.slice, context))
         if should_return():
             return result
 
         with handle_exception(result, context, node.position):
-            object[slice] = value if operand == TOKENS['EQ'] else inplace_functions_map[operand](object[slice], value)
+            target[slice] = (
+                value
+                if operand == TOKENS['EQ'] else
+                BINARY_FUNCTIONS_MAP[operand](target[slice], value)
+            )
 
         if should_return():
             return result
 
     elif isinstance(node, PysAttributeNode):
-        object = register(visit(node.object, context))
+        target = register(visit(node.target, context))
         if should_return():
             return result
 
@@ -1240,9 +1215,11 @@ def visit_unpack_AssignNode(node, context, value, operand=TOKENS['EQ']):
 
         with handle_exception(result, context, node.position):
             setattr(
-                object,
+                target,
                 attribute,
-                value if operand == TOKENS['EQ'] else inplace_functions_map[operand](getattr(object, attribute), value)
+                value
+                if operand == TOKENS['EQ'] else
+                BINARY_FUNCTIONS_MAP[operand](getattr(target, attribute), value)
             )
 
         if should_return():
@@ -1261,15 +1238,15 @@ def visit_unpack_AssignNode(node, context, value, operand=TOKENS['EQ']):
                     PysException(
                         NameError(
                             (
-                                "{!r} is not defined".format(name)
+                                f"{name!r} is not defined"
                                 if symbol_table.get(name) is undefined else
-                                "{!r} is not defined on local".format(name)
+                                f"{name!r} is not defined on local"
                             )
                             +
                             (
                                 ''
                                 if closest_symbol is None else
-                                ". Did you mean {!r}?".format(closest_symbol)
+                                f". Did you mean {closest_symbol!r}?"
                             )
                         ),
                         context,
@@ -1283,6 +1260,6 @@ def visit_unpack_AssignNode(node, context, value, operand=TOKENS['EQ']):
     return result.success(None)
 
 visitors = {
-    class_node: globals()['visit_{}'.format(class_node.__name__[3:])]
+    class_node: globals()[f'visit_{class_node.__name__[3:]}']
     for class_node in PysNode.__subclasses__()
 }

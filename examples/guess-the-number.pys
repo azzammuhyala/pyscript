@@ -3,21 +3,24 @@ import random
 func main() {
     number = random.randint(0, 1000)
 
-    while true {
+    while (true) {
         guess = int(input("Guess The Number from 0-1000: "))
 
-        if guess == number {
+        if (guess < number) {
+            print("To low!")
+        }
+
+        else if (guess > number) {
+            print("To large!")
+        }
+
+        else {
             print("You correct!")
             break
         }
-
-        else if guess < number
-            print("To low!")
-
-        else if guess > number
-            print("To large!")
     }
 }
 
-if __name__ == '__main__'
+if (__name__ == '__main__') {
     main()
+}

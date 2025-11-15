@@ -1,22 +1,33 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
-from .constants import TOKENS, KEYWORDS, HIGHLIGHT, DEFAULT, SILENT, COMMENT
+from .constants import TOKENS, KEYWORDS, DEFAULT, SILENT, COMMENT
 from .lexer import PysLexer
 from .position import PysPosition
 from .pysbuiltins import pys_builtins
-from .utils import (
-    parenthesises_map,
-    left_parenthesises,
-    right_parenthesises,
-    parenthesises,
-    highlight_keyword_identifiers
+from .utils.constants import (
+    PARENTHESISES_MAP,
+    LEFT_PARENTHESISES,
+    RIGHT_PARENTHESISES,
+    PARENTHESISES,
+    KEYWORD_IDENTIFIERS,
+    HIGHLIGHT
 )
+from .utils.decorators import typechecked
 
 from html import escape as html_escape
+from typing import Callable, Optional
 
+@typechecked
 class _HighlightFormatter(Pys):
 
-    def __init__(self, content_block, open_block, close_block, newline_block):
+    def __init__(
+        self,
+        content_block: Callable[[PysPosition, str], str],
+        open_block: Callable[[PysPosition, str], str],
+        close_block: Callable[[PysPosition, str], str],
+        newline_block: Callable[[PysPosition], str]
+    ) -> None:
+
         self.content_block = content_block
         self.open_block = open_block
         self.close_block = close_block
@@ -25,7 +36,7 @@ class _HighlightFormatter(Pys):
         self._type = 'start'
         self._open = False
 
-    def __call__(self, type, position, content):
+    def __call__(self, type: str, position: PysPosition, content: str) -> str:
         result = ''
 
         if type == 'newline':
@@ -59,16 +70,11 @@ class _HighlightFormatter(Pys):
 
 def _ansi_open_block(position, type):
     color = HIGHLIGHT.get(type, 'default')
-
-    return '\x1b[38;2;{};{};{}m'.format(
-        int(color[1:3], 16),
-        int(color[3:5], 16),
-        int(color[5:7], 16)
-    )
+    return f'\x1b[38;2;{int(color[1:3], 16)};{int(color[3:5], 16)};{int(color[5:7], 16)}m'
 
 HLFMT_HTML = _HighlightFormatter(
     lambda position, content: '<br>'.join(html_escape(content).splitlines()),
-    lambda position, type: '<span style="color:{}">'.format(HIGHLIGHT.get(type, 'default')),
+    lambda position, type: f'<span style="color:{HIGHLIGHT.get(type, "default")}">',
     lambda position, type: '</span>',
     lambda position: '<br>'
 )
@@ -80,7 +86,13 @@ HLFMT_ANSI = _HighlightFormatter(
     lambda position: '\n'
 )
 
-def pys_highlight(source, format=None, max_parenthesis_level=3, flags=DEFAULT):
+@typechecked
+def pys_highlight(
+    source,
+    format: Optional[Callable[[str, PysPosition, str], str]] = None,
+    max_parenthesis_level: int = 3,
+    flags: int = DEFAULT
+) -> str:
     """
     Highlight a PyScript code from source given.
 
@@ -99,16 +111,9 @@ def pys_highlight(source, format=None, max_parenthesis_level=3, flags=DEFAULT):
 
     if format is None:
         format = HLFMT_HTML
-    elif not callable(format):
-        raise TypeError("pys_highlight(): format must be callable")
 
-    if not isinstance(max_parenthesis_level, int):
-        raise TypeError("pys_highlight(): max_parenthesis_level must be integer")
-    elif max_parenthesis_level < 0:
+    if max_parenthesis_level < 0:
         raise ValueError("pys_highlight(): max_parenthesis_level must be grather than 0")
-
-    if not isinstance(flags, int):
-        raise TypeError("pys_highlight(): flags must be integer")
 
     lexer = PysLexer(
         file=file,
@@ -134,7 +139,7 @@ def pys_highlight(source, format=None, max_parenthesis_level=3, flags=DEFAULT):
         ttype = token.type
         tvalue = token.value
 
-        if ttype in right_parenthesises:
+        if ttype in RIGHT_PARENTHESISES:
             parenthesises_level[ttype] -= 1
             parenthesis_level -= 1
 
@@ -142,7 +147,7 @@ def pys_highlight(source, format=None, max_parenthesis_level=3, flags=DEFAULT):
             type_fmt = 'end'
 
         elif ttype == TOKENS['KEYWORD']:
-            type_fmt = 'keyword-identifier' if tvalue in highlight_keyword_identifiers else 'keyword'
+            type_fmt = 'keyword-identifier' if tvalue in KEYWORD_IDENTIFIERS else 'keyword'
 
         elif ttype == TOKENS['NUMBER']:
             type_fmt = 'number'
@@ -175,11 +180,11 @@ def pys_highlight(source, format=None, max_parenthesis_level=3, flags=DEFAULT):
                 elif tokens[j].match(TOKENS['KEYWORD'], KEYWORDS['func']):
                     type_fmt = 'identifier-call'
 
-        elif ttype in parenthesises:
+        elif ttype in PARENTHESISES:
             type_fmt = 'parenthesis-{}'.format(
                 'unmatch'
                 if
-                    parenthesises_level[parenthesises_map.get(ttype, ttype)] < 0 or
+                    parenthesises_level[PARENTHESISES_MAP.get(ttype, ttype)] < 0 or
                     parenthesis_level < 0
                 else
                 parenthesis_level % max_parenthesis_level
@@ -200,8 +205,8 @@ def pys_highlight(source, format=None, max_parenthesis_level=3, flags=DEFAULT):
 
         result += format(type_fmt, token.position, text[token.position.start:token.position.end])
 
-        if ttype in left_parenthesises:
-            parenthesises_level[parenthesises_map[ttype]] += 1
+        if ttype in LEFT_PARENTHESISES:
+            parenthesises_level[PARENTHESISES_MAP[ttype]] += 1
             parenthesis_level += 1
 
         elif ttype == TOKENS['EOF']:

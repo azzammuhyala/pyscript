@@ -1,26 +1,33 @@
 from .bases import Pys
-from .utils import to_str
+from .utils.decorators import immutable
+from .utils.general import setimuattr, tostr
 
 from io import IOBase
 
+@immutable
 class PysBuffer(Pys):
-    pass
+    __slots__ = ()
 
 class PysFileBuffer(PysBuffer):
+
+    __slots__ = ('text', 'name')
 
     def __init__(self, text, name=None):
 
         if isinstance(text, PysFileBuffer):
-            self.text = to_str(text.text)
-            self.name = to_str(text.name if name is None else name)
+            name = tostr(text.name if name is None else name)
+            text = tostr(text.text)
 
         elif isinstance(text, IOBase):
-            self.text = to_str(text)
-            self.name = to_str(text.name if name is None else name)
+            name = tostr(text.name if name is None else name)
+            text = tostr(text)
 
         else:
-            self.text = to_str(text)
-            self.name = '<string>' if name is None else to_str(name)
+            name = '<string>' if name is None else tostr(name)
+            text = tostr(text)
+
+        setimuattr(self, 'text', text)
+        setimuattr(self, 'name', name)
 
     def __repr__(self):
-        return '<FileBuffer from {!r}>'.format(self.name)
+        return f'<FileBuffer from {self.name!r}>'

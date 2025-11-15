@@ -47,7 +47,7 @@ class BFInterpreter {
         comment = False
         tokenIndex = 0
 
-        for ([position, character] of enumerate(source)) {
+        for (position, character of enumerate(source)) {
             if (not comment and character == '#')
                 comment = True
             elif (comment and character == '\n')
@@ -102,12 +102,12 @@ class BFInterpreter {
 
         self._tokenIndex++
 
-        if self._tokenIndex >= len(self._tokens) {
+        if (self._tokenIndex >= len(self._tokens)) {
             self.running = False
             return
         }
 
-        [position, character] = self._tokens[self._tokenIndex]
+        position, character = self._tokens[self._tokenIndex]
         dataPointer = self.memory[self.point]
 
         if (character == '>') {
@@ -159,7 +159,7 @@ class BFInterpreter {
             self._tokenIndex = self._bracketMap[self._tokenIndex]
         }
 
-        return (self.point, position, character)
+        return self.point, position, character
     }
 
     func stop(self, cleanUp=True) {
@@ -170,7 +170,7 @@ class BFInterpreter {
         self.running = False
 
         if (cleanUp) {
-            del [self.memory, self.point]
+            del self.memory, self.point
         }
     }
 

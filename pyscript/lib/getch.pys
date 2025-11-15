@@ -5,7 +5,8 @@ if sys.platform == 'win32'
     from msvcrt import getch
 }
 
-else {
+else
+{
     import termios
     import tty
 

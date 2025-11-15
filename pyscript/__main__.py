@@ -1,20 +1,21 @@
 from .core.buffer import PysFileBuffer
-from .core.constants import DEFAULT, OPTIMIZE
+from .core.cache import undefined
+from .core.constants import DEFAULT, DEBUG, NO_COLOR
 from .core.handlers import handle_execute
 from .core.highlight import HLFMT_HTML, HLFMT_ANSI, pys_highlight
 from .core.runner import pys_runner, pys_shell
 from .core.symtab import build_symbol_table
-from .core.utils import normalize_path
+from .core.utils.general import normalize_path
 from .core.version import __version__
 
 from argparse import ArgumentParser
 
-import sys
-import os
+from sys import executable, version_info, exit, setrecursionlimit
+from os.path import basename, splitext
 
 parser = ArgumentParser(
-    prog='{} -m pyscript'.format(os.path.splitext(os.path.basename(sys.executable))[0]),
-    description="PyScript Launcher for Python Version {}".format('.'.join(map(str, sys.version_info)))
+    prog=splitext(basename(executable))[0] + ' -m pyscript',
+    description='PyScript Launcher for Python Version ' + '.'.join(map(str, version_info))
 )
 
 parser.add_argument(
@@ -26,81 +27,107 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    '-v', '-V', '--version',
+    '-v', '--version',
     action='version',
-    version="PyScript {}".format(__version__),
+    version=f"PyScript {__version__}",
 )
 
 parser.add_argument(
-    '-c', '-C', '--command',
+    '-c', '--command',
     type=str,
     default=None,
     help="execute PyScript from argument",
 )
 
 parser.add_argument(
-    '-o', '-O', '--optimize',
+    '-d', '--debug',
     action='store_true',
-    help="set optimize flag"
+    help="set a debug flag, this will remove the assert statement"
 )
 
 parser.add_argument(
-    '-i', '-I', '--inspect',
+    '-i', '--inspect',
     action='store_true',
     help="inspect interactively after running a file",
 )
 
 parser.add_argument(
-    '-l', '-L', '--highlight',
+    '-l', '--highlight',
     choices=('html', 'ansi'),
     default=None,
     help='generate PyScript highlight code from a file'
 )
 
+parser.add_argument(
+    '-n', '--no-color',
+    action='store_true',
+    help="no colorful traceback"
+)
+
+parser.add_argument(
+    '-r', '--py-recursion',
+    type=int,
+    default=None,
+    help="set a python recursion limit"
+)
+
 args = parser.parse_args()
 
 if args.highlight and args.file is None:
-    parser.error("-l, -L, --highlight: file path require")
+    parser.error("-l, --highlight: file path require")
+
+if args.py_recursion is not None:
+    try:
+        setrecursionlimit(args.py_recursion)
+    except BaseException as e:
+        parser.error(f"-r, --py-recursion: {e}")
 
 code = 0
 flags = DEFAULT
 
-if args.optimize:
-    flags |= OPTIMIZE
+if args.debug:
+    flags |= DEBUG
+if args.no_color:
+    flags |= NO_COLOR
 
 if args.file is not None:
     path = normalize_path(args.file)
 
     try:
         with open(path, 'r') as file:
-            file = PysFileBuffer(file.read(), path)
+            file = PysFileBuffer(file, path)
 
     except FileNotFoundError:
-        parser.error("can't open file {!r}: No such file or directory".format(path))
+        parser.error(f"can't open file {path!r}: No such file or directory")
 
     except PermissionError:
-        parser.error("can't open file {!r}: Permission denied.".format(path))
+        parser.error(f"can't open file {path!r}: Permission denied.")
 
     except IsADirectoryError:
-        parser.error("can't open file {!r}: Path is not a file.".format(path))
+        parser.error(f"can't open file {path!r}: Path is not a file.")
 
     except NotADirectoryError:
-        parser.error("can't open file {!r}: Attempting to access directory from file.".format(path))
+        parser.error(f"can't open file {path!r}: Attempting to access directory from file.")
 
     except (OSError, IOError):
-        parser.error("can't open file {!r}: Attempting to access a system directory or file.".format(path))
+        parser.error(f"can't open file {path!r}: Attempting to access a system directory or file.")
 
     except UnicodeDecodeError:
-        parser.error("can't read file {!r}: Bad file.".format(path))
+        parser.error(f"can't read file {path!r}: Bad file.")
 
     except BaseException as e:
-        parser.error("file {!r}: Unexpected error: {}".format(path, e))
+        parser.error(f"file {path!r}: Unexpected error: {e}")
 
     if args.highlight:
         try:
-            print(pys_highlight(file, HLFMT_HTML if args.highlight == 'html' else HLFMT_ANSI))
+            print(
+                pys_highlight(
+                    file,
+                    HLFMT_HTML if args.highlight == 'html' else HLFMT_ANSI
+                )
+            )
         except BaseException as e:
-            parser.error("file {!r}: Tokenize error: {}".format(path, e))
+            parser.error(f"file {path!r}: Tokenize error: {e}")
 
     else:
         symtab = build_symbol_table(file)
@@ -117,7 +144,7 @@ if args.file is not None:
 
         if args.inspect:
             code = pys_shell(
-                symbol_table=result.context.symbol_table,
+                globals=result.context.symbol_table,
                 flags=result.context.flags
             )
 
@@ -137,6 +164,9 @@ elif args.command is not None:
     )
 
 else:
-    code = pys_shell(flags=flags)
+    code = pys_shell(
+        globals=undefined,
+        flags=flags
+    )
 
-sys.exit(code)
+exit(code)

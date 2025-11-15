@@ -7,13 +7,30 @@ WITH_EQ = _pyscript.constants.WITH_EQ
 SPECIAL = _pyscript.constants.SPECIAL
 
 # constants
-TOKENS = _pyscript.constants.TOKENS.copy()
-KEYWORDS = _pyscript.constants.KEYWORDS.copy()
+TOKENS = _pyscript.constants.TOKENS
+KEYWORDS = _pyscript.constants.KEYWORDS
 
 # flags
 DEFAULT = _pyscript.constants.DEFAULT
 COMMENT = _pyscript.constants.COMMENT
 REVERSE_POW_XOR = _pyscript.constants.REVERSE_POW_XOR
+
+# types for pyscript.core.nodes.PysSequenceNode
+NSEQ_STATEMENTS = _pyscript.constants.NSEQ_STATEMENTS
+NSEQ_GLOBAL = _pyscript.constants.NSEQ_GLOBAL
+NSEQ_DEL = _pyscript.constants.NSEQ_DEL
+NSEQ_DICT = _pyscript.constants.NSEQ_DICT
+NSEQ_SET = _pyscript.constants.NSEQ_SET
+NSEQ_LIST = _pyscript.constants.NSEQ_LIST
+NSEQ_TUPLE = _pyscript.constants.NSEQ_TUPLE
+
+# styles for pyscript.core.nodes.PysTernaryNode
+NTER_GENERAL = _pyscript.constants.NTER_GENERAL
+NTER_PYTHONIC = _pyscript.constants.NTER_PYTHONIC
+
+# operand positions for pyscript.core.nodes.PysUnaryNode
+NUNR_LEFT = _pyscript.constants.NUNR_LEFT
+NUNR_RIGHT = _pyscript.constants.NUNR_RIGHT
 
 # highlight formatter
 HLFMT_HTML = _pyscript.highlight.HLFMT_HTML
@@ -21,17 +38,22 @@ HLFMT_ANSI = _pyscript.highlight.HLFMT_ANSI
 
 class Parser {
 
+    __slots__ = ('_compiled', 'source', 'file', 'flags')
+
     func __init__(self, source, flags=DEFAULT) {
 
         # source is a list of tokens
-        if isinstance(source, list) {
+        if isinstance(source, tuple)
+        {
             if not source
-                # if the source list is empty (if it's empty there should be at least a PysToken(EOF))
-                throw ValueError("empty list")
+                throw ValueError("empty tuple")
 
-            if not all(comprehension(source, func(token) return isinstance(token, _pyscript.token.PysToken)))
-                # if the list order one of which isn't a PysToken object
-                throw TypeError("invalid list of token")
+            for i, token of enumerate(source) {
+                if not isinstance(token, _pyscript.token.PysToken)
+                    throw TypeError("Parser(): source must be tuple of tokens")
+                if token.type == TOKENS['COMMENT']
+                    throw ValueError("Parser(): source token with comment token is invalid")
+            }
 
             self._compiled = 'tokenize'
             self.source = source
@@ -39,7 +61,8 @@ class Parser {
         }
 
         # source is an AST
-        elif isinstance(source, _pyscript.nodes.PysNode) {
+        elif isinstance(source, _pyscript.nodes.PysNode)
+        {
             self._compiled = 'ast'
             self.source = source
             self.file = source.position.file
@@ -66,7 +89,7 @@ class Parser {
             flags=self.flags
         )
 
-        [tokens, error] = lexer.make_tokens()
+        tokens, error = lexer.make_tokens()
         if error
             throw error.exception
 
@@ -85,7 +108,6 @@ class Parser {
             tokens = self.tokenize()
 
         parser = _pyscript.parser.PysParser(
-            file=self.file,
             tokens=tokens,
             flags=self.flags
         )
@@ -104,7 +126,6 @@ class Parser {
             ast = self.ast(mode=mode)
 
         analyzer = _pyscript.analyzer.PysAnalyzer(
-            file=self.file,
             flags=self.flags
         )
 

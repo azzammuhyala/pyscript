@@ -1,8 +1,9 @@
-import os
+from os.path import sep
+from types import MappingProxyType
 
 # paths
-PYSCRIPT_PATH = os.path.sep.join(__file__.split(os.path.sep)[:-2])
-LIBRARY_PATH = os.path.join(PYSCRIPT_PATH, 'lib')
+PYSCRIPT_PATH = sep.join(__file__.split(sep)[:-2])
+LIBRARY_PATH = f'{PYSCRIPT_PATH}{sep}lib'
 
 # tokens offset
 DOUBLE = 0xFF * 1
@@ -11,7 +12,7 @@ WITH_EQ = 0xFF * 3
 SPECIAL = 0xFF * 4
 
 # tokens
-TOKENS = {
+TOKENS = MappingProxyType({
     'EOF': ord('\0'),
     'KEYWORD': 1,
     'IDENTIFIER': 2,
@@ -75,10 +76,11 @@ TOKENS = {
     'SEMICOLON': ord(';'),
     'NEWLINE': ord('\n'),
     'COMMENT': ord('#')
-}
+})
 
 # keywords
-KEYWORDS = {
+KEYWORDS = MappingProxyType({
+    '__debug__': '__debug__',
     'False': 'False',
     'None': 'None',
     'True': 'True',
@@ -117,33 +119,39 @@ KEYWORDS = {
     'try': 'try',
     'while': 'while',
     'with': 'with'
-}
-
-# default color highlight
-HIGHLIGHT = {
-    'default': '#D4D4D4',
-    'keyword': '#C586C0',
-    'keyword-identifier': '#307CD6',
-    'identifier': '#8CDCFE',
-    'identifier-const': '#2EA3FF',
-    'identifier-call': '#DCDCAA',
-    'identifier-class': '#4EC9B0',
-    'number': '#B5CEA8',
-    'string': '#CE9178',
-    'parenthesis-unmatch': '#B51819',
-    'parenthesis-0': '#FFD705',
-    'parenthesis-1': '#D45DBA',
-    'parenthesis-2': '#1A9FFF',
-    'comment': '#549952'
-}
-
-# python extensions file
-PYTHON_EXTENSIONS = {'.ipy', '.py', '.pyc', '.pyd', '.pyi', '.pyo', '.pyp', '.pyw', '.pyz', '.pyproj', '.rpy', '.xpy'}
+})
 
 # flags
 DEFAULT = 0
-OPTIMIZE = 1 << 0
+DEBUG = 1 << 0
 SILENT = 1 << 1
 RETRES = 1 << 2
 COMMENT = 1 << 3
+NO_COLOR = 1 << 4
 REVERSE_POW_XOR = 1 << 10
+
+# styles for pyscript.core.utils.general.acolor
+BOLD = 1 << 0
+ITALIC = 1 << 1
+UNDER = 1 << 2
+STRIKET = 1 << 3
+
+# types for pyscript.core.nodes.PysSequenceNode
+NSEQ_STATEMENTS = 1
+NSEQ_GLOBAL = 2
+NSEQ_DEL = 3
+NSEQ_DICT = 4
+NSEQ_SET = 5
+NSEQ_LIST = 6
+NSEQ_TUPLE = 7
+
+# styles for pyscript.core.nodes.PysTernaryOperatorNode
+NTER_GENERAL = 1
+NTER_PYTHONIC = 2
+
+# operand positions for pyscript.core.nodes.PysUnaryOperatorNode
+NUNR_LEFT = 1
+NUNR_RIGHT = 2
+
+# all packages for pyscript.core.nodes.PysImportNode
+NIMP_ALL = 1

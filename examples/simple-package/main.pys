@@ -1,0 +1,4 @@
+import "mypack.pys" as mypack
+
+name = "Budi"
+print(mypack.sayHello(name))

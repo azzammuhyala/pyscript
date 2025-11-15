@@ -1,38 +1,40 @@
 from .bases import Pys
+from .buffer import PysFileBuffer
+from .constants import BOLD
+from .utils.decorators import typechecked, immutable
+from .utils.general import setimuattr, acolor
 
+@immutable
 class PysPosition(Pys):
 
-    def __init__(self, file, start, end):
-        self.file = file
-        self.start = start
-        self.end = end
+    __slots__ = ('file', 'start', 'end', 'start_line', 'start_column', 'end_line', 'end_column', 'is_positionless')
+
+    @typechecked
+    def __init__(self, file: PysFileBuffer, start: int, end: int):
+        is_positionless = start < 0 or end < 0 or start > end
+
+        setimuattr(self, 'file', file)
+        setimuattr(self, 'start', start)
+        setimuattr(self, 'end', end)
+        setimuattr(self, 'start_line', -1 if is_positionless else file.text.count('\n', 0, start) + 1)
+        setimuattr(self, 'start_column', -1 if is_positionless else start - file.text.rfind('\n', 0, start))
+        setimuattr(self, 'end_line', -1 if is_positionless else file.text.count('\n', 0, end) + 1)
+        setimuattr(self, 'end_column', -1 if is_positionless else end - file.text.rfind('\n', 0, end))
+        setimuattr(self, 'is_positionless', is_positionless)
 
     def __repr__(self):
-        return '<Position({!r}, {!r}) from {!r}>'.format(self.start, self.end, self.file.name)
+        return f'<Position({self.start!r}, {self.end!r}) from {self.file.name!r}>'
 
-    @property
-    def start_line(self):
-        return -1 if self.is_positionless() else self.file.text.count('\n', 0, self.start) + 1
-
-    @property
-    def start_column(self):
-        return -1 if self.is_positionless() else self.start - self.file.text.rfind('\n', 0, self.start)
-
-    @property
-    def end_line(self):
-        return -1 if self.is_positionless() else self.file.text.count('\n', 0, self.end) + 1
-
-    @property
-    def end_column(self):
-        return -1 if self.is_positionless() else self.end - self.file.text.rfind('\n', 0, self.end)
-
-    def is_positionless(self):
-        start, end = self.start, self.end
-        return start < 0 or end < 0 or start > end
-
-    def format_arrow(self):
-        if self.is_positionless():
+    def format_arrow(self, colored=False):
+        if self.is_positionless:
             return ''
+
+        if colored:
+            reset = acolor('reset')
+            bred = acolor('red', BOLD)
+        else:
+            reset = ''
+            bred = ''
 
         line_start = self.start_line
         line_end = self.end_line
@@ -48,7 +50,7 @@ class PysPosition(Pys):
 
         if text[self.start:self.end] in {'', '\n'}:
             line = text[start:end].lstrip().replace('\t', ' ')
-            return '{}\n{}^'.format(line, ' ' * len(line))
+            return f'{line}\n{bred}{" " * len(line)}^{reset}'
 
         result = []
         lines = []
@@ -75,18 +77,21 @@ class PysPosition(Pys):
 
         for i, (line, line_code_length, start, end) in enumerate(lines):
             line = line[removed_indent:]
-            result.append(line)
+            er = end - removed_indent
 
             if i == 0:
+                sr = start - removed_indent
+
                 arrow = '^' * (end - start)
-                line_arrow = ' ' * (start - removed_indent) + arrow
+                line = f'{line[:sr]}{bred}{line[sr:er]}{reset}{line[er:]}\n{" " * sr}{bred}{arrow}{reset}'
 
             else:
                 indent = len(line) - line_code_length
-                arrow = '^' * (end - start - (removed_indent + indent))
-                line_arrow = ' ' * indent + arrow
 
-            if arrow and len(line_arrow) - 1 <= len(line):
-                result.append(line_arrow)
+                arrow = '^' * (end - start - (removed_indent + indent))
+                line = f'{line[:indent]}{bred}{line[indent:er]}{reset}{line[er:]}\n{" " * indent}{bred}{arrow}{reset}'
+
+            if arrow:
+                result.append(line)
 
         return '\n'.join(result).replace('\t', ' ')

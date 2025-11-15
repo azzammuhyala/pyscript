@@ -1,34 +1,44 @@
 from .bases import Pys
+from .buffer import PysFileBuffer
 from .constants import TOKENS, KEYWORDS, DEFAULT, COMMENT
 from .context import PysContext
 from .exceptions import PysException
 from .position import PysPosition
 from .token import PysToken
+from .utils.decorators import typechecked
 
 from unicodedata import lookup as unicode_lookup
-
-import sys
+from typing import Optional
+from sys import stderr
 
 class PysLexer(Pys):
 
-    def __init__(self, file, flags=DEFAULT, context_parent=None, context_parent_entry_position=None):
+    @typechecked
+    def __init__(
+        self,
+        file: PysFileBuffer,
+        flags: int = DEFAULT,
+        context_parent: Optional[PysContext] = None,
+        context_parent_entry_position: Optional[PysPosition] = None
+    ):
+
         self.file = file
         self.flags = flags
         self.context_parent = context_parent
         self.context_parent_entry_position = context_parent_entry_position
 
-    def update_current_char(self):
+    def update_current_character(self):
         self.current_character = self.file.text[self.index] if 0 <= self.index < len(self.file.text) else None
 
     def advance(self):
         if self.error is None:
             self.index += 1
-            self.update_current_char()
+            self.update_current_character()
 
     def reverse(self, amount=1):
         if self.error is None:
             self.index -= amount
-            self.update_current_char()
+            self.update_current_character()
 
     def not_end_of_file(self):
         return self.current_character is not None
@@ -48,7 +58,17 @@ class PysLexer(Pys):
             else:
                 end = self.index
 
-            self.tokens.append(PysToken(type, PysPosition(self.file, start, end), value))
+            self.tokens.append(
+                PysToken(
+                    type,
+                    PysPosition(
+                        self.file,
+                        start,
+                        end
+                    ),
+                    value
+                )
+            )
 
     def throw(self, start, message, end=None):
         if self.error is None:
@@ -66,12 +86,13 @@ class PysLexer(Pys):
                 PysPosition(self.file, start, end or self.index)
             )
 
-    def make_tokens(self):
+    @typechecked
+    def make_tokens(self) -> tuple[tuple[PysToken, ...] | tuple[PysToken], PysException | None]:
         self.index = 0
         self.tokens = []
         self.error = None
 
-        self.update_current_char()
+        self.update_current_character()
 
         while self.not_end_of_file():
 
@@ -185,11 +206,11 @@ class PysLexer(Pys):
                 char = self.current_character
 
                 self.advance()
-                self.throw(self.index - 1, "invalid character '{}' (U+{:08X})".format(char, ord(char)))
+                self.throw(self.index - 1, f"invalid character '{char}' (U+{ord(char):08X})")
 
         self.add_token(TOKENS['EOF'])
 
-        return self.tokens, self.error
+        return tuple(self.tokens), self.error
 
     def make_back_slash(self):
         self.advance()
@@ -296,7 +317,7 @@ class PysLexer(Pys):
             self.advance()
             self.throw(self.index - 1, "invalid decimal literal")
 
-        if self.character_in('jJ'):
+        if self.character_in('jJiI'):
             is_complex = True
             self.advance()
 
@@ -347,10 +368,10 @@ class PysLexer(Pys):
             nonlocal decoded_error_message
             if decoded_error_message is None:
                 decoded_error_message = (
-                    "(unicode error) 'unicodeescape' codec can't decode bytes in position {}-{}: {}"
+                    f"(unicode error) 'unicodeescape' codec can't decode bytes in position {start}-{end}: {message}"
                     if is_unicode else
-                    "codec can't decode bytes in position {}-{}: {}"
-                ).format(start, end, message)
+                    f"codec can't decode bytes in position {start}-{end}: {message}"
+                )
 
         self.advance()
 
@@ -429,7 +450,7 @@ class PysLexer(Pys):
                         if len(escape) != length:
                             decode_error(
                                 False, start_escape, end_escape,
-                                "truncated \\{}{} escape".format(base, 'X' * length)
+                                f"truncated \\{base}{'X' * length} escape"
                             )
 
                         else:
@@ -484,8 +505,8 @@ class PysLexer(Pys):
                         if not warning_displayed:
                             warning_displayed = True
                             print(
-                                "SyntaxWarning: invalid escape sequence '\\{}'".format(self.current_character),
-                                file=sys.stderr
+                                f"SyntaxWarning: invalid escape sequence '\\{self.current_character}'",
+                                file=stderr
                             )
 
                         string += '\\' + self.current_character
@@ -496,7 +517,11 @@ class PysLexer(Pys):
                 self.advance()
 
         if not (triple_quote() if is_triple_quote else self.current_character == prefix):
-            self.throw(start, "unterminated bytes literal" if is_bytes else "unterminated string literal", start + 1)
+            self.throw(
+                start,
+                "unterminated bytes literal" if is_bytes else "unterminated string literal",
+                start + 1
+            )
 
         elif decoded_error_message is not None:
             self.advance()

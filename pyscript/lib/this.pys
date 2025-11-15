@@ -1,15 +1,15 @@
 try {
-    __f = open(pyimport('os').path.join(require('sys').pyscript_path, 'this.py'), 'r')
-    __l = {}
+    file = open(pyimport('os').path.join(require('sys').pyscript_path, 'this.py'), 'r')
+    local = {}
 
     try {
-        pyimport('builtins').exec(__f.read(), globals={}, locals=__l)
-        s = __l['s']
+        pyimport('builtins').exec(file.read(), globals={}, locals=local)
+        s = local['s']
     }
 
     finally {
-        __f.close()
-        del [__f, __l]
+        file.close()
+        del file, local
     }
 }
 

@@ -1,18 +1,21 @@
 from .bases import Pys
 from .constants import TOKENS
-from .singletons import undefined
-from .utils import inplace_functions_map, get_closest
+from .cache import undefined
+from .utils.constants import BINARY_FUNCTIONS_MAP
+from .utils.decorators import immutable
+from .utils.general import setimuattr, get_closest
 
-import os
+from os.path import basename
 
+@immutable
 class PysSymbolTable(Pys):
 
     __slots__ = ('parent', 'symbols', 'globals')
 
     def __init__(self, parent=None):
-        self.parent = parent.parent if isinstance(parent, PysClassSymbolTable) else parent
-        self.symbols = {}
-        self.globals = set()
+        setimuattr(self, 'parent', parent.parent if isinstance(parent, PysClassSymbolTable) else parent)
+        setimuattr(self, 'symbols', {})
+        setimuattr(self, 'globals', set())
 
     def find_closest(self, name):
         symbols = set(self.symbols.keys())
@@ -24,7 +27,13 @@ class PysSymbolTable(Pys):
 
         builtins = self.get('__builtins__')
         if builtins is not undefined:
-            symbols.update((builtins if isinstance(builtins, dict) else builtins.__dict__).keys())
+            symbols.update(
+                (
+                    builtins
+                    if isinstance(builtins, dict) else
+                    getattr(builtins, '__dict__', {})
+                ).keys()
+            )
 
         return get_closest(symbols, name)
 
@@ -37,7 +46,11 @@ class PysSymbolTable(Pys):
 
             builtins = self.symbols.get('__builtins__', undefined)
             if builtins is not undefined:
-                return (builtins if isinstance(builtins, dict) else builtins.__dict__).get(name, undefined)
+                return (
+                    builtins
+                    if isinstance(builtins, dict) else
+                    getattr(builtins, '__dict__', {})
+                ).get(name, undefined)
 
         return value
 
@@ -57,7 +70,7 @@ class PysSymbolTable(Pys):
                 return self.parent.set(name, value, operand)
             return False
 
-        self.symbols[name] = inplace_functions_map[operand](self.symbols[name], value)
+        self.symbols[name] = BINARY_FUNCTIONS_MAP[operand](self.symbols[name], value)
         return True
 
     def remove(self, name):
@@ -81,9 +94,9 @@ def build_symbol_table(file, globals=None):
 
     if globals is None:
         symtab.set('__file__', file.name)
-        symtab.set('__name__', os.path.basename(file.name))
+        symtab.set('__name__', basename(file.name))
     else:
-        symtab.symbols = globals
+        setimuattr(symtab, 'symbols', globals)
 
     if symtab.get('__builtins__') is undefined:
         from .pysbuiltins import pys_builtins

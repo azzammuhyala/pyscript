@@ -1,7 +1,7 @@
 from .bases import Pys
 
 class PysResult(Pys):
-    pass
+    __slots__ = ()
 
 class PysParserResult(PysResult):
 

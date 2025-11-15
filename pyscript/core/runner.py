@@ -1,6 +1,7 @@
 from .analyzer import PysAnalyzer
 from .buffer import PysFileBuffer
-from .constants import DEFAULT, SILENT, RETRES, COMMENT
+from .cache import undefined, hook, PysUndefined
+from .constants import DEFAULT, SILENT, RETRES, COMMENT, NO_COLOR, BOLD
 from .context import PysContext
 from .exceptions import PysException
 from .handlers import handle_exception, handle_execute
@@ -10,21 +11,36 @@ from .parser import PysParser
 from .position import PysPosition
 from .results import PysRunTimeResult, PysExecuteResult
 from .symtab import PysSymbolTable, build_symbol_table
-from .utils import is_object_of, get_locals, print_display
+from .utils.debug import print_display
+from .utils.decorators import typechecked, _TYPECHECKED
+from .utils.general import setimuattr, acolor, get_locals, is_object_of
 from .version import version
 
-from . import cache
+from sys import stderr, version as pyversion
+from typing import Any, Literal, Optional
 
-import sys
+def _normalize_globals(file, globals, stack_level):
+    stack_level += 1
 
+    if globals is None:
+        globals = build_symbol_table(file, get_locals(stack_level + 1 if _TYPECHECKED else stack_level))
+    elif globals is undefined:
+        globals = build_symbol_table(file)
+        globals.set('__name__', '__main__')
+    elif isinstance(globals, dict):
+        globals = build_symbol_table(file, globals)
+
+    return globals
+
+@typechecked
 def pys_runner(
-    file,
-    mode,
-    symbol_table,
-    flags=None,
-    context_parent=None,
-    context_parent_entry_position=None
-):
+    file: PysFileBuffer,
+    mode: Literal['exec', 'eval'],
+    symbol_table: PysSymbolTable,
+    flags: Optional[int] = None,
+    context_parent: Optional[PysContext] = None,
+    context_parent_entry_position: Optional[PysPosition] = None
+) -> PysExecuteResult:
 
     context = PysContext(
         file=file,
@@ -55,7 +71,6 @@ def pys_runner(
                 return result.failure(error)
 
             parser = PysParser(
-                file=file,
                 tokens=tokens,
                 flags=context.flags,
                 context_parent=context_parent,
@@ -67,13 +82,13 @@ def pys_runner(
                 return result.failure(ast.error)
 
             analyzer = PysAnalyzer(
-                file=file,
+                node=ast.node,
                 flags=parser.flags,
                 context_parent=context_parent,
                 context_parent_entry_position=context_parent_entry_position
             )
 
-            error = analyzer.analyze(ast.node)
+            error = analyzer.analyze()
             if error:
                 return result.failure(error)
 
@@ -86,7 +101,7 @@ def pys_runner(
                 )
             )
 
-        context.flags = parser.flags
+        setimuattr(context, 'flags', parser.flags)
 
         runtime_result = visit(ast.node, context)
 
@@ -99,7 +114,13 @@ def pys_runner(
     if runtime_runner_result.error:
         return result.failure(runtime_runner_result.error)
 
-def pys_exec(source, globals=None, flags=DEFAULT):
+@typechecked
+def pys_exec(
+    source,
+    globals: Optional[dict[str, Any] | PysSymbolTable | PysUndefined] = None,
+    flags: int = DEFAULT
+) -> None | PysExecuteResult:
+
     """
     Execute a PyScript code from source given.
 
@@ -108,27 +129,18 @@ def pys_exec(source, globals=None, flags=DEFAULT):
     source: A valid PyScript source code.
 
     globals: A namespace dictionary or symbol table that can be accessed. \
-             If it is None, it uses the current global namespace at the Python level.
+             If it is None, it uses the current global namespace at the Python level. \
+             If it is undefined, it creates a new default PyScript namespace.
 
     flags: A special flags.
     """
 
     file = PysFileBuffer(source)
 
-    if globals is None:
-        globals = build_symbol_table(file, get_locals(2))
-    elif isinstance(globals, dict):
-        globals = build_symbol_table(file, globals)
-    elif not isinstance(globals, PysSymbolTable):
-        raise TypeError("pys_exec(): globals must be dict or pyscript.core.symtab.PysSymbolTable")
-
-    if not isinstance(flags, int):
-        raise TypeError("pys_exec(): flags must be integer")
-
     result = pys_runner(
         file=file,
         mode='exec',
-        symbol_table=globals,
+        symbol_table=_normalize_globals(file, globals, 2),
         flags=flags
     )
 
@@ -138,7 +150,13 @@ def pys_exec(source, globals=None, flags=DEFAULT):
     elif result.error and not (flags & SILENT):
         raise result.error.exception
 
-def pys_eval(source, globals=None, flags=DEFAULT):
+@typechecked
+def pys_eval(
+    source,
+    globals: Optional[dict[str, Any] | PysSymbolTable | PysUndefined] = None,
+    flags: int = DEFAULT
+) -> Any | PysExecuteResult:
+
     """
     Evaluate a PyScript code from source given.
 
@@ -147,27 +165,18 @@ def pys_eval(source, globals=None, flags=DEFAULT):
     source: A valid PyScript (Expression) source code.
 
     globals: A namespace dictionary or symbol table that can be accessed. \
-            If it is None, it uses the current global namespace at the Python level.
+             If it is None, it uses the current global namespace at the Python level. \
+             If it is undefined, it creates a new default PyScript namespace.
 
     flags: A special flags.
     """
 
     file = PysFileBuffer(source)
 
-    if globals is None:
-        globals = build_symbol_table(file, get_locals(2))
-    elif isinstance(globals, dict):
-        globals = build_symbol_table(file, globals)
-    elif not isinstance(globals, PysSymbolTable):
-        raise TypeError("pys_eval(): globals must be dict or pyscript.core.symtab.PysSymbolTable")
-
-    if not isinstance(flags, int):
-        raise TypeError("pys_eval(): flags must be integer")
-
     result = pys_runner(
         file=file,
         mode='eval',
-        symbol_table=globals,
+        symbol_table=_normalize_globals(file, globals, 2),
         flags=flags
     )
 
@@ -179,20 +188,36 @@ def pys_eval(source, globals=None, flags=DEFAULT):
 
     return result.value
 
-def pys_shell(symbol_table=None, flags=DEFAULT):
+@typechecked
+def pys_shell(
+    globals: Optional[dict[str, Any] | PysSymbolTable | PysUndefined] = None,
+    flags: int = DEFAULT
+) -> int | Any:
+
     """
     Start an interactive PyScript shell.
+
+    Parameters
+    ----------
+    globals: A namespace dictionary or symbol table that can be accessed. \
+             If it is None, it uses the current global namespace at the Python level. \
+             If it is undefined, it creates a new default PyScript namespace.
+
+    flags: A special flags.
     """
 
-    print('PyScript {}'.format(version))
-    print('Python {}'.format(sys.version))
-    print('Type "license" for more information.')
+    file = PysFileBuffer('', '<pyscript-shell>')
 
-    if symbol_table is None:
-        symbol_table = build_symbol_table(PysFileBuffer('', '<pyscript-shell>'))
-        symbol_table.set('__name__', '__main__')
+    globals = _normalize_globals(file, globals, 2)
 
-    cache.hook.display = print_display
+    hook.display = print_display
+
+    if flags & NO_COLOR:
+        reset = ''
+        bmagenta = ''
+    else:
+        reset = acolor('reset')
+        bmagenta = acolor('magenta', BOLD)
 
     line = 0
     parenthesis_level = 0
@@ -216,15 +241,19 @@ def pys_shell(symbol_table=None, flags=DEFAULT):
     def is_next_line():
         return parenthesis_level > 0 or in_decorator or is_triple_string or next_line
 
+    print(f'PyScript {version}')
+    print(f'Python {pyversion}')
+    print('Type "license" for more information.')
+
     while True:
 
         try:
 
             if is_next_line():
-                text = input(cache.hook.ps2)
+                text = input(hook.ps2)
 
             else:
-                text = input(cache.hook.ps1)
+                text = input(hook.ps1)
                 if text == '/exit':
                     return 0
 
@@ -276,6 +305,8 @@ def pys_shell(symbol_table=None, flags=DEFAULT):
 
                     elif is_space and character == '@':
                         in_decorator = True
+                        i += 1
+                        continue
 
                     elif character in '([{':
                         parenthesis_level += 1
@@ -288,35 +319,37 @@ def pys_shell(symbol_table=None, flags=DEFAULT):
 
                 i += 1
 
+            if in_decorator and is_space:
+                in_decorator = False
+
             if in_string and not (next_line or is_triple_string):
                 in_string = False
                 parenthesis_level = 0
 
             if is_next_line():
                 full_text += text + '\n'
+                continue
 
-            else:
-                result = pys_runner(
-                    file=PysFileBuffer(full_text + text, '<pyscript-shell-{}>'.format(line)),
-                    mode='exec',
-                    symbol_table=symbol_table,
-                    flags=flags
-                )
+            result = pys_runner(
+                file=PysFileBuffer(full_text + text, f'<pyscript-shell-{line}>'),
+                mode='exec',
+                symbol_table=globals,
+                flags=flags
+            )
 
-                flags = result.context.flags
+            if result.error and is_object_of(result.error.exception, SystemExit):
+                return result.error.exception.code
 
-                reset_next_line()
+            flags = result.context.flags
+            code = handle_execute(result)
+            if code == 0:
+                line += 1
 
-                if result.error and is_object_of(result.error.exception, SystemExit):
-                    return result.error.exception.code
-
-                code = handle_execute(result)
-                if code == 0:
-                    line += 1
+            reset_next_line()
 
         except KeyboardInterrupt:
             reset_next_line()
-            print('\rKeyboardInterrupt. Type "exit" or "/exit" to exit.', file=sys.stderr)
+            print(f'\r{bmagenta}KeyboardInterrupt. Type "exit" or "/exit" to exit.{reset}', file=stderr)
 
         except EOFError:
             return 0

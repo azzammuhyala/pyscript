@@ -54,7 +54,7 @@ class MineSweeper {
 
     # create empty dug, flags and board
     func makeNewEmptyBoard(self) {
-        [w, h] = self.cellSize
+        w, h = self.cellSize
 
         self.dug = set()
         self.flags = set()
@@ -73,15 +73,15 @@ class MineSweeper {
 
     # create a new board (the makeNewEmptyBoard function should have been called)
     func makeNewBoard(self, position) {
-        [w, h] = self.cellSize
-        [col, row] = position
+        w, h = self.cellSize
+        col, row = position
 
         # STEP 1: position the bomb
 
         # the starting position of the player should be chosen as the section where there should be no bombs to avoid
         # losing at the start of the game
-        [illegalXMin, illegalYMin] = (max(0, col - 1), max(0, row - 1))
-        [illegalXMax, illegalYMax] = (min(w, col + 2), min(h, row + 2))
+        illegalXMin, illegalYMin = max(0, col - 1), max(0, row - 1)
+        illegalXMax, illegalYMax = min(w, col + 2), min(h, row + 2)
 
         # place bombs randomly on the board
         bombsPlanted = 0
@@ -131,8 +131,8 @@ class MineSweeper {
 
     # dig a cell and determine whether chooses a cell containing a bomb or not
     func dig(self, position, recursive=false) {
-        [w, h] = self.cellSize
-        [col, row] = position
+        w, h = self.cellSize
+        col, row = position
 
         # if the cell is marked with a flag then it is safe without doing anything
         if (position in self.flags)
@@ -145,34 +145,35 @@ class MineSweeper {
             return false
 
         # chording mechanism
-        if recursive
-            chording = false
+        chording = false
 
-        else {
-            # marked with a flag
-            if (position in self.flags)
-                chording = false
-            # cell have not been dug
-            elif (position not in self.dug)
-                chording = false
-            # cell value is not between 1 to 7 (8 is not included because all 3x3 cells are bombs)
-            elif (not (0 < cell < 8))
-                chording = false
+        if (
+            not (
+                # not for recursive
+                recursive or
 
-            else {
-                # count the number of flags in a 3x3 area
-                count = 0
+                # marked with a flag
+                position in self.flags or
 
-                for (r of range(max(0, row - 1), min(h, row + 2))) {
-                    for (c of range(max(0, col - 1), min(w, col + 2))) {
-                        if ((c, r) in self.flags)
-                            count++
-                    }
+                # cell have not been dug
+                position not in self.dug
+            ) and
+
+            # cell value is must be between 1 to 7 (8 is not included because all neighbor cells are bombs)
+            0 < cell < 8
+        ) {
+            # count the number of flags in a 3x3 area
+            count = 0
+
+            for (r of range(max(0, row - 1), min(h, row + 2))) {
+                for (c of range(max(0, col - 1), min(w, col + 2))) {
+                    if ((c, r) in self.flags)
+                        count++
                 }
-
-                # If the cell marked with the flag has the same number as this cell value, then chording is active
-                chording = cell == count
             }
+
+            # if the cell marked with the flag has the same number as this cell value, then chording is active
+            chording = cell == count
         }
 
         # save dig position
@@ -205,12 +206,13 @@ class MineSweeper {
 
     # set the flag position (toggle)
     func setFlag(self, position) {
-        [col, row] = position
+        col, row = position
 
         # if the position has been dug
         if (position in self.dug)
             return;
 
+        # toggle flag
         if (position in self.flags)
             self.flags.remove(position)
         else
@@ -219,9 +221,16 @@ class MineSweeper {
 
     # displays the board
     func showBoard(self, showAll=false) {
-        [w, h] = self.cellSize
+        w, h = self.cellSize
 
-        columnNumber = '    {} '.format(' '.join(map(func (x) return format(x, '^3'), range(1, w + 1))))
+        columnNumber = '    {} '.format(
+            ' '.join(
+                map(
+                    func (x) {return format(x, '^3')},
+                    range(1, w + 1)
+                )
+            )
+        )
 
         buffer = '\x1b[H'
         buffer += '{}Flags\x1b[0m: {} \n'.format(
@@ -276,6 +285,10 @@ class MineSweeper {
                 continue
             }
 
+            elif (result == 'e') {
+                sys.exit(0)
+            }
+
             position = result.split()
             setFlag = false
 
@@ -298,21 +311,19 @@ class MineSweeper {
             }
 
             try {
-                position = tuple(map(func (x) return int(x) - 1, position))
+                position = tuple(map(func (x) {return int(x) - 1}, position))
             }
 
-            catch (e) {
-                if isobjectof(e, BaseException)
-                    throw e
+            catch {
                 print('Invalid position')
             }
 
             else {
-                [w, h] = self.cellSize
-                [col, row] = position
+                w, h = self.cellSize
+                col, row = position
 
                 if (0 <= col < w and 0 <= row < h)
-                    return (position, setFlag)
+                    return position, setFlag
 
                 print('Invalid position')
             }
@@ -330,7 +341,7 @@ class MineSweeper {
         self.showBoard()
 
         # get first position
-        [position, setFlag] = self.getPositionByUser()
+        position, setFlag = self.getPositionByUser()
 
         # make board and dig out
         self.makeNewBoard(position)
@@ -342,7 +353,7 @@ class MineSweeper {
             self.showBoard()
 
             # get a position
-            [position, setFlag] = self.getPositionByUser()
+            position, setFlag = self.getPositionByUser()
 
             if setFlag
                 # if setting the flag
@@ -367,5 +378,6 @@ class MineSweeper {
 func play(cellSize=CELL_SIZE, bombsCount=BOMBS_COUNT)
     MineSweeper(cellSize, bombsCount).main()
 
+# run the game
 if (__name__ == '__main__')
     play()

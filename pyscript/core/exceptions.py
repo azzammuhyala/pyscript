@@ -1,37 +1,50 @@
 from .bases import Pys
-from .utils import space_indent
+from .constants import NO_COLOR, BOLD
+from .utils.decorators import immutable
+from .utils.general import setimuattr, space_indent, acolor
 
+@immutable
 class PysException(Pys):
 
-    __slots__ = ('exception', 'context', 'position', 'other_exception')
+    __slots__ = ('exception', 'context', 'position', 'other')
 
-    def __init__(self, exception, context, position, other_exception=None):
-        self.exception = exception
-        self.context = context
-        self.position = position
-        self.other_exception = other_exception
-
-    def __str__(self):
-        return str(self.exception)
+    def __init__(self, exception, context, position, other=None):
+        setimuattr(self, 'exception', exception)
+        setimuattr(self, 'context', context)
+        setimuattr(self, 'position', position)
+        setimuattr(self, 'other', other)
 
     def __repr__(self):
-        return '<Exception of {!r}>'.format(self.exception)
+        return f'<Exception of {self.exception!r}>'
 
     def string_traceback(self):
         context = self.context
         position = self.position
 
+        no_colored = context.flags & NO_COLOR
+        colored = not no_colored
+
+        if no_colored:
+            reset = ''
+            magenta = ''
+            bmagenta = ''
+        else:
+            reset = acolor('reset')
+            magenta = acolor('magenta')
+            bmagenta = acolor('magenta', BOLD)
+
         frames = []
 
         while context:
-            is_positionless = position.is_positionless()
+            is_positionless = position.is_positionless
+            context_name = context.name
 
             frames.append(
-                '  File "{}"{}{}{}'.format(
-                    position.file.name,
-                    '' if is_positionless else ', line {}'.format(position.start_line),
-                    '' if context.name is None else ', in {}'.format(context.name),
-                    '' if is_positionless else '\n{}'.format(space_indent(position.format_arrow(), 4))
+                f'  File {magenta}"{position.file.name}"{reset}'
+                '{}{}{}'.format(
+                    '' if is_positionless else f', line {magenta}{position.start_line}{reset}',
+                    '' if context_name is None else f', in {magenta}{context_name}{reset}',
+                    '' if is_positionless else f'\n{space_indent(position.format_arrow(colored), 4)}'
                 )
             )
 
@@ -48,31 +61,37 @@ class PysException(Pys):
 
             else:
                 if found_duplicated_frame > 0:
-                    strings_traceback += '  [Previous line repeated {} more times]\n'.format(found_duplicated_frame)
+                    strings_traceback += f'  [Previous line repeated {found_duplicated_frame} more times]\n'
                     found_duplicated_frame = 0
 
                 strings_traceback += frame + '\n'
                 last_frame = frame
 
         if found_duplicated_frame > 0:
-            strings_traceback += '  [Previous line repeated {} more times]\n'.format(found_duplicated_frame)
+            strings_traceback += f'  [Previous line repeated {found_duplicated_frame} more times]\n'
 
-        result = 'Traceback (most recent call last):\n' + strings_traceback
+        result = f'Traceback (most recent call last):\n{strings_traceback}'
 
         if isinstance(self.exception, type):
-            result += self.exception.__name__
+            result += f'{bmagenta}{self.exception.__name__}{reset}'
         else:
             message = str(self.exception)
-            result += type(self.exception).__name__ + (': ' + message if message else '')
+            result += (
+                f'{bmagenta}{type(self.exception).__name__}{reset}' +
+                (f': {magenta}{message}{reset}' if message else '')
+            )
 
         return (
-            '{}\n\nDuring handling of the above exception, another exception occurred:\n\n{}'
-            .format(self.other_exception.string_traceback(), result)
-            if self.other_exception else
+            f'{self.other.string_traceback()}\n\n'
+            'During handling of the above exception, another exception occurred'
+            f':\n\n{result}'
+            if self.other else
             result
         )
 
 class PysShouldReturn(Pys, BaseException):
+
+    __slots__ = ('result',)
 
     def __init__(self, result):
         super().__init__()
@@ -88,4 +107,4 @@ class PysShouldReturn(Pys, BaseException):
             return exception.__name__
 
         message = str(exception)
-        return type(exception).__name__ + (': ' + message if message else '')
+        return type(exception).__name__ + (f': {message}' if message else '')

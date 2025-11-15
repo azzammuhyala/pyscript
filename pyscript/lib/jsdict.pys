@@ -5,19 +5,12 @@ undefined = none
 class UndefinedType {
 
     func __new__(cls) {
-        if not isinstance(undefined, UndefinedType) {
+        if (type(undefined) is not UndefinedType) {
             global undefined
             undefined = super(UndefinedType, UndefinedType).__new__(cls)
         }
-
         return undefined
     }
-
-    func __copy__(self)
-        return self
-
-    func __deepcopy__(self, memo)
-        return self
 
     func __repr__(self)
         return 'undefined'
@@ -55,7 +48,6 @@ class jsdict(dict) {
     func __delattr__(self, name) {
         if (_SILENT and name not in self)
             return;
-
         del self[name]
     }
 

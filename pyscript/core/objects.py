@@ -1,9 +1,15 @@
 from .bases import Pys
+from .cache import undefined
+from .context import PysContext, PysClassContext
+from .exceptions import PysException, PysShouldReturn
+from .results import PysRunTimeResult
+from .symtab import PysSymbolTable
+from .utils.general import join_with_conjunction, get_closest
 
 from types import MethodType
 
 class PysObject(Pys):
-    pass
+    __slots__ = ()
 
 class PysCode(PysObject):
 
@@ -20,22 +26,19 @@ class PysModule(PysObject):
         return list(self.__dict__.keys())
 
     def __repr__(self):
-        from .singletons import undefined
-
         file = self.__dict__.get('__file__', undefined)
-
         return '<module {!r}{}>'.format(
             self.__name__,
-            '' if file is undefined else ' from {!r}'.format(file)
+            '' if file is undefined else f' from {file!r}'
         )
 
     def __getattr__(self, name):
-        raise AttributeError('module {!r} has no attribute {!r}'.format(self.__name__, name))
+        raise AttributeError(f'module {self.__name__!r} has no attribute {name!r}')
 
     def __delattr__(self, name):
         if name in self.__dict__:
             return super().__delattr__(name)
-        raise AttributeError('module {!r} has no attribute {!r}'.format(self.__name__, name))
+        raise AttributeError(f'module {self.__name__!r} has no attribute {name!r}')
 
 class PysPythonFunction(PysObject):
 
@@ -48,12 +51,11 @@ class PysPythonFunction(PysObject):
         self.__code__ = PysCode(
             position=None,
             context=None,
-
             handle_call=handle_call
         )
 
     def __repr__(self):
-        return '<python function {}>'.format(self.__name__)
+        return f'<python function {self.__name__}>'
 
     def __get__(self, instance, owner):
         return self if instance is None else MethodType(self, instance)
@@ -68,12 +70,7 @@ class PysPythonFunction(PysObject):
 class PysFunction(PysObject):
 
     def __init__(self, name, qualname, parameters, body, position, context):
-        from .context import PysContext, PysClassContext
-        from .exceptions import PysException, PysShouldReturn
         from .interpreter import visit
-        from .results import PysRunTimeResult
-        from .symtab import PysSymbolTable
-        from .utils import join_with_conjunction, get_closest
 
         context = context.parent if isinstance(context, PysClassContext) else context
 
@@ -84,16 +81,7 @@ class PysFunction(PysObject):
             body=body,
             position=position,
             context=context,
-
-            PysContext=PysContext,
-            PysException=PysException,
-            PysShouldReturn=PysShouldReturn,
             visit=visit,
-            PysRunTimeResult=PysRunTimeResult,
-            PysSymbolTable=PysSymbolTable,
-            join_with_conjunction=join_with_conjunction,
-            get_closest=get_closest,
-
             call_context=context,
             argument_names=tuple(item for item in parameters if not isinstance(item, tuple)),
             keyword_argument_names=tuple(item[0] for item in parameters if isinstance(item, tuple)),
@@ -102,7 +90,7 @@ class PysFunction(PysObject):
         )
 
     def __repr__(self):
-        return '<function {} at 0x{:016X}>'.format(self.__qualname__, id(self))
+        return f'<function {self.__qualname__} at 0x{id(self):016X}>'
 
     def __get__(self, instance, owner):
         return self if instance is None else MethodType(self, instance)
@@ -117,10 +105,8 @@ class PysFunction(PysObject):
         total_arguments = len(args)
         total_parameters = len(code.parameters)
 
-        result = code.PysRunTimeResult()
-
-        symbol_table = code.PysSymbolTable(code_context.symbol_table)
-
+        result = PysRunTimeResult()
+        symbol_table = PysSymbolTable(code_context.symbol_table)
         registered_arguments = set()
 
         add_argument = registered_arguments.add
@@ -131,7 +117,6 @@ class PysFunction(PysObject):
             add_argument(name)
 
         combined_keyword_arguments = code.keyword_arguments | kwargs
-
         pop_keyword_arguments = combined_keyword_arguments.pop
 
         for name, arg in zip(code.keyword_argument_names, args[len(registered_arguments):]):
@@ -142,10 +127,10 @@ class PysFunction(PysObject):
         for name, value in combined_keyword_arguments.items():
 
             if name in registered_arguments:
-                raise code.PysShouldReturn(
+                raise PysShouldReturn(
                     result.failure(
-                        code.PysException(
-                            TypeError("{}() got multiple values for argument {!r}".format(qualname, name)),
+                        PysException(
+                            TypeError(f"{qualname}() got multiple values for argument {name!r}"),
                             code_call_context,
                             code_position
                         )
@@ -153,16 +138,18 @@ class PysFunction(PysObject):
                 )
 
             elif name not in code_parameter_names:
-                closest_argument = code.get_closest(code_parameter_names, name)
+                closest_argument = get_closest(code_parameter_names, name)
 
-                raise code.PysShouldReturn(
+                raise PysShouldReturn(
                     result.failure(
-                        code.PysException(
+                        PysException(
                             TypeError(
                                 "{}() got an unexpected keyword argument {!r}{}".format(
                                     qualname,
                                     name,
-                                    '' if closest_argument is None else ". Did you mean {!r}?".format(closest_argument)
+                                    ''
+                                    if closest_argument is None else
+                                    f". Did you mean {closest_argument!r}?"
                                 )
                             ),
                             code_call_context,
@@ -180,15 +167,19 @@ class PysFunction(PysObject):
             missing_arguments = [name for name in code_parameter_names if name not in registered_arguments]
             total_missing = len(missing_arguments)
 
-            raise code.PysShouldReturn(
+            raise PysShouldReturn(
                 result.failure(
-                    code.PysException(
+                    PysException(
                         TypeError(
                             "{}() missing {} required positional argument{}: {}".format(
                                 qualname,
                                 total_missing,
                                 '' if total_missing == 1 else 's',
-                                code.join_with_conjunction(missing_arguments, func=repr, conjunction='and')
+                                join_with_conjunction(
+                                    missing_arguments,
+                                    func=repr,
+                                    conjunction='and'
+                                )
                             )
                         ),
                         code_call_context,
@@ -200,11 +191,11 @@ class PysFunction(PysObject):
         elif total_registered > total_parameters or total_arguments > total_parameters:
             given_arguments = total_arguments if total_arguments > total_parameters else total_registered
 
-            raise code.PysShouldReturn(
+            raise PysShouldReturn(
                 result.failure(
-                    code.PysException(
+                    PysException(
                         TypeError(
-                            "{}() takes no arguments ({} given)".format(qualname, given_arguments)
+                            f"{qualname}() takes no arguments ({given_arguments} given)"
                             if total_parameters == 0 else
                             "{}() takes {} positional argument{} but {} were given".format(
                                 qualname,
@@ -222,7 +213,7 @@ class PysFunction(PysObject):
         result.register(
             code.visit(
                 code.body,
-                code.PysContext(
+                PysContext(
                     file=code_context.file,
                     name=self.__name__,
                     qualname=qualname,
@@ -234,7 +225,7 @@ class PysFunction(PysObject):
         )
 
         if result.should_return() and not result.func_should_return:
-            raise code.PysShouldReturn(result)
+            raise PysShouldReturn(result)
 
         return_value = result.func_return_value
 
