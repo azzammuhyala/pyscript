@@ -93,6 +93,17 @@ def visit_SequenceNode(node, context):
                 if should_return():
                     return result
 
+            elif isinstance(element, PysAttributeNode):
+                target = register(visit(element.target, context))
+                if should_return():
+                    return result
+
+                with handle_exception(result, context, element.position):
+                    delattr(target, element.attribute.value)
+
+                if should_return():
+                    return result
+
             elif isinstance(element, PysSubscriptNode):
                 target = register(visit(element.target, context))
                 if should_return():
@@ -104,17 +115,6 @@ def visit_SequenceNode(node, context):
 
                 with handle_exception(result, context, element.position):
                     del target[slice]
-
-                if should_return():
-                    return result
-
-            elif isinstance(element, PysAttributeNode):
-                target = register(visit(element.target, context))
-                if should_return():
-                    return result
-
-                with handle_exception(result, context, element.position):
-                    delattr(target, element.attribute.value)
 
                 if should_return():
                     return result
@@ -246,22 +246,6 @@ def visit_SubscriptNode(node, context):
 
     if should_return():
         return result
-
-def visit_AssignNode(node, context):
-    result = PysRunTimeResult()
-
-    register = result.register
-    should_return = result.should_return
-
-    value = register(visit(node.value, context))
-    if should_return():
-        return result
-
-    register(visit_declaration_AssignNode(node.target, context, value, node.operand.type))
-    if should_return():
-        return result
-
-    return result.success(value)
 
 def visit_ChainOperatorNode(node, context):
     result = PysRunTimeResult()
@@ -402,6 +386,22 @@ def visit_UnaryOperatorNode(node, context):
 
     if should_return():
         return result
+
+def visit_AssignNode(node, context):
+    result = PysRunTimeResult()
+
+    register = result.register
+    should_return = result.should_return
+
+    value = register(visit(node.value, context))
+    if should_return():
+        return result
+
+    register(visit_declaration_AssignNode(node.target, context, value, node.operand.type))
+    if should_return():
+        return result
+
+    return result.success(value)
 
 def visit_ImportNode(node, context):
     result = PysRunTimeResult()
@@ -1140,7 +1140,77 @@ def visit_declaration_AssignNode(node, context, value, operand=TOKENS['EQ']):
     register = result.register
     should_return = result.should_return
 
-    if isinstance(node, PysSequenceNode):
+    if isinstance(node, PysIdentifierNode):
+        symbol_table = context.symbol_table
+        name = node.token.value
+
+        with handle_exception(result, context, node.position):
+
+            if not symbol_table.set(name, value, operand):
+                closest_symbol = get_closest(symbol_table.symbols.keys(), name)
+
+                result.failure(
+                    PysException(
+                        NameError(
+                            (
+                                f"{name!r} is not defined"
+                                if symbol_table.get(name) is undefined else
+                                f"{name!r} is not defined on local"
+                            )
+                            +
+                            (
+                                ''
+                                if closest_symbol is None else
+                                f". Did you mean {closest_symbol!r}?"
+                            )
+                        ),
+                        context,
+                        node.position
+                    )
+                )
+
+        if should_return():
+            return result
+
+    elif isinstance(node, PysAttributeNode):
+        target = register(visit(node.target, context))
+        if should_return():
+            return result
+
+        attribute = node.attribute.value
+
+        with handle_exception(result, context, node.position):
+            setattr(
+                target,
+                attribute,
+                value
+                if operand == TOKENS['EQ'] else
+                BINARY_FUNCTIONS_MAP[operand](getattr(target, attribute), value)
+            )
+
+        if should_return():
+            return result
+
+    elif isinstance(node, PysSubscriptNode):
+        target = register(visit(node.target, context))
+        if should_return():
+            return result
+
+        slice = register(visit_slice_SubscriptNode(node.slice, context))
+        if should_return():
+            return result
+
+        with handle_exception(result, context, node.position):
+            target[slice] = (
+                value
+                if operand == TOKENS['EQ'] else
+                BINARY_FUNCTIONS_MAP[operand](target[slice], value)
+            )
+
+        if should_return():
+            return result
+
+    elif isinstance(node, PysSequenceNode):
         position = node.position
 
         if not isinstance(value, Iterable):
@@ -1186,76 +1256,6 @@ def visit_declaration_AssignNode(node, context, value, operand=TOKENS['EQ']):
                     node.position
                 )
             )
-
-    elif isinstance(node, PysSubscriptNode):
-        target = register(visit(node.target, context))
-        if should_return():
-            return result
-
-        slice = register(visit_slice_SubscriptNode(node.slice, context))
-        if should_return():
-            return result
-
-        with handle_exception(result, context, node.position):
-            target[slice] = (
-                value
-                if operand == TOKENS['EQ'] else
-                BINARY_FUNCTIONS_MAP[operand](target[slice], value)
-            )
-
-        if should_return():
-            return result
-
-    elif isinstance(node, PysAttributeNode):
-        target = register(visit(node.target, context))
-        if should_return():
-            return result
-
-        attribute = node.attribute.value
-
-        with handle_exception(result, context, node.position):
-            setattr(
-                target,
-                attribute,
-                value
-                if operand == TOKENS['EQ'] else
-                BINARY_FUNCTIONS_MAP[operand](getattr(target, attribute), value)
-            )
-
-        if should_return():
-            return result
-
-    elif isinstance(node, PysIdentifierNode):
-        symbol_table = context.symbol_table
-        name = node.token.value
-
-        with handle_exception(result, context, node.position):
-
-            if not symbol_table.set(name, value, operand):
-                closest_symbol = get_closest(symbol_table.symbols.keys(), name)
-
-                result.failure(
-                    PysException(
-                        NameError(
-                            (
-                                f"{name!r} is not defined"
-                                if symbol_table.get(name) is undefined else
-                                f"{name!r} is not defined on local"
-                            )
-                            +
-                            (
-                                ''
-                                if closest_symbol is None else
-                                f". Did you mean {closest_symbol!r}?"
-                            )
-                        ),
-                        context,
-                        node.position
-                    )
-                )
-
-        if should_return():
-            return result
 
     return result.success(None)
 

@@ -49,8 +49,10 @@ class PysPosition(Pys):
             end = len(text)
 
         if text[self.start:self.end] in {'', '\n'}:
-            line = text[start:end].lstrip().replace('\t', ' ')
-            return f'{line}\n{bred}{" " * len(line)}^{reset}'
+            if self.start > start:
+                line = text[start:end].lstrip().replace('\t', ' ')
+                return f'{line}\n{bred}{" " * len(line)}^{reset}'
+            return f'\n{bred}^{reset}'
 
         result = []
         lines = []
@@ -73,14 +75,14 @@ class PysPosition(Pys):
             if end == -1:
                 end = len(text)
 
-        removed_indent = min(len(line) - line_code_length for line, line_code_length, _, _ in lines)
+        minimum_indent = min(len(line) - line_code_length for line, line_code_length, _, _ in lines)
 
         for i, (line, line_code_length, start, end) in enumerate(lines):
-            line = line[removed_indent:]
-            er = end - removed_indent
+            line = line[minimum_indent:]
+            er = end - minimum_indent
 
             if i == 0:
-                sr = start - removed_indent
+                sr = start - minimum_indent
 
                 arrow = '^' * (end - start)
                 line = f'{line[:sr]}{bred}{line[sr:er]}{reset}{line[er:]}\n{" " * sr}{bred}{arrow}{reset}'
@@ -88,7 +90,7 @@ class PysPosition(Pys):
             else:
                 indent = len(line) - line_code_length
 
-                arrow = '^' * (end - start - (removed_indent + indent))
+                arrow = '^' * (end - start - (minimum_indent + indent))
                 line = f'{line[:indent]}{bred}{line[indent:er]}{reset}{line[er:]}\n{" " * indent}{bred}{arrow}{reset}'
 
             if arrow:

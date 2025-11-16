@@ -58,17 +58,17 @@ class PysAnalyzer(Pys):
 
             for element in node.elements:
 
-                if isinstance(element, PysSubscriptNode):
+                if isinstance(element, PysAttributeNode):
+                    self.visit(element.target)
+                    if self.error:
+                        return
+
+                elif isinstance(element, PysSubscriptNode):
                     self.visit(element.target)
                     if self.error:
                         return
 
                     self.visit_slice_SubscriptNode(element.slice)
-                    if self.error:
-                        return
-
-                elif isinstance(element, PysAttributeNode):
-                    self.visit(element.target)
                     if self.error:
                         return
 
@@ -441,11 +441,8 @@ class PysAnalyzer(Pys):
             self.visit(nslice)
 
     def visit_declaration_AssignNode(self, node, message):
-        if isinstance(node, PysSequenceNode):
-            for element in node.elements:
-                self.visit_declaration_AssignNode(element, message)
-                if self.error:
-                    return
+        if isinstance(node, PysAttributeNode):
+            self.visit(node.target)
 
         elif isinstance(node, PysSubscriptNode):
             self.visit(node.target)
@@ -454,8 +451,11 @@ class PysAnalyzer(Pys):
 
             self.visit_slice_SubscriptNode(node.slice)
 
-        elif isinstance(node, PysAttributeNode):
-            self.visit(node.target)
+        elif isinstance(node, PysSequenceNode):
+            for element in node.elements:
+                self.visit_declaration_AssignNode(element, message)
+                if self.error:
+                    return
 
         elif isinstance(node, PysKeywordNode):
             self.throw(f"cannot assign to {node.token.value}", node.position)

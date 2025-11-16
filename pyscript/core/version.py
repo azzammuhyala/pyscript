@@ -1,8 +1,8 @@
 from .bases import Pys
 from .utils.decorators import immutable, uninherited, singleton
 
-__version__ = '1.5.0'
-__date__ = '15 November 2025, 9:50 UTC+7'
+__version__ = '1.5.1'
+__date__ = '16 November 2025, 12:10 UTC+7'
 
 version = f'{__version__} ({__date__})'
 

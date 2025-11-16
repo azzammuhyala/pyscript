@@ -1,5 +1,10 @@
 # Change Log
 
-## [1.5.0] - 15-11-2025
+## [1.5.1] - 16-11-2025
 
-_I've forgotten what's changed and new in this version lol._
+### Fixed
+- Arrow line of traceback message.
+- Special message on builtins `help()`.
+- Assignment operation parsing problem.
+- Line conjunction problem in interactive shell.
+- `analyze()` fixes in `parser` module.

@@ -853,7 +853,7 @@ class PysParser(Pys):
     def assign_expr(self):
         result = PysParserResult()
 
-        variable = result.register(self.expr())
+        node = result.register(self.expr())
         if result.error:
             return result
 
@@ -892,13 +892,13 @@ class PysParser(Pys):
             self.advance()
             self.skip_expr(result)
 
-            value = result.register(self.expr(), True)
+            value = result.register(self.assign_expr(), True)
             if result.error:
                 return result
 
-            variable = PysAssignNode(variable, operand, value)
+            node = PysAssignNode(node, operand, value)
 
-        return result.success(variable)
+        return result.success(node)
 
     def from_expr(self):
         result = PysParserResult()

@@ -126,10 +126,11 @@ class Parser {
             ast = self.ast(mode=mode)
 
         analyzer = _pyscript.analyzer.PysAnalyzer(
+            node=ast,
             flags=self.flags
         )
 
-        error = analyzer.analyze(ast)
+        error = analyzer.analyze()
         if error
             throw error.exception
     }

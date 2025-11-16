@@ -94,7 +94,7 @@ if args.file is not None:
     path = normalize_path(args.file)
 
     try:
-        with open(path, 'r') as file:
+        with open(path, 'r', encoding='utf-8') as file:
             file = PysFileBuffer(file, path)
 
     except FileNotFoundError:

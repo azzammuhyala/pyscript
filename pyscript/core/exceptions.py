@@ -83,8 +83,8 @@ class PysException(Pys):
 
         return (
             f'{self.other.string_traceback()}\n\n'
-            'During handling of the above exception, another exception occurred'
-            f':\n\n{result}'
+            'During handling of the above exception, another exception occurred:'
+            f'\n\n{result}'
             if self.other else
             result
         )

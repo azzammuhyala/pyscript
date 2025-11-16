@@ -243,17 +243,17 @@ def pys_shell(
 
     print(f'PyScript {version}')
     print(f'Python {pyversion}')
-    print('Type "license" for more information.')
+    print('Type "help" or "license" for more information.')
 
     while True:
 
         try:
 
             if is_next_line():
-                text = input(hook.ps2)
+                text = input(f'{bmagenta}{hook.ps2}{reset}')
 
             else:
-                text = input(hook.ps1)
+                text = input(f'{bmagenta}{hook.ps1}{reset}')
                 if text == '/exit':
                     return 0
 
@@ -273,9 +273,6 @@ def pys_shell(
                     if character == '':
                         next_line = True
                         break
-
-                    if in_string and character in '\'"':
-                        i += 1
 
                 elif character in '\'"':
                     bind_3 = text[i:i+3]

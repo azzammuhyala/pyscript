@@ -58,6 +58,26 @@ class _Printer:
     def __call__(self):
         print(self.text)
 
+class _Helper(_Printer):
+
+    def __init__(self):
+        super().__init__('help', None)
+
+    def __repr__(self):
+        return f'Type {self.name}() for interactive help, or {self.name}(object) for help about object.'
+
+    def __call__(self, *args, **kwargs):
+        if not (args or kwargs):
+            print(
+                "Welcome to the PyScript programming language! "
+                "This is the help utility directly to the Python help.\n\n"
+                "To get help on a specific object, type 'help(object)'.\n"
+                "To get the list of built-in functions, types, exceptions, and other objects, "
+                "type 'help(\"builtins\")'."
+            )
+        else:
+            return builtins.help(*args, **kwargs)
+
 license = _Printer(
     'license',
 
@@ -65,6 +85,8 @@ license = _Printer(
     "This language was written as a project and learning how language is works.\n"
     "For more information see on https://github.com/azzammuhyala/pyscript."
 )
+
+help = _Helper()
 
 @PysPythonFunction
 def require(pyfunc, name):
@@ -112,7 +134,7 @@ def require(pyfunc, name):
 
         if package is None:
             try:
-                with open(path, 'r') as file:
+                with open(path, 'r', encoding='utf-8') as file:
                     file = PysFileBuffer(file.read(), path)
             except FileNotFoundError:
                 raise ModuleNotFoundError(f"No module named {module_name!r}")
@@ -306,6 +328,7 @@ pys_builtins.__dict__.update(
 
 pys_builtins.__file__ = __file__
 pys_builtins.license = license
+pys_builtins.help = help
 pys_builtins.pyimport = pyimport
 pys_builtins.require = require
 pys_builtins.globals = globals

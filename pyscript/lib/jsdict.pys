@@ -1,26 +1,8 @@
+import _pyscript
+
+undefined = _pyscript.cache.undefined
+
 _SILENT = false
-
-undefined = none
-
-class UndefinedType {
-
-    func __new__(cls) {
-        if (type(undefined) is not UndefinedType) {
-            global undefined
-            undefined = super(UndefinedType, UndefinedType).__new__(cls)
-        }
-        return undefined
-    }
-
-    func __repr__(self)
-        return 'undefined'
-
-    func __bool__(self)
-        return false
-
-}
-
-UndefinedType()
 
 func silent(boolean) {
     global _SILENT

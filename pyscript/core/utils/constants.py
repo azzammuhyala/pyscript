@@ -142,6 +142,7 @@ BLACKLIST_PYTHON_BUILTINS = {
     'dir',
     'eval',
     'exec',
+    'help',
     'globals',
     'license',
     'locals',
