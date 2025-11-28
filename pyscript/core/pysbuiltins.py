@@ -1,28 +1,23 @@
 from .buffer import PysFileBuffer
-from .cache import loading_modules, modules, library, undefined
-from .constants import LIBRARY_PATH
+from .cache import loading_modules, modules, path, undefined
+from .checks import is_blacklist_python_builtins
 from .exceptions import PysShouldReturn
 from .handlers import handle_call
 from .objects import PysModule, PysPythonFunction
 from .results import PysRunTimeResult
 from .symtab import build_symbol_table
-from .utils.constants import BLACKLIST_PYTHON_BUILTINS
-from .utils.general import (
-    tostr,
-    normalize_path,
+from .utils.generic import (
+    normstr,
+    get_package_name,
+    get_package,
+    set_python_path,
     is_object_of as isobjectof
 )
 
 from math import isclose
-from importlib import import_module as pyimport
+from importlib import import_module
 from os import getcwd
-from os.path import (
-    dirname as pdirname,
-    join as pjoin,
-    isdir as pisdir,
-    exists as pexists,
-    basename as pbasename
-)
+from os.path import dirname
 
 import builtins
 
@@ -90,82 +85,89 @@ help = _Helper()
 
 @PysPythonFunction
 def require(pyfunc, name):
-    name = tostr(name)
+    name, *other_components = normstr(name).split('>')
+    external = True
 
-    if name == '_pyscript':
-        from .. import core
-        return core
-
-    elif name == 'builtins':
-        return pys_builtins
-
-    normalize = True
-
-    if name in library:
-        path = pjoin(LIBRARY_PATH, name)
-        if not pisdir(path):
-            path += '.pys'
-        if pexists(path):
-            normalize = False
-
-    if normalize:
-        path = normalize_path(
-            pdirname(pyfunc.__code__.context.file.name) or getcwd(),
-            name,
-            absolute=False
+    for p in path:
+        path_package = get_package(p, name)
+        if path_package is not None:
+            break
+    else:
+        path_package = get_package(
+            dirname(pyfunc.__code__.context.file.name) or getcwd(), 
+            name
         )
 
-    module_name = pbasename(path)
+    if path_package is None:
 
-    if pisdir(path):
-        path = pjoin(path, '__init__.pys')
+        if name == '_pyscript':
+            from .. import core as package
+            external = False
 
-    if path in loading_modules:
-        raise ImportError(
-            f"cannot import module name {module_name!r} "
-            f"from partially initialized module {pyfunc.__code__.context.file.name!r}, mostly during circular import"
-        )
+        elif name == 'builtins':
+            package = pys_builtins
+            external = False
 
-    loading_modules.add(path)
+        else:
+            path_package = name
 
-    try:
+    if external:
 
-        package = modules.get(path, None)
-
-        if package is None:
-            try:
-                with open(path, 'r', encoding='utf-8') as file:
-                    file = PysFileBuffer(file.read(), path)
-            except FileNotFoundError:
-                raise ModuleNotFoundError(f"No module named {module_name!r}")
-            except BaseException as e:
-                raise ImportError(f"Cannot import module named {module_name!r}: {e}")
-
-            symtab = build_symbol_table(file)
-
-            package = PysModule('')
-            package.__dict__ = symtab.symbols
-
-            from .runner import pys_runner
-
-            result = pys_runner(
-                file=file,
-                mode='exec',
-                symbol_table=symtab,
-                context_parent=pyfunc.__code__.context,
-                context_parent_entry_position=pyfunc.__code__.position
+        if path_package in loading_modules:
+            raise ImportError(
+                f"cannot import module name {name!r} "
+                f"from partially initialized module {pyfunc.__code__.context.file.name!r}, "
+                "mostly during circular import"
             )
 
-            if result.error:
-                raise PysShouldReturn(PysRunTimeResult().failure(result.error))
+        package = modules.get(path_package, None)
 
-            modules[path] = package
+        if package is None:
 
-        return package
+            try:
+                loading_modules.add(path_package)
 
-    finally:
-        if path in loading_modules:
-            loading_modules.remove(path)
+                try:
+                    with open(path_package, 'r', encoding='utf-8') as file:
+                        file = PysFileBuffer(file, path_package)
+                except FileNotFoundError as e:
+                    raise ModuleNotFoundError(f"No module named {name!r}") from e
+                except BaseException as e:
+                    raise ImportError(f"Cannot import module named {name!r}: {e}") from e
+
+                package = PysModule(get_package_name(name))
+                package.__file__ = file.name
+                symtab = build_symbol_table(file, package.__dict__)
+                code = pyfunc.__code__
+
+                from .runner import pys_runner
+
+                result = pys_runner(
+                    file=file,
+                    mode='exec',
+                    symbol_table=symtab,
+                    context_parent=code.context,
+                    context_parent_entry_position=code.position
+                )
+
+                if result.error:
+                    raise PysShouldReturn(PysRunTimeResult().failure(result.error))
+
+                modules[path_package] = package
+
+            finally:
+                if path_package in loading_modules:
+                    loading_modules.remove(path_package)
+
+    for component in other_components:
+        package = getattr(package, component)
+
+    return package
+
+@PysPythonFunction
+def pyimport(pyfunc, name):
+    set_python_path(dirname(pyfunc.__code__.context.file.name))
+    return import_module(name)
 
 @PysPythonFunction
 def globals(pyfunc):
@@ -180,26 +182,31 @@ def globals(pyfunc):
 
         return result
 
-    else:
-        return pyfunc.__code__.context.symbol_table.symbols
+    return pyfunc.__code__.context.symbol_table.symbols
 
 @PysPythonFunction
 def locals(pyfunc):
     return pyfunc.__code__.context.symbol_table.symbols
 
+pyvars = vars
+
 @PysPythonFunction
 def vars(pyfunc, object=None):
-    if object is None:
-        return pyfunc.__code__.context.symbol_table.symbols
+    return (
+        pyfunc.__code__.context.symbol_table.symbols
+        if object is None else
+        pyvars(object)
+    )
 
-    return builtins.vars(object)
+pydir = dir
 
 @PysPythonFunction
 def dir(pyfunc, *args):
-    if len(args) == 0:
-        return list(pyfunc.__code__.context.symbol_table.symbols.keys())
-
-    return builtins.dir(*args)
+    return (
+        pydir(*args)
+        if args else
+        list(pyfunc.__code__.context.symbol_table.symbols.keys())
+    )
 
 @PysPythonFunction
 def exec(pyfunc, source, globals=None):
@@ -207,17 +214,18 @@ def exec(pyfunc, source, globals=None):
         raise TypeError("exec(): globals must be dict")
 
     file = PysFileBuffer(source, '<exec>')
+    code = pyfunc.__code__
 
     from .runner import pys_runner
 
     result = pys_runner(
         file=file,
         mode='exec',
-        symbol_table=pyfunc.__code__.context.symbol_table
+        symbol_table=code.context.symbol_table
                      if globals is None else
                      build_symbol_table(file, globals),
-        context_parent=pyfunc.__code__.context,
-        context_parent_entry_position=pyfunc.__code__.position
+        context_parent=code.context,
+        context_parent_entry_position=code.position
     )
 
     if result.error:
@@ -229,17 +237,18 @@ def eval(pyfunc, source, globals=None):
         raise TypeError("eval(): globals must be dict")
 
     file = PysFileBuffer(source, '<eval>')
+    code = pyfunc.__code__
 
     from .runner import pys_runner
 
     result = pys_runner(
         file=file,
         mode='eval',
-        symbol_table=pyfunc.__code__.context.symbol_table
+        symbol_table=code.context.symbol_table
                      if globals is None else
                      build_symbol_table(file, globals),
-        context_parent=pyfunc.__code__.context,
-        context_parent_entry_position=pyfunc.__code__.position
+        context_parent=code.context,
+        context_parent_entry_position=code.position
     )
 
     if result.error:
@@ -323,7 +332,7 @@ pys_builtins = PysModule(
 pys_builtins.__dict__.update(
     (name, getattr(builtins, name))
     for name in builtins.dir(builtins)
-    if not (name.startswith('_') or name in BLACKLIST_PYTHON_BUILTINS)
+    if not (name.startswith('_') or is_blacklist_python_builtins(name))
 )
 
 pys_builtins.__file__ = __file__

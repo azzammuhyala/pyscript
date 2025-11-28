@@ -1,0 +1,4 @@
+from parser import tokenize
+from "_pyscript>token" import PysToken as TokenInfo
+
+generate_tokens = tokenize

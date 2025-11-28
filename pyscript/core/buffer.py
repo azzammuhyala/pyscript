@@ -1,6 +1,6 @@
 from .bases import Pys
 from .utils.decorators import immutable
-from .utils.general import setimuattr, tostr
+from .utils.generic import setimuattr, normstr
 
 from io import IOBase
 
@@ -15,16 +15,16 @@ class PysFileBuffer(PysBuffer):
     def __init__(self, text, name=None):
 
         if isinstance(text, PysFileBuffer):
-            name = tostr(text.name if name is None else name)
-            text = tostr(text.text)
+            name = normstr(text.name if name is None else name)
+            text = normstr(text.text)
 
         elif isinstance(text, IOBase):
-            name = tostr(text.name if name is None else name)
-            text = tostr(text)
+            name = normstr(getattr(text, 'name', '<io>') if name is None else name)
+            text = normstr(text)
 
         else:
-            name = '<string>' if name is None else tostr(name)
-            text = tostr(text)
+            name = '<string>' if name is None else normstr(name)
+            text = normstr(text)
 
         setimuattr(self, 'text', text)
         setimuattr(self, 'name', name)

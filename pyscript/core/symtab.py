@@ -1,11 +1,10 @@
 from .bases import Pys
+from .checks import is_equals
 from .constants import TOKENS
 from .cache import undefined
-from .utils.constants import BINARY_FUNCTIONS_MAP
+from .mapping import BINARY_FUNCTIONS_MAP, EMPTY_MAP
 from .utils.decorators import immutable
-from .utils.general import setimuattr, get_closest
-
-from os.path import basename
+from .utils.generic import setimuattr, get_closest, get_package_name
 
 @immutable
 class PysSymbolTable(Pys):
@@ -16,26 +15,6 @@ class PysSymbolTable(Pys):
         setimuattr(self, 'parent', parent.parent if isinstance(parent, PysClassSymbolTable) else parent)
         setimuattr(self, 'symbols', {})
         setimuattr(self, 'globals', set())
-
-    def find_closest(self, name):
-        symbols = set(self.symbols.keys())
-
-        parent = self.parent
-        while parent:
-            symbols.update(parent.symbols.keys())
-            parent = parent.parent
-
-        builtins = self.get('__builtins__')
-        if builtins is not undefined:
-            symbols.update(
-                (
-                    builtins
-                    if isinstance(builtins, dict) else
-                    getattr(builtins, '__dict__', {})
-                ).keys()
-            )
-
-        return get_closest(symbols, name)
 
     def get(self, name):
         value = self.symbols.get(name, undefined)
@@ -49,16 +28,16 @@ class PysSymbolTable(Pys):
                 return (
                     builtins
                     if isinstance(builtins, dict) else
-                    getattr(builtins, '__dict__', {})
+                    getattr(builtins, '__dict__', EMPTY_MAP)
                 ).get(name, undefined)
 
         return value
 
-    def set(self, name, value, operand=TOKENS['EQ']):
-        if operand == TOKENS['EQ']:
+    def set(self, name, value, *, operand=TOKENS['EQUAL']):
+        if is_equals(operand):
 
             if name in self.globals and self.parent:
-                success = self.parent.set(name, value, operand)
+                success = self.parent.set(name, value, operand=operand)
                 if success:
                     return True
 
@@ -67,7 +46,7 @@ class PysSymbolTable(Pys):
 
         if name not in self.symbols:
             if name in self.globals and self.parent:
-                return self.parent.set(name, value, operand)
+                return self.parent.set(name, value, operand=operand)
             return False
 
         self.symbols[name] = BINARY_FUNCTIONS_MAP[operand](self.symbols[name], value)
@@ -89,12 +68,32 @@ class PysClassSymbolTable(PysSymbolTable):
     def __init__(self, parent):
         super().__init__(parent)
 
+def find_closest(symtab, name):
+    symbols = set(symtab.symbols.keys())
+
+    parent = symtab.parent
+    while parent:
+        symbols.update(parent.symbols.keys())
+        parent = parent.parent
+
+    builtins = symtab.get('__builtins__')
+    if builtins is not undefined:
+        symbols.update(
+            (
+                builtins
+                if isinstance(builtins, dict) else
+                getattr(builtins, '__dict__', EMPTY_MAP)
+            ).keys()
+        )
+
+    return get_closest(symbols, name)
+
 def build_symbol_table(file, globals=None):
     symtab = PysSymbolTable()
 
     if globals is None:
         symtab.set('__file__', file.name)
-        symtab.set('__name__', basename(file.name))
+        symtab.set('__name__', get_package_name(file.name))
     else:
         setimuattr(symtab, 'symbols', globals)
 

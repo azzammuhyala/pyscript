@@ -1,3 +1,3 @@
 include README.md
 
-recursive-include pyscript/lib *
+recursive-include pyscript *

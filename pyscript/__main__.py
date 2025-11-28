@@ -1,20 +1,20 @@
 from .core.buffer import PysFileBuffer
-from .core.cache import undefined
+from .core.cache import path, undefined
 from .core.constants import DEFAULT, DEBUG, NO_COLOR
 from .core.handlers import handle_execute
-from .core.highlight import HLFMT_HTML, HLFMT_ANSI, pys_highlight
+from .core.highlight import HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight
 from .core.runner import pys_runner, pys_shell
 from .core.symtab import build_symbol_table
-from .core.utils.general import normalize_path
+from .core.utils.generic import normpath, get_package_name, set_python_path
 from .core.version import __version__
 
 from argparse import ArgumentParser
 
-from sys import executable, version_info, exit, setrecursionlimit
-from os.path import basename, splitext
+from sys import executable, stderr, version_info, exit, setrecursionlimit
+from os import getcwd
 
 parser = ArgumentParser(
-    prog=splitext(basename(executable))[0] + ' -m pyscript',
+    prog=get_package_name(executable) + ' -m pyscript',
     description='PyScript Launcher for Python Version ' + '.'.join(map(str, version_info))
 )
 
@@ -53,7 +53,7 @@ parser.add_argument(
 
 parser.add_argument(
     '-l', '--highlight',
-    choices=('html', 'ansi'),
+    choices=('html', 'ansi', 'bbcode'),
     default=None,
     help='generate PyScript highlight code from a file'
 )
@@ -71,16 +71,20 @@ parser.add_argument(
     help="set a python recursion limit"
 )
 
+def argument_error(argument, message):
+    parser.print_usage(stderr)
+    parser.exit(2, f"{parser.prog}: error: argument {argument}: {message}\n")
+
 args = parser.parse_args()
 
 if args.highlight and args.file is None:
-    parser.error("-l, --highlight: file path require")
+    argument_error("-l/--highlight", "file path require")
 
 if args.py_recursion is not None:
     try:
         setrecursionlimit(args.py_recursion)
     except BaseException as e:
-        parser.error(f"-r, --py-recursion: {e}")
+        argument_error("-r/--py-recursion", e)
 
 code = 0
 flags = DEFAULT
@@ -90,8 +94,10 @@ if args.debug:
 if args.no_color:
     flags |= NO_COLOR
 
+set_python_path(getcwd())
+
 if args.file is not None:
-    path = normalize_path(args.file)
+    path = normpath(args.file)
 
     try:
         with open(path, 'r', encoding='utf-8') as file:
@@ -119,13 +125,14 @@ if args.file is not None:
         parser.error(f"file {path!r}: Unexpected error: {e}")
 
     if args.highlight:
+        format_map = {
+            'html': HLFMT_HTML,
+            'ansi': HLFMT_ANSI,
+            'bbcode': HLFMT_BBCODE
+        }
+
         try:
-            print(
-                pys_highlight(
-                    file,
-                    HLFMT_HTML if args.highlight == 'html' else HLFMT_ANSI
-                )
-            )
+            print(pys_highlight(file, format_map[args.highlight]))
         except BaseException as e:
             parser.error(f"file {path!r}: Tokenize error: {e}")
 

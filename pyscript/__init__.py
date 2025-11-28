@@ -10,7 +10,7 @@ from . import core
 
 from .core.constants import DEFAULT, DEBUG, SILENT, RETRES, COMMENT, NO_COLOR, REVERSE_POW_XOR
 from .core.cache import undefined
-from .core.highlight import HLFMT_HTML, HLFMT_ANSI, pys_highlight
+from .core.highlight import HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight
 from .core.runner import pys_exec, pys_eval, pys_shell
 from .core.version import version_info, __version__, __date__
 
@@ -25,6 +25,7 @@ __all__ = (
     'REVERSE_POW_XOR',
     'HLFMT_HTML',
     'HLFMT_ANSI',
+    'HLFMT_BBCODE',
     'undefined',
     'version_info',
     'pys_highlight',

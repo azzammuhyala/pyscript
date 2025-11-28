@@ -1,18 +1,19 @@
 from .bases import Pys
 from .constants import NO_COLOR, BOLD
 from .utils.decorators import immutable
-from .utils.general import setimuattr, space_indent, acolor
+from .utils.generic import setimuattr, space_indent, acolor
 
 @immutable
 class PysException(Pys):
 
-    __slots__ = ('exception', 'context', 'position', 'other')
+    __slots__ = ('exception', 'context', 'position', 'other', 'cause')
 
-    def __init__(self, exception, context, position, other=None):
+    def __init__(self, exception, context, position, other=None, cause=False):
         setimuattr(self, 'exception', exception)
         setimuattr(self, 'context', context)
         setimuattr(self, 'position', position)
         setimuattr(self, 'other', other)
+        setimuattr(self, 'cause', cause)
 
     def __repr__(self):
         return f'<Exception of {self.exception!r}>'
@@ -82,9 +83,11 @@ class PysException(Pys):
             )
 
         return (
-            f'{self.other.string_traceback()}\n\n'
-            'During handling of the above exception, another exception occurred:'
-            f'\n\n{result}'
+            self.other.string_traceback() + (
+                '\n\nThe above exception was the direct cause of the following exception:\n\n'
+                if self.cause else
+                '\n\nDuring handling of the above exception, another exception occurred:\n\n'
+            ) + result
             if self.other else
             result
         )

@@ -1,25 +1,25 @@
-_sys = pyimport('sys')
-_getch = require('getch')
+from sys import stdout
+from getch import getch
 
-func _default_input() {
+func default_input() {
     while (True) {
-        result = ord(_getch.getch())
+        result = ord(getch())
         if (0 <= result <= 255) {
             return result
         }
     }
 }
 
-func _default_output(byte) {
-    _sys.stdout.write(chr(byte))
-    _sys.stdout.flush()
+func default_output(byte) {
+    stdout.write(chr(byte))
+    stdout.flush()
 }
 
 class BFInterpreter {
 
     func __init__(self, source, cells=None, input=None, output=None) {
-        input = input ?? _default_input
-        output = output ?? _default_output
+        input = input ?? default_input
+        output = output ?? default_output
 
         if (not isinstance(source, str))
             throw TypeError("BFInterpreter() source must be string")
@@ -193,3 +193,8 @@ func bf_exec(source, cells=None, input=None, output=None) {
     for (_ of interpreter);
     interpreter.stop()
 }
+
+__all__ = (
+    'BFInterpreter',
+    'bf_exec'
+)

@@ -14,6 +14,6 @@ try {
 }
 
 catch {
-    s = "Uh uh, something it's wrong!!11!!"
+    s = "Uh, something's wrong!"
     print(s)
 }

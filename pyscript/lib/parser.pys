@@ -3,8 +3,8 @@ import _pyscript  # get a core from PyScript module (pyscript.core)
 # tokens offset
 DOUBLE = _pyscript.constants.DOUBLE
 TRIPLE = _pyscript.constants.TRIPLE
-WITH_EQ = _pyscript.constants.WITH_EQ
-SPECIAL = _pyscript.constants.SPECIAL
+WITH_EQUAL = _pyscript.constants.WITH_EQUAL
+WITH_EXCLAMATION = _pyscript.constants.WITH_EXCLAMATION
 
 # constants
 TOKENS = _pyscript.constants.TOKENS
@@ -15,27 +15,13 @@ DEFAULT = _pyscript.constants.DEFAULT
 COMMENT = _pyscript.constants.COMMENT
 REVERSE_POW_XOR = _pyscript.constants.REVERSE_POW_XOR
 
-# types for pyscript.core.nodes.PysSequenceNode
-NSEQ_STATEMENTS = _pyscript.constants.NSEQ_STATEMENTS
-NSEQ_GLOBAL = _pyscript.constants.NSEQ_GLOBAL
-NSEQ_DEL = _pyscript.constants.NSEQ_DEL
-NSEQ_DICT = _pyscript.constants.NSEQ_DICT
-NSEQ_SET = _pyscript.constants.NSEQ_SET
-NSEQ_LIST = _pyscript.constants.NSEQ_LIST
-NSEQ_TUPLE = _pyscript.constants.NSEQ_TUPLE
-
-# styles for pyscript.core.nodes.PysTernaryNode
-NTER_GENERAL = _pyscript.constants.NTER_GENERAL
-NTER_PYTHONIC = _pyscript.constants.NTER_PYTHONIC
-
-# operand positions for pyscript.core.nodes.PysUnaryNode
-NUNR_LEFT = _pyscript.constants.NUNR_LEFT
-NUNR_RIGHT = _pyscript.constants.NUNR_RIGHT
-
 # highlight formatter
 HLFMT_HTML = _pyscript.highlight.HLFMT_HTML
 HLFMT_ANSI = _pyscript.highlight.HLFMT_ANSI
+HLFMT_BBCODE = _pyscript.highlight.HLFMT_BBCODE
 
+@_pyscript.utils.decorators.immutable
+@_pyscript.utils.decorators.uninherited
 class Parser {
 
     __slots__ = ('_compiled', 'source', 'file', 'flags')
@@ -43,46 +29,53 @@ class Parser {
     func __init__(self, source, flags=DEFAULT) {
 
         # source is a list of tokens
-        if isinstance(source, tuple)
-        {
-            if not source
-                throw ValueError("empty tuple")
-
-            for i, token of enumerate(source) {
-                if not isinstance(token, _pyscript.token.PysToken)
-                    throw TypeError("Parser(): source must be tuple of tokens")
-                if token.type == TOKENS['COMMENT']
-                    throw ValueError("Parser(): source token with comment token is invalid")
+        if (isinstance(source, tuple)) {
+            if (not source) {
+                throw ValueError("Parser(): source got empty tuple")
             }
 
-            self._compiled = 'tokenize'
-            self.source = source
-            self.file = source[0].position.file
+            for (i, token of enumerate(source)) {
+                if (not isinstance(token, _pyscript.token.PysToken)) {
+                    throw TypeError("Parser(): source must be tuple of tokens")
+                }
+                if (token.type == TOKENS['COMMENT']) {
+                    throw ValueError("Parser(): source token with comment token is invalid")
+                }
+            }
+
+            file = source[0].position.file
+            compiled = 'tokenize'
         }
 
         # source is an AST
-        elif isinstance(source, _pyscript.nodes.PysNode)
-        {
-            self._compiled = 'ast'
-            self.source = source
-            self.file = source.position.file
+        elif (isinstance(source, _pyscript.nodes.PysNode)) {
+            file = source.position.file
+            compiled = 'ast'
         }
 
         # source is an object that is supported and converted to a buffer
         else {
-            self._compiled = 'none'
-            self.source = source
-            self.file = _pyscript.buffer.PysFileBuffer(source)
+            file = _pyscript.buffer.PysFileBuffer(source)
+            compiled = 'none'
         }
 
-        self.flags = flags
+        if (not isinstance(flags, int)) {
+            throw TypeError("Parser(): flags must be integer")
+        }
+
+        _pyscript.utils.generic.setimuattr(self, 'source', source)
+        _pyscript.utils.generic.setimuattr(self, 'flags', flags)
+        _pyscript.utils.generic.setimuattr(self, 'file', file)
+        _pyscript.utils.generic.setimuattr(self, '_compiled', compiled)
     }
 
     func tokenize(self) {
-        if self._compiled == 'tokenize'
+        if (self._compiled == 'tokenize') {
             return self.source
-        elif self._compiled == 'ast'
-            throw TypeError("tokenize(): can't tokenize AST source")
+        }
+        elif (self._compiled == 'ast') {
+            throw TypeError("tokenize(): cannot tokenize AST source")
+        }
 
         lexer = _pyscript.lexer.PysLexer(
             file=self.file,
@@ -90,22 +83,27 @@ class Parser {
         )
 
         tokens, error = lexer.make_tokens()
-        if error
+        if (error) {
             throw error.exception
+        }
 
         return tokens
     }
 
     func ast(self, mode='exec') {
-        if mode not in {'exec', 'eval'}
+        if (mode not in ('exec', 'eval')) {
             throw ValueError("ast(): mode must be 'exec' or 'eval'")
+        }
 
-        if self._compiled == 'tokenize'
+        if (self._compiled == 'tokenize') {
             tokens = self.source
-        elif self._compiled == 'ast'
+        }
+        elif (self._compiled == 'ast') {
             return self.source
-        else
+        }
+        else {
             tokens = self.tokenize()
+        }
 
         parser = _pyscript.parser.PysParser(
             tokens=tokens,
@@ -113,17 +111,20 @@ class Parser {
         )
 
         ast = parser.parse(mode == 'exec' ? None : parser.expr)
-        if ast.error
+        if (ast.error) {
             throw ast.error.exception
+        }
 
         return ast.node
     }
 
     func analyze(self, mode='exec') {
-        if self._compiled == 'ast'
+        if (self._compiled == 'ast') {
             ast = self.source
-        else
+        }
+        else {
             ast = self.ast(mode=mode)
+        }
 
         analyzer = _pyscript.analyzer.PysAnalyzer(
             node=ast,
@@ -131,8 +132,9 @@ class Parser {
         )
 
         error = analyzer.analyze()
-        if error
+        if (error) {
             throw error.exception
+        }
     }
 
     func highlight(self, format=None, max_parenthesis_level=3) {
@@ -149,14 +151,18 @@ class Parser {
 
 # wrap functions
 
-func tokenize(source, flags=DEFAULT)
+func tokenize(source, flags=DEFAULT) {
     return Parser(source, flags).tokenize()
+}
 
-func ast(source, mode='exec', flags=DEFAULT)
+func ast(source, mode='exec', flags=DEFAULT) {
     return Parser(source, flags).ast(mode=mode)
+}
 
-func analyze(source, mode='exec', flags=DEFAULT)
+func analyze(source, mode='exec', flags=DEFAULT) {
     return Parser(source, flags).analyze(mode=mode)
+}
 
-func highlight(source, format=None, max_parenthesis_level=3, flags=DEFAULT)
+func highlight(source, format=None, max_parenthesis_level=3, flags=DEFAULT) {
     return Parser(source, flags).highlight(format=format, max_parenthesis_level=max_parenthesis_level)
+}

@@ -1,18 +1,18 @@
-from os import environ
+from ..constants import PYSCRIPT_TYPECHECKING
 
-_TYPECHECKED = environ.get('PYSCRIPT_TYPECHECKING', '1') == '1'
+from os import environ
 
 def typechecked(func, *args, **kwargs):
     return func
 
-if _TYPECHECKED:
+if environ.get(PYSCRIPT_TYPECHECKING, '1') == '1':
     try:
         from beartype import beartype as typechecked
     except ImportError:
         try:
             from typeguard import typechecked
         except ImportError:
-            _TYPECHECKED = False
+            environ[PYSCRIPT_TYPECHECKING] = '0'
 
 class _Utilities:
 

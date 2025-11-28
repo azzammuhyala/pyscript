@@ -2,7 +2,7 @@ from .bases import Pys
 from .buffer import PysFileBuffer
 from .constants import BOLD
 from .utils.decorators import typechecked, immutable
-from .utils.general import setimuattr, acolor
+from .utils.generic import setimuattr, acolor
 
 @immutable
 class PysPosition(Pys):
@@ -10,7 +10,7 @@ class PysPosition(Pys):
     __slots__ = ('file', 'start', 'end', 'start_line', 'start_column', 'end_line', 'end_column', 'is_positionless')
 
     @typechecked
-    def __init__(self, file: PysFileBuffer, start: int, end: int):
+    def __init__(self, file: PysFileBuffer, start: int, end: int) -> None:
         is_positionless = start < 0 or end < 0 or start > end
 
         setimuattr(self, 'file', file)
@@ -48,7 +48,7 @@ class PysPosition(Pys):
         if end == -1:
             end = len(text)
 
-        if text[self.start:self.end] in {'', '\n'}:
+        if text[self.start:self.end] in ('', '\n'):
             if self.start > start:
                 line = text[start:end].lstrip().replace('\t', ' ')
                 return f'{line}\n{bred}{" " * len(line)}^{reset}'

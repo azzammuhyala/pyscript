@@ -20,7 +20,7 @@ class PysLexer(Pys):
         flags: int = DEFAULT,
         context_parent: Optional[PysContext] = None,
         context_parent_entry_position: Optional[PysPosition] = None
-    ):
+    ) -> None:
 
         self.file = file
         self.flags = flags
@@ -119,79 +119,78 @@ class PysLexer(Pys):
                 self.make_dollar()
 
             elif self.current_character == '+':
-                self.make_add()
+                self.make_plus()
 
             elif self.current_character == '-':
-                self.make_sub()
+                self.make_minus()
 
             elif self.current_character == '*':
-                self.make_mul()
+                self.make_star()
 
             elif self.current_character == '/':
-                self.make_div()
+                self.make_slash()
 
             elif self.current_character == '%':
-                self.make_mod()
+                self.make_percent()
 
             elif self.current_character == '@':
                 self.make_at()
 
             elif self.current_character == '&':
-                self.make_and()
+                self.make_ampersand()
 
             elif self.current_character == '|':
-                self.make_or()
+                self.make_pipe()
 
             elif self.current_character == '^':
-                self.make_xor()
+                self.make_circumflex()
 
             elif self.current_character == '~':
-                self.make_not()
+                self.make_tilde()
 
             elif self.current_character == '=':
                 self.make_equal()
 
             elif self.current_character == '!':
-                self.make_not_equal()
+                self.make_exclamation()
 
             elif self.current_character == '<':
-                self.make_lt()
+                self.make_less_than()
 
             elif self.current_character == '>':
-                self.make_gt()
+                self.make_greater_than()
 
             elif self.current_character == '?':
                 self.make_question()
+
+            elif self.current_character == ':':
+                self.make_colon()
 
             elif self.current_character == '#':
                 self.make_comment()
 
             elif self.current_character == '(':
-                self.add_token(TOKENS['LPAREN'])
+                self.add_token(TOKENS['LEFT-PARENTHESIS'])
                 self.advance()
 
             elif self.current_character == ')':
-                self.add_token(TOKENS['RPAREN'])
+                self.add_token(TOKENS['RIGHT-PARENTHESIS'])
                 self.advance()
 
             elif self.current_character == '[':
-                self.add_token(TOKENS['LSQUARE'])
+                self.add_token(TOKENS['LEFT-SQUARE'])
                 self.advance()
 
             elif self.current_character == ']':
-                self.add_token(TOKENS['RSQUARE'])
+                self.add_token(TOKENS['RIGHT-SQUARE'])
                 self.advance()
 
             elif self.current_character == '{':
-                self.add_token(TOKENS['LBRACE'])
+                self.add_token(TOKENS['LEFT-CURLY'])
                 self.advance()
 
             elif self.current_character == '}':
-                self.add_token(TOKENS['RBRACE'])
-                self.advance()
-
-            elif self.current_character == ':':
-                self.add_token(TOKENS['COLON'])
+                self.add_token(TOKENS['RIGHT-CURLY'])
                 self.advance()
 
             elif self.current_character == ',':
@@ -208,7 +207,7 @@ class PysLexer(Pys):
                 self.advance()
                 self.throw(self.index - 1, f"invalid character '{char}' (U+{ord(char):08X})")
 
-        self.add_token(TOKENS['EOF'])
+        self.add_token(TOKENS['NULL'])
 
         return tuple(self.tokens), self.error
 
@@ -230,7 +229,7 @@ class PysLexer(Pys):
             if self.file.text[self.index:self.index + 2] == '..':
                 self.advance()
                 self.advance()
-                self.add_token(TOKENS['ELLIPSIS'], start)
+                self.add_token(TOKENS['TRIPLE-DOT'], start)
                 return
 
             elif not self.character_in('0123456789'):
@@ -340,16 +339,19 @@ class PysLexer(Pys):
         is_raw = False
 
         if self.character_in('BRbr'):
+            prefix = ''
 
-            if self.character_in('Bb'):
-                is_bytes = True
+            while self.character_in('BRbr') and len(prefix) < 2:
+                prefix += self.current_character.lower()
                 self.advance()
 
-            if self.character_in('Rr'):
-                is_raw = True
-                self.advance()
+            count_r = prefix.count('r')
+            count_b = prefix.count('b')
 
-            if not self.character_in('"\''):
+            if count_r <= 1 and count_b <= 1 and self.character_in('"\''):
+                is_raw = count_r == 1
+                is_bytes = count_b == 1
+            else:
                 self.reverse(self.index - start)
                 self.make_identifier()
                 return
@@ -364,12 +366,12 @@ class PysLexer(Pys):
         warning_displayed = False
         decoded_error_message = None
 
-        def decode_error(is_unicode, start, end, message):
+        def decode_error(is_unicode_error, start, end, message):
             nonlocal decoded_error_message
             if decoded_error_message is None:
                 decoded_error_message = (
                     f"(unicode error) 'unicodeescape' codec can't decode bytes in position {start}-{end}: {message}"
-                    if is_unicode else
+                    if is_unicode_error else
                     f"codec can't decode bytes in position {start}-{end}: {message}"
                 )
 
@@ -536,7 +538,7 @@ class PysLexer(Pys):
 
             if is_bytes:
                 try:
-                    string = string.encode('ascii')
+                    string = string.encode('latin-1')
                 except UnicodeEncodeError:
                     self.throw(start, "invalid bytes literal")
 
@@ -570,86 +572,86 @@ class PysLexer(Pys):
 
         self.make_identifier(as_identifier=True, start=start)
 
-    def make_add(self):
+    def make_plus(self):
         start = self.index
-        type = TOKENS['ADD']
+        type = TOKENS['PLUS']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EADD']
+            type = TOKENS['EQUAL-PLUS']
             self.advance()
 
         elif self.current_character == '+':
-            type = TOKENS['INCREMENT']
+            type = TOKENS['DOUBLE-PLUS']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_sub(self):
+    def make_minus(self):
         start = self.index
-        type = TOKENS['SUB']
+        type = TOKENS['MINUS']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['ESUB']
+            type = TOKENS['EQUAL-MINUS']
             self.advance()
 
         elif self.current_character == '-':
-            type = TOKENS['DECREMENT']
+            type = TOKENS['DOUBLE-MINUS']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_mul(self):
+    def make_star(self):
         start = self.index
-        type = TOKENS['MUL']
+        type = TOKENS['STAR']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EMUL']
+            type = TOKENS['EQUAL-STAR']
             self.advance()
 
         elif self.current_character == '*':
-            type = TOKENS['POW']
+            type = TOKENS['DOUBLE-STAR']
             self.advance()
 
-        if type == TOKENS['POW'] and self.current_character == '=':
-            type = TOKENS['EPOW']
+        if type == TOKENS['DOUBLE-STAR'] and self.current_character == '=':
+            type = TOKENS['EQUAL-DOUBLE-STAR']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_div(self):
+    def make_slash(self):
         start = self.index
-        type = TOKENS['DIV']
+        type = TOKENS['SLASH']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EDIV']
+            type = TOKENS['EQUAL-SLASH']
             self.advance()
 
         elif self.current_character == '/':
-            type = TOKENS['FDIV']
+            type = TOKENS['DOUBLE-SLASH']
             self.advance()
 
-        if type == TOKENS['FDIV'] and self.current_character == '=':
-            type = TOKENS['EFDIV']
+        if type == TOKENS['DOUBLE-SLASH'] and self.current_character == '=':
+            type = TOKENS['EQUAL-DOUBLE-SLASH']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_mod(self):
+    def make_percent(self):
         start = self.index
-        type = TOKENS['MOD']
+        type = TOKENS['PERCENT']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EMOD']
+            type = TOKENS['EQUAL-PERCENT']
             self.advance()
 
         self.add_token(type, start)
@@ -661,128 +663,128 @@ class PysLexer(Pys):
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EAT']
+            type = TOKENS['EQUAL-AT']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_and(self):
+    def make_ampersand(self):
         start = self.index
-        type = TOKENS['AND']
+        type = TOKENS['AMPERSAND']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EAND']
+            type = TOKENS['EQUAL-AMPERSAND']
             self.advance()
 
         elif self.current_character == '&':
-            type = TOKENS['CAND']
+            type = TOKENS['DOUBLE-AMPERSAND']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_or(self):
+    def make_pipe(self):
         start = self.index
-        type = TOKENS['OR']
+        type = TOKENS['PIPE']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EOR']
+            type = TOKENS['EQUAL-PIPE']
             self.advance()
 
         elif self.current_character == '|':
-            type = TOKENS['COR']
+            type = TOKENS['DOUBLE-PIPE']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_xor(self):
+    def make_circumflex(self):
         start = self.index
-        type = TOKENS['XOR']
+        type = TOKENS['CIRCUMFLEX']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EXOR']
+            type = TOKENS['EQUAL-CIRCUMFLEX']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_not(self):
+    def make_tilde(self):
         start = self.index
-        type = TOKENS['NOT']
+        type = TOKENS['TILDE']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['CE']
+            type = TOKENS['EQUAL-TILDE']
             self.advance()
         elif self.current_character == '!':
-            type = TOKENS['NCE']
+            type = TOKENS['EXCLAMATION-TILDE']
             self.advance()
 
         self.add_token(type, start)
 
     def make_equal(self):
         start = self.index
-        type = TOKENS['EQ']
+        type = TOKENS['EQUAL']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EE']
+            type = TOKENS['DOUBLE-EQUAL']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_not_equal(self):
+    def make_exclamation(self):
         start = self.index
-        type = TOKENS['CNOT']
+        type = TOKENS['EXCLAMATION']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['NE']
+            type = TOKENS['EQUAL-EXCLAMATION']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_lt(self):
+    def make_less_than(self):
         start = self.index
-        type = TOKENS['LT']
+        type = TOKENS['LESS-THAN']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['LTE']
+            type = TOKENS['EQUAL-LESS-THAN']
             self.advance()
         elif self.current_character == '<':
-            type = TOKENS['LSHIFT']
+            type = TOKENS['DOUBLE-LESS-THAN']
             self.advance()
 
-        if type == TOKENS['LSHIFT'] and self.current_character == '=':
-            type = TOKENS['ELSHIFT']
+        if type == TOKENS['DOUBLE-LESS-THAN'] and self.current_character == '=':
+            type = TOKENS['EQUAL-DOUBLE-LESS-THAN']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_gt(self):
+    def make_greater_than(self):
         start = self.index
-        type = TOKENS['GT']
+        type = TOKENS['GREATER-THAN']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['GTE']
+            type = TOKENS['EQUAL-GREATER-THAN']
             self.advance()
         elif self.current_character == '>':
-            type = TOKENS['RSHIFT']
+            type = TOKENS['DOUBLE-GREATER-THAN']
             self.advance()
 
-        if type == TOKENS['RSHIFT'] and self.current_character == '=':
-            type = TOKENS['ERSHIFT']
+        if type == TOKENS['DOUBLE-GREATER-THAN'] and self.current_character == '=':
+            type = TOKENS['EQUAL-DOUBLE-GREATER-THAN']
             self.advance()
 
         self.add_token(type, start)
@@ -794,7 +796,19 @@ class PysLexer(Pys):
         self.advance()
 
         if self.current_character == '?':
-            type = TOKENS['NULLISH']
+            type = TOKENS['DOUBLE-QUESTION']
+            self.advance()
+
+        self.add_token(type, start)
+
+    def make_colon(self):
+        start = self.index
+        type = TOKENS['COLON']
+
+        self.advance()
+
+        if self.current_character == '=':
+            type = TOKENS['EQUAL-COLON']
             self.advance()
 
         self.add_token(type, start)

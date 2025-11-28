@@ -1,56 +1,70 @@
-import _pyscript
+from time import monotonic, sleep
+from "_pyscript>utils>decorators" import singleton, immutable, uninherited
 
-from time import monotonic as _monotonic, sleep as _sleep
-
-_singletons = _pyscript.cache.singletons
-
-_singletons['clock-module.lastTick'] = 0.0
-_singletons['clock-module.timeElapsed'] = 0.0
-_singletons['clock-module.rawTime'] = 0.0
-_singletons['clock-module.framesPerSecond'] = 0.0
-
-@_pyscript.utils.decorators.singleton
-@_pyscript.utils.decorators.immutable
-@_pyscript.utils.decorators.uninherited
-class Clock {
+@singleton
+@immutable
+@uninherited
+class FPSTimer {
 
     __slots__ = ()
 
+    _lastTick = 0.0
+    _timeElapsed = 0.0
+    _rawTime = 0.0
+    _framesPerSecond = 0.0
+
+    func __new_singleton__(cls) {
+        global fpstimer
+        fpstimer = super(cls, cls).__new__(cls)
+        return fpstimer
+    }
+
     func tick(self, framerate) {
-        currentTime = _monotonic()
-        lastTick = _singletons['clock-module.lastTick']
+        currentTime = monotonic()
+        lastTick = self._lastTick
         elapsedTime = currentTime - lastTick
 
         if (framerate > 0) {
             minFrameTime = 1 / framerate
-            if (elapsedTime < minFrameTime)
-                _sleep(minFrameTime - elapsedTime)
+            if (elapsedTime < minFrameTime) {
+                sleep(minFrameTime - elapsedTime)
+            }
         }
 
-        currentTime = _monotonic()
+        currentTime = monotonic()
 
-        _singletons['clock-module.framesPerSecond'] = (
+        self._framesPerSecond = (
             currentTime == lastTick ?
             0.0 : 1 / (currentTime - lastTick)
         )
 
-        _singletons['clock-module.timeElapsed'] = timeElapsed = currentTime - lastTick
-        _singletons['clock-module.rawTime'] = elapsedTime
-        _singletons['clock-module.lastTick'] = currentTime
+        self._timeElapsed = timeElapsed = currentTime - lastTick
+        self._rawTime = elapsedTime
+        self._lastTick = currentTime
 
         return timeElapsed
     }
 
-    func get_time(self)
-        return _singletons['clock-module.timeElapsed']
+    func get_time(self) {
+        return self._timeElapsed
+    }
 
-    func get_rawtime(self)
-        return _singletons['clock-module.rawTime']
+    func get_rawtime(self) {
+        return self._rawTime
+    }
 
-    func get_fps(self)
-        return _singletons['clock-module.framesPerSecond']
+    func get_fps(self) {
+        return self._framesPerSecond
+    }
 
     getTime = get_time
     getRawTime = get_rawtime
     getFPS = get_fps
 }
+
+FPSTimer()
+
+__all__ = (
+    'FPSTimer',
+    'fpstimer'
+)

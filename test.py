@@ -1,5 +1,9 @@
 source = """
+func greet(name) {
+    print("Hello, " + name + "!")
+}
 
+greet("Azzam")
 """
 
 import pyscript
@@ -24,7 +28,7 @@ def pyscript_doc():
     run(
         args='clip',
         text=True,
-        input='<pre class="pyscript-code">' + pyscript.pys_highlight(source.strip(), formatter) + '</pre>'
+        input='<pre class="pyscript-code">' + pyscript.pys_highlight(source.strip(), pyscript.HLFMT_HTML) + '</pre>'
     )
 
 if __name__ == '__main__':

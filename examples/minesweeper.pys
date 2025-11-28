@@ -130,7 +130,7 @@ class MineSweeper {
     }
 
     # dig a cell and determine whether chooses a cell containing a bomb or not
-    func dig(self, position, recursive=false) {
+    func dig(self, position, _recursive=false) {
         w, h = self.cellSize
         col, row = position
 
@@ -148,16 +148,14 @@ class MineSweeper {
         chording = false
 
         if (
-            not (
-                # not for recursive
-                recursive or
+            # not for recursive
+            not _recursive and
 
-                # marked with a flag
-                position in self.flags or
+            # not for marked with a flag
+            position not in self.flags and
 
-                # cell have not been dug
-                position not in self.dug
-            ) and
+            # cell have been dug
+            position in self.dug and
 
             # cell value is must be between 1 to 7 (8 is not included because all neighbor cells are bombs)
             0 < cell < 8
@@ -192,7 +190,7 @@ class MineSweeper {
                 if (pos in self.dug)
                     continue
 
-                safe = self.dig(pos, recursive=true)
+                safe = self.dig(pos, _recursive=true)
 
                 # if the cell is a bomb, then lose
                 if (not safe)
@@ -332,7 +330,7 @@ class MineSweeper {
 
     # main function
     func main(self) {
-        [w, h] = self.cellSize
+        w, h = self.cellSize
         maxDug = w * h - self.bombsCount  # maximum dig that indicates finished without lose
 
         # create an empty board and display the board

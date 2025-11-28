@@ -1,0 +1,28 @@
+from parser import ast as parse
+from pysast import walk, dump
+from _pyscript import nodes
+
+all = []
+
+Node = nodes.PysNode
+
+locals().update(
+    comprehension(
+        Node.__subclasses__(),
+        func (cls) {
+            name = cls.__name__
+            nodeName = name[3:]
+            all.append(nodeName)
+            return nodeName, getattr(nodes, name)
+        }
+    )
+)
+
+__all__ = (
+    'parse',
+    'walk',
+    'dump',
+    'Node'
+) + tuple(all)
+
+del all, nodes

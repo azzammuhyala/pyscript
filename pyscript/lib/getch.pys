@@ -1,24 +1,28 @@
-sys = pyimport('sys')
+import sys
 
-if sys.platform == 'win32'
-{
+if (sys.platform == 'win32') {
     from msvcrt import getch
 }
+else {
+    from termios import tcgetattr, tcsetattr, TCSADRAIN
+    from tty import setraw
 
-else
-{
-    import termios
-    import tty
+    fileno = sys.stdin.fileno
+    read = sys.stdin.read
 
     func getch() {
-        fileDescriptor = sys.stdin.fileno()
-        oldSettings = termios.tcgetattr(fileDescriptor)
+        fileDescriptor = fileno()
+        oldSettings = tcgetattr(fileDescriptor)
 
         try {
-            tty.setraw(sys.stdin.fileno())
-            return sys.stdin.read(1).encode()
+            setraw(fileno())
+            return read(1).encode()
         } finally {
-            termios.tcsetattr(fileDescriptor, termios.TCSADRAIN, oldSettings)
+            tcsetattr(fileDescriptor, TCSADRAIN, oldSettings)
         }
     }
 }
+
+__all__ = (
+    'getch',
+)

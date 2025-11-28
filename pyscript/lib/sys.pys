@@ -1,15 +1,22 @@
 _pyscript = require('_pyscript')
-_sys = pyimport('sys')
+_pysys = pyimport('sys')
+_pyos = pyimport('os')
 
-executable = '{} -m pyscript'.format(_sys.executable)
+executable = '{} -m pyscript'.format(_pysys.executable)
 getcontext = _pyscript.objects.PysPythonFunction(func(pyfunc) return pyfunc.__code__.context)
 flags = getcontext().flags
+gil = _pyos.environ.get(_pyscript.constants.PYSCRIPT_GIL, '1') == '1'
 hook = _pyscript.cache.hook
+path = _pyscript.cache.path
 loading_modules = _pyscript.cache.loading_modules
-library = _pyscript.cache.library
-library_path = _pyscript.constants.LIBRARY_PATH
+libraries_path = _pyscript.constants.LIBRARIES_PATH
 modules = _pyscript.cache.modules
-pyscript_path = _pyscript.constants.PYSCRIPT_PATH
+platform = _pysys.platform
+prefix = prefix_exec = pyscript_path = _pyscript.constants.PYSCRIPT_PATH
+stderr = _pysys.stderr
+stdin = _pysys.stdin
+stdout = _pysys.stdout
+site_packages_path = _pyscript.constants.SITE_PACKAGES_PATH
 version = _pyscript.version.version
 version_info = _pyscript.version.version_info
 

@@ -1,0 +1,34 @@
+from collections import deque
+
+graph = {
+    'A': ['B', 'C'],
+    'B': ['A', 'D', 'E'],
+    'C': ['A', 'F'],
+    'D': ['B'],
+    'E': ['B', 'F'],
+    'F': ['C', 'E']
+}
+
+func bfs(graph, start) {
+    path = []
+    visited = {start}
+    queue = deque([start])
+
+    while (queue) {
+        node = queue.popleft()
+        path.append(node)
+
+        for (neighbor of graph[node]) {
+            if (neighbor not in visited) {
+                visited.add(neighbor)
+                queue.append(neighbor)
+            }
+        }
+    }
+
+    return path
+}
+
+path = bfs(graph, 'A')
+
+print(' -> '.join(path))

@@ -2,7 +2,7 @@ from .bases import Pys
 from .constants import TOKENS
 from .position import PysPosition
 from .utils.decorators import typechecked, immutable
-from .utils.general import setimuattr
+from .utils.generic import setimuattr
 
 from typing import Any, Optional
 

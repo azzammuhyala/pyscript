@@ -1,7 +1,7 @@
 from .bases import Pys
 from .constants import DEFAULT
 from .utils.decorators import immutable
-from .utils.general import setimuattr
+from .utils.generic import setimuattr
 
 @immutable
 class PysContext(Pys):

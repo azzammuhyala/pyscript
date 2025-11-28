@@ -1,9 +1,10 @@
 from .bases import Pys
-from .constants import NTER_GENERAL, NUNR_LEFT
 from .position import PysPosition
 from .token import PysToken
 from .utils.decorators import typechecked, immutable
-from .utils.general import setimuattr
+from .utils.generic import setimuattr
+
+from typing import Literal
 
 @immutable
 class PysNode(Pys):
@@ -65,24 +66,53 @@ class PysIdentifierNode(PysNode):
     def __repr__(self):
         return f'Identifier(name={self.token.value!r})'
 
-class PysSequenceNode(PysNode):
+class PysDictionaryNode(PysNode):
 
-    __slots__ = ('type', 'elements')
+    __slots__ = ('pairs',)
 
     @typechecked
-    def __init__(
-        self,
-        type: int,
-        elements: list[PysNode | PysToken | tuple[PysNode, PysNode]],
-        position: PysPosition
-    ) -> None:
-
+    def __init__(self, pairs: list[tuple[PysNode, PysNode]], position: PysPosition) -> None:
         super().__init__(position)
-        setimuattr(self, 'type', type)
+        setimuattr(self, 'pairs', tuple(pairs))
+
+    def __repr__(self):
+        return f'Dictionary(pairs={self.pairs!r})'
+
+class PysSetNode(PysNode):
+
+    __slots__ = ('elements',)
+
+    @typechecked
+    def __init__(self, elements: list[PysNode], position: PysPosition) -> None:
+        super().__init__(position)
         setimuattr(self, 'elements', tuple(elements))
 
     def __repr__(self):
-        return f'Sequence(type={self.type!r}, elements={self.elements!r})'
+        return f'Set(elements={self.elements!r})'
+
+class PysListNode(PysNode):
+
+    __slots__ = ('elements',)
+
+    @typechecked
+    def __init__(self, elements: list[PysNode], position: PysPosition) -> None:
+        super().__init__(position)
+        setimuattr(self, 'elements', tuple(elements))
+
+    def __repr__(self):
+        return f'List(elements={self.elements!r})'
+
+class PysTupleNode(PysNode):
+
+    __slots__ = ('elements',)
+
+    @typechecked
+    def __init__(self, elements: list[PysNode], position: PysPosition) -> None:
+        super().__init__(position)
+        setimuattr(self, 'elements', tuple(elements))
+
+    def __repr__(self):
+        return f'Tuple(elements={self.elements!r})'
 
 class PysAttributeNode(PysNode):
 
@@ -116,6 +146,25 @@ class PysSubscriptNode(PysNode):
     def __repr__(self):
         return f'Subscript(target={self.target!r}, slice={self.slice!r})'
 
+class PysCallNode(PysNode):
+
+    __slots__ = ('target', 'arguments')
+
+    @typechecked
+    def __init__(
+        self,
+        target: PysNode,
+        arguments: list[PysNode | tuple[PysToken, PysNode]],
+        position: PysPosition
+    ) -> None:
+
+        super().__init__(position)
+        setimuattr(self, 'target', target)
+        setimuattr(self, 'arguments', tuple(arguments))
+
+    def __repr__(self):
+        return f'Call(target={self.target!r}, arguments={self.arguments!r})'
+
 class PysChainOperatorNode(PysNode):
 
     __slots__ = ('operations', 'expressions')
@@ -141,10 +190,16 @@ class PysTernaryOperatorNode(PysNode):
     __slots__ = ('condition', 'valid', 'invalid', 'style')
 
     @typechecked
-    def __init__(self, condition: PysNode, valid: PysNode, invalid: PysNode, style: int) -> None:
+    def __init__(
+        self,
+        condition: PysNode,
+        valid: PysNode,
+        invalid: PysNode,
+        style: Literal['general', 'pythonic']
+    ) -> None:
         super().__init__(
             PysPosition(condition.position.file, condition.position.start, invalid.position.end)
-            if style == NTER_GENERAL else
+            if style == 'general' else
             PysPosition(condition.position.file, valid.position.start, invalid.position.end)
         )
 
@@ -178,10 +233,10 @@ class PysUnaryOperatorNode(PysNode):
     __slots__ = ('operand', 'value', 'operand_position')
 
     @typechecked
-    def __init__(self, operand: PysToken, value: PysNode, operand_position: int) -> None:
+    def __init__(self, operand: PysToken, value: PysNode, operand_position: Literal['left', 'right']) -> None:
         super().__init__(
             PysPosition(operand.position.file, operand.position.start, value.position.end)
-            if operand_position == NUNR_LEFT else
+            if operand_position == 'left' else
             PysPosition(operand.position.file, value.position.start, operand.position.end)
         )
 
@@ -194,6 +249,18 @@ class PysUnaryOperatorNode(PysNode):
             'UnaryOperator('
             f'operand={self.operand!r}, value={self.value!r}, operand_position={self.operand_position!r})'
         )
+
+class PysStatementsNode(PysNode):
+
+    __slots__ = ('body',)
+
+    @typechecked
+    def __init__(self, body: list[PysNode], position: PysPosition) -> None:
+        super().__init__(position)
+        setimuattr(self, 'body', tuple(body))
+
+    def __repr__(self):
+        return f'Statements(body={self.body!r})'
 
 class PysAssignNode(PysNode):
 
@@ -217,13 +284,13 @@ class PysImportNode(PysNode):
     def __init__(
         self,
         name: tuple[PysToken, PysToken | None],
-        packages: list[tuple[PysToken, PysToken | None]] | int,
+        packages: list[tuple[PysToken, PysToken | None]] | Literal['all'],
         position: PysPosition
     ) -> None:
 
         super().__init__(position)
         setimuattr(self, 'name', name)
-        setimuattr(self, 'packages', packages if isinstance(packages, int) else tuple(packages))
+        setimuattr(self, 'packages', tuple(packages) if isinstance(packages, list) else packages)
 
     def __repr__(self):
         return f'Import(name={self.name!r}, packages={self.packages!r})'
@@ -425,24 +492,17 @@ class PysFunctionNode(PysNode):
             f'decorators={self.decorators!r}, name={self.name!r}, parameters={self.parameters!r}, body={self.body!r})'
         )
 
-class PysCallNode(PysNode):
+class PysGlobalNode(PysNode):
 
-    __slots__ = ('target', 'arguments')
+    __slots__ = ('identifiers',)
 
     @typechecked
-    def __init__(
-        self,
-        target: PysNode,
-        arguments: list[PysNode | tuple[PysToken, PysNode]],
-        position: PysPosition
-    ) -> None:
-
+    def __init__(self, identifiers: list[PysToken], position: PysPosition) -> None:
         super().__init__(position)
-        setimuattr(self, 'target', target)
-        setimuattr(self, 'arguments', tuple(arguments))
+        setimuattr(self, 'identifiers', tuple(identifiers))
 
     def __repr__(self):
-        return f'Call(target={self.target!r}, arguments={self.arguments!r})'
+        return f'Global(identifiers={self.identifiers!r})'
 
 class PysReturnNode(PysNode):
 
@@ -458,15 +518,23 @@ class PysReturnNode(PysNode):
 
 class PysThrowNode(PysNode):
 
-    __slots__ = ('target',)
+    __slots__ = ('target', 'another')
 
     @typechecked
-    def __init__(self, target: PysNode, position: PysPosition) -> None:
-        super().__init__(PysPosition(position.file, position.start, target.position.end))
+    def __init__(self, target: PysNode, another: PysNode | None, position: PysPosition) -> None:
+        super().__init__(
+            PysPosition(
+                position.file,
+                position.start,
+                target.position.end if another is None else another.position.end
+            )
+        )
+
         setimuattr(self, 'target', target)
+        setimuattr(self, 'another', another)
 
     def __repr__(self):
-        return f'Throw(target={self.target!r})'
+        return f'Throw(target={self.target!r}, another={self.another!r})'
 
 class PysAssertNode(PysNode):
 
@@ -480,6 +548,18 @@ class PysAssertNode(PysNode):
 
     def __repr__(self):
         return f'Assert(condition={self.condition!r}, message={self.message!r})'
+
+class PysDeleteNode(PysNode):
+
+    __slots__ = ('targets',)
+
+    @typechecked
+    def __init__(self, targets: list[PysNode], position: PysPosition) -> None:
+        super().__init__(position)
+        setimuattr(self, 'targets', tuple(targets))
+
+    def __repr__(self):
+        return f'Delete(targets={self.targets!r})'
 
 class PysEllipsisNode(PysNode):
 

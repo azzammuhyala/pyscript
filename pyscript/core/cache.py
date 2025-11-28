@@ -1,21 +1,17 @@
 from .bases import Pys
-from .constants import LIBRARY_PATH
-from .utils.decorators import uninherited, singleton
+from .constants import LIBRARIES_PATH, SITE_PACKAGES_PATH
 from .utils.debug import print_traceback
+from .utils.decorators import uninherited, singleton
 
-from os.path import splitext
-from os import listdir
 from threading import RLock
+from re import compile as re_compile
 
 loading_modules = set()
-singletons = dict()
-modules = dict()
 lock = RLock()
-
-try:
-    library = set(splitext(lib)[0] for lib in listdir(LIBRARY_PATH))
-except BaseException as e:
-    library = set()
+modules = dict()
+path = [SITE_PACKAGES_PATH, LIBRARIES_PATH]
+singletons = dict()
+version_match = re_compile(r'^(\d+)\.(\d+)\.(\d+)((?:a|b|rc)(\d+)|\.(dev|post)(\d+))?$').match
 
 @singleton
 @uninherited
@@ -25,7 +21,7 @@ class PysUndefined(Pys):
 
     def __new_singleton__(cls):
         global undefined
-        undefined = object.__new__(cls)
+        undefined = super(cls, cls).__new__(cls)
         return undefined
 
     def __repr__(self):
@@ -42,7 +38,7 @@ class PysHook(Pys):
 
     def __new_singleton__(cls):
         global hook
-        hook = object.__new__(cls)
+        hook = super(cls, cls).__new__(cls)
         hook.display = None
         hook.exception = print_traceback
         hook.ps1 = '>>> '

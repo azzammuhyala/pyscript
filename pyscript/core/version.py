@@ -1,8 +1,10 @@
 from .bases import Pys
+from .cache import version_match
+from .mapping import TAG_VERSION_MAP
 from .utils.decorators import immutable, uninherited, singleton
 
-__version__ = '1.5.1'
-__date__ = '16 November 2025, 12:10 UTC+7'
+__version__ = '1.6.0a1'
+__date__ = '28 November 2025, 15:00 UTC+7'
 
 version = f'{__version__} ({__date__})'
 
@@ -14,8 +16,28 @@ class PysVersionInfo(Pys, tuple):
     __slots__ = ()
 
     def __new_singleton__(cls):
+        match = version_match(__version__)
+        if not match:
+            raise ValueError(f"invalid format version {__version__!r}")
+
+        major, minor, micro, pre_full, pre_num1, pre_tag2, pre_num2 = match.groups()
+
+        if pre_full:
+            if pre_tag2:
+                pre_tag_full = TAG_VERSION_MAP[pre_tag2]
+                pre_num = int(pre_num2)
+            else:
+                pre_tag_full = (
+                    TAG_VERSION_MAP[pre_full[0]]
+                    if pre_full.startswith(('a', 'b')) else
+                    TAG_VERSION_MAP['rc']
+                )
+                pre_num = int(pre_num1)
+        else:
+            pre_tag_full = pre_num = None
+
         global version_info
-        version_info = tuple.__new__(cls, map(int, __version__.split('.')))
+        version_info = tuple.__new__(cls, (int(major), int(minor), int(micro), pre_tag_full, pre_num))
         return version_info
 
     @property
@@ -30,7 +52,41 @@ class PysVersionInfo(Pys, tuple):
     def micro(self):
         return self[2]
 
+    @property
+    def pre_tag(self):
+        return self[3]
+
+    @property
+    def pre_num(self):
+        return self[4]
+
+    @property
+    def release(self):
+        return self[0:3]
+
+    def __lt__(self, other):
+        return self.release < other
+
+    def __gt__(self, other):
+        return self.release > other
+
+    def __le__(self, other):
+        return self.release <= other
+
+    def __ge__(self, other):
+        return self.release >= other
+
+    def __eq__(self, value):
+        return self.release == value
+
+    def __ne__(self, value):
+        return self.release != value
+
     def __repr__(self):
-        return f'VersionInfo(major={self.major!r}, minor={self.minor!r}, micro={self.micro!r})'
+        return (
+            f'VersionInfo(major={self.major!r}, minor={self.minor!r}, micro={self.micro!r}' +
+            ('' if self.pre_tag is None else f', pre_tag={self.pre_tag!r}, pre_num={self.pre_num!r}') +
+            ')'
+        )
 
 PysVersionInfo()

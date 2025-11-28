@@ -1,4 +1,5 @@
-from ..constants import TOKENS, KEYWORDS, NSEQ_DICT, NSEQ_SET, NSEQ_LIST, NSEQ_TUPLE
+from .constants import TOKENS, KEYWORDS
+from .nodes import PysDictionaryNode, PysSetNode, PysListNode, PysTupleNode
 
 from operator import (
     is_not,
@@ -10,46 +11,46 @@ from operator import (
 from types import MappingProxyType
 
 BINARY_FUNCTIONS_MAP = MappingProxyType({
-    TOKENS['NOTIN']: lambda a, b : a not in b,
-    TOKENS['ISNOT']: is_not,
-    TOKENS['ADD']: add,
-    TOKENS['SUB']: sub,
-    TOKENS['MUL']: mul,
-    TOKENS['DIV']: truediv,
-    TOKENS['FDIV']: floordiv,
-    TOKENS['POW']: pow,
+    TOKENS['NOT-IN']: lambda a, b : a not in b,
+    TOKENS['IS-NOT']: is_not,
+    TOKENS['PLUS']: add,
+    TOKENS['MINUS']: sub,
+    TOKENS['STAR']: mul,
+    TOKENS['SLASH']: truediv,
+    TOKENS['DOUBLE-SLASH']: floordiv,
+    TOKENS['DOUBLE-STAR']: pow,
     TOKENS['AT']: matmul,
-    TOKENS['MOD']: mod,
-    TOKENS['AND']: and_,
-    TOKENS['OR']: or_,
-    TOKENS['XOR']: xor,
-    TOKENS['LSHIFT']: lshift,
-    TOKENS['RSHIFT']: rshift,
-    TOKENS['EE']: eq,
-    TOKENS['NE']: ne,
-    TOKENS['LT']: lt,
-    TOKENS['GT']: gt,
-    TOKENS['LTE']: le,
-    TOKENS['GTE']: ge,
-    TOKENS['EADD']: iadd,
-    TOKENS['ESUB']: isub,
-    TOKENS['EMUL']: imul,
-    TOKENS['EDIV']: itruediv,
-    TOKENS['EFDIV']: ifloordiv,
-    TOKENS['EPOW']: ipow,
-    TOKENS['EAT']: imatmul,
-    TOKENS['EMOD']: imod,
-    TOKENS['EAND']: iand,
-    TOKENS['EOR']: ior,
-    TOKENS['EXOR']: ixor,
-    TOKENS['ELSHIFT']: ilshift,
-    TOKENS['ERSHIFT']: irshift,
+    TOKENS['PERCENT']: mod,
+    TOKENS['AMPERSAND']: and_,
+    TOKENS['PIPE']: or_,
+    TOKENS['CIRCUMFLEX']: xor,
+    TOKENS['DOUBLE-LESS-THAN']: lshift,
+    TOKENS['DOUBLE-GREATER-THAN']: rshift,
+    TOKENS['DOUBLE-EQUAL']: eq,
+    TOKENS['EQUAL-EXCLAMATION']: ne,
+    TOKENS['LESS-THAN']: lt,
+    TOKENS['GREATER-THAN']: gt,
+    TOKENS['EQUAL-LESS-THAN']: le,
+    TOKENS['EQUAL-GREATER-THAN']: ge,
+    TOKENS['EQUAL-PLUS']: iadd,
+    TOKENS['EQUAL-MINUS']: isub,
+    TOKENS['EQUAL-STAR']: imul,
+    TOKENS['EQUAL-SLASH']: itruediv,
+    TOKENS['EQUAL-DOUBLE-SLASH']: ifloordiv,
+    TOKENS['EQUAL-DOUBLE-STAR']: ipow,
+    TOKENS['EQUAL-AT']: imatmul,
+    TOKENS['EQUAL-PERCENT']: imod,
+    TOKENS['EQUAL-AMPERSAND']: iand,
+    TOKENS['EQUAL-PIPE']: ior,
+    TOKENS['EQUAL-CIRCUMFLEX']: ixor,
+    TOKENS['EQUAL-DOUBLE-LESS-THAN']: ilshift,
+    TOKENS['EQUAL-DOUBLE-GREATER-THAN']: irshift,
 })
 
 UNARY_FUNCTIONS_MAP = MappingProxyType({
-    TOKENS['ADD']: pos,
-    TOKENS['SUB']: neg,
-    TOKENS['NOT']: inv
+    TOKENS['PLUS']: pos,
+    TOKENS['MINUS']: neg,
+    TOKENS['TILDE']: inv
 })
 
 KEYWORDS_TO_VALUES_MAP = MappingProxyType({
@@ -61,29 +62,25 @@ KEYWORDS_TO_VALUES_MAP = MappingProxyType({
     KEYWORDS['none']: None
 })
 
-PARENTHESISES_ITERABLE_MAP = MappingProxyType({
-    NSEQ_TUPLE: TOKENS['LPAREN'],
-    NSEQ_LIST: TOKENS['LSQUARE'],
-    NSEQ_DICT: TOKENS['LBRACE'],
-    NSEQ_SET: TOKENS['LBRACE']
-})
-
 PARENTHESISES_MAP = MappingProxyType({
-    TOKENS['LPAREN']: TOKENS['RPAREN'],
-    TOKENS['LSQUARE']: TOKENS['RSQUARE'],
-    TOKENS['LBRACE']: TOKENS['RBRACE']
+    TOKENS['LEFT-PARENTHESIS']: TOKENS['RIGHT-PARENTHESIS'],
+    TOKENS['LEFT-SQUARE']: TOKENS['RIGHT-SQUARE'],
+    TOKENS['LEFT-CURLY']: TOKENS['RIGHT-CURLY']
 })
 
-LEFT_PARENTHESISES = set(PARENTHESISES_MAP.keys())
-RIGHT_PARENTHESISES = set(PARENTHESISES_MAP.values())
-PARENTHESISES = LEFT_PARENTHESISES | RIGHT_PARENTHESISES
+PARENTHESISES_ITERABLE_MAP = MappingProxyType({
+    'dict': TOKENS['LEFT-CURLY'],
+    'set': TOKENS['LEFT-CURLY'],
+    'list': TOKENS['LEFT-SQUARE'],
+    'tuple': TOKENS['LEFT-PARENTHESIS']
+})
 
-KEYWORD_IDENTIFIERS = {
-    KEYWORDS['of'], KEYWORDS['in'], KEYWORDS['is'],
-    KEYWORDS['and'], KEYWORDS['or'], KEYWORDS['not'],
-    KEYWORDS['False'], KEYWORDS['None'], KEYWORDS['True'],
-    KEYWORDS['false'], KEYWORDS['none'], KEYWORDS['true']
-}
+NODE_ITERABLE_MAP = MappingProxyType({
+    'dict': PysDictionaryNode,
+    'set': PysSetNode,
+    'list': PysListNode,
+    'tuple': PysTupleNode
+})
 
 ANSI_NAMES_MAP = MappingProxyType({
     'reset': 0,
@@ -103,7 +100,7 @@ ANSI_NAMES_MAP = MappingProxyType({
     'bright-white': 97
 })
 
-HIGHLIGHT = MappingProxyType({
+HIGHLIGHT_MAP = MappingProxyType({
     'default': '#D4D4D4',
     'keyword': '#C586C0',
     'keyword-identifier': '#307CD6',
@@ -120,33 +117,12 @@ HIGHLIGHT = MappingProxyType({
     'comment': '#549952'
 })
 
-PYTHON_EXTENSIONS = {
-    '.ipy',
-    '.py',
-    '.pyc',
-    '.pyd',
-    '.pyi',
-    '.pyo',
-    '.pyp',
-    '.pyw',
-    '.pyz',
-    '.pyproj',
-    '.rpy',
-    '.xpy'
-}
+TAG_VERSION_MAP = MappingProxyType({
+    'a': 'alpha',
+    'b': 'beta',
+    'rc': 'release candidate',
+    'dev': 'development',
+    'post': 'post'
+})
 
-BLACKLIST_PYTHON_BUILTINS = {
-    'compile',
-    'copyright',
-    'credits',
-    'dir',
-    'eval',
-    'exec',
-    'help',
-    'globals',
-    'license',
-    'locals',
-    'vars'
-}
-
-CONSTRUCTOR_METHODS = ('__new__', '__init__')
+EMPTY_MAP = MappingProxyType({})

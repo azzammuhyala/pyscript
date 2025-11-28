@@ -22,6 +22,9 @@ instructions like those in C, C++, and other low-level languages.
 To learn more about PyScript, you can see on [PyScript documentation here](https://azzammuhyala.github.io/pyscript) or 
 [PyScript repository](https://github.com/azzammuhyala/pyscript).
 
+## Syntax
+<pre class="pyscript-code"><span style="color:#C586C0">func</span><span style="color:#D4D4D4"> </span><span style="color:#DCDCAA">greet</span><span style="color:#FFD705">(</span><span style="color:#8CDCFE">name</span><span style="color:#FFD705">)</span><span style="color:#D4D4D4"> </span><span style="color:#FFD705">{</span><br><span style="color:#D4D4D4">    </span><span style="color:#DCDCAA">print</span><span style="color:#D45DBA">(</span><span style="color:#CE9178">&quot;Hello, &quot;</span><span style="color:#D4D4D4"> + </span><span style="color:#8CDCFE">name</span><span style="color:#D4D4D4"> + </span><span style="color:#CE9178">&quot;!&quot;</span><span style="color:#D45DBA">)</span><br><span style="color:#FFD705">}</span><br><br><span style="color:#DCDCAA">greet</span><span style="color:#FFD705">(</span><span style="color:#CE9178">&quot;Azzam&quot;</span><span style="color:#FFD705">)</span></pre>
+
 ## Behind it
 This language created from based up on a
 [YouTube tutorial](https://www.youtube.com/playlist?list=PLZQftyCk7_SdoVexSmwy_tBgs7P0b97yD). At least, it takes

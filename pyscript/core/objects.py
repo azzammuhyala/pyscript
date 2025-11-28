@@ -4,7 +4,7 @@ from .context import PysContext, PysClassContext
 from .exceptions import PysException, PysShouldReturn
 from .results import PysRunTimeResult
 from .symtab import PysSymbolTable
-from .utils.general import join_with_conjunction, get_closest
+from .utils.generic import join_with_conjunction, get_closest
 
 from types import MethodType
 

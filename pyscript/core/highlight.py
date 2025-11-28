@@ -1,17 +1,11 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
+from .checks import is_left_parenthesis, is_right_parenthesis, is_parenthesis, is_keyword_identifiers
 from .constants import TOKENS, KEYWORDS, DEFAULT, SILENT, COMMENT
 from .lexer import PysLexer
+from .mapping import PARENTHESISES_MAP, HIGHLIGHT_MAP
 from .position import PysPosition
 from .pysbuiltins import pys_builtins
-from .utils.constants import (
-    PARENTHESISES_MAP,
-    LEFT_PARENTHESISES,
-    RIGHT_PARENTHESISES,
-    PARENTHESISES,
-    KEYWORD_IDENTIFIERS,
-    HIGHLIGHT
-)
 from .utils.decorators import typechecked
 
 from html import escape as html_escape
@@ -69,12 +63,12 @@ class _HighlightFormatter(Pys):
         return result
 
 def _ansi_open_block(position, type):
-    color = HIGHLIGHT.get(type, 'default')
+    color = HIGHLIGHT_MAP.get(type, 'default')
     return f'\x1b[38;2;{int(color[1:3], 16)};{int(color[3:5], 16)};{int(color[5:7], 16)}m'
 
 HLFMT_HTML = _HighlightFormatter(
     lambda position, content: '<br>'.join(html_escape(content).splitlines()),
-    lambda position, type: f'<span style="color:{HIGHLIGHT.get(type, "default")}">',
+    lambda position, type: f'<span style="color:{HIGHLIGHT_MAP.get(type, "default")}">',
     lambda position, type: '</span>',
     lambda position: '<br>'
 )
@@ -83,6 +77,13 @@ HLFMT_ANSI = _HighlightFormatter(
     lambda position, content: content,
     _ansi_open_block,
     lambda position, type: '\x1b[0m',
+    lambda position: '\n'
+)
+
+HLFMT_BBCODE = _HighlightFormatter(
+    lambda position, content: content,
+    lambda position, type: f'[color={HIGHLIGHT_MAP.get(type, "default")}]',
+    lambda position, type: '[/color]',
     lambda position: '\n'
 )
 
@@ -128,9 +129,9 @@ def pys_highlight(
     last_index_position = 0
     parenthesis_level = 0
     parenthesises_level = {
-        TOKENS['RPAREN']: 0,
-        TOKENS['RSQUARE']: 0,
-        TOKENS['RBRACE']: 0
+        TOKENS['RIGHT-PARENTHESIS']: 0,
+        TOKENS['RIGHT-SQUARE']: 0,
+        TOKENS['RIGHT-CURLY']: 0
     }
 
     text = file.text
@@ -139,15 +140,15 @@ def pys_highlight(
         ttype = token.type
         tvalue = token.value
 
-        if ttype in RIGHT_PARENTHESISES:
+        if is_right_parenthesis(ttype):
             parenthesises_level[ttype] -= 1
             parenthesis_level -= 1
 
-        if ttype == TOKENS['EOF']:
+        if ttype == TOKENS['NULL']:
             type_fmt = 'end'
 
         elif ttype == TOKENS['KEYWORD']:
-            type_fmt = 'keyword-identifier' if tvalue in KEYWORD_IDENTIFIERS else 'keyword'
+            type_fmt = 'keyword-identifier' if is_keyword_identifiers(tvalue) else 'keyword'
 
         elif ttype == TOKENS['NUMBER']:
             type_fmt = 'number'
@@ -168,7 +169,7 @@ def pys_highlight(
                 type_fmt = 'identifier-const' if tvalue.isupper() else 'identifier'
 
                 j = i + 1
-                if (j < len(tokens) and tokens[j].type == TOKENS['LPAREN']):
+                if (j < len(tokens) and tokens[j].type == TOKENS['LEFT-PARENTHESIS']):
                     type_fmt = 'identifier-call'
 
                 j = i - 1
@@ -180,7 +181,7 @@ def pys_highlight(
                 elif tokens[j].match(TOKENS['KEYWORD'], KEYWORDS['func']):
                     type_fmt = 'identifier-call'
 
-        elif ttype in PARENTHESISES:
+        elif is_parenthesis(ttype):
             type_fmt = 'parenthesis-{}'.format(
                 'unmatch'
                 if
@@ -205,11 +206,11 @@ def pys_highlight(
 
         result += format(type_fmt, token.position, text[token.position.start:token.position.end])
 
-        if ttype in LEFT_PARENTHESISES:
+        if is_left_parenthesis(ttype):
             parenthesises_level[PARENTHESISES_MAP[ttype]] += 1
             parenthesis_level += 1
 
-        elif ttype == TOKENS['EOF']:
+        elif ttype == TOKENS['NULL']:
             break
 
         last_index_position = token.position.end

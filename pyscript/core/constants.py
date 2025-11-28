@@ -1,81 +1,89 @@
-from os.path import sep
+from os.path import sep, join, normcase
 from types import MappingProxyType
 
 # paths
-PYSCRIPT_PATH = sep.join(__file__.split(sep)[:-2])
-LIBRARY_PATH = f'{PYSCRIPT_PATH}{sep}lib'
+PYSCRIPT_PATH = normcase(sep.join(__file__.split(sep)[:-2]))
+LIBRARIES_PATH = join(PYSCRIPT_PATH, 'lib')
+SITE_PACKAGES_PATH = join(PYSCRIPT_PATH, 'site-packages')
+
+# environment variables
+PYSCRIPT_TYPECHECKING = 'PYSCRIPT_TYPECHECKING'
+PYSCRIPT_EXCEPTHOOK = 'PYSCRIPT_EXCEPTHOOK'
+PYSCRIPT_SHELL = 'PYSCRIPT_SHELL'
+PYSCRIPT_GIL = 'PYSCRIPT_GIL'
 
 # tokens offset
-DOUBLE = 0xFF * 1
-TRIPLE = 0xFF * 2
-WITH_EQ = 0xFF * 3
-SPECIAL = 0xFF * 4
+DOUBLE = 256 * 2**0
+TRIPLE = 256 * 2**1
+WITH_EQUAL = 256 * 2**2
+WITH_EXCLAMATION = 256 * 2**3
 
 # tokens
 TOKENS = MappingProxyType({
-    'EOF': ord('\0'),
+    'NULL': ord('\0'),
     'KEYWORD': 1,
     'IDENTIFIER': 2,
     'NUMBER': 3,
     'STRING': 4,
-    'NOTIN': 5,
-    'ISNOT': 6,
-    'ADD': ord('+'),
-    'SUB': ord('-'),
-    'MUL': ord('*'),
-    'DIV': ord('/'),
-    'FDIV': ord('/') + DOUBLE,
-    'MOD': ord('%'),
-    'AT': ord('@'),
-    'POW': ord('*') + DOUBLE,
-    'AND': ord('&'),
-    'OR': ord('|'),
-    'XOR': ord('^'),
-    'NOT': ord('~'),
-    'LSHIFT': ord('<') + DOUBLE,
-    'RSHIFT': ord('>') + DOUBLE,
-    'INCREMENT': ord('+') + DOUBLE,
-    'DECREMENT': ord('-') + DOUBLE,
-    'CAND': ord('&') + DOUBLE,
-    'COR': ord('|') + DOUBLE,
-    'CNOT': ord('!'),
-    'LPAREN': ord('('),
-    'RPAREN': ord(')'),
-    'LSQUARE': ord('['),
-    'RSQUARE': ord(']'),
-    'LBRACE': ord('{'),
-    'RBRACE': ord('}'),
-    'EQ': ord('='),
-    'EE': ord('=') + DOUBLE,
-    'NE': ord('!') + WITH_EQ,
-    'CE': ord('~') + WITH_EQ,
-    'NCE': ord('~') + SPECIAL,
-    'LT': ord('<'),
-    'GT': ord('>'),
-    'LTE': ord('<') + WITH_EQ,
-    'GTE': ord('>') + WITH_EQ,
-    'EADD': ord('+') + WITH_EQ,
-    'ESUB': ord('-') + WITH_EQ,
-    'EMUL': ord('*') + WITH_EQ,
-    'EDIV': ord('/') + WITH_EQ,
-    'EFDIV': ord('/') + DOUBLE + WITH_EQ,
-    'EMOD': ord('%') + WITH_EQ,
-    'EAT': ord('@') + WITH_EQ,
-    'EPOW': ord('*') + DOUBLE + WITH_EQ,
-    'EAND': ord('&') + WITH_EQ,
-    'EOR': ord('|') + WITH_EQ,
-    'EXOR': ord('^') + WITH_EQ,
-    'ELSHIFT': ord('<') + DOUBLE + WITH_EQ,
-    'ERSHIFT': ord('>') + DOUBLE + WITH_EQ,
-    'NULLISH': ord('?') + DOUBLE,
-    'COLON': ord(':'),
-    'COMMA': ord(','),
-    'DOT': ord('.'),
-    'QUESTION': ord('?'),
-    'ELLIPSIS': ord('.') + TRIPLE,
-    'SEMICOLON': ord(';'),
+    'NOT-IN': 5,
+    'IS-NOT': 6,
     'NEWLINE': ord('\n'),
-    'COMMENT': ord('#')
+    'EXCLAMATION': ord('!'),
+    'COMMENT': ord('#'),
+    'PERCENT': ord('%'),
+    'AMPERSAND': ord('&'),
+    'RIGHT-PARENTHESIS': ord(')'),
+    'LEFT-PARENTHESIS': ord('('),
+    'STAR': ord('*'),
+    'PLUS': ord('+'),
+    'COMMA': ord(','),
+    'MINUS': ord('-'),
+    'DOT': ord('.'),
+    'SLASH': ord('/'),
+    'COLON': ord(':'),
+    'SEMICOLON': ord(';'),
+    'LESS-THAN': ord('<'),
+    'EQUAL': ord('='),
+    'GREATER-THAN': ord('>'),
+    'QUESTION': ord('?'),
+    'AT': ord('@'),
+    'LEFT-SQUARE': ord('['),
+    'RIGHT-SQUARE': ord(']'),
+    'CIRCUMFLEX': ord('^'),
+    'LEFT-CURLY': ord('{'),
+    'PIPE': ord('|'),
+    'RIGHT-CURLY': ord('}'),
+    'TILDE': ord('~'),
+    'DOUBLE-AMPERSAND': ord('&') + DOUBLE,
+    'DOUBLE-STAR': ord('*') + DOUBLE,
+    'DOUBLE-PLUS': ord('+') + DOUBLE,
+    'DOUBLE-MINUS': ord('-') + DOUBLE,
+    'DOUBLE-SLASH': ord('/') + DOUBLE,
+    'DOUBLE-LESS-THAN': ord('<') + DOUBLE,
+    'DOUBLE-EQUAL': ord('=') + DOUBLE,
+    'DOUBLE-GREATER-THAN': ord('>') + DOUBLE,
+    'DOUBLE-QUESTION': ord('?') + DOUBLE,
+    'DOUBLE-PIPE': ord('|') + DOUBLE,
+    'TRIPLE-DOT': ord('.') + TRIPLE,
+    'EQUAL-EXCLAMATION': ord('!') + WITH_EQUAL,
+    'EQUAL-PERCENT': ord('%') + WITH_EQUAL,
+    'EQUAL-AMPERSAND': ord('&') + WITH_EQUAL,
+    'EQUAL-STAR': ord('*') + WITH_EQUAL,
+    'EQUAL-PLUS': ord('+') + WITH_EQUAL,
+    'EQUAL-MINUS': ord('-') + WITH_EQUAL,
+    'EQUAL-SLASH': ord('/') + WITH_EQUAL,
+    'EQUAL-COLON': ord(':') + WITH_EQUAL,
+    'EQUAL-LESS-THAN': ord('<') + WITH_EQUAL,
+    'EQUAL-GREATER-THAN': ord('>') + WITH_EQUAL,
+    'EQUAL-AT': ord('@') + WITH_EQUAL,
+    'EQUAL-CIRCUMFLEX': ord('^') + WITH_EQUAL,
+    'EQUAL-PIPE': ord('|') + WITH_EQUAL,
+    'EQUAL-TILDE': ord('~') + WITH_EQUAL,
+    'EQUAL-DOUBLE-STAR': ord('*') + DOUBLE + WITH_EQUAL,
+    'EQUAL-DOUBLE-SLASH': ord('/') + DOUBLE + WITH_EQUAL,
+    'EQUAL-DOUBLE-LESS-THAN': ord('<') + DOUBLE + WITH_EQUAL,
+    'EQUAL-DOUBLE-GREATER-THAN': ord('>') + DOUBLE + WITH_EQUAL,
+    'EXCLAMATION-TILDE': ord('~') + WITH_EXCLAMATION,
 })
 
 # keywords
@@ -135,23 +143,3 @@ BOLD = 1 << 0
 ITALIC = 1 << 1
 UNDER = 1 << 2
 STRIKET = 1 << 3
-
-# types for pyscript.core.nodes.PysSequenceNode
-NSEQ_STATEMENTS = 1
-NSEQ_GLOBAL = 2
-NSEQ_DEL = 3
-NSEQ_DICT = 4
-NSEQ_SET = 5
-NSEQ_LIST = 6
-NSEQ_TUPLE = 7
-
-# styles for pyscript.core.nodes.PysTernaryOperatorNode
-NTER_GENERAL = 1
-NTER_PYTHONIC = 2
-
-# operand positions for pyscript.core.nodes.PysUnaryOperatorNode
-NUNR_LEFT = 1
-NUNR_RIGHT = 2
-
-# all packages for pyscript.core.nodes.PysImportNode
-NIMP_ALL = 1

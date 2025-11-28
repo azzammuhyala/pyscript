@@ -1,7 +1,7 @@
 from .analyzer import PysAnalyzer
 from .buffer import PysFileBuffer
 from .cache import undefined, hook, PysUndefined
-from .constants import DEFAULT, SILENT, RETRES, COMMENT, NO_COLOR, BOLD
+from .constants import PYSCRIPT_SHELL, PYSCRIPT_TYPECHECKING, DEFAULT, SILENT, RETRES, COMMENT, NO_COLOR, BOLD
 from .context import PysContext
 from .exceptions import PysException
 from .handlers import handle_exception, handle_execute
@@ -12,10 +12,11 @@ from .position import PysPosition
 from .results import PysRunTimeResult, PysExecuteResult
 from .symtab import PysSymbolTable, build_symbol_table
 from .utils.debug import print_display
-from .utils.decorators import typechecked, _TYPECHECKED
-from .utils.general import setimuattr, acolor, get_locals, is_object_of
+from .utils.decorators import typechecked
+from .utils.generic import setimuattr, acolor, get_locals
 from .version import version
 
+from os import environ
 from sys import stderr, version as pyversion
 from typing import Any, Literal, Optional
 
@@ -23,7 +24,9 @@ def _normalize_globals(file, globals, stack_level):
     stack_level += 1
 
     if globals is None:
-        globals = build_symbol_table(file, get_locals(stack_level + 1 if _TYPECHECKED else stack_level))
+        globals = build_symbol_table(file, get_locals(stack_level + 1
+                                                      if environ.get(PYSCRIPT_TYPECHECKING, '1') == '1' else
+                                                      stack_level))
     elif globals is undefined:
         globals = build_symbol_table(file)
         globals.set('__name__', '__main__')
@@ -206,11 +209,11 @@ def pys_shell(
     flags: A special flags.
     """
 
+    if environ.get(PYSCRIPT_SHELL, '0') == '1':
+        raise RuntimeError("another shell is still running")
+
     file = PysFileBuffer('', '<pyscript-shell>')
-
     globals = _normalize_globals(file, globals, 2)
-
-    hook.display = print_display
 
     if flags & NO_COLOR:
         reset = ''
@@ -245,108 +248,121 @@ def pys_shell(
     print(f'Python {pyversion}')
     print('Type "help" or "license" for more information.')
 
-    while True:
+    try:
 
-        try:
+        environ[PYSCRIPT_SHELL] = '1'
+        hook.display = print_display
 
-            if is_next_line():
-                text = input(f'{bmagenta}{hook.ps2}{reset}')
+        while True:
 
-            else:
-                text = input(f'{bmagenta}{hook.ps1}{reset}')
-                if text == '/exit':
-                    return 0
+            try:
 
-            next_line = False
-            in_decorator = False
-            is_space = True
+                if is_next_line():
+                    text = input(f'{bmagenta}{hook.ps2}{reset}')
 
-            i = 0
+                else:
+                    text = input(f'{bmagenta}{hook.ps1}{reset}')
+                    if text == '/exit':
+                        return 0
 
-            while i < len(text):
-                character = text[i]
-
-                if character == '\\':
-                    i += 1
-                    character = text[i:i+1]
-
-                    if character == '':
-                        next_line = True
-                        break
-
-                elif character in '\'"':
-                    bind_3 = text[i:i+3]
-
-                    if is_triple_string:
-
-                        if len(bind_3) == 3 and string_prefix * 3 == bind_3:
-                            in_string = False
-                            is_triple_string = False
-                            i += 2
-
-                    else:
-                        if not in_string and bind_3 in ("'''", '"""'):
-                            is_triple_string = True
-                            i += 2
-
-                        if in_string and string_prefix == character:
-                            in_string = False
-                        else:
-                            string_prefix = character
-                            in_string = True
-
-                if not in_string:
-
-                    if character == '#':
-                        break
-
-                    elif is_space and character == '@':
-                        in_decorator = True
-                        i += 1
-                        continue
-
-                    elif character in '([{':
-                        parenthesis_level += 1
-
-                    elif character in ')]}':
-                        parenthesis_level -= 1
-
-                    if not character.isspace():
-                        is_space = False
-
-                i += 1
-
-            if in_decorator and is_space:
+                next_line = False
                 in_decorator = False
+                is_space = True
 
-            if in_string and not (next_line or is_triple_string):
-                in_string = False
-                parenthesis_level = 0
+                i = 0
 
-            if is_next_line():
-                full_text += text + '\n'
-                continue
+                while i < len(text):
+                    character = text[i]
 
-            result = pys_runner(
-                file=PysFileBuffer(full_text + text, f'<pyscript-shell-{line}>'),
-                mode='exec',
-                symbol_table=globals,
-                flags=flags
-            )
+                    if character == '\\':
+                        i += 1
+                        character = text[i:i+1]
 
-            if result.error and is_object_of(result.error.exception, SystemExit):
-                return result.error.exception.code
+                        if character == '':
+                            next_line = True
+                            break
 
-            flags = result.context.flags
-            code = handle_execute(result)
-            if code == 0:
-                line += 1
+                    elif character in '\'"':
+                        bind_3 = text[i:i+3]
 
-            reset_next_line()
+                        if is_triple_string:
 
-        except KeyboardInterrupt:
-            reset_next_line()
-            print(f'\r{bmagenta}KeyboardInterrupt. Type "exit" or "/exit" to exit.{reset}', file=stderr)
+                            if len(bind_3) == 3 and string_prefix * 3 == bind_3:
+                                in_string = False
+                                is_triple_string = False
+                                i += 2
 
-        except EOFError:
-            return 0
+                        else:
+                            if not in_string and bind_3 in ("'''", '"""'):
+                                is_triple_string = True
+                                i += 2
+
+                            if in_string and string_prefix == character:
+                                in_string = False
+                            else:
+                                string_prefix = character
+                                in_string = True
+
+                    if not in_string:
+
+                        if character == '#':
+                            break
+
+                        elif is_space and character == '@':
+                            in_decorator = True
+                            i += 1
+                            continue
+
+                        elif character in '([{':
+                            parenthesis_level += 1
+
+                        elif character in ')]}':
+                            parenthesis_level -= 1
+
+                        if not character.isspace():
+                            is_space = False
+
+                    i += 1
+
+                if in_decorator and is_space:
+                    in_decorator = False
+
+                if in_string and not (next_line or is_triple_string):
+                    in_string = False
+                    parenthesis_level = 0
+
+                if is_next_line():
+                    full_text += text + '\n'
+                    continue
+
+                result = pys_runner(
+                    file=PysFileBuffer(full_text + text, f'<pyscript-shell-{line}>'),
+                    mode='exec',
+                    symbol_table=globals,
+                    flags=flags
+                )
+
+                if result.error:
+                    if result.error.exception is SystemExit:
+                        return 0
+                    if type(result.error.exception) is SystemExit:
+                        return result.error.exception.code
+
+                flags = result.context.flags
+                code = handle_execute(result)
+                if code == 0:
+                    line += 1
+
+                reset_next_line()
+
+            except KeyboardInterrupt:
+                reset_next_line()
+                print(f'\r{bmagenta}KeyboardInterrupt. Type "exit" or "/exit" to exit.{reset}', file=stderr)
+
+            except EOFError:
+                print()
+                return 0
+
+    finally:
+        environ[PYSCRIPT_SHELL] = '0'
+        hook.display = None

@@ -1,13 +1,11 @@
 from . import (
-    constants,
     debug,
     decorators,
-    general
+    generic
 )
 
 __all__ = (
-    'constants',
     'debug',
     'decorators',
-    'general'
+    'generic'
 )

@@ -1,0 +1,34 @@
+import os
+import sys
+import explorer
+
+from "_pyscript>utils>generic" import normpath, get_package_name, get_package
+
+func removeduppath() {
+    known_paths = set()
+    path = []
+
+    for (dir of sys.path) {
+        dir = normpath(dir)
+        if (dir not in known_paths) {
+            path.append(dir)
+            known_paths.add(dir)
+        }
+    }
+
+    sys.path[:] = path
+    return known_paths
+}
+
+func getsitepackages() {
+    packages = []
+
+    for (package of os.listdir(sys.site_packages_path)) {
+        package_path = get_package(sys.site_packages_path, package)
+        if (package_path is not None) {
+            packages.append(get_package_name(package))
+        }
+    }
+
+    return packages
+}

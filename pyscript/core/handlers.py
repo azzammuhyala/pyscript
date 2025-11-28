@@ -1,13 +1,16 @@
 from .cache import lock, hook
+from .constants import PYSCRIPT_GIL
 from .exceptions import PysException, PysShouldReturn
 from .objects import PysPythonFunction, PysFunction
 from .position import PysPosition
 from .results import PysRunTimeResult
-from .utils.constants import CONSTRUCTOR_METHODS
 from .utils.debug import print_traceback
-from .utils.general import get_error_args, is_object_of
+from .utils.generic import get_error_args
 
+from os import environ
 from types import MethodType
+
+CONSTRUCTOR_METHODS = ('__new__', '__init__')
 
 class handle_exception:
 
@@ -26,7 +29,7 @@ class handle_exception:
             return False
 
         self.result.register(exc_val.result) \
-            if isinstance(exc_val, PysShouldReturn) else \
+        if exc_type is PysShouldReturn else \
         self.result.failure(
             PysException(
                 exc_type if exc_val is None else exc_val,
@@ -37,9 +40,33 @@ class handle_exception:
 
         return True
 
-def handle_call(object, context, position):
-    with lock:
+if environ.get(PYSCRIPT_GIL, '1') == '1':
 
+    def handle_call(object, context, position):
+        with lock:
+
+            if isinstance(object, PysFunction):
+                code = object.__code__
+                code.call_context = context
+                code.position = position
+
+            elif isinstance(object, PysPythonFunction):
+                code = object.__code__
+                code.context = context
+                code.position = position
+
+            elif isinstance(object, type):
+                for call in CONSTRUCTOR_METHODS:
+                    method = getattr(object, call, None)
+                    if method is not None:
+                        handle_call(method, context, position)
+
+            elif isinstance(object, MethodType):
+                handle_call(object.__func__, context, position)
+
+else:
+
+    def handle_call(object, context, position):
         if isinstance(object, PysFunction):
             code = object.__code__
             code.call_context = context
@@ -65,7 +92,9 @@ def handle_execute(result):
     with handle_exception(result_runtime, result.context, PysPosition(result.context.file, -1, -1)):
 
         if result.error:
-            if is_object_of(result.error.exception, SystemExit):
+            if result.error.exception is SystemExit:
+                return 0
+            if type(result.error.exception) is SystemExit:
                 return result.error.exception.code
             if hook.exception is not None:
                 hook.exception(*get_error_args(result.error))

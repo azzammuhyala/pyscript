@@ -23,6 +23,7 @@ REVERSE_POW_XOR: int
 
 HLFMT_HTML: _HighlightFormatter
 HLFMT_ANSI: _HighlightFormatter
+HLFMT_BBCODE: _HighlightFormatter
 
 undefined: PysUndefined
 version_info: PysVersionInfo
