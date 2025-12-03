@@ -1,8 +1,8 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
-from .constants import BOLD
+from .utils.ansi import BOLD, acolor
 from .utils.decorators import typechecked, immutable
-from .utils.generic import setimuattr, acolor
+from .utils.generic import setimuattr
 
 @immutable
 class PysPosition(Pys):

@@ -1,19 +1,20 @@
 from .analyzer import PysAnalyzer
 from .buffer import PysFileBuffer
 from .cache import undefined, hook, PysUndefined
-from .constants import PYSCRIPT_SHELL, PYSCRIPT_TYPECHECKING, DEFAULT, SILENT, RETRES, COMMENT, NO_COLOR, BOLD
+from .constants import PYSCRIPT_SHELL, PYSCRIPT_TYPECHECKING, DEFAULT, SILENT, RETRES, COMMENT, NO_COLOR
 from .context import PysContext
-from .exceptions import PysException
+from .exceptions import PysException, PysSignal
 from .handlers import handle_exception, handle_execute
 from .interpreter import visit
 from .lexer import PysLexer
 from .parser import PysParser
 from .position import PysPosition
 from .results import PysRunTimeResult, PysExecuteResult
-from .symtab import PysSymbolTable, build_symbol_table
+from .symtab import PysSymbolTable, new_symbol_table
+from .utils.ansi import BOLD, acolor
 from .utils.debug import print_display
 from .utils.decorators import typechecked
-from .utils.generic import setimuattr, acolor, get_locals
+from .utils.generic import setimuattr, get_locals
 from .version import version
 
 from os import environ
@@ -24,16 +25,21 @@ def _normalize_globals(file, globals, stack_level):
     stack_level += 1
 
     if globals is None:
-        globals = build_symbol_table(file, get_locals(stack_level + 1
-                                                      if environ.get(PYSCRIPT_TYPECHECKING, '1') == '1' else
-                                                      stack_level))
-    elif globals is undefined:
-        globals = build_symbol_table(file)
-        globals.set('__name__', '__main__')
-    elif isinstance(globals, dict):
-        globals = build_symbol_table(file, globals)
+        symtab, _ = new_symbol_table(
+            symbols=get_locals(
+                stack_level + 1
+                if environ.get(PYSCRIPT_TYPECHECKING, '1') == '1' else
+                stack_level
+            )
+        )
 
-    return globals
+    elif globals is undefined:
+        symtab, _ = new_symbol_table(file=file.name, name='__main__')
+
+    elif isinstance(globals, dict):
+        symtab, _ = new_symbol_table(symbols=globals)
+
+    return symtab
 
 @typechecked
 def pys_runner(
@@ -105,7 +111,6 @@ def pys_runner(
             )
 
         setimuattr(context, 'flags', parser.flags)
-
         runtime_result = visit(ast.node, context)
 
         return (
@@ -151,7 +156,7 @@ def pys_exec(
         return result
 
     elif result.error and not (flags & SILENT):
-        raise result.error.exception
+        raise PysSignal(PysRunTimeResult().failure(result.error))
 
 @typechecked
 def pys_eval(
@@ -187,7 +192,7 @@ def pys_eval(
         return result
 
     elif result.error and not (flags & SILENT):
-        raise result.error.exception
+        raise PysSignal(PysRunTimeResult().failure(result.error))
 
     return result.value
 
@@ -246,7 +251,7 @@ def pys_shell(
 
     print(f'PyScript {version}')
     print(f'Python {pyversion}')
-    print('Type "help" or "license" for more information.')
+    print('Type "help" or "license" for more information; "exit" or "/exit" to exit the shell.')
 
     try:
 
@@ -259,7 +264,6 @@ def pys_shell(
 
                 if is_next_line():
                     text = input(f'{bmagenta}{hook.ps2}{reset}')
-
                 else:
                     text = input(f'{bmagenta}{hook.ps1}{reset}')
                     if text == '/exit':
@@ -268,7 +272,6 @@ def pys_shell(
                 next_line = False
                 in_decorator = False
                 is_space = True
-
                 i = 0
 
                 while i < len(text):
@@ -286,7 +289,6 @@ def pys_shell(
                         bind_3 = text[i:i+3]
 
                         if is_triple_string:
-
                             if len(bind_3) == 3 and string_prefix * 3 == bind_3:
                                 in_string = False
                                 is_triple_string = False
@@ -357,7 +359,7 @@ def pys_shell(
 
             except KeyboardInterrupt:
                 reset_next_line()
-                print(f'\r{bmagenta}KeyboardInterrupt. Type "exit" or "/exit" to exit.{reset}', file=stderr)
+                print(f'\r{bmagenta}KeyboardInterrupt{reset}', file=stderr)
 
             except EOFError:
                 print()

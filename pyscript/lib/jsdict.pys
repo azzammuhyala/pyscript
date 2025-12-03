@@ -26,3 +26,9 @@ class jsdict extends dict {
     }
 
 }
+
+__all__ = (
+    'silent',
+    'issilent',
+    'jsdict'
+)

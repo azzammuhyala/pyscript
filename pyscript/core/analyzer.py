@@ -44,12 +44,13 @@ class PysAnalyzer(Pys):
         self.in_function = 0
         self.in_switch = 0
         self.error = None
+        self.parameters = set()
 
         self.visit(self.node)
         return self.error
 
     def visit(self, node):
-        func = getattr(self, f'visit_{type(node).__name__[3:]}', None)
+        func = getattr(self, 'visit_' + type(node).__name__.removeprefix('Pys'), None)
         if not self.error and func:
             func(node)
 
@@ -97,7 +98,7 @@ class PysAnalyzer(Pys):
         if self.error:
             return
 
-        keyword_argument_names = set()
+        keyword_names = set()
 
         for element in node.arguments:
 
@@ -105,11 +106,11 @@ class PysAnalyzer(Pys):
                 token, value = element
                 name = token.value
 
-                if name in keyword_argument_names:
+                if name in keyword_names:
                     self.throw(f"duplicate argument {name!r} in call definition", token.position)
                     return
 
-                keyword_argument_names.add(name)
+                keyword_names.add(name)
 
             else:
                 value = element
@@ -246,9 +247,10 @@ class PysAnalyzer(Pys):
             self.visit(node.finally_body)
 
     def visit_WithNode(self, node):
-        self.visit(node.context)
-        if self.error:
-            return
+        for context, _ in node.contexts:
+            self.visit(context)
+            if self.error:
+                return
 
         self.visit(node.body)
 
@@ -273,14 +275,13 @@ class PysAnalyzer(Pys):
         else:
             raise ValueError(f"unknown header struct {node.header}")
 
-        if node.body:
-            self.in_loop += 1
+        self.in_loop += 1
 
-            self.visit(node.body)
-            if self.error:
-                return
+        self.visit(node.body)
+        if self.error:
+            return
 
-            self.in_loop -= 1
+        self.in_loop -= 1
 
         if node.else_body:
             self.visit(node.else_body)
@@ -290,27 +291,25 @@ class PysAnalyzer(Pys):
         if self.error:
             return
 
-        if node.body:
-            self.in_loop += 1
+        self.in_loop += 1
 
-            self.visit(node.body)
-            if self.error:
-                return
+        self.visit(node.body)
+        if self.error:
+            return
 
-            self.in_loop -= 1
+        self.in_loop -= 1
 
         if node.else_body:
             self.visit(node.else_body)
 
     def visit_DoWhileNode(self, node):
-        if node.body:
-            self.in_loop += 1
+        self.in_loop += 1
 
-            self.visit(node.body)
-            if self.error:
-                return
+        self.visit(node.body)
+        if self.error:
+            return
 
-            self.in_loop -= 1
+        self.in_loop -= 1
 
         self.visit(node.condition)
         if self.error:
@@ -366,18 +365,20 @@ class PysAnalyzer(Pys):
                 if self.error:
                     return
 
-        in_loop, in_switch = self.in_loop, self.in_switch
+        in_loop, in_switch, parameters = self.in_loop, self.in_switch, self.parameters
 
         self.in_loop = 0
         self.in_switch = 0
 
         self.in_function += 1
+        self.parameters = parameter_names
 
         self.visit(node.body)
         if self.error:
             return
 
         self.in_function -= 1
+        self.parameters = parameters
 
         self.in_loop = in_loop
         self.in_switch = in_switch
@@ -385,6 +386,11 @@ class PysAnalyzer(Pys):
     def visit_GlobalNode(self, node):
         if self.in_function == 0:
             self.throw("global outside of function", node.position)
+
+        for identifier in node.identifiers:
+            if identifier.value in self.parameters:
+                self.throw("name {!r} is parameter and global".format(identifier.value), identifier.position)
+                return
 
     def visit_ReturnNode(self, node):
         if self.in_function == 0:
@@ -399,8 +405,8 @@ class PysAnalyzer(Pys):
         if self.error:
             return
 
-        if node.another:
-            self.visit(node.another)
+        if node.cause:
+            self.visit(node.cause)
 
     def visit_AssertNode(self, node):
         self.visit(node.condition)

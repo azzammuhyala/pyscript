@@ -1,7 +1,7 @@
 from .bases import Pys
 from .constants import LIBRARIES_PATH, SITE_PACKAGES_PATH
 from .utils.debug import print_traceback
-from .utils.decorators import uninherited, singleton
+from .utils.decorators import inheritable, singleton
 
 from threading import RLock
 from re import compile as re_compile
@@ -14,7 +14,7 @@ singletons = dict()
 version_match = re_compile(r'^(\d+)\.(\d+)\.(\d+)((?:a|b|rc)(\d+)|\.(dev|post)(\d+))?$').match
 
 @singleton
-@uninherited
+@inheritable
 class PysUndefined(Pys):
 
     __slots__ = ()
@@ -31,7 +31,7 @@ class PysUndefined(Pys):
         return False
 
 @singleton
-@uninherited
+@inheritable
 class PysHook(Pys):
 
     __slots__ = ()

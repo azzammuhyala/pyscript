@@ -1,9 +1,9 @@
 from time import monotonic, sleep
-from "_pyscript>utils>decorators" import singleton, immutable, uninherited
+from '_pyscript>utils>decorators' import immutable, inheritable, singleton
 
 @singleton
 @immutable
-@uninherited
+@inheritable
 class FPSTimer {
 
     __slots__ = ()

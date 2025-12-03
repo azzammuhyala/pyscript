@@ -1,16 +1,16 @@
 from .bases import Pys
 from .cache import version_match
 from .mapping import TAG_VERSION_MAP
-from .utils.decorators import immutable, uninherited, singleton
+from .utils.decorators import immutable, inheritable, singleton
 
-__version__ = '1.6.0a1'
-__date__ = '28 November 2025, 15:00 UTC+7'
+__version__ = '1.6.0'
+__date__ = '3 December 2025, 16:40 UTC+7'
 
 version = f'{__version__} ({__date__})'
 
 @singleton
 @immutable
-@uninherited
+@inheritable
 class PysVersionInfo(Pys, tuple):
 
     __slots__ = ()
@@ -23,16 +23,19 @@ class PysVersionInfo(Pys, tuple):
         major, minor, micro, pre_full, pre_num1, pre_tag2, pre_num2 = match.groups()
 
         if pre_full:
+
             if pre_tag2:
-                pre_tag_full = TAG_VERSION_MAP[pre_tag2]
                 pre_num = int(pre_num2)
+                pre_tag_full = TAG_VERSION_MAP[pre_tag2]
+
             else:
+                pre_num = int(pre_num1)
                 pre_tag_full = (
                     TAG_VERSION_MAP[pre_full[0]]
                     if pre_full.startswith(('a', 'b')) else
                     TAG_VERSION_MAP['rc']
                 )
-                pre_num = int(pre_num1)
+
         else:
             pre_tag_full = pre_num = None
 

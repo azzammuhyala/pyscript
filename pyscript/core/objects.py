@@ -1,10 +1,10 @@
 from .bases import Pys
-from .cache import undefined
 from .context import PysContext, PysClassContext
-from .exceptions import PysException, PysShouldReturn
+from .exceptions import PysException, PysSignal
 from .results import PysRunTimeResult
 from .symtab import PysSymbolTable
-from .utils.generic import join_with_conjunction, get_closest
+from .utils.similarity import get_closest
+from .utils.string import join
 
 from types import MethodType
 
@@ -15,30 +15,6 @@ class PysCode(PysObject):
 
     def __init__(self, **kwargs):
         self.__dict__ = kwargs
-
-class PysModule(PysObject):
-
-    def __init__(self, name, doc=None):
-        self.__name__ = name
-        self.__doc__ = doc
-
-    def __dir__(self):
-        return list(self.__dict__.keys())
-
-    def __repr__(self):
-        file = self.__dict__.get('__file__', undefined)
-        return '<module {!r}{}>'.format(
-            self.__name__,
-            '' if file is undefined else f' from {file!r}'
-        )
-
-    def __getattr__(self, name):
-        raise AttributeError(f'module {self.__name__!r} has no attribute {name!r}')
-
-    def __delattr__(self, name):
-        if name in self.__dict__:
-            return super().__delattr__(name)
-        raise AttributeError(f'module {self.__name__!r} has no attribute {name!r}')
 
 class PysPythonFunction(PysObject):
 
@@ -127,7 +103,7 @@ class PysFunction(PysObject):
         for name, value in combined_keyword_arguments.items():
 
             if name in registered_arguments:
-                raise PysShouldReturn(
+                raise PysSignal(
                     result.failure(
                         PysException(
                             TypeError(f"{qualname}() got multiple values for argument {name!r}"),
@@ -140,7 +116,7 @@ class PysFunction(PysObject):
             elif name not in code_parameter_names:
                 closest_argument = get_closest(code_parameter_names, name)
 
-                raise PysShouldReturn(
+                raise PysSignal(
                     result.failure(
                         PysException(
                             TypeError(
@@ -164,10 +140,10 @@ class PysFunction(PysObject):
         total_registered = len(registered_arguments)
 
         if total_registered < total_parameters:
-            missing_arguments = [name for name in code_parameter_names if name not in registered_arguments]
+            missing_arguments = [repr(name) for name in code_parameter_names if name not in registered_arguments]
             total_missing = len(missing_arguments)
 
-            raise PysShouldReturn(
+            raise PysSignal(
                 result.failure(
                     PysException(
                         TypeError(
@@ -175,11 +151,7 @@ class PysFunction(PysObject):
                                 qualname,
                                 total_missing,
                                 '' if total_missing == 1 else 's',
-                                join_with_conjunction(
-                                    missing_arguments,
-                                    func=repr,
-                                    conjunction='and'
-                                )
+                                join(missing_arguments, conjunction='and')
                             )
                         ),
                         code_call_context,
@@ -191,7 +163,7 @@ class PysFunction(PysObject):
         elif total_registered > total_parameters or total_arguments > total_parameters:
             given_arguments = total_arguments if total_arguments > total_parameters else total_registered
 
-            raise PysShouldReturn(
+            raise PysSignal(
                 result.failure(
                     PysException(
                         TypeError(
@@ -225,11 +197,6 @@ class PysFunction(PysObject):
         )
 
         if result.should_return() and not result.func_should_return:
-            raise PysShouldReturn(result)
+            raise PysSignal(result)
 
-        return_value = result.func_return_value
-
-        result.func_should_return = False
-        result.func_return_value = None
-
-        return return_value
+        return result.func_return_value

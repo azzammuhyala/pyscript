@@ -1,19 +1,21 @@
 from .bases import Pys
-from .constants import NO_COLOR, BOLD
+from .constants import NO_COLOR
+from .utils.ansi import BOLD, acolor
 from .utils.decorators import immutable
-from .utils.generic import setimuattr, space_indent, acolor
+from .utils.generic import setimuattr
+from .utils.string import indent
 
 @immutable
 class PysException(Pys):
 
-    __slots__ = ('exception', 'context', 'position', 'other', 'cause')
+    __slots__ = ('exception', 'context', 'position', 'cause', 'directly')
 
-    def __init__(self, exception, context, position, other=None, cause=False):
+    def __init__(self, exception, context, position, cause=None, directly=False):
         setimuattr(self, 'exception', exception)
         setimuattr(self, 'context', context)
         setimuattr(self, 'position', position)
-        setimuattr(self, 'other', other)
         setimuattr(self, 'cause', cause)
+        setimuattr(self, 'directly', directly)
 
     def __repr__(self):
         return f'<Exception of {self.exception!r}>'
@@ -45,7 +47,7 @@ class PysException(Pys):
                 '{}{}{}'.format(
                     '' if is_positionless else f', line {magenta}{position.start_line}{reset}',
                     '' if context_name is None else f', in {magenta}{context_name}{reset}',
-                    '' if is_positionless else f'\n{space_indent(position.format_arrow(colored), 4)}'
+                    '' if is_positionless else f'\n{indent(position.format_arrow(colored), 4)}'
                 )
             )
 
@@ -83,16 +85,16 @@ class PysException(Pys):
             )
 
         return (
-            self.other.string_traceback() + (
+            self.cause.string_traceback() + (
                 '\n\nThe above exception was the direct cause of the following exception:\n\n'
-                if self.cause else
+                if self.directly else
                 '\n\nDuring handling of the above exception, another exception occurred:\n\n'
             ) + result
-            if self.other else
+            if self.cause else
             result
         )
 
-class PysShouldReturn(Pys, BaseException):
+class PysSignal(Pys, BaseException):
 
     __slots__ = ('result',)
 

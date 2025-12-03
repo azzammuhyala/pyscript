@@ -4,7 +4,10 @@ from .constants import TOKENS
 from .cache import undefined
 from .mapping import BINARY_FUNCTIONS_MAP, EMPTY_MAP
 from .utils.decorators import immutable
-from .utils.generic import setimuattr, get_closest, get_package_name
+from .utils.generic import setimuattr
+from .utils.similarity import get_closest
+
+from types import ModuleType
 
 @immutable
 class PysSymbolTable(Pys):
@@ -88,17 +91,19 @@ def find_closest(symtab, name):
 
     return get_closest(symbols, name)
 
-def build_symbol_table(file, globals=None):
+def new_symbol_table(*, symbols=None, file=None, name=None, doc=None):
     symtab = PysSymbolTable()
 
-    if globals is None:
-        symtab.set('__file__', file.name)
-        symtab.set('__name__', get_package_name(file.name))
+    if symbols is None:
+        module = ModuleType(name, doc)
+        setimuattr(symtab, 'symbols', module.__dict__)
+        symtab.set('__file__', file)
     else:
-        setimuattr(symtab, 'symbols', globals)
+        module = None
+        setimuattr(symtab, 'symbols', symbols)
 
     if symtab.get('__builtins__') is undefined:
         from .pysbuiltins import pys_builtins
         symtab.set('__builtins__', pys_builtins)
 
-    return symtab
+    return symtab, module

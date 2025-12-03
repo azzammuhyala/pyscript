@@ -1,6 +1,6 @@
 from .cache import lock, hook
 from .constants import PYSCRIPT_GIL
-from .exceptions import PysException, PysShouldReturn
+from .exceptions import PysException, PysSignal
 from .objects import PysPythonFunction, PysFunction
 from .position import PysPosition
 from .results import PysRunTimeResult
@@ -9,8 +9,6 @@ from .utils.generic import get_error_args
 
 from os import environ
 from types import MethodType
-
-CONSTRUCTOR_METHODS = ('__new__', '__init__')
 
 class handle_exception:
 
@@ -25,18 +23,20 @@ class handle_exception:
         pass
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if exc_type is None:
-            return False
+        # return
+        # ^^^^^^  <--- debug only
 
-        self.result.register(exc_val.result) \
-        if exc_type is PysShouldReturn else \
-        self.result.failure(
-            PysException(
-                exc_type if exc_val is None else exc_val,
-                self.context,
-                self.position
+        if exc_type is not None:
+
+            self.result.register(exc_val.result) \
+            if exc_type is PysSignal else \
+            self.result.failure(
+                PysException(
+                    exc_type if exc_val is None else exc_val,
+                    self.context,
+                    self.position
+                )
             )
-        )
 
         return True
 
@@ -56,10 +56,13 @@ if environ.get(PYSCRIPT_GIL, '1') == '1':
                 code.position = position
 
             elif isinstance(object, type):
-                for call in CONSTRUCTOR_METHODS:
-                    method = getattr(object, call, None)
-                    if method is not None:
-                        handle_call(method, context, position)
+                method = getattr(object, '__new__', None)
+                if method is not None:
+                    handle_call(method, context, position)
+
+                method = getattr(object, '__init__', None)
+                if method is not None:
+                    handle_call(method, context, position)
 
             elif isinstance(object, MethodType):
                 handle_call(object.__func__, context, position)
@@ -78,10 +81,13 @@ else:
             code.position = position
 
         elif isinstance(object, type):
-            for call in CONSTRUCTOR_METHODS:
-                method = getattr(object, call, None)
-                if method is not None:
-                    handle_call(method, context, position)
+            method = getattr(object, '__new__', None)
+            if method is not None:
+                handle_call(method, context, position)
+
+            method = getattr(object, '__init__', None)
+            if method is not None:
+                handle_call(method, context, position)
 
         elif isinstance(object, MethodType):
             handle_call(object.__func__, context, position)

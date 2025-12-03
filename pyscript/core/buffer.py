@@ -1,6 +1,7 @@
 from .bases import Pys
 from .utils.decorators import immutable
-from .utils.generic import setimuattr, normstr
+from .utils.generic import setimuattr
+from .utils.string import normstr
 
 from io import IOBase
 

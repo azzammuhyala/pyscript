@@ -1,28 +1,24 @@
 from .buffer import PysFileBuffer
 from .cache import loading_modules, modules, path, undefined
-from .checks import is_blacklist_python_builtins
-from .exceptions import PysShouldReturn
+from .checks import is_blacklist_python_builtins, is_private_attribute
+from .exceptions import PysSignal
 from .handlers import handle_call
-from .objects import PysModule, PysPythonFunction
+from .objects import PysPythonFunction
 from .results import PysRunTimeResult
-from .symtab import build_symbol_table
-from .utils.generic import (
-    normstr,
-    get_package_name,
-    get_package,
-    set_python_path,
-    is_object_of as isobjectof
-)
+from .symtab import new_symbol_table
+from .utils.generic import is_object_of as isobjectof
+from .utils.module import get_module_name_from_path, get_module_path, set_python_path
+from .utils.path import getcwd, normpath
+from .utils.string import normstr
 
 from math import isclose
 from importlib import import_module
-from os import getcwd
 from os.path import dirname
+from types import ModuleType
 
 import builtins
 
 def _supported_method(pyfunc, object, name, *args, **kwargs):
-
     method = getattr(object, name, undefined)
     if method is undefined:
         return False, None
@@ -30,14 +26,12 @@ def _supported_method(pyfunc, object, name, *args, **kwargs):
     if callable(method):
         code = pyfunc.__code__
         handle_call(method, code.context, code.position)
-
         try:
             result = method(*args, **kwargs)
-            if result is NotImplemented:
-                return False, None
-            return True, result
+            if result is not NotImplemented:
+                return True, result
         except NotImplementedError:
-            return False, None
+            pass
 
     return False, None
 
@@ -89,23 +83,26 @@ def require(pyfunc, name):
     external = True
 
     for p in path:
-        path_package = get_package(p, name)
+        path_package = get_module_path(normpath(p, name, absolute=False))
         if path_package is not None:
             break
     else:
-        path_package = get_package(
-            dirname(pyfunc.__code__.context.file.name) or getcwd(), 
-            name
+        path_package = get_module_path(
+            normpath(
+                dirname(pyfunc.__code__.context.file.name) or getcwd(),
+                name,
+                absolute=False
+            )
         )
 
     if path_package is None:
 
         if name == '_pyscript':
-            from .. import core as package
+            from .. import core as module
             external = False
 
         elif name == 'builtins':
-            package = pys_builtins
+            module = pys_builtins
             external = False
 
         else:
@@ -120,9 +117,9 @@ def require(pyfunc, name):
                 "mostly during circular import"
             )
 
-        package = modules.get(path_package, None)
+        module = modules.get(path_package, None)
 
-        if package is None:
+        if module is None:
 
             try:
                 loading_modules.add(path_package)
@@ -135,9 +132,7 @@ def require(pyfunc, name):
                 except BaseException as e:
                     raise ImportError(f"Cannot import module named {name!r}: {e}") from e
 
-                package = PysModule(get_package_name(name))
-                package.__file__ = file.name
-                symtab = build_symbol_table(file, package.__dict__)
+                symtab, module = new_symbol_table(file=file.name, name=get_module_name_from_path(name))
                 code = pyfunc.__code__
 
                 from .runner import pys_runner
@@ -151,18 +146,17 @@ def require(pyfunc, name):
                 )
 
                 if result.error:
-                    raise PysShouldReturn(PysRunTimeResult().failure(result.error))
+                    raise PysSignal(PysRunTimeResult().failure(result.error))
 
-                modules[path_package] = package
-
+                modules[path_package] = module
             finally:
                 if path_package in loading_modules:
                     loading_modules.remove(path_package)
 
     for component in other_components:
-        package = getattr(package, component)
+        module = getattr(module, component)
 
-    return package
+    return module
 
 @PysPythonFunction
 def pyimport(pyfunc, name):
@@ -188,7 +182,7 @@ def globals(pyfunc):
 def locals(pyfunc):
     return pyfunc.__code__.context.symbol_table.symbols
 
-pyvars = vars
+pyvars = builtins.vars
 
 @PysPythonFunction
 def vars(pyfunc, object=None):
@@ -198,7 +192,7 @@ def vars(pyfunc, object=None):
         pyvars(object)
     )
 
-pydir = dir
+pydir = builtins.dir
 
 @PysPythonFunction
 def dir(pyfunc, *args):
@@ -216,20 +210,23 @@ def exec(pyfunc, source, globals=None):
     file = PysFileBuffer(source, '<exec>')
     code = pyfunc.__code__
 
+    if globals is None:
+        symtab = code.context.symbol_table
+    else:
+        symtab, _ = new_symbol_table(symbols=globals)
+
     from .runner import pys_runner
 
     result = pys_runner(
         file=file,
         mode='exec',
-        symbol_table=code.context.symbol_table
-                     if globals is None else
-                     build_symbol_table(file, globals),
+        symbol_table=symtab,
         context_parent=code.context,
         context_parent_entry_position=code.position
     )
 
     if result.error:
-        raise PysShouldReturn(PysRunTimeResult().failure(result.error))
+        raise PysSignal(PysRunTimeResult().failure(result.error))
 
 @PysPythonFunction
 def eval(pyfunc, source, globals=None):
@@ -239,20 +236,23 @@ def eval(pyfunc, source, globals=None):
     file = PysFileBuffer(source, '<eval>')
     code = pyfunc.__code__
 
+    if globals is None:
+        symtab = code.context.symbol_table
+    else:
+        symtab, _ = new_symbol_table(symbols=globals)
+
     from .runner import pys_runner
 
     result = pys_runner(
         file=file,
         mode='eval',
-        symbol_table=code.context.symbol_table
-                     if globals is None else
-                     build_symbol_table(file, globals),
+        symbol_table=symtab,
         context_parent=code.context,
         context_parent_entry_position=code.position
     )
 
     if result.error:
-        raise PysShouldReturn(PysRunTimeResult().failure(result.error))
+        raise PysSignal(PysRunTimeResult().failure(result.error))
 
     return result.value
 
@@ -322,9 +322,8 @@ def comprehension(init, wrap, condition=None):
 
     return map(wrap, init if condition is None else filter(condition, init))
 
-pys_builtins = PysModule(
+pys_builtins = ModuleType(
     'built-in',
-
     "Built-in functions, types, exceptions, and other objects.\n\n"
     "This module provides direct access to all 'built-in' identifiers of PyScript and Python."
 )
@@ -332,10 +331,13 @@ pys_builtins = PysModule(
 pys_builtins.__dict__.update(
     (name, getattr(builtins, name))
     for name in builtins.dir(builtins)
-    if not (name.startswith('_') or is_blacklist_python_builtins(name))
+    if not (is_private_attribute(name) or is_blacklist_python_builtins(name))
 )
 
 pys_builtins.__file__ = __file__
+pys_builtins.true = True
+pys_builtins.false = False
+pys_builtins.none = None
 pys_builtins.license = license
 pys_builtins.help = help
 pys_builtins.pyimport = pyimport

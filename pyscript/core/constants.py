@@ -1,8 +1,9 @@
-from os.path import sep, join, normcase
+from os.path import sep, join
 from types import MappingProxyType
 
 # paths
-PYSCRIPT_PATH = normcase(sep.join(__file__.split(sep)[:-2]))
+PYSCRIPT_PATH = sep.join(__file__.split(sep)[:-2])
+CORE_PATH = join(PYSCRIPT_PATH, 'core')
 LIBRARIES_PATH = join(PYSCRIPT_PATH, 'lib')
 SITE_PACKAGES_PATH = join(PYSCRIPT_PATH, 'site-packages')
 
@@ -13,10 +14,10 @@ PYSCRIPT_SHELL = 'PYSCRIPT_SHELL'
 PYSCRIPT_GIL = 'PYSCRIPT_GIL'
 
 # tokens offset
-DOUBLE = 256 * 2**0
-TRIPLE = 256 * 2**1
-WITH_EQUAL = 256 * 2**2
-WITH_EXCLAMATION = 256 * 2**3
+DOUBLE = 2**8
+TRIPLE = 2**9
+WITH_EQUAL = 2**10
+SPECIAL = 2**11
 
 # tokens
 TOKENS = MappingProxyType({
@@ -83,7 +84,7 @@ TOKENS = MappingProxyType({
     'EQUAL-DOUBLE-SLASH': ord('/') + DOUBLE + WITH_EQUAL,
     'EQUAL-DOUBLE-LESS-THAN': ord('<') + DOUBLE + WITH_EQUAL,
     'EQUAL-DOUBLE-GREATER-THAN': ord('>') + DOUBLE + WITH_EQUAL,
-    'EXCLAMATION-TILDE': ord('~') + WITH_EXCLAMATION,
+    'EXCLAMATION-TILDE': ord('~') + SPECIAL
 })
 
 # keywords
@@ -105,6 +106,7 @@ KEYWORDS = MappingProxyType({
     'continue': 'continue',
     'default': 'default',
     'del': 'del',
+    'delete': 'delete',
     'do': 'do',
     'elif': 'elif',
     'else': 'else',
@@ -113,6 +115,7 @@ KEYWORDS = MappingProxyType({
     'for': 'for',
     'from': 'from',
     'func': 'func',
+    'function': 'function',
     'global': 'global',
     'if': 'if',
     'import': 'import',
@@ -136,10 +139,4 @@ SILENT = 1 << 1
 RETRES = 1 << 2
 COMMENT = 1 << 3
 NO_COLOR = 1 << 4
-REVERSE_POW_XOR = 1 << 10
-
-# styles for pyscript.core.utils.general.acolor
-BOLD = 1 << 0
-ITALIC = 1 << 1
-UNDER = 1 << 2
-STRIKET = 1 << 3
+REVERSE_POW_XOR = 1 << 5

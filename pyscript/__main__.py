@@ -4,17 +4,16 @@ from .core.constants import DEFAULT, DEBUG, NO_COLOR
 from .core.handlers import handle_execute
 from .core.highlight import HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight
 from .core.runner import pys_runner, pys_shell
-from .core.symtab import build_symbol_table
-from .core.utils.generic import normpath, get_package_name, set_python_path
+from .core.symtab import new_symbol_table
+from .core.utils.module import get_module_name_from_path, set_python_path
+from .core.utils.path import getcwd, normpath
 from .core.version import __version__
 
 from argparse import ArgumentParser
-
 from sys import executable, stderr, version_info, exit, setrecursionlimit
-from os import getcwd
 
 parser = ArgumentParser(
-    prog=get_package_name(executable) + ' -m pyscript',
+    prog=get_module_name_from_path(executable) + ' -m pyscript',
     description='PyScript Launcher for Python Version ' + '.'.join(map(str, version_info))
 )
 
@@ -102,25 +101,18 @@ if args.file is not None:
     try:
         with open(path, 'r', encoding='utf-8') as file:
             file = PysFileBuffer(file, path)
-
     except FileNotFoundError:
         parser.error(f"can't open file {path!r}: No such file or directory")
-
     except PermissionError:
         parser.error(f"can't open file {path!r}: Permission denied.")
-
     except IsADirectoryError:
         parser.error(f"can't open file {path!r}: Path is not a file.")
-
     except NotADirectoryError:
         parser.error(f"can't open file {path!r}: Attempting to access directory from file.")
-
     except (OSError, IOError):
         parser.error(f"can't open file {path!r}: Attempting to access a system directory or file.")
-
     except UnicodeDecodeError:
         parser.error(f"can't read file {path!r}: Bad file.")
-
     except BaseException as e:
         parser.error(f"file {path!r}: Unexpected error: {e}")
 
@@ -137,43 +129,30 @@ if args.file is not None:
             parser.error(f"file {path!r}: Tokenize error: {e}")
 
     else:
-        symtab = build_symbol_table(file)
-        symtab.set('__name__', '__main__')
-
         result = pys_runner(
             file=file,
             mode='exec',
-            symbol_table=symtab,
+            symbol_table=new_symbol_table(file=file.name, name='__main__')[0],
             flags=flags
         )
 
-        code = handle_execute(result)
-
         if args.inspect:
-            code = pys_shell(
-                globals=result.context.symbol_table,
-                flags=result.context.flags
-            )
+            code = pys_shell(result.context.symbol_table, result.context.flags)
+        else:
+            code = handle_execute(result)
 
 elif args.command is not None:
     file = PysFileBuffer(args.command)
-
-    symtab = build_symbol_table(file)
-    symtab.set('__name__', '__main__')
-
     code = handle_execute(
         pys_runner(
             file=file,
             mode='exec',
-            symbol_table=symtab,
+            symbol_table=new_symbol_table(file=file.name, name='__main__')[0],
             flags=flags
         )
     )
 
 else:
-    code = pys_shell(
-        globals=undefined,
-        flags=flags
-    )
+    code = pys_shell(undefined, flags)
 
 exit(code)

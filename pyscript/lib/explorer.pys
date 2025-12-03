@@ -2,25 +2,14 @@ import os
 import stat
 import shutil
 
-from "_pyscript>utils>generic" import normpath
+from '_pyscript>utils>path' import normpath
 
-class Result {
+class ExplorerResult {
 
     __slots__ = ('success', 'exception')
 
     func __init__(self) {
         self.successed()
-    }
-
-    func register(self, result) {
-        self.success = result.success
-        self.exception = result.exception
-    }
-
-    func failured(self, exception) {
-        self.success = False
-        self.exception = exception
-        return self
     }
 
     func successed(self) {
@@ -29,11 +18,23 @@ class Result {
         return self
     }
 
-    func __repr__(self) {
-        return 'Result(success={!r}, exception={!r})'.format(self.success, self.exception)
+    func failured(self, exception) {
+        self.success = False
+        self.exception = exception
+        return self
     }
 
-    func __enter__(self) ...
+    func register(self, result) {
+        self.success = result.success
+        self.exception = result.exception
+    }
+
+    func __repr__(self) {
+        return 'ExplorerResult(success={!r}, exception={!r})'.format(self.success, self.exception)
+    }
+
+    func __enter__(self)
+        ...
 
     func __exit__(self, exc_type, exc_value, exc_tb) {
         exc_type is None ? self.successed() : self.failured(exc_value is None ? exc_type : exc_value)
@@ -43,7 +44,7 @@ class Result {
 }
 
 func newfile(path, exists_ok=True) {
-    result = Result()
+    result = ExplorerResult()
 
     path = normpath(path, absolute=False)
 
@@ -61,7 +62,7 @@ func newfile(path, exists_ok=True) {
 }
 
 func newfolder(path, exists_ok=True) {
-    result = Result()
+    result = ExplorerResult()
 
     path = normpath(path, absolute=False)
 
@@ -79,7 +80,7 @@ func newfolder(path, exists_ok=True) {
 }
 
 func rename(path, name) {
-    result = Result()
+    result = ExplorerResult()
 
     path = normpath(path, absolute=False)
     dirname = os.path.dirname(path)
@@ -93,7 +94,7 @@ func rename(path, name) {
 }
 
 func move(path, dist, replace=False) {
-    result = Result()
+    result = ExplorerResult()
 
     path = normpath(path, absolute=False)
     dist = normpath(dist, absolute=False)
@@ -124,7 +125,7 @@ func move(path, dist, replace=False) {
 }
 
 func copy(path, dist, replace=False, metadata=True) {
-    result = Result()
+    result = ExplorerResult()
 
     path = normpath(path, absolute=False)
     dist = normpath(dist, absolute=False)
@@ -162,7 +163,7 @@ func copy(path, dist, replace=False, metadata=True) {
 }
 
 func clear(path) {
-    result = Result()
+    result = ExplorerResult()
 
     path = normpath(path, absolute=False)
 
@@ -190,7 +191,7 @@ func clear(path) {
 }
 
 func remove(path) {
-    result = Result()
+    result = ExplorerResult()
 
     path = normpath(path, absolute=False)
 

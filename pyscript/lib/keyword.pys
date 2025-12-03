@@ -1,2 +1,2 @@
 kwlist = list(require("parser").KEYWORDS.values())
-iskeyword = frozenset(kwlist).__contains__
+iskeyword = require("_pyscript>checks>is_keyword")

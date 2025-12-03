@@ -6,6 +6,7 @@ from .lexer import PysLexer
 from .mapping import PARENTHESISES_MAP, HIGHLIGHT_MAP
 from .position import PysPosition
 from .pysbuiltins import pys_builtins
+from .utils.ansi import acolor
 from .utils.decorators import typechecked
 
 from html import escape as html_escape
@@ -64,7 +65,7 @@ class _HighlightFormatter(Pys):
 
 def _ansi_open_block(position, type):
     color = HIGHLIGHT_MAP.get(type, 'default')
-    return f'\x1b[38;2;{int(color[1:3], 16)};{int(color[3:5], 16)};{int(color[5:7], 16)}m'
+    return acolor(int(color[i:i+2], 16) for i in range(1, 6, 2))
 
 HLFMT_HTML = _HighlightFormatter(
     lambda position, content: '<br>'.join(html_escape(content).splitlines()),
@@ -178,7 +179,7 @@ def pys_highlight(
 
                 if tokens[j].match(TOKENS['KEYWORD'], KEYWORDS['class']):
                     type_fmt = 'identifier-class'
-                elif tokens[j].match(TOKENS['KEYWORD'], KEYWORDS['func']):
+                elif tokens[j].matches(TOKENS['KEYWORD'], (KEYWORDS['func'], KEYWORDS['function'])):
                     type_fmt = 'identifier-call'
 
         elif is_parenthesis(ttype):

@@ -20,51 +20,51 @@ class PysNode(Pys):
 
 class PysNumberNode(PysNode):
 
-    __slots__ = ('token',)
+    __slots__ = ('value',)
 
     @typechecked
-    def __init__(self, token: PysToken) -> None:
-        super().__init__(token.position)
-        setimuattr(self, 'token', token)
+    def __init__(self, value: PysToken) -> None:
+        super().__init__(value.position)
+        setimuattr(self, 'value', value)
 
     def __repr__(self):
-        return f'Number(value={self.token.value!r})'
+        return f'Number(value={self.value!r})'
 
 class PysStringNode(PysNode):
 
-    __slots__ = ('token',)
+    __slots__ = ('value',)
 
     @typechecked
-    def __init__(self, token: PysToken) -> None:
-        super().__init__(token.position)
-        setimuattr(self, 'token', token)
+    def __init__(self, value: PysToken) -> None:
+        super().__init__(value.position)
+        setimuattr(self, 'value', value)
 
     def __repr__(self):
-        return f'String(value={self.token.value!r})'
+        return f'String(value={self.value!r})'
 
 class PysKeywordNode(PysNode):
 
-    __slots__ = ('token',)
+    __slots__ = ('name',)
 
     @typechecked
-    def __init__(self, token: PysToken) -> None:
-        super().__init__(token.position)
-        setimuattr(self, 'token', token)
+    def __init__(self, name: PysToken) -> None:
+        super().__init__(name.position)
+        setimuattr(self, 'name', name)
 
     def __repr__(self):
-        return f'Keyword(name={self.token.value!r})'
+        return f'Keyword(name={self.name!r})'
 
 class PysIdentifierNode(PysNode):
 
-    __slots__ = ('token',)
+    __slots__ = ('name',)
 
     @typechecked
-    def __init__(self, token: PysToken) -> None:
-        super().__init__(token.position)
-        setimuattr(self, 'token', token)
+    def __init__(self, name: PysToken) -> None:
+        super().__init__(name.position)
+        setimuattr(self, 'name', name)
 
     def __repr__(self):
-        return f'Identifier(name={self.token.value!r})'
+        return f'Identifier(name={self.name!r})'
 
 class PysDictionaryNode(PysNode):
 
@@ -211,7 +211,11 @@ class PysTernaryOperatorNode(PysNode):
     def __repr__(self):
         return (
             'TernaryOperator('
-            f'condition={self.condition!r}, valid={self.valid!r}, invalid={self.invalid!r}, style={self.style!r})'
+                f'condition={self.condition!r}, '
+                f'valid={self.valid!r}, '
+                f'invalid={self.invalid!r}, '
+                f'style={self.style!r}'
+            ')'
         )
 
 class PysBinaryOperatorNode(PysNode):
@@ -247,7 +251,10 @@ class PysUnaryOperatorNode(PysNode):
     def __repr__(self):
         return (
             'UnaryOperator('
-            f'operand={self.operand!r}, value={self.value!r}, operand_position={self.operand_position!r})'
+                f'operand={self.operand!r}, '
+                f'value={self.value!r}, '
+                f'operand_position={self.operand_position!r}'
+            ')'
         )
 
 class PysStatementsNode(PysNode):
@@ -367,17 +374,16 @@ class PysTryNode(PysNode):
 
 class PysWithNode(PysNode):
 
-    __slots__ = ('context', 'alias', 'body')
+    __slots__ = ('contexts', 'body')
 
     @typechecked
-    def __init__(self, context: PysNode, alias: PysToken | None, body: PysNode, position: PysPosition) -> None:
+    def __init__(self, contexts: list[tuple[PysNode, PysToken | None]], body: PysNode, position: PysPosition) -> None:
         super().__init__(position)
-        setimuattr(self, 'context', context)
-        setimuattr(self, 'alias', alias)
+        setimuattr(self, 'contexts', tuple(contexts))
         setimuattr(self, 'body', body)
 
     def __repr__(self):
-        return f'With(context={self.context!r}, alias={self.alias!r}, body={self.body!r})'
+        return f'With(contexts={self.contexts!r}, body={self.body!r})'
 
 class PysForNode(PysNode):
 
@@ -388,7 +394,7 @@ class PysForNode(PysNode):
         self,
         header: tuple[PysNode | None, PysNode | None, PysNode | None] |
                 tuple[PysNode, PysNode],
-        body: PysNode | None,
+        body: PysNode,
         else_body: PysNode | None,
         position: PysPosition
     ) -> None:
@@ -409,7 +415,7 @@ class PysWhileNode(PysNode):
     def __init__(
         self,
         condition: PysNode,
-        body: PysNode | None,
+        body: PysNode,
         else_body: PysNode | None,
         position: PysPosition
     ) -> None:
@@ -429,7 +435,7 @@ class PysDoWhileNode(PysNode):
     @typechecked
     def __init__(
         self,
-        body: PysNode | None,
+        body: PysNode,
         condition: PysNode,
         else_body: PysNode | None,
         position: PysPosition
@@ -518,23 +524,23 @@ class PysReturnNode(PysNode):
 
 class PysThrowNode(PysNode):
 
-    __slots__ = ('target', 'another')
+    __slots__ = ('target', 'cause')
 
     @typechecked
-    def __init__(self, target: PysNode, another: PysNode | None, position: PysPosition) -> None:
+    def __init__(self, target: PysNode, cause: PysNode | None, position: PysPosition) -> None:
         super().__init__(
             PysPosition(
                 position.file,
                 position.start,
-                target.position.end if another is None else another.position.end
+                target.position.end if cause is None else cause.position.end
             )
         )
 
         setimuattr(self, 'target', target)
-        setimuattr(self, 'another', another)
+        setimuattr(self, 'cause', cause)
 
     def __repr__(self):
-        return f'Throw(target={self.target!r}, another={self.another!r})'
+        return f'Throw(target={self.target!r}, cause={self.cause!r})'
 
 class PysAssertNode(PysNode):
 

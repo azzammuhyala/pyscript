@@ -18,6 +18,8 @@ is_assign = frozenset([
     PysSetNode, PysListNode, PysTupleNode
 ]).__contains__
 
+is_keyword = frozenset(KEYWORDS.values()).__contains__
+
 is_python_extensions = frozenset([
     '.py', '.ipy', '.pyc', '.pyd', '.pyi', '.pyo', '.pyp', '.pyw', '.pyz', '.rpy', '.xpy', '.pyproj'
 ]).__contains__
@@ -44,3 +46,6 @@ is_keyword_identifiers = frozenset([
     KEYWORDS['not'], KEYWORDS['False'], KEYWORDS['None'], KEYWORDS['True'], KEYWORDS['false'], KEYWORDS['none'],
     KEYWORDS['true']
 ]).__contains__
+
+is_private_attribute = lambda name : name.startswith('_')
+is_public_attribute = lambda name : not name.startswith('_')

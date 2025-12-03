@@ -1,5 +1,6 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
+from .checks import is_keyword
 from .constants import TOKENS, KEYWORDS, DEFAULT, COMMENT
 from .context import PysContext
 from .exceptions import PysException
@@ -205,7 +206,12 @@ class PysLexer(Pys):
                 char = self.current_character
 
                 self.advance()
-                self.throw(self.index - 1, f"invalid character '{char}' (U+{ord(char):08X})")
+                self.throw(
+                    self.index - 1,
+                    f"invalid character '{char}' (U+{ord(char):04X})"
+                    if char.isprintable() else
+                    f"invalid non-printable character U+{ord(char):04X}"
+                )
 
         self.add_token(TOKENS['NULL'])
 
@@ -553,7 +559,7 @@ class PysLexer(Pys):
             self.advance()
 
         self.add_token(
-            TOKENS['KEYWORD'] if not as_identifier and name in KEYWORDS.values() else TOKENS['IDENTIFIER'],
+            TOKENS['KEYWORD'] if not as_identifier and is_keyword(name) else TOKENS['IDENTIFIER'],
             start,
             name
         )

@@ -25,7 +25,7 @@ class _Utilities:
     def readonly_attribute(*args, **kwargs):
         raise AttributeError("readonly attribute")
 
-    def uninherited_class(*args, **kwargs):
+    def inheritable_class(*args, **kwargs):
         raise TypeError("uninherited class")
 
 def immutable(cls):
@@ -33,8 +33,8 @@ def immutable(cls):
     cls.__delattr__ = _Utilities.readonly_attribute
     return cls
 
-def uninherited(cls):
-    cls.__init_subclass__ = _Utilities.uninherited_class
+def inheritable(cls):
+    cls.__init_subclass__ = _Utilities.inheritable_class
     return cls
 
 def singleton(cls):

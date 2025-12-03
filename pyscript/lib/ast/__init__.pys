@@ -1,5 +1,7 @@
 from parser import ast as parse
-from pysast import walk, dump
+from ast_dump import dump
+from ast_unparse import unparse
+from ast_walk import walk
 from _pyscript import nodes
 
 all = []
@@ -11,7 +13,7 @@ locals().update(
         Node.__subclasses__(),
         func (cls) {
             name = cls.__name__
-            nodeName = name[3:]
+            nodeName = name.removeprefix('Pys')
             all.append(nodeName)
             return nodeName, getattr(nodes, name)
         }
@@ -20,8 +22,9 @@ locals().update(
 
 __all__ = (
     'parse',
-    'walk',
     'dump',
+    'unparse',
+    'walk',
     'Node'
 ) + tuple(all)
 

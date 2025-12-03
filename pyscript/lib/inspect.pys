@@ -2,33 +2,41 @@ import _pyscript
 import sys
 
 func iscontext(object) {
-    return type(object) is _pyscript.context.PysContext
+    return isinstance(object, _pyscript.context.PysContext)
 }
 
 func issymtab(object) {
-    return type(object) is _pyscript.symtab.PysSymbolTable
+    return isinstance(object, _pyscript.symtab.PysSymbolTable)
 }
 
 func iscode(object) {
-    return type(object) is _pyscript.objects.PysCode
+    return isinstance(object, _pyscript.objects.PysCode)
 }
 
 func isfunction(object) {
-    return type(object) is _pyscript.objects.PysFunction and iscode(getattr(object, '__code__', None))
+    return isinstance(object, _pyscript.objects.PysFunction)
 }
 
 func ispyfunction(object) {
-    return type(object) is _pyscript.objects.PysPythonFunction and iscode(getattr(object, '__code__', None))
+    return isinstance(object, _pyscript.objects.PysPythonFunction)
 }
 
 getcontext = sys.getcontext
 getsymtab = _pyscript.objects.PysPythonFunction(func(pyfunc) return pyfunc.__code__.context.symbol_table)
-getsymbols = _pyscript.objects.PysPythonFunction(func(pyfunc) return pyfunc.__code__.context.symbol_table.symbols)
-getglobals = _pyscript.objects.PysPythonFunction(func(pyfunc) return pyfunc.__code__.context.symbol_table.globals)
-
 func getcode(fn) {
     if (not (isfunction(fn) or ispyfunction(fn))) {
         throw TypeError("getcode(): fn must be PysPythonFunction or PysFunction")
     }
     return fn.__code__
 }
+
+__all__ = (
+    'iscontext',
+    'issymtab',
+    'iscode',
+    'isfunction',
+    'ispyfunction',
+    'getcontext',
+    'getsymtab',
+    'getcode'
+)

@@ -19,11 +19,28 @@ language was created as a relatively complex project. Using Python as the founda
 understand syntax makes it easy to understand how the language is built without having to understand complex
 instructions like those in C, C++, and other low-level languages.
 
-To learn more about PyScript, you can see on [PyScript documentation here](https://azzammuhyala.github.io/pyscript) or 
-[PyScript repository](https://github.com/azzammuhyala/pyscript).
+To learn more about PyScript, you can see on [PyScript documentation](https://azzammuhyala.github.io/pyscript) or 
+[PyScript repository](https://github.com/azzammuhyala/pyscript) for full source code.
+
+## Installation
+First, you'll need to download Python. Make sure you're using the latest version above `3.10`, to ensure the code runs
+correctly. Visit the official [Python website](https://python.org) to download it.
+
+Next, after downloading and configuring the Python application, you can download the PyScript interpreter from
+[PyScript releases](https://github.com/azzammuhyala/pyscript/releases) or from Python Pip with this command
+(_Recommended_):
+```sh
+python -m pip install -U pyscript-programming-language
+```
+
+After that, you can run the PyScript shell (_REPL_) with this command:
+```sh
+python -m pyscript
+```
+If successful, you can see the version, release date, and a `>>>` like Python shell (_REPL_).
 
 ## Syntax
-<pre class="pyscript-code"><span style="color:#C586C0">func</span><span style="color:#D4D4D4"> </span><span style="color:#DCDCAA">greet</span><span style="color:#FFD705">(</span><span style="color:#8CDCFE">name</span><span style="color:#FFD705">)</span><span style="color:#D4D4D4"> </span><span style="color:#FFD705">{</span><br><span style="color:#D4D4D4">    </span><span style="color:#DCDCAA">print</span><span style="color:#D45DBA">(</span><span style="color:#CE9178">&quot;Hello, &quot;</span><span style="color:#D4D4D4"> + </span><span style="color:#8CDCFE">name</span><span style="color:#D4D4D4"> + </span><span style="color:#CE9178">&quot;!&quot;</span><span style="color:#D45DBA">)</span><br><span style="color:#FFD705">}</span><br><br><span style="color:#DCDCAA">greet</span><span style="color:#FFD705">(</span><span style="color:#CE9178">&quot;Azzam&quot;</span><span style="color:#FFD705">)</span></pre>
+<pre><span style="color:#C586C0">func</span><span style="color:#D4D4D4"> </span><span style="color:#DCDCAA">greet</span><span style="color:#FFD705">(</span><span style="color:#8CDCFE">name</span><span style="color:#FFD705">)</span><span style="color:#D4D4D4"> </span><span style="color:#FFD705">{</span><br><span style="color:#D4D4D4">    </span><span style="color:#DCDCAA">print</span><span style="color:#D45DBA">(</span><span style="color:#CE9178">&quot;Hello, &quot;</span><span style="color:#D4D4D4"> + </span><span style="color:#8CDCFE">name</span><span style="color:#D4D4D4">.</span><span style="color:#DCDCAA">title</span><span style="color:#1A9FFF">()</span><span style="color:#D4D4D4"> + </span><span style="color:#CE9178">&quot;!&quot;</span><span style="color:#D45DBA">)</span><br><span style="color:#FFD705">}</span><br><br><span style="color:#DCDCAA">greet</span><span style="color:#FFD705">(</span><span style="color:#CE9178">&quot;charlie klik&quot;</span><span style="color:#FFD705">)</span></pre>
 
 ## Behind it
 This language created from based up on a

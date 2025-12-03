@@ -1,26 +1,20 @@
 # Change Log
 
-## [1.6.0a1] - 28-11-2025
+## [1.6.0] - 03-12-2025
 
 ### Added
-- New nodes `PysDictionaryNode`, `PysSetNode`, `PysListNode`, `PysTuple`, `PysStatementsNode`, `PysGlobalNode`, and
-  `PysDeleteNode`.
-- The `require()` builtin supports attribute component operations with the `>` sign.
-- The `pyimport()` builtin automatically adds a new path to `sys.path` based on the file where the function is called.
-- Some built-in library modules.
-- Walrus operation (`:=`).
-- `from` keyword in `throw` (cause of exception)
+- New keyword `function` (same as `func`), and `delete` (same as `del`).
+- Exception chaining.
+- Multiple context managers.
+- AST and tokenize libraries.
 - _etc_.
 
 ### Fixed
-- All `TOKENS` names changed.
-- Tokenize encoding literal bytes. (`'ascii'` -> `'latin-1'`).
-- Runtime delete.
-- Runtime speed improvements.
-- Parsing in `if` and `switch`.
-- Parsing in assignment operation.
-- Tokenize prefix string (`r` and `b`).
+- Lexer and Parser improvements
+- Utility libraries.
 - _etc_.
 
-### Deleted
-- Node `PysSequenceNode`.
+### Removed
+- `PysModule` object.
+- Optional body part in `for`, `while`, and `do-while`.
+- _etc_.

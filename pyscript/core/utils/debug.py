@@ -1,5 +1,5 @@
 from ..constants import PYSCRIPT_EXCEPTHOOK
-from ..exceptions import PysShouldReturn
+from ..exceptions import PysSignal
 
 from os import environ
 from sys import excepthook, stderr
@@ -13,10 +13,10 @@ def print_traceback(exc_type, exc_value, exc_tb):
         print(line, file=stderr)
 
 def sys_excepthook(exc_type, exc_value, exc_tb):
-    if exc_type is PysShouldReturn and exc_value.result.error is not None:
+    if exc_type is PysSignal and exc_value.result.error is not None:
         print_traceback(None, None, exc_value.result.error)
-    else:
-        excepthook(exc_type, exc_value, exc_tb)
+        print('\nThe above PyScript exception was the direct cause of the following exception:\n', file=stderr)
+    excepthook(exc_type, exc_value, exc_tb)
 
 def thread_excepthook(args):
     sys_excepthook(args.exc_type, args.exc_value, args.exc_traceback)

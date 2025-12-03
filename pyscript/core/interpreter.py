@@ -1,6 +1,6 @@
 from .constants import TOKENS, KEYWORDS, DEBUG
 from .cache import undefined
-from .checks import is_assign, is_python_extensions, is_equals, is_incremental
+from .checks import is_assign, is_python_extensions, is_equals, is_incremental, is_public_attribute
 from .context import PysClassContext
 from .exceptions import PysException
 from .handlers import handle_exception, handle_call
@@ -10,7 +10,8 @@ from .objects import PysFunction
 from .pysbuiltins import ce, nce, increment, decrement
 from .results import PysRunTimeResult
 from .symtab import PysClassSymbolTable, find_closest
-from .utils.generic import setimuattr, get_closest, get_error_args, is_object_of
+from .utils.generic import setimuattr, is_object_of, get_error_args
+from .utils.similarity import get_closest
 
 from collections.abc import Iterable
 from os.path import splitext as split_file_extension
@@ -36,10 +37,52 @@ def visit(node, context):
     return visitors[node.__class__](node, context)
 
 def visit_NumberNode(node, context):
-    return PysRunTimeResult().success(node.token.value)
+    return PysRunTimeResult().success(node.value.value)
 
 def visit_StringNode(node, context):
-    return PysRunTimeResult().success(node.token.value)
+    return PysRunTimeResult().success(node.value.value)
+
+def visit_KeywordNode(node, context):
+    name = node.name.value
+
+    return PysRunTimeResult().success(
+        bool(context.flags & DEBUG)
+        if name == KW__DEBUG__ else
+        KEYWORDS_TO_VALUES_MAP[name]
+    )
+
+def visit_IdentifierNode(node, context):
+    result = PysRunTimeResult()
+
+    position = node.position
+    name = node.name.value
+    symbol_table = context.symbol_table
+
+    with handle_exception(result, context, position):
+        value = symbol_table.get(name)
+
+        if value is undefined:
+            closest_symbol = find_closest(symbol_table, name)
+
+            return result.failure(
+                PysException(
+                    NameError(
+                        f"name {name!r} is not defined" +
+                        (
+                            ''
+                            if closest_symbol is None else
+                            f". Did you mean {closest_symbol!r}?"
+                        )
+                    ),
+                    context,
+                    position
+                )
+            )
+
+    if result.should_return():
+        return result
+
+    return result.success(value)
 
 def visit_DictionaryNode(node, context):
     result = PysRunTimeResult()
@@ -117,48 +160,6 @@ def visit_TupleNode(node, context):
             return result
 
     return result.success(tuple(elements))
-
-def visit_IdentifierNode(node, context):
-    result = PysRunTimeResult()
-
-    position = node.position
-    name = node.token.value
-    symbol_table = context.symbol_table
-
-    with handle_exception(result, context, position):
-        value = symbol_table.get(name)
-
-        if value is undefined:
-            closest_symbol = find_closest(symbol_table, name)
-
-            return result.failure(
-                PysException(
-                    NameError(
-                        f"name {name!r} is not defined" +
-                        (
-                            ''
-                            if closest_symbol is None else
-                            f". Did you mean {closest_symbol!r}?"
-                        )
-                    ),
-                    context,
-                    position
-                )
-            )
-
-    if result.should_return():
-        return result
-
-    return result.success(value)
-
-def visit_KeywordNode(node, context):
-    value = node.token.value
-
-    return PysRunTimeResult().success(
-        bool(context.flags & DEBUG)
-        if value == KW__DEBUG__ else
-        KEYWORDS_TO_VALUES_MAP[value]
-    )
 
 def visit_AttributeNode(node, context):
     result = PysRunTimeResult()
@@ -464,10 +465,21 @@ def visit_ImportNode(node, context):
     if npackages == 'all':
 
         with handle_exception(result, context, name_position):
-            for package in getattr(
-                module, '__all__',
-                (package for package in dir(module) if not package.startswith('_'))
-            ):
+            exported_packages = getattr(module, '__all__', undefined)
+            if exported_packages is undefined:
+                exported_packages = filter(is_public_attribute, dir(module))
+
+            for package in exported_packages:
+
+                if not isinstance(package, str):
+                    return result.failure(
+                        PysException(
+                            TypeError(f"Item in {module.__name__}.__all__ must be str, not {type(package).__name__}"),
+                            context,
+                            name_position
+                        )
+                    )
+
                 set_symbol(package, getattr(module, package))
 
         if should_return():
@@ -584,19 +596,18 @@ def visit_TryNode(node, context):
     finally_body = node.finally_body
 
     register(visit(node.body, context))
-
     error = result.error
 
     if error:
         exception = error.exception
-        result.error = None
+        result.failure(None)
 
-        for (nerror_name, tparameter), body in node.catch_cases:
+        for (nname, tparameter), body in node.catch_cases:
 
-            if nerror_name:
-                error_cls = register(visit_IdentifierNode(nerror_name, context))
+            if nname:
+                error_cls = register(visit_IdentifierNode(nname, context))
                 if result.error:
-                    setimuattr(result.error, 'other', error)
+                    setimuattr(result.error, 'cause', error)
                     break
 
                 if not (isinstance(error_cls, type) and issubclass(error_cls, BaseException)):
@@ -604,12 +615,12 @@ def visit_TryNode(node, context):
                         PysException(
                             TypeError("catching classes that do not inherit from BaseException is not allowed"),
                             context,
-                            nerror_name.position,
+                            nname.position,
                             error
                         )
                     )
 
-            if nerror_name is None or is_object_of(exception, error_cls):
+            if nname is None or is_object_of(exception, error_cls):
 
                 if tparameter:
 
@@ -621,12 +632,12 @@ def visit_TryNode(node, context):
 
                 register(visit(body, context))
                 if result.error:
-                    setimuattr(result.error, 'other', error)
+                    setimuattr(result.error, 'cause', error)
 
                 break
 
         else:
-            result.error = error
+            result.failure(error)
 
     elif else_body:
         register(visit(else_body, context))
@@ -636,7 +647,7 @@ def visit_TryNode(node, context):
         finally_result.register(visit(finally_body, context))
         if finally_result.should_return():
             if finally_result.error:
-                setimuattr(finally_result.error, 'other', result.error)
+                setimuattr(finally_result.error, 'cause', result.error)
             return finally_result
 
     if should_return():
@@ -647,67 +658,74 @@ def visit_TryNode(node, context):
 def visit_WithNode(node, context):
     result = PysRunTimeResult()
 
+    exits = []
+
     register = result.register
     should_return = result.should_return
-    ncontext = node.context
-    ncontext_position = ncontext.position
-    nalias = node.alias
+    append = exits.append
 
-    context_value = register(visit(ncontext, context))
-    if should_return():
-        return result
+    for ncontext, nalias in node.contexts:
+        ncontext_position = ncontext.position
 
-    with handle_exception(result, context, ncontext_position):
-        enter = getattr(context_value, '__enter__', undefined)
-        exit = getattr(context_value, '__exit__', undefined)
+        context_value = register(visit(ncontext, context))
+        if should_return():
+            return result
 
-        if enter is undefined:
-            return result.failure(
-                PysException(
-                    TypeError(f"{type(context_value).__name__!r} object does not support the context manager protocol"),
-                    context,
-                    ncontext_position
+        with handle_exception(result, context, ncontext_position):
+            enter = getattr(context_value, '__enter__', undefined)
+            exit = getattr(context_value, '__exit__', undefined)
+
+            if enter is undefined:
+                return result.failure(
+                    PysException(
+                        TypeError(
+                            f"{type(context_value).__name__!r} object does not support the context manager protocol"
+                        ),
+                        context,
+                        ncontext_position
+                    )
                 )
-            )
 
-        elif exit is undefined:
-            return result.failure(
-                PysException(
-                    TypeError(
-                        f"{type(context_value).__name__!r} object does not support the context manager protocol"
-                        "(missed __exit__ method)"
-                    ),
-                    context,
-                    ncontext_position
+            elif exit is undefined:
+                return result.failure(
+                    PysException(
+                        TypeError(
+                            f"{type(context_value).__name__!r} object does not support the context manager protocol "
+                            "(missed __exit__ method)"
+                        ),
+                        context,
+                        ncontext_position
+                    )
                 )
-            )
 
-        handle_call(enter, context, ncontext_position)
-        enter_value = enter()
-
-    if should_return():
-        return result
-
-    if nalias:
-
-        with handle_exception(result, context, nalias.position):
-            context.symbol_table.set(nalias.value, enter_value)
+            handle_call(enter, context, ncontext_position)
+            enter_value = enter()
+            append((exit, ncontext_position))
 
         if should_return():
             return result
 
-    register(visit(node.body, context))
+        if nalias:
 
+            with handle_exception(result, context, nalias.position):
+                context.symbol_table.set(nalias.value, enter_value)
+
+            if should_return():
+                return result
+
+    register(visit(node.body, context))
     error = result.error
 
-    with handle_exception(result, context, ncontext_position):
-        handle_call(exit, context, ncontext_position)
-        if exit(*get_error_args(error)):
-            result.error = None
+    for exit, ncontext_position in exits:
+        with handle_exception(result, context, ncontext_position):
+            handle_call(exit, context, ncontext_position)
+            if exit(*get_error_args(error)):
+                result.failure(None)
+                error = None
 
     if should_return():
         if result.error and result.error is not error:
-            setimuattr(result.error, 'other', error)
+            setimuattr(result.error, 'cause', error)
         return result
 
     return result.success(None)
@@ -745,7 +763,7 @@ def visit_ForNode(node, context):
 
             if should_return():
                 if is_object_of(result.error.exception, StopIteration):
-                    result.error = None
+                    result.failure(None)
                 return False
 
             return True
@@ -792,16 +810,15 @@ def visit_ForNode(node, context):
         if not done:
             break
 
-        if body:
-            register(visit(body, context))
-            if should_return() and not result.should_continue and not result.should_break:
-                return result
+        register(visit(body, context))
+        if should_return() and not result.should_continue and not result.should_break:
+            return result
 
-            if result.should_continue:
-                result.should_continue = False
+        if result.should_continue:
+            result.should_continue = False
 
-            elif result.should_break:
-                break
+        elif result.should_break:
+            break
 
         update()
         if should_return():
@@ -839,16 +856,15 @@ def visit_WhileNode(node, context):
         if should_return():
             return result
 
-        if body:
-            register(visit(body, context))
-            if should_return() and not result.should_continue and not result.should_break:
-                return result
+        register(visit(body, context))
+        if should_return() and not result.should_continue and not result.should_break:
+            return result
 
-            if result.should_continue:
-                result.should_continue = False
+        if result.should_continue:
+            result.should_continue = False
 
-            elif result.should_break:
-                break
+        elif result.should_break:
+            break
 
     if result.should_break:
         result.should_break = False
@@ -871,16 +887,15 @@ def visit_DoWhileNode(node, context):
     else_body = node.else_body
 
     while True:
-        if body:
-            register(visit(body, context))
-            if should_return() and not result.should_continue and not result.should_break:
-                return result
+        register(visit(body, context))
+        if should_return() and not result.should_continue and not result.should_break:
+            return result
 
-            if result.should_continue:
-                result.should_continue = False
+        if result.should_continue:
+            result.should_continue = False
 
-            elif result.should_break:
-                break
+        elif result.should_break:
+            break
 
         condition = register(visit(ncondition, context))
         if should_return():
@@ -1036,7 +1051,7 @@ def visit_ThrowNode(node, context):
     register = result.register
     should_return = result.should_return
     ntarget = node.target
-    nanother = node.another
+    ncause = node.cause
 
     target = register(visit(ntarget, context))
     if should_return():
@@ -1051,37 +1066,36 @@ def visit_ThrowNode(node, context):
             )
         )
 
-    if nanother:
-
-        another = register(visit(nanother, context))
+    if ncause:
+        cause = register(visit(ncause, context))
         if should_return():
             return result
 
-        if not is_object_of(another, BaseException):
+        if not is_object_of(cause, BaseException):
             return result.failure(
                 PysException(
                     TypeError("exceptions must derive from BaseException"),
                     context,
-                    nanother.position
+                    ncause.position
                 )
             )
 
-        another = PysException(
-            another,
+        cause = PysException(
+            cause,
             context,
-            nanother.position
+            ncause.position
         )
 
     else:
-        another = None
+        cause = None
 
     return result.failure(
         PysException(
             target,
             context,
             node.position,
-            another,
-            bool(nanother)
+            cause,
+            bool(ncause)
         )
     )
 
@@ -1140,7 +1154,7 @@ def visit_DeleteNode(node, context):
         ntarget_type = ntarget.__class__
 
         if ntarget_type is PysIdentifierNode:
-            name = ntarget.token.value
+            name = ntarget.name.value
 
             with handle_exception(result, context, target_position):
 
@@ -1264,7 +1278,7 @@ def visit_declaration_AssignNode(node, context, value, operand=TOKENS['EQUAL']):
 
     if ntype is PysIdentifierNode:
         symbol_table = context.symbol_table
-        name = node.token.value
+        name = node.name.value
 
         with handle_exception(result, context, node.position):
 
@@ -1376,6 +1390,6 @@ def visit_declaration_AssignNode(node, context, value, operand=TOKENS['EQUAL']):
     return result.success(None)
 
 visitors = {
-    class_node: globals()[f'visit_{class_node.__name__[3:]}']
+    class_node: globals()['visit_' + class_node.__name__.removeprefix('Pys')]
     for class_node in PysNode.__subclasses__()
 }

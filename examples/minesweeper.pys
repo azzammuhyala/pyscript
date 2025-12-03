@@ -1,6 +1,9 @@
 import random  # for randomizing bomb placement
 import os      # to clear up the terminal
 
+# for coloring on the terminal
+from '_pyscript>utils' import ansi
+
 # for recursive settings (in Python, the maximum recursive runs may not be the same)
 sys = pyimport('sys')
 
@@ -20,26 +23,10 @@ CELL_COLORS = {
     10: (200,20 ,20 )   # flag
 }
 
+FLAG_COLOR = ansi.acolor(CELL_COLORS[10], ansi.BACKGROUND | ansi.BOLD | ansi.ITALIC)
+BOMB_COLOR = ansi.acolor(CELL_COLORS[9], ansi.BACKGROUND)
+
 sys.setrecursionlimit(RECURSION_LIMIT)
-
-# set text color and style on ANSI code based
-func rgb(color, bold=false, italic=false, under=false, striket=false) {
-    styles = []
-
-    if bold
-        styles.append('1')
-    if italic
-        styles.append('3')
-    if under
-        styles.append('4')
-    if striket
-        styles.append('9')
-
-    return '{}\x1b[38;2;{}m'.format(
-        styles ? '\x1b[{}m'.format(';'.join(styles)) : '',
-        ';'.join(map(str, color))
-    )
-}
 
 # clear up screen
 func clear()
@@ -48,6 +35,27 @@ func clear()
 class MineSweeper {
 
     func __init__(self, cellSize, bombsCount) {
+        if (not isinstance(cellSize, (tuple, list)))
+            throw TypeError("MineSweeper(): cellSize must be tuple or list")
+        if (not isinstance(bombsCount, int))
+            throw TypeError("MineSweeper(): bombsCount must be integer")
+
+        if (len(cellSize) != 2)
+            throw ValueError("MineSweeper(): cellSize must have a length of 2")
+        if (not isinstance(cellSize[0], int))
+            throw TypeError("MineSweeper(): cellSize[0] must be integer")
+        if (not isinstance(cellSize[1], int))
+            throw TypeError("MineSweeper(): cellSize[1] must be integer")
+
+        w, h = cellSize
+
+        if (w < 5)
+            throw ValueError("MineSweeper(): cellSize[0] must be greater than 5")
+        if (h < 5)
+            throw ValueError("MineSweeper(): cellSize[1] must be greater than 5")
+        if (bombsCount >= w * h)
+            throw ValueError("MineSweeper(): bombsCount cannot more than the cell value")
+
         self.cellSize = cellSize
         self.bombsCount = bombsCount
     }
@@ -218,9 +226,11 @@ class MineSweeper {
     }
 
     # displays the board
-    func showBoard(self, showAll=false) {
+    func showBoard(self, safe=none) {
         w, h = self.cellSize
 
+        buffer = '\x1b[H'
+        separator = '---+' * w
         columnNumber = '    {} '.format(
             ' '.join(
                 map(
@@ -230,34 +240,36 @@ class MineSweeper {
             )
         )
 
-        buffer = '\x1b[H'
-        buffer += '{}Flags\x1b[0m: {} \n'.format(
-            rgb(CELL_COLORS[10], bold=true, italic=true),
-            self.bombsCount - len(self.flags)
+        buffer += '{}Flags\x1b[0m: {} \n{}\n'.format(
+            FLAG_COLOR,
+            self.bombsCount - len(self.flags),
+            columnNumber
         )
-        buffer += '{}\n'.format(columnNumber)
 
         for (row of range(h)) {
-            buffer += '   +{}\n{:>3}'.format('---+' * w, row + 1)
+            buffer += '   +{}\n{:>3}'.format(separator, row + 1)
 
             for (col of range(w)) {
                 position = (col, row)
 
-                if (position in self.dug or showAll) {
-                    cell = self.board[row][col]
-
+                if (position in self.dug or safe is not none) {
                     buffer += '|'
+
+                    cell = self.board[row][col]
 
                     if (cell == 0)
                         buffer += '   '
                     elif (cell == 9)
-                        buffer += '{} * \x1b[0m'.format(rgb(CELL_COLORS[9]))
+                        if safe
+                            buffer += ' {}F\x1b[0m '.format(FLAG_COLOR)
+                        else
+                            buffer += '{} * \x1b[0m'.format(BOMB_COLOR)
                     else
-                        buffer += '{}{:^3}\x1b[0m'.format(rgb(CELL_COLORS[cell]), cell)
+                        buffer += '{}{:^3}\x1b[0m'.format(ansi.acolor(CELL_COLORS[cell], ansi.BACKGROUND), cell)
                 }
 
                 elif (position in self.flags)
-                    buffer += '| {}F\x1b[0m '.format(rgb(CELL_COLORS[10], bold=true, italic=true))
+                    buffer += '| {}F\x1b[0m '.format(FLAG_COLOR)
 
                 else
                     buffer += '| # '
@@ -267,7 +279,7 @@ class MineSweeper {
             buffer += '|{:<3}\n'.format(row + 1)
         }
 
-        buffer += '   +{}\n{}'.format('---+' * w, columnNumber)
+        buffer += '   +{}\n{}'.format(separator, columnNumber)
 
         print(buffer)
     }
@@ -284,7 +296,7 @@ class MineSweeper {
             }
 
             elif (result == 'e') {
-                sys.exit(0)
+                return False, none, none
             }
 
             position = result.split()
@@ -321,7 +333,7 @@ class MineSweeper {
                 col, row = position
 
                 if (0 <= col < w and 0 <= row < h)
-                    return position, setFlag
+                    return True, position, setFlag
 
                 print('Invalid position')
             }
@@ -339,7 +351,9 @@ class MineSweeper {
         self.showBoard()
 
         # get first position
-        position, setFlag = self.getPositionByUser()
+        running, position, setFlag = self.getPositionByUser()
+        if (not running)
+            return;
 
         # make board and dig out
         self.makeNewBoard(position)
@@ -351,7 +365,9 @@ class MineSweeper {
             self.showBoard()
 
             # get a position
-            position, setFlag = self.getPositionByUser()
+            running, position, setFlag = self.getPositionByUser()
+            if (not running)
+                return;
 
             if setFlag
                 # if setting the flag
@@ -363,7 +379,7 @@ class MineSweeper {
 
         # show board and bombs
         clear()
-        self.showBoard(showAll=true)
+        self.showBoard(safe=safe)
 
         # determine win and lose
         print(safe ? '\x1b[32mYou Win!\x1b[0m' : '\x1b[31mYou Lose!\x1b[0m')

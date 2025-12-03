@@ -4,7 +4,7 @@ import _pyscript  # get a core from PyScript module (pyscript.core)
 DOUBLE = _pyscript.constants.DOUBLE
 TRIPLE = _pyscript.constants.TRIPLE
 WITH_EQUAL = _pyscript.constants.WITH_EQUAL
-WITH_EXCLAMATION = _pyscript.constants.WITH_EXCLAMATION
+SPECIAL = _pyscript.constants.SPECIAL
 
 # constants
 TOKENS = _pyscript.constants.TOKENS
@@ -21,7 +21,7 @@ HLFMT_ANSI = _pyscript.highlight.HLFMT_ANSI
 HLFMT_BBCODE = _pyscript.highlight.HLFMT_BBCODE
 
 @_pyscript.utils.decorators.immutable
-@_pyscript.utils.decorators.uninherited
+@_pyscript.utils.decorators.inheritable
 class Parser {
 
     __slots__ = ('_compiled', 'source', 'file', 'flags')
@@ -166,3 +166,23 @@ func analyze(source, mode='exec', flags=DEFAULT) {
 func highlight(source, format=None, max_parenthesis_level=3, flags=DEFAULT) {
     return Parser(source, flags).highlight(format=format, max_parenthesis_level=max_parenthesis_level)
 }
+
+__all__ = (
+    'DOUBLE',
+    'TRIPLE',
+    'WITH_EQUAL',
+    'WITH_EXCLAMATION',
+    'TOKENS',
+    'KEYWORDS',
+    'DEFAULT',
+    'COMMENT',
+    'REVERSE_POW_XOR',
+    'HLFMT_HTML',
+    'HLFMT_ANSI',
+    'HLFMT_BBCODE',
+    'Parser',
+    'tokenize',
+    'ast',
+    'analyze',
+    'highlight'
+)

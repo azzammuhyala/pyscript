@@ -1,1 +1,5 @@
-from "_pyscript>symtab" import PysSymbolTable as SymbolTable
+from '_pyscript>symtab' import PysSymbolTable as SymbolTable
+
+__all__ = (
+    'SymbolTable',
+)

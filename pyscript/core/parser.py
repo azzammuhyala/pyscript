@@ -149,7 +149,7 @@ class PysParser(Pys):
         elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['global']):
             return self.global_expr()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['del']):
+        elif self.current_token.matches(TOKENS['KEYWORD'], (KEYWORDS['del'], KEYWORDS['delete'])):
             return self.del_expr()
 
         elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['throw']):
@@ -250,7 +250,7 @@ class PysParser(Pys):
     def single_expr(self):
         return (
             self.func_expr()
-            if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['func']) else
+            if self.current_token.matches(TOKENS['KEYWORD'], (KEYWORDS['func'], KEYWORDS['function'])) else
             self.ternary()
         )
 
@@ -503,7 +503,6 @@ class PysParser(Pys):
 
             if self.current_token.type == TOKENS['LEFT-PARENTHESIS']:
                 left_parenthesis_token = self.current_token
-
                 self.parenthesis_level += 1
 
                 result.register_advancement()
@@ -528,7 +527,6 @@ class PysParser(Pys):
                         result.register_advancement()
                         self.advance()
                         self.skip(result)
-
                         seen_keyword_argument = True
 
                     elif seen_keyword_argument:
@@ -538,9 +536,7 @@ class PysParser(Pys):
                         value = result.register(self.single_expr(), True)
                         if result.error:
                             return result
-
-                        arguments.append((argument_or_keyword.token, value))
-
+                        arguments.append((argument_or_keyword.name, value))
                     else:
                         arguments.append(argument_or_keyword)
 
@@ -572,8 +568,6 @@ class PysParser(Pys):
                     )
                 )
 
-                start = self.current_token.position.start
-
             elif self.current_token.type == TOKENS['LEFT-SQUARE']:
                 left_parenthesis_token = self.current_token
                 self.parenthesis_level += 1
@@ -588,7 +582,6 @@ class PysParser(Pys):
                 self.skip(result)
 
                 if self.current_token.type != TOKENS['COLON']:
-
                     indices[0] = result.register(self.walrus(), True)
                     if result.error:
                         return result
@@ -666,15 +659,12 @@ class PysParser(Pys):
                     )
                 )
 
-                start = self.current_token.position.start
-
             elif self.current_token.type == TOKENS['DOT']:
                 result.register_advancement()
                 self.advance()
                 self.skip_expr(result)
 
                 attribute = self.current_token
-                start = self.current_token.position.start
 
                 if attribute.type != TOKENS['IDENTIFIER']:
                     return result.failure(self.new_error("expected identifier"))
@@ -691,9 +681,13 @@ class PysParser(Pys):
         result = PysParserResult()
         token = self.current_token
 
-        if token.matches(TOKENS['KEYWORD'], (KEYWORDS['__debug__'],
-                                             KEYWORDS['True'], KEYWORDS['False'], KEYWORDS['None'],
-                                             KEYWORDS['true'], KEYWORDS['false'], KEYWORDS['none'])):
+        if token.matches(
+            TOKENS['KEYWORD'],
+            (
+                KEYWORDS['__debug__'], KEYWORDS['True'], KEYWORDS['False'], KEYWORDS['None'], KEYWORDS['true'],
+                KEYWORDS['false'], KEYWORDS['none']
+            )
+        ):
             result.register_advancement()
             self.advance()
             self.skip_expr(result)
@@ -729,8 +723,8 @@ class PysParser(Pys):
                     )
 
                 string += self.current_token.value
-
                 end = self.current_token.position.end
+
                 result.register_advancement()
                 self.advance()
                 self.skip_expr(result)
@@ -778,15 +772,14 @@ class PysParser(Pys):
     def sequence_expr(self, type, should_sequence=False):
         result = PysParserResult()
         start = self.current_token.position.start
-
         left_parenthesis = PARENTHESISES_ITERABLE_MAP[type]
 
         if self.current_token.type != left_parenthesis:
             return result.failure(self.new_error(f"expected {chr(left_parenthesis)!r}"))
 
         left_parenthesis_token = self.current_token
-
         self.parenthesis_level += 1
+
         result.register_advancement()
         self.advance()
         self.skip(result)
@@ -797,7 +790,6 @@ class PysParser(Pys):
             always_dict = False
 
             while not is_right_parenthesis(self.current_token.type):
-
                 key = result.register(self.single_expr(), True)
                 if result.error:
                     return result
@@ -807,7 +799,6 @@ class PysParser(Pys):
                 if self.current_token.type != TOKENS['COLON']:
                     if not always_dict:
                         self.parenthesis_level -= 1
-
                     return result.failure(self.new_error("expected ':'"), fatal=always_dict)
 
                 result.register_advancement()
@@ -819,7 +810,6 @@ class PysParser(Pys):
                     return result
 
                 elements.append((key, value))
-
                 always_dict = True
 
                 if self.current_token.type == TOKENS['COMMA']:
@@ -833,7 +823,6 @@ class PysParser(Pys):
         else:
 
             while not is_right_parenthesis(self.current_token.type):
-
                 elements.append(result.register(self.walrus(), True))
                 if result.error:
                     return result
@@ -844,7 +833,6 @@ class PysParser(Pys):
                     result.register_advancement()
                     self.advance()
                     self.skip(result)
-
                     should_sequence = True
 
                 elif not is_right_parenthesis(self.current_token.type):
@@ -860,7 +848,6 @@ class PysParser(Pys):
 
         if type == 'tuple' and not should_sequence and elements:
             element = elements[0]
-
             setimuattr(
                 element, 'position',
                 PysPosition(
@@ -963,37 +950,33 @@ class PysParser(Pys):
         if self.current_token.type == TOKENS['STAR']:
             result.register_advancement()
             self.advance()
-
             packages = 'all'
 
         else:
+            parenthesis = False
             packages = []
 
             if self.current_token.type == TOKENS['LEFT-PARENTHESIS']:
                 parenthesis = True
                 left_parenthesis_token = self.current_token
-
                 self.parenthesis_level += 1
 
                 result.register_advancement()
                 self.advance()
                 self.skip(result)
 
-            else:
-                parenthesis = False
-
             if self.current_token.type != TOKENS['IDENTIFIER']:
                 return result.failure(self.new_error("expected identifier"))
 
-            while self.current_token.type == TOKENS['IDENTIFIER']:
+            while True:
                 package = self.current_token
+                as_package = None
+                processed = False
 
                 if name.value == '__future__':
                     processed = result.register(self.proccess_future(package.value))
                     if result.error:
                         return result
-                else:
-                    processed = False
 
                 result.register_advancement()
                 self.advance()
@@ -1013,9 +996,6 @@ class PysParser(Pys):
                     self.advance()
                     self.skip_expr(result)
 
-                else:
-                    as_package = None
-
                 if not processed:
                     packages.append((package, as_package))
 
@@ -1024,7 +1004,7 @@ class PysParser(Pys):
                     self.advance()
                     self.skip_expr(result)
 
-                elif parenthesis and self.current_token.type != TOKENS['LEFT-PARENTHESIS']:
+                elif parenthesis and not is_right_parenthesis(self.current_token.type):
                     return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
 
                 else:
@@ -1060,10 +1040,10 @@ class PysParser(Pys):
             return result.failure(self.new_error("expected string or identifier"))
 
         name = self.current_token
+        as_name = None
 
         result.register_advancement()
         self.advance()
-
         advance_count = self.skip(result)
 
         if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['as']):
@@ -1075,12 +1055,10 @@ class PysParser(Pys):
                 return result.failure(self.new_error("expected identifier"))
 
             as_name = self.current_token
-
             result.register_advancement()
             self.advance()
 
         else:
-            as_name = None
             self.reverse(advance_count)
 
         return result.success(
@@ -1098,8 +1076,6 @@ class PysParser(Pys):
         if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['if']):
             return result.failure(self.new_error(f"expected {KEYWORDS['if']!r}"))
 
-        cases, else_body = [], None
-
         result.register_advancement()
         self.advance()
         self.skip(result)
@@ -1114,8 +1090,8 @@ class PysParser(Pys):
         if result.error:
             return result
 
-        cases.append((condition, body))
-
+        cases = [(condition, body)]
+        else_body = None
         advance_count = self.skip(result)
 
         while self.current_token.matches(TOKENS['KEYWORD'], (KEYWORDS['elif'], KEYWORDS['else'])):
@@ -1197,7 +1173,8 @@ class PysParser(Pys):
         self.advance()
         self.skip(result)
 
-        cases, default_body = [], None
+        cases = []
+        default_body = None
 
         while self.current_token.matches(TOKENS['KEYWORD'], (KEYWORDS['case'], KEYWORDS['default'])):
 
@@ -1269,15 +1246,15 @@ class PysParser(Pys):
         if result.error:
             return result
 
-        advance_count = self.skip(result)
-
         catch_cases = []
+        else_body = None
+        finally_body = None
+        advance_count = self.skip(result)
 
         if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['catch']):
             all_catch_handler = False
 
             while self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['catch']):
-
                 if all_catch_handler:
                     return result.failure(self.new_error("only one catch-all except clause allowed"))
 
@@ -1285,10 +1262,13 @@ class PysParser(Pys):
                 self.advance()
                 self.skip(result)
 
+                parenthesis = False
+                target = None
+                parameter = None
+
                 if self.current_token.type == TOKENS['LEFT-PARENTHESIS']:
                     parenthesis = True
                     left_parenthesis_token = self.current_token
-
                     self.parenthesis_level += 1
 
                     result.register_advancement()
@@ -1298,9 +1278,6 @@ class PysParser(Pys):
                     if self.current_token.type != TOKENS['IDENTIFIER']:
                         return result.failure(self.new_error("expected identifier"))
 
-                else:
-                    parenthesis = False
-
                 if self.current_token.type == TOKENS['IDENTIFIER']:
                     parameter = self.current_token
 
@@ -1308,10 +1285,7 @@ class PysParser(Pys):
                     self.advance()
                     self.skip_expr(result)
 
-                    if (
-                        self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['as']) or
-                        self.current_token.type == TOKENS['COMMA']
-                    ):
+                    if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['as']):
                         result.register_advancement()
                         self.advance()
                         self.skip_expr(result)
@@ -1328,13 +1302,9 @@ class PysParser(Pys):
                         self.skip_expr(result)
 
                     else:
-                        target = None
                         all_catch_handler = True
 
-                    catch_parameter = (target, parameter)
-
                 else:
-                    catch_parameter = (None, None)
                     all_catch_handler = True
 
                 if parenthesis:
@@ -1350,8 +1320,7 @@ class PysParser(Pys):
                 if result.error:
                     return result
 
-                catch_cases.append((catch_parameter, catch_body))
-
+                catch_cases.append(((target, parameter), catch_body))
                 advance_count = self.skip(result)
 
             if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['else']):
@@ -1364,12 +1333,6 @@ class PysParser(Pys):
                     return result
 
                 advance_count = self.skip(result)
-
-            else:
-                else_body = None
-
-        else:
-            else_body = None
 
         if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['finally']):
             result.register_advancement()
@@ -1384,7 +1347,6 @@ class PysParser(Pys):
             return result.failure(self.new_error(f"expected {KEYWORDS['catch']!r} or {KEYWORDS['finally']!r}"))
 
         else:
-            finally_body = None
             self.reverse(advance_count)
 
         return result.success(
@@ -1411,7 +1373,6 @@ class PysParser(Pys):
         if self.current_token.type == TOKENS['LEFT-PARENTHESIS']:
             parenthesis = True
             left_parenthesis_token = self.current_token
-
             self.parenthesis_level += 1
 
             result.register_advancement()
@@ -1421,27 +1382,42 @@ class PysParser(Pys):
         else:
             parenthesis = False
 
-        context = result.register(self.single_expr(), True)
-        if result.error:
-            return result
+        contexts = []
 
-        if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['as']) or self.current_token.type == TOKENS['COMMA']:
-            result.register_advancement()
-            self.advance()
-            self.skip_expr(result)
+        while True:
+            context = result.register(self.single_expr(), True)
+            if result.error:
+                return result
 
-            if self.current_token.type != TOKENS['IDENTIFIER']:
-                return result.failure(self.new_error("expected identifier"))
+            if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['as']):
+                result.register_advancement()
+                self.advance()
+                self.skip_expr(result)
 
-        if self.current_token.type == TOKENS['IDENTIFIER']:
-            alias = self.current_token
+                if self.current_token.type != TOKENS['IDENTIFIER']:
+                    return result.failure(self.new_error("expected identifier"))
 
-            result.register_advancement()
-            self.advance()
-            self.skip_expr(result)
-
-        else:
             alias = None
+
+            if self.current_token.type == TOKENS['IDENTIFIER']:
+                alias = self.current_token
+
+                result.register_advancement()
+                self.advance()
+                self.skip_expr(result)
+
+            contexts.append((context, alias))
+
+            if self.current_token.type == TOKENS['COMMA']:
+                result.register_advancement()
+                self.advance()
+                self.skip_expr(result)
+
+            elif parenthesis and not is_right_parenthesis(self.current_token.type):
+                return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
+
+            else:
+                break
 
         if parenthesis:
             self.close_parenthesis(result, left_parenthesis_token)
@@ -1458,8 +1434,7 @@ class PysParser(Pys):
 
         return result.success(
             PysWithNode(
-                context,
-                alias,
+                contexts,
                 body,
                 position
             )
@@ -1476,18 +1451,16 @@ class PysParser(Pys):
         self.advance()
         self.skip(result)
 
+        parenthesis = False
+
         if self.current_token.type == TOKENS['LEFT-PARENTHESIS']:
             parenthesis = True
             left_parenthesis_token = self.current_token
-
             self.parenthesis_level += 1
 
             result.register_advancement()
             self.advance()
             self.skip(result)
-
-        else:
-            parenthesis = False
 
         declaration = result.try_register(self.assign_expr())
         if result.error:
@@ -1546,10 +1519,11 @@ class PysParser(Pys):
 
         self.skip(result)
 
-        body = result.try_register(self.block_statements())
+        body = result.register(self.block_statements(), True)
         if result.error:
             return result
 
+        else_body = None
         advance_count = self.skip(result)
 
         if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['else']):
@@ -1562,7 +1536,6 @@ class PysParser(Pys):
                 return result
 
         else:
-            else_body = None
             self.reverse(advance_count)
 
         return result.success(
@@ -1591,10 +1564,11 @@ class PysParser(Pys):
 
         self.skip(result)
 
-        body = result.try_register(self.block_statements())
+        body = result.register(self.block_statements(), True)
         if result.error:
             return result
 
+        else_body = None
         advance_count = self.skip(result)
 
         if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['else']):
@@ -1607,7 +1581,6 @@ class PysParser(Pys):
                 return result
 
         else:
-            else_body = None
             self.reverse(advance_count)
 
         return result.success(
@@ -1630,7 +1603,7 @@ class PysParser(Pys):
         self.advance()
         self.skip(result)
 
-        body = result.try_register(self.block_statements())
+        body = result.register(self.block_statements(), True)
         if result.error:
             return result
 
@@ -1647,6 +1620,7 @@ class PysParser(Pys):
         if result.error:
             return result
 
+        else_body = None
         advance_count = self.skip(result)
 
         if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['else']):
@@ -1659,7 +1633,6 @@ class PysParser(Pys):
                 return result
 
         else:
-            else_body = None
             self.reverse(advance_count)
 
         return result.success(
@@ -1686,6 +1659,7 @@ class PysParser(Pys):
             return result.failure(self.new_error("expected identifier"))
 
         name = self.current_token
+        bases = []
         end = self.current_token.position.end
 
         result.register_advancement()
@@ -1717,10 +1691,7 @@ class PysParser(Pys):
                 bases = list(bases.elements)
 
             else:
-                bases = [bases]
-
-        else:
-            bases = []
+                bases.append(bases)
 
         body = result.register(self.block_statements(), True)
         if result.error:
@@ -1744,12 +1715,14 @@ class PysParser(Pys):
         result = PysParserResult()
         start = self.current_token.position.start
 
-        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['func']):
-            return result.failure(self.new_error(f"expected {KEYWORDS['func']!r}"))
+        if not self.current_token.matches(TOKENS['KEYWORD'], (KEYWORDS['func'], KEYWORDS['function'])):
+            return result.failure(self.new_error(f"expected {KEYWORDS['func']!r} or {KEYWORDS['function']!r}"))
 
         result.register_advancement()
         self.advance()
         self.skip(result)
+
+        name = None
 
         if self.current_token.type == TOKENS['IDENTIFIER']:
             name = self.current_token
@@ -1758,14 +1731,10 @@ class PysParser(Pys):
             self.advance()
             self.skip(result)
 
-        else:
-            name = None
-
         if self.current_token.type != TOKENS['LEFT-PARENTHESIS']:
             return result.failure(self.new_error("expected identifier or '('" if name is None else "expected '('"))
 
         left_parenthesis_token = self.current_token
-
         self.parenthesis_level += 1
 
         result.register_advancement()
@@ -1776,7 +1745,6 @@ class PysParser(Pys):
         parameters = []
 
         while not is_right_parenthesis(self.current_token.type):
-
             if self.current_token.type != TOKENS['IDENTIFIER']:
                 return result.failure(self.new_error("expected identifier"))
 
@@ -1790,7 +1758,6 @@ class PysParser(Pys):
                 result.register_advancement()
                 self.advance()
                 self.skip(result)
-
                 seen_keyword_argument = True
 
             elif seen_keyword_argument:
@@ -1800,9 +1767,7 @@ class PysParser(Pys):
                 value = result.register(self.single_expr(), True)
                 if result.error:
                     return result
-
                 parameters.append((key, value))
-
             else:
                 parameters.append(key)
 
@@ -1823,7 +1788,6 @@ class PysParser(Pys):
             return result
 
         self.parenthesis_level -= 1
-
         self.skip(result)
 
         body = result.register(self.block_statements(), True)
@@ -1877,48 +1841,44 @@ class PysParser(Pys):
         self.skip(result)
 
         names = []
+        parenthesis = False
 
         if self.current_token.type == TOKENS['LEFT-PARENTHESIS']:
+            parenthesis = True
             left_parenthesis_token = self.current_token
+            self.parenthesis_level += 1
 
             result.register_advancement()
             self.advance()
             self.skip(result)
 
-            while not is_right_parenthesis(self.current_token.type):
+        if self.current_token.type != TOKENS['IDENTIFIER']:
+            return result.failure(self.new_error("expected identifier"))
 
-                if self.current_token.type != TOKENS['IDENTIFIER']:
-                    return result.failure(self.new_error("expected identifier"))
-
-                names.append(self.current_token)
-
-                result.register_advancement()
-                self.advance()
-                self.skip(result)
-
-                if self.current_token.type == TOKENS['COMMA']:
-                    result.register_advancement()
-                    self.advance()
-                    self.skip(result)
-
-                elif not is_right_parenthesis(self.current_token.type):
-                    return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
-
-            if not names:
-                return result.failure(self.new_error("invalid syntax. At least need 1 identifier"))
-
-            self.close_parenthesis(result, left_parenthesis_token)
-            if result.error:
-                return result
-
-        elif self.current_token.type == TOKENS['IDENTIFIER']:
+        while self.current_token.type == TOKENS['IDENTIFIER']:
             names.append(self.current_token)
 
             result.register_advancement()
             self.advance()
+            self.skip_expr(result)
 
-        else:
-            return result.failure(self.new_error("expected identifier or '('"))
+            if self.current_token.type == TOKENS['COMMA']:
+                result.register_advancement()
+                self.advance()
+                self.skip_expr(result)
+
+            elif parenthesis and not is_right_parenthesis(self.current_token.type):
+                return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
+
+            else:
+                break
+
+        if parenthesis:
+            self.close_parenthesis(result, left_parenthesis_token)
+            if result.error:
+                return result
+
+            self.parenthesis_level -= 1
 
         return result.success(
             PysGlobalNode(
@@ -1931,8 +1891,8 @@ class PysParser(Pys):
         result = PysParserResult()
         position = self.current_token.position
 
-        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['del']):
-            return result.failure(self.new_error(f"expected {KEYWORDS['del']!r}"))
+        if not self.current_token.matches(TOKENS['KEYWORD'], (KEYWORDS['del'], KEYWORDS['delete'])):
+            return result.failure(self.new_error(f"expected {KEYWORDS['del']!r} or {KEYWORDS['delete']!r}"))
 
         result.register_advancement()
         self.advance()
@@ -1972,22 +1932,21 @@ class PysParser(Pys):
         if result.error:
             return result
 
+        cause = None
+
         if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['from']):
             result.register_advancement()
             self.advance()
             self.skip(result)
 
-            another = result.register(self.single_expr(), True)
+            cause = result.register(self.single_expr(), True)
             if result.error:
                 return result
-
-        else:
-            another = None
 
         return result.success(
             PysThrowNode(
                 target,
-                another,
+                cause,
                 position
             )
         )
@@ -2006,6 +1965,7 @@ class PysParser(Pys):
         if result.error:
             return result
 
+        message = None
         advance_count = self.skip(result)
 
         if self.current_token.type == TOKENS['COMMA']:
@@ -2018,7 +1978,6 @@ class PysParser(Pys):
                 return result
 
         else:
-            message = None
             self.reverse(advance_count)
 
         return result.success(
@@ -2046,7 +2005,7 @@ class PysParser(Pys):
 
             self.skip(result, (TOKENS['NEWLINE'], TOKENS['SEMICOLON']))
 
-        if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['func']):
+        if self.current_token.matches(TOKENS['KEYWORD'], (KEYWORDS['func'], KEYWORDS['function'])):
             func_expr = result.register(self.func_expr(decorators))
             if result.error:
                 return result
@@ -2093,14 +2052,28 @@ class PysParser(Pys):
 
             return result.success(body)
 
+        elif self.current_token.type == TOKENS['SEMICOLON']:
+            position = self.current_token.position
+
+            result.register_advancement()
+            self.advance()
+
+            return result.success(
+                PysStatementsNode(
+                    [],
+                    position
+                )
+            )
+
         elif self.current_token.type == TOKENS['COLON']:
             return result.failure(self.new_error("unlike python"))
 
-        body = result.register(self.statement())
-        if result.error:
-            return result.failure(self.new_error("expected statement, expression, or '{'"), fatal=False)
+        else:
+            body = result.register(self.statement())
+            if result.error:
+                return result.failure(self.new_error("expected statement, expression, '{', or ';'"), fatal=False)
 
-        return result.success(body)
+            return result.success(body)
 
     def chain_operator(self, func, operators, is_member=False):
         result = PysParserResult()
