@@ -1,7 +1,7 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
-from .checks import is_left_parenthesis, is_right_parenthesis, is_parenthesis, is_keyword_identifiers
-from .constants import TOKENS, KEYWORDS, DEFAULT, SILENT, COMMENT
+from .checks import is_left_parenthesis, is_right_parenthesis, is_parenthesis, is_constant_keywords
+from .constants import TOKENS, KEYWORDS, HIGHLIGHT
 from .lexer import PysLexer
 from .mapping import PARENTHESISES_MAP, HIGHLIGHT_MAP
 from .position import PysPosition
@@ -92,8 +92,7 @@ HLFMT_BBCODE = _HighlightFormatter(
 def pys_highlight(
     source,
     format: Optional[Callable[[str, PysPosition, str], str]] = None,
-    max_parenthesis_level: int = 3,
-    flags: int = DEFAULT
+    max_parenthesis_level: int = 3
 ) -> str:
     """
     Highlight a PyScript code from source given.
@@ -105,8 +104,6 @@ def pys_highlight(
     format: A function to format the code form.
 
     max_parenthesis_level: Maximum difference level of parentheses (with circular indexing).
-
-    flags: A special flags.
     """
 
     file = PysFileBuffer(source)
@@ -119,13 +116,12 @@ def pys_highlight(
 
     lexer = PysLexer(
         file=file,
-        flags=flags | COMMENT
+        flags=HIGHLIGHT
     )
 
-    tokens, error = lexer.make_tokens()
-    if error and not (flags & SILENT):
-        raise error.exception
+    tokens, _ = lexer.make_tokens()
 
+    text = file.text
     result = ''
     last_index_position = 0
     parenthesis_level = 0
@@ -134,8 +130,6 @@ def pys_highlight(
         TOKENS['RIGHT-SQUARE']: 0,
         TOKENS['RIGHT-CURLY']: 0
     }
-
-    text = file.text
 
     for i, token in enumerate(tokens):
         ttype = token.type
@@ -149,7 +143,33 @@ def pys_highlight(
             type_fmt = 'end'
 
         elif ttype == TOKENS['KEYWORD']:
-            type_fmt = 'keyword-identifier' if is_keyword_identifiers(tvalue) else 'keyword'
+            type_fmt = 'keyword-constant' if is_constant_keywords(tvalue) else 'keyword'
+
+        elif ttype == TOKENS['IDENTIFIER']:
+            obj = pys_builtins.__dict__.get(tvalue, None)
+
+            if isinstance(obj, type):
+                type_fmt = 'identifier-type'
+            elif callable(obj):
+                type_fmt = 'identifier-function'
+
+            else:
+                j = i - 1
+                while j > 0 and tokens[j].type in (TOKENS['NEWLINE'], TOKENS['COMMENT']):
+                    j -= 1
+
+                previous_token = tokens[j]
+                if previous_token.match(TOKENS['KEYWORD'], KEYWORDS['class']):
+                    type_fmt = 'identifier-type'
+                elif previous_token.matches(TOKENS['KEYWORD'], (KEYWORDS['func'], KEYWORDS['function'])):
+                    type_fmt = 'identifier-function'
+
+                else:
+                    j = i + 1
+                    if (j < len(tokens) and tokens[j].type == TOKENS['LEFT-PARENTHESIS']):
+                        type_fmt = 'identifier-function'
+                    else:
+                        type_fmt = 'identifier-constant' if tvalue.isupper() else 'identifier'
 
         elif ttype == TOKENS['NUMBER']:
             type_fmt = 'number'
@@ -157,46 +177,24 @@ def pys_highlight(
         elif ttype == TOKENS['STRING']:
             type_fmt = 'string'
 
-        elif ttype == TOKENS['IDENTIFIER']:
-            obj = pys_builtins.__dict__.get(tvalue, None)
-
-            if isinstance(obj, type):
-                type_fmt = 'identifier-class'
-
-            elif callable(obj):
-                type_fmt = 'identifier-call'
-
-            else:
-                type_fmt = 'identifier-const' if tvalue.isupper() else 'identifier'
-
-                j = i + 1
-                if (j < len(tokens) and tokens[j].type == TOKENS['LEFT-PARENTHESIS']):
-                    type_fmt = 'identifier-call'
-
-                j = i - 1
-                while j > 0 and tokens[j].type == TOKENS['NEWLINE']:
-                    j -= 1
-
-                if tokens[j].match(TOKENS['KEYWORD'], KEYWORDS['class']):
-                    type_fmt = 'identifier-class'
-                elif tokens[j].matches(TOKENS['KEYWORD'], (KEYWORDS['func'], KEYWORDS['function'])):
-                    type_fmt = 'identifier-call'
-
-        elif is_parenthesis(ttype):
-            type_fmt = 'parenthesis-{}'.format(
-                'unmatch'
-                if
-                    parenthesises_level[PARENTHESISES_MAP.get(ttype, ttype)] < 0 or
-                    parenthesis_level < 0
-                else
-                parenthesis_level % max_parenthesis_level
-            )
-
         elif ttype == TOKENS['NEWLINE']:
             type_fmt = 'newline'
 
         elif ttype == TOKENS['COMMENT']:
             type_fmt = 'comment'
+
+        elif is_parenthesis(ttype):
+            type_fmt = (
+                'invalid'
+                if
+                    parenthesises_level[PARENTHESISES_MAP.get(ttype, ttype)] < 0 or
+                    parenthesis_level < 0
+                else
+                f'brackets-{parenthesis_level % max_parenthesis_level}'
+            )
+
+        elif ttype == TOKENS['NONE']:
+            type_fmt = 'invalid'
 
         else:
             type_fmt = 'default'

@@ -1,20 +1,12 @@
 # Change Log
 
-## [1.6.0] - 03-12-2025
+## [1.6.1] - 06-12-2025
 
 ### Added
-- New keyword `function` (same as `func`), and `delete` (same as `del`).
-- Exception chaining.
-- Multiple context managers.
-- AST and tokenize libraries.
-- _etc_.
+- `pys_require()`, import PyScript modules just like the `require()` builtin.
 
 ### Fixed
-- Lexer and Parser improvements
-- Utility libraries.
-- _etc_.
-
-### Removed
-- `PysModule` object.
-- Optional body part in `for`, `while`, and `do-while`.
+- Lexer, Parser, and Interpreter improvements
+- Utility, and ast libraries improvements.
+- highlight improvements.
 - _etc_.

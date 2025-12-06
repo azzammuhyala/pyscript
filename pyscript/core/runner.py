@@ -1,44 +1,35 @@
 from .analyzer import PysAnalyzer
 from .buffer import PysFileBuffer
 from .cache import undefined, hook, PysUndefined
-from .constants import PYSCRIPT_SHELL, PYSCRIPT_TYPECHECKING, DEFAULT, SILENT, RETRES, COMMENT, NO_COLOR
+from .constants import PYSCRIPT_SHELL, PYSCRIPT_TYPECHECKING, DEFAULT, SILENT, RETRES, HIGHLIGHT, NO_COLOR
 from .context import PysContext
-from .exceptions import PysException, PysSignal
-from .handlers import handle_exception, handle_execute
+from .exceptions import PysTraceback, PysSignal
+from .handlers import handle_exception, handle_call, handle_execute
 from .interpreter import visit
 from .lexer import PysLexer
 from .parser import PysParser
 from .position import PysPosition
+from .pysbuiltins import require
 from .results import PysRunTimeResult, PysExecuteResult
 from .symtab import PysSymbolTable, new_symbol_table
 from .utils.ansi import BOLD, acolor
 from .utils.debug import print_display
 from .utils.decorators import typechecked
-from .utils.generic import setimuattr, get_locals
+from .utils.generic import setimuattr, get_frame, get_locals
 from .version import version
 
 from os import environ
 from sys import stderr, version as pyversion
+from types import ModuleType
 from typing import Any, Literal, Optional
 
-def _normalize_globals(file, globals, stack_level):
-    stack_level += 1
-
+def _normalize_globals(file, globals):
     if globals is None:
-        symtab, _ = new_symbol_table(
-            symbols=get_locals(
-                stack_level + 1
-                if environ.get(PYSCRIPT_TYPECHECKING, '1') == '1' else
-                stack_level
-            )
-        )
-
+        symtab, _ = new_symbol_table(symbols=get_locals(3 if environ.get(PYSCRIPT_TYPECHECKING, '1') == '1' else 2))
     elif globals is undefined:
         symtab, _ = new_symbol_table(file=file.name, name='__main__')
-
     elif isinstance(globals, dict):
         symtab, _ = new_symbol_table(symbols=globals)
-
     return symtab
 
 @typechecked
@@ -70,7 +61,7 @@ def pys_runner(
 
             lexer = PysLexer(
                 file=file,
-                flags=context.flags & ~COMMENT,
+                flags=context.flags & ~HIGHLIGHT,
                 context_parent=context_parent,
                 context_parent_entry_position=context_parent_entry_position
             )
@@ -103,7 +94,7 @@ def pys_runner(
 
         except RecursionError:
             return result.failure(
-                PysException(
+                PysTraceback(
                     RecursionError("maximum recursion depth exceeded during complication"),
                     context,
                     position
@@ -148,7 +139,7 @@ def pys_exec(
     result = pys_runner(
         file=file,
         mode='exec',
-        symbol_table=_normalize_globals(file, globals, 2),
+        symbol_table=_normalize_globals(file, globals),
         flags=flags
     )
 
@@ -184,7 +175,7 @@ def pys_eval(
     result = pys_runner(
         file=file,
         mode='eval',
-        symbol_table=_normalize_globals(file, globals, 2),
+        symbol_table=_normalize_globals(file, globals),
         flags=flags
     )
 
@@ -195,6 +186,20 @@ def pys_eval(
         raise PysSignal(PysRunTimeResult().failure(result.error))
 
     return result.value
+
+def pys_require(name) -> ModuleType | Any:
+
+    """
+    Import a PyScript module.
+
+    Parameters
+    ----------
+    name: A name or path of the module to be imported.
+    """
+
+    file = PysFileBuffer('', get_frame(1).f_code.co_filename)
+    handle_call(require, PysContext(file), PysPosition(file, -1, -1))
+    return require(name)
 
 @typechecked
 def pys_shell(
@@ -218,7 +223,7 @@ def pys_shell(
         raise RuntimeError("another shell is still running")
 
     file = PysFileBuffer('', '<pyscript-shell>')
-    globals = _normalize_globals(file, globals, 2)
+    symtab = _normalize_globals(file, globals)
 
     if flags & NO_COLOR:
         reset = ''
@@ -340,7 +345,7 @@ def pys_shell(
                 result = pys_runner(
                     file=PysFileBuffer(full_text + text, f'<pyscript-shell-{line}>'),
                     mode='exec',
-                    symbol_table=globals,
+                    symbol_table=symtab,
                     flags=flags
                 )
 

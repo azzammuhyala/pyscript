@@ -1,4 +1,4 @@
-from os.path import basename, isdir, isfile, join
+from os.path import isdir, isfile, join
 from sys import path as pypath
 
 from .path import normpath, base, extension

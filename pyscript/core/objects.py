@@ -1,6 +1,6 @@
 from .bases import Pys
 from .context import PysContext, PysClassContext
-from .exceptions import PysException, PysSignal
+from .exceptions import PysTraceback, PysSignal
 from .results import PysRunTimeResult
 from .symtab import PysSymbolTable
 from .utils.similarity import get_closest
@@ -105,7 +105,7 @@ class PysFunction(PysObject):
             if name in registered_arguments:
                 raise PysSignal(
                     result.failure(
-                        PysException(
+                        PysTraceback(
                             TypeError(f"{qualname}() got multiple values for argument {name!r}"),
                             code_call_context,
                             code_position
@@ -118,14 +118,12 @@ class PysFunction(PysObject):
 
                 raise PysSignal(
                     result.failure(
-                        PysException(
+                        PysTraceback(
                             TypeError(
                                 "{}() got an unexpected keyword argument {!r}{}".format(
                                     qualname,
                                     name,
-                                    ''
-                                    if closest_argument is None else
-                                    f". Did you mean {closest_argument!r}?"
+                                    '' if closest_argument is None else f". Did you mean {closest_argument!r}?"
                                 )
                             ),
                             code_call_context,
@@ -145,7 +143,7 @@ class PysFunction(PysObject):
 
             raise PysSignal(
                 result.failure(
-                    PysException(
+                    PysTraceback(
                         TypeError(
                             "{}() missing {} required positional argument{}: {}".format(
                                 qualname,
@@ -165,7 +163,7 @@ class PysFunction(PysObject):
 
             raise PysSignal(
                 result.failure(
-                    PysException(
+                    PysTraceback(
                         TypeError(
                             f"{qualname}() takes no arguments ({given_arguments} given)"
                             if total_parameters == 0 else

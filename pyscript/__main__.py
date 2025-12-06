@@ -5,16 +5,22 @@ from .core.handlers import handle_execute
 from .core.highlight import HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight
 from .core.runner import pys_runner, pys_shell
 from .core.symtab import new_symbol_table
-from .core.utils.module import get_module_name_from_path, set_python_path
-from .core.utils.path import getcwd, normpath
+from .core.utils.module import get_module_name_from_path
+from .core.utils.path import normpath
 from .core.version import __version__
 
 from argparse import ArgumentParser
 from sys import executable, stderr, version_info, exit, setrecursionlimit
 
+FORMAT_HIGHLIGHT_MAP = {
+    'html': HLFMT_HTML,
+    'ansi': HLFMT_ANSI,
+    'bbcode': HLFMT_BBCODE
+}
+
 parser = ArgumentParser(
-    prog=get_module_name_from_path(executable) + ' -m pyscript',
-    description='PyScript Launcher for Python Version ' + '.'.join(map(str, version_info))
+    prog=f'{get_module_name_from_path(executable)} -m pyscript',
+    description=f'PyScript Launcher for Python Version {".".join(map(str, version_info))}'
 )
 
 parser.add_argument(
@@ -52,7 +58,7 @@ parser.add_argument(
 
 parser.add_argument(
     '-l', '--highlight',
-    choices=('html', 'ansi', 'bbcode'),
+    choices=tuple(FORMAT_HIGHLIGHT_MAP.keys()),
     default=None,
     help='generate PyScript highlight code from a file'
 )
@@ -93,8 +99,6 @@ if args.debug:
 if args.no_color:
     flags |= NO_COLOR
 
-set_python_path(getcwd())
-
 if args.file is not None:
     path = normpath(args.file)
 
@@ -117,16 +121,10 @@ if args.file is not None:
         parser.error(f"file {path!r}: Unexpected error: {e}")
 
     if args.highlight:
-        format_map = {
-            'html': HLFMT_HTML,
-            'ansi': HLFMT_ANSI,
-            'bbcode': HLFMT_BBCODE
-        }
-
         try:
-            print(pys_highlight(file, format_map[args.highlight]))
+            print(pys_highlight(file, FORMAT_HIGHLIGHT_MAP.get(args.highlight, None)))
         except BaseException as e:
-            parser.error(f"file {path!r}: Tokenize error: {e}")
+            parser.error(f"file {path!r}: Highlight error: {e}")
 
     else:
         result = pys_runner(

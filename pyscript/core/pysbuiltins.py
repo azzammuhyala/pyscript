@@ -80,60 +80,52 @@ help = _Helper()
 @PysPythonFunction
 def require(pyfunc, name):
     name, *other_components = normstr(name).split('>')
-    external = True
+    code = pyfunc.__code__
+    context = code.context
 
     for p in path:
-        path_package = get_module_path(normpath(p, name, absolute=False))
-        if path_package is not None:
+        module_path = get_module_path(normpath(p, name, absolute=False))
+        if module_path is not None:
             break
     else:
-        path_package = get_module_path(
-            normpath(
-                dirname(pyfunc.__code__.context.file.name) or getcwd(),
-                name,
-                absolute=False
-            )
-        )
+        module_path = get_module_path(normpath(dirname(context.file.name) or getcwd(), name, absolute=False))
 
-    if path_package is None:
-
+    if module_path is None:
         if name == '_pyscript':
             from .. import core as module
-            external = False
-
         elif name == 'builtins':
             module = pys_builtins
-            external = False
-
         else:
-            path_package = name
+            module_path = name
 
-    if external:
+    if module_path is not None:
 
-        if path_package in loading_modules:
+        if module_path in loading_modules:
             raise ImportError(
                 f"cannot import module name {name!r} "
-                f"from partially initialized module {pyfunc.__code__.context.file.name!r}, "
+                f"from partially initialized module {context.file.name!r}, "
                 "mostly during circular import"
             )
 
-        module = modules.get(path_package, None)
+        module = modules.get(module_path, None)
 
         if module is None:
 
             try:
-                loading_modules.add(path_package)
+                loading_modules.add(module_path)
 
                 try:
-                    with open(path_package, 'r', encoding='utf-8') as file:
-                        file = PysFileBuffer(file, path_package)
+                    with open(module_path, 'r', encoding='utf-8') as file:
+                        file = PysFileBuffer(file, module_path)
                 except FileNotFoundError as e:
                     raise ModuleNotFoundError(f"No module named {name!r}") from e
                 except BaseException as e:
                     raise ImportError(f"Cannot import module named {name!r}: {e}") from e
 
-                symtab, module = new_symbol_table(file=file.name, name=get_module_name_from_path(name))
-                code = pyfunc.__code__
+                symtab, module = new_symbol_table(
+                    file=file.name,
+                    name=get_module_name_from_path(name)
+                )
 
                 from .runner import pys_runner
 
@@ -141,17 +133,18 @@ def require(pyfunc, name):
                     file=file,
                     mode='exec',
                     symbol_table=symtab,
-                    context_parent=code.context,
+                    context_parent=context,
                     context_parent_entry_position=code.position
                 )
 
                 if result.error:
                     raise PysSignal(PysRunTimeResult().failure(result.error))
 
-                modules[path_package] = module
+                modules[module_path] = module
+
             finally:
-                if path_package in loading_modules:
-                    loading_modules.remove(path_package)
+                if module_path in loading_modules:
+                    loading_modules.remove(module_path)
 
     for component in other_components:
         module = getattr(module, component)
@@ -161,7 +154,7 @@ def require(pyfunc, name):
 @PysPythonFunction
 def pyimport(pyfunc, name):
     set_python_path(dirname(pyfunc.__code__.context.file.name))
-    return import_module(name)
+    return import_module(normstr(name))
 
 @PysPythonFunction
 def globals(pyfunc):
@@ -287,7 +280,6 @@ def nce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
                     raise TypeError(
                         f"unsupported operand type(s) for ~! or nce(): {type(a).__name__!r} and {type(b).__name__!r}"
                     )
-
             result = not result
 
     return result

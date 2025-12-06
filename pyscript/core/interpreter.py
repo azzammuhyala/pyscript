@@ -1,8 +1,8 @@
 from .constants import TOKENS, KEYWORDS, DEBUG
 from .cache import undefined
-from .checks import is_assign, is_python_extensions, is_equals, is_incremental, is_public_attribute
+from .checks import is_assign, is_equals, is_incremental, is_public_attribute
 from .context import PysClassContext
-from .exceptions import PysException
+from .exceptions import PysTraceback
 from .handlers import handle_exception, handle_call
 from .mapping import BINARY_FUNCTIONS_MAP, UNARY_FUNCTIONS_MAP, KEYWORDS_TO_VALUES_MAP
 from .nodes import PysNode, PysIdentifierNode, PysAttributeNode, PysSubscriptNode
@@ -14,7 +14,6 @@ from .utils.generic import setimuattr, is_object_of, get_error_args
 from .utils.similarity import get_closest
 
 from collections.abc import Iterable
-from os.path import splitext as split_file_extension
 
 KW__DEBUG__ = KEYWORDS['__debug__']
 KW_AND = KEYWORDS['and']
@@ -65,7 +64,7 @@ def visit_IdentifierNode(node, context):
             closest_symbol = find_closest(symbol_table, name)
 
             return result.failure(
-                PysException(
+                PysTraceback(
                     NameError(
                         f"name {name!r} is not defined" +
                         (
@@ -421,25 +420,18 @@ def visit_ImportNode(node, context):
 
     with handle_exception(result, context, name_position):
         name_module = tname.value
-        file, extension = split_file_extension(name_module)
+        use_python_package = False
 
-        if is_python_extensions(extension):
-            name_module = file
+        require = get_symbol('require')
+
+        if require is undefined:
             use_python_package = True
         else:
-            use_python_package = False
-
-        if not use_python_package:
-            require = get_symbol('require')
-
-            if require is undefined:
+            handle_call(require, context, name_position)
+            try:
+                module = require(name_module)
+            except ImportError:
                 use_python_package = True
-            else:
-                handle_call(require, context, name_position)
-                try:
-                    module = require(name_module)
-                except ImportError:
-                    use_python_package = True
 
         if use_python_package:
             pyimport = get_symbol('pyimport')
@@ -449,7 +441,7 @@ def visit_ImportNode(node, context):
 
                 if pyimport is undefined:
                     return result.failure(
-                        PysException(
+                        PysTraceback(
                             NameError("names 'require', 'pyimport', and '__import__' is not defined"),
                             context,
                             node.position
@@ -473,7 +465,7 @@ def visit_ImportNode(node, context):
 
                 if not isinstance(package, str):
                     return result.failure(
-                        PysException(
+                        PysTraceback(
                             TypeError(f"Item in {module.__name__}.__all__ must be str, not {type(package).__name__}"),
                             context,
                             name_position
@@ -612,7 +604,7 @@ def visit_TryNode(node, context):
 
                 if not (isinstance(error_cls, type) and issubclass(error_cls, BaseException)):
                     return result.failure(
-                        PysException(
+                        PysTraceback(
                             TypeError("catching classes that do not inherit from BaseException is not allowed"),
                             context,
                             nname.position,
@@ -677,7 +669,7 @@ def visit_WithNode(node, context):
 
             if enter is undefined:
                 return result.failure(
-                    PysException(
+                    PysTraceback(
                         TypeError(
                             f"{type(context_value).__name__!r} object does not support the context manager protocol"
                         ),
@@ -688,7 +680,7 @@ def visit_WithNode(node, context):
 
             elif exit is undefined:
                 return result.failure(
-                    PysException(
+                    PysTraceback(
                         TypeError(
                             f"{type(context_value).__name__!r} object does not support the context manager protocol "
                             "(missed __exit__ method)"
@@ -1059,7 +1051,7 @@ def visit_ThrowNode(node, context):
 
     if not is_object_of(target, BaseException):
         return result.failure(
-            PysException(
+            PysTraceback(
                 TypeError("exceptions must derive from BaseException"),
                 context,
                 ntarget.position
@@ -1073,14 +1065,14 @@ def visit_ThrowNode(node, context):
 
         if not is_object_of(cause, BaseException):
             return result.failure(
-                PysException(
+                PysTraceback(
                     TypeError("exceptions must derive from BaseException"),
                     context,
                     ncause.position
                 )
             )
 
-        cause = PysException(
+        cause = PysTraceback(
             cause,
             context,
             ncause.position
@@ -1090,7 +1082,7 @@ def visit_ThrowNode(node, context):
         cause = None
 
     return result.failure(
-        PysException(
+        PysTraceback(
             target,
             context,
             node.position,
@@ -1122,7 +1114,7 @@ def visit_AssertNode(node, context):
                         return result
 
                     return result.failure(
-                        PysException(
+                        PysTraceback(
                             AssertionError(message),
                             context,
                             node.position
@@ -1130,7 +1122,7 @@ def visit_AssertNode(node, context):
                     )
 
                 return result.failure(
-                    PysException(
+                    PysTraceback(
                         AssertionError,
                         context,
                         node.position
@@ -1162,7 +1154,7 @@ def visit_DeleteNode(node, context):
                     closest_symbol = get_closest(symbol_table.symbols.keys(), name)
 
                     return result.failure(
-                        PysException(
+                        PysTraceback(
                             NameError(
                                 (
                                     f"name {name!r} is not defined"
@@ -1286,7 +1278,7 @@ def visit_declaration_AssignNode(node, context, value, operand=TOKENS['EQUAL']):
                 closest_symbol = get_closest(symbol_table.symbols.keys(), name)
 
                 result.failure(
-                    PysException(
+                    PysTraceback(
                         NameError(
                             (
                                 f"name {name!r} is not defined"
@@ -1345,7 +1337,7 @@ def visit_declaration_AssignNode(node, context, value, operand=TOKENS['EQUAL']):
 
         if not isinstance(value, Iterable):
             return result.failure(
-                PysException(
+                PysTraceback(
                     TypeError(f"cannot unpack non-iterable {type(value).__name__} object"),
                     context,
                     position
@@ -1371,7 +1363,7 @@ def visit_declaration_AssignNode(node, context, value, operand=TOKENS['EQUAL']):
 
         if count < length:
             return result.failure(
-                PysException(
+                PysTraceback(
                     ValueError(f"not enough values to unpack (expected {length}, got {count})"),
                     context,
                     node.position
@@ -1380,7 +1372,7 @@ def visit_declaration_AssignNode(node, context, value, operand=TOKENS['EQUAL']):
 
         elif count > length:
             return result.failure(
-                PysException(
+                PysTraceback(
                     ValueError(f"to many values to unpack (expected {length})"),
                     context,
                     node.position

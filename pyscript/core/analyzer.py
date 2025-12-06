@@ -2,7 +2,7 @@ from .bases import Pys
 from .checks import is_assign, is_incremental
 from .constants import TOKENS, DEFAULT
 from .context import PysContext
-from .exceptions import PysException
+from .exceptions import PysTraceback
 from .nodes import PysNode, PysKeywordNode, PysIdentifierNode, PysAttributeNode, PysSubscriptNode
 from .position import PysPosition
 from .utils.decorators import typechecked
@@ -27,7 +27,7 @@ class PysAnalyzer(Pys):
 
     def throw(self, message, position):
         if self.error is None:
-            self.error = PysException(
+            self.error = PysTraceback(
                 SyntaxError(message),
                 PysContext(
                     file=self.node.position.file,
@@ -39,7 +39,7 @@ class PysAnalyzer(Pys):
             )
 
     @typechecked
-    def analyze(self) -> PysException | None:
+    def analyze(self) -> PysTraceback | None:
         self.in_loop = 0
         self.in_function = 0
         self.in_switch = 0

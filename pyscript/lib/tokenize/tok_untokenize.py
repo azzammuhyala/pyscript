@@ -2,12 +2,11 @@ from pyscript.core.checks import is_keyword
 from pyscript.core.constants import TOKENS, KEYWORDS
 
 SYMBOLS_TOKEN_MAPPING = {
-    TOKENS['NOT-IN']: KEYWORDS['not'] + ' ' + KEYWORDS['in'],
-    TOKENS['IS-NOT']: KEYWORDS['is'] + ' ' + KEYWORDS['not'],
+    TOKENS['NOT-IN']: f' {KEYWORDS["not"]} {KEYWORDS["in"]} ',
+    TOKENS['IS-NOT']: f' {KEYWORDS["is"]} {KEYWORDS["not"]} ',
     TOKENS['NULL']: '\0',
     TOKENS['NEWLINE']: '\n',
     TOKENS['EXCLAMATION']: '!',
-    TOKENS['COMMENT']: '#',
     TOKENS['PERCENT']: '%',
     TOKENS['AMPERSAND']: '&',
     TOKENS['RIGHT-PARENTHESIS']: ')',
@@ -74,12 +73,16 @@ def untokenize(iterable):
         if type == TOKENS['NULL']:
             break
         elif type == TOKENS['KEYWORD']:
-            tokens.append(value)
+            tokens.append(f' {value} ')
         elif type == TOKENS['IDENTIFIER']:
-            tokens.append(f'${value}' if is_keyword(value) else value)
+            tokens.append(f'${value} ' if is_keyword(value) else f' {value} ')
         elif type in (TOKENS['NUMBER'], TOKENS['STRING']):
             tokens.append(repr(value))
+        elif type == TOKENS['COMMENT']:
+            tokens.append(f' #{value}')
+        elif type == TOKENS['NONE']:
+            tokens.append(token.position.file.text[token.position.start:token.position.end])
         else:
             tokens.append(SYMBOLS_TOKEN_MAPPING[type])
 
-    return ' '.join(tokens)
+    return ''.join(tokens)

@@ -3,17 +3,20 @@ from inspect import currentframe
 delimuattr = object.__delattr__
 setimuattr = object.__setattr__
 
-def get_locals(deep=1):
+def get_frame(deep=0):
+    deep += 1
     frame = currentframe()
 
     while deep > 0 and frame:
         frame = frame.f_back
         deep -= 1
 
-    if frame:
+    return frame
+
+def get_locals(deep=0):
+    if frame := get_frame(deep + 1):
         locals = frame.f_locals
         return locals if isinstance(locals, dict) else dict(locals)
-
     return {}
 
 def is_object_of(obj, class_or_tuple):

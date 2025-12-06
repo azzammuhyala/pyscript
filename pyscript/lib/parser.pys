@@ -12,7 +12,7 @@ KEYWORDS = _pyscript.constants.KEYWORDS
 
 # flags
 DEFAULT = _pyscript.constants.DEFAULT
-COMMENT = _pyscript.constants.COMMENT
+HIGHLIGHT = _pyscript.constants.HIGHLIGHT
 REVERSE_POW_XOR = _pyscript.constants.REVERSE_POW_XOR
 
 # highlight formatter
@@ -38,8 +38,8 @@ class Parser {
                 if (not isinstance(token, _pyscript.token.PysToken)) {
                     throw TypeError("Parser(): source must be tuple of tokens")
                 }
-                if (token.type == TOKENS['COMMENT']) {
-                    throw ValueError("Parser(): source token with comment token is invalid")
+                if (token.type in (TOKENS['COMMENT'], TOKENS['NONE'])) {
+                    throw ValueError("Parser(): source token with comment or none token is invalid")
                 }
             }
 
@@ -175,7 +175,7 @@ __all__ = (
     'TOKENS',
     'KEYWORDS',
     'DEFAULT',
-    'COMMENT',
+    'HIGHLIGHT',
     'REVERSE_POW_XOR',
     'HLFMT_HTML',
     'HLFMT_ANSI',

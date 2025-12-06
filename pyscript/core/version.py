@@ -3,8 +3,8 @@ from .cache import version_match
 from .mapping import TAG_VERSION_MAP
 from .utils.decorators import immutable, inheritable, singleton
 
-__version__ = '1.6.0'
-__date__ = '3 December 2025, 16:40 UTC+7'
+__version__ = '1.6.1'
+__date__ = '6 December 2025, 9:10 UTC+7'
 
 version = f'{__version__} ({__date__})'
 

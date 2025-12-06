@@ -1,6 +1,6 @@
 from .cache import lock, hook
 from .constants import PYSCRIPT_GIL
-from .exceptions import PysException, PysSignal
+from .exceptions import PysTraceback, PysSignal
 from .objects import PysPythonFunction, PysFunction
 from .position import PysPosition
 from .results import PysRunTimeResult
@@ -31,7 +31,7 @@ class handle_exception:
             self.result.register(exc_val.result) \
             if exc_type is PysSignal else \
             self.result.failure(
-                PysException(
+                PysTraceback(
                     exc_type if exc_val is None else exc_val,
                     self.context,
                     self.position

@@ -8,10 +8,10 @@ if __import__('sys').version_info < (3, 10):
 
 from . import core
 
-from .core.constants import DEFAULT, DEBUG, SILENT, RETRES, COMMENT, NO_COLOR, REVERSE_POW_XOR
+from .core.constants import DEFAULT, DEBUG, SILENT, RETRES, HIGHLIGHT, NO_COLOR, REVERSE_POW_XOR
 from .core.cache import undefined
 from .core.highlight import HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight
-from .core.runner import pys_exec, pys_eval, pys_shell
+from .core.runner import pys_exec, pys_eval, pys_require, pys_shell
 from .core.version import version_info, __version__, __date__
 
 __all__ = (
@@ -20,7 +20,7 @@ __all__ = (
     'DEBUG',
     'SILENT',
     'RETRES',
-    'COMMENT',
+    'HIGHLIGHT',
     'NO_COLOR',
     'REVERSE_POW_XOR',
     'HLFMT_HTML',
@@ -31,5 +31,6 @@ __all__ = (
     'pys_highlight',
     'pys_exec',
     'pys_eval',
+    'pys_require',
     'pys_shell'
 )

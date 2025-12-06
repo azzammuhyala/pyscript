@@ -84,6 +84,7 @@ TOKENS = MappingProxyType({
     'EQUAL-DOUBLE-SLASH': ord('/') + DOUBLE + WITH_EQUAL,
     'EQUAL-DOUBLE-LESS-THAN': ord('<') + DOUBLE + WITH_EQUAL,
     'EQUAL-DOUBLE-GREATER-THAN': ord('>') + DOUBLE + WITH_EQUAL,
+    'NONE': SPECIAL,
     'EXCLAMATION-TILDE': ord('~') + SPECIAL
 })
 
@@ -93,9 +94,6 @@ KEYWORDS = MappingProxyType({
     'False': 'False',
     'None': 'None',
     'True': 'True',
-    'false': 'false',
-    'none': 'none',
-    'true': 'true',
     'and': 'and',
     'as': 'as',
     'assert': 'assert',
@@ -111,6 +109,7 @@ KEYWORDS = MappingProxyType({
     'elif': 'elif',
     'else': 'else',
     'extends': 'extends',
+    'false': 'false',
     'finally': 'finally',
     'for': 'for',
     'from': 'from',
@@ -121,7 +120,9 @@ KEYWORDS = MappingProxyType({
     'import': 'import',
     'in': 'in',
     'is': 'is',
+    'none': 'none',
     'not': 'not',
+    'true': 'true',
     'of': 'of',
     'or': 'or',
     'return': 'return',
@@ -137,6 +138,6 @@ DEFAULT = 0
 DEBUG = 1 << 0
 SILENT = 1 << 1
 RETRES = 1 << 2
-COMMENT = 1 << 3
+HIGHLIGHT = 1 << 3
 NO_COLOR = 1 << 4
 REVERSE_POW_XOR = 1 << 5

@@ -6,7 +6,7 @@ from .utils.generic import setimuattr
 from .utils.string import indent
 
 @immutable
-class PysException(Pys):
+class PysTraceback(Pys):
 
     __slots__ = ('exception', 'context', 'position', 'cause', 'directly')
 
@@ -18,7 +18,7 @@ class PysException(Pys):
         setimuattr(self, 'directly', directly)
 
     def __repr__(self):
-        return f'<Exception of {self.exception!r}>'
+        return f'<traceback of exception {self.exception!r}>'
 
     def string_traceback(self):
         context = self.context
@@ -110,6 +110,5 @@ class PysSignal(Pys, BaseException):
 
         if isinstance(exception, type):
             return exception.__name__
-
         message = str(exception)
         return type(exception).__name__ + (f': {message}' if message else '')

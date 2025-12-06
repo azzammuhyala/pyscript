@@ -336,8 +336,11 @@ def visit_TryNode(node):
     string += ' {\n'
     string += indent(unparse(node.body))
     string += '\n}'
-    string += '\n'.join(catch_cases)
     string += '\n'
+    string += '\n'.join(catch_cases)
+
+    if catch_cases:
+        string += '\n'
 
     if node.else_body:
         string += KEYWORDS['else']

@@ -29,7 +29,7 @@ class DumpNode:
         return f'{name}={value}' if self.annotate_fields else value
 
     def _format_parameters(self, parameters, add_comma=False):
-        if self.indent is None:
+        if self.indent is None or not parameters:
             string = ', '.join(parameters)
             if add_comma:
                 string += ','
@@ -73,7 +73,7 @@ class DumpNode:
         elif type_object is dict:
             parameters = [self.visit(key) + ': ' + self.visit(value) for key, value in object.items()]
         else:
-            parameters = map(self.visit, object)
+            parameters = tuple(map(self.visit, object))
 
         open_parenthesis, close_parenthesis = PARENTHESIS_TYPES_MAP[type_object]
         formatted_parameters = self._format_parameters(

@@ -2,7 +2,7 @@ from .bases import Pys
 from .checks import is_right_parenthesis
 from .constants import TOKENS, KEYWORDS, DEFAULT, REVERSE_POW_XOR
 from .context import PysContext
-from .exceptions import PysException
+from .exceptions import PysTraceback
 from .mapping import PARENTHESISES_ITERABLE_MAP, NODE_ITERABLE_MAP, PARENTHESISES_MAP
 from .nodes import *
 from .position import PysPosition
@@ -42,7 +42,7 @@ class PysParser(Pys):
         self.update_current_token()
 
     def new_error(self, message, position=None):
-        return PysException(
+        return PysTraceback(
             SyntaxError(message),
             PysContext(
                 file=self.current_token.position.file,
@@ -1658,40 +1658,40 @@ class PysParser(Pys):
         if self.current_token.type != TOKENS['IDENTIFIER']:
             return result.failure(self.new_error("expected identifier"))
 
+        end = self.current_token.position.end
         name = self.current_token
         bases = []
-        end = self.current_token.position.end
 
         result.register_advancement()
         self.advance()
         self.skip(result)
 
         if self.current_token.type == TOKENS['LEFT-PARENTHESIS']:
-            bases = result.register(self.sequence_expr('tuple', should_sequence=True))
+            base = result.register(self.sequence_expr('tuple', should_sequence=True))
             if result.error:
                 return result
 
-            end = bases.position.end
-            bases = list(bases.elements)
+            end = base.position.end
+            bases = list(base.elements)
 
         elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['extends']):
             result.register_advancement()
             self.advance()
             self.skip(result)
 
-            bases = result.register(self.expr(), True)
+            base = result.register(self.expr(), True)
             if result.error:
                 return result
 
-            end = bases.position.end
+            end = base.position.end
 
-            if isinstance(bases, PysTupleNode):
-                if not bases.elements:
+            if isinstance(base, PysTupleNode):
+                if not base.elements:
                     return result.failure(self.new_error("empty base not allowed", bases.position))
-                bases = list(bases.elements)
+                bases = list(base.elements)
 
             else:
-                bases.append(bases)
+                bases.append(base)
 
         body = result.register(self.block_statements(), True)
         if result.error:
@@ -2225,11 +2225,6 @@ class PysParser(Pys):
 
         elif name == 'indent':
             return result.failure(self.new_error("not a chance"))
-
-        elif name == '__67__':
-            return result.failure(
-                self.new_error("What is this diddy blud doing on the code editor is blud Guido van Rossum?")
-            )
 
         elif name == 'reverse_pow_xor':
             self.flags |= REVERSE_POW_XOR

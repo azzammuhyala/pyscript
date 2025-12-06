@@ -41,10 +41,10 @@ is_left_parenthesis = frozenset(PARENTHESISES_MAP.keys()).__contains__
 is_right_parenthesis = frozenset(PARENTHESISES_MAP.values()).__contains__
 is_parenthesis = frozenset(PARENTHESISES_MAP.keys() | PARENTHESISES_MAP.values()).__contains__
 
-is_keyword_identifiers = frozenset([
+is_constant_keywords = frozenset([
     KEYWORDS['__debug__'], KEYWORDS['of'], KEYWORDS['in'], KEYWORDS['is'], KEYWORDS['and'], KEYWORDS['or'],
-    KEYWORDS['not'], KEYWORDS['False'], KEYWORDS['None'], KEYWORDS['True'], KEYWORDS['false'], KEYWORDS['none'],
-    KEYWORDS['true']
+    KEYWORDS['not'], KEYWORDS['False'], KEYWORDS['None'], KEYWORDS['True'], KEYWORDS['class'], KEYWORDS['false'],
+    KEYWORDS['func'], KEYWORDS['function'], KEYWORDS['global'], KEYWORDS['none'], KEYWORDS['true']
 ]).__contains__
 
 is_private_attribute = lambda name : name.startswith('_')

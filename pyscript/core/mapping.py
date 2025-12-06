@@ -100,18 +100,18 @@ ANSI_NAMES_MAP = MappingProxyType({
 HIGHLIGHT_MAP = MappingProxyType({
     'default': '#D4D4D4',
     'keyword': '#C586C0',
-    'keyword-identifier': '#307CD6',
+    'keyword-constant': '#307CD6',
     'identifier': '#8CDCFE',
-    'identifier-const': '#2EA3FF',
-    'identifier-call': '#DCDCAA',
-    'identifier-class': '#4EC9B0',
+    'identifier-constant': '#2EA3FF',
+    'identifier-function': '#DCDCAA',
+    'identifier-type': '#4EC9B0',
     'number': '#B5CEA8',
     'string': '#CE9178',
-    'parenthesis-unmatch': '#B51819',
-    'parenthesis-0': '#FFD705',
-    'parenthesis-1': '#D45DBA',
-    'parenthesis-2': '#1A9FFF',
-    'comment': '#549952'
+    'brackets-0': '#FFD705',
+    'brackets-1': '#D45DBA',
+    'brackets-2': '#1A9FFF',
+    'comment': '#549952',
+    'invalid': '#B51819'
 })
 
 TAG_VERSION_MAP = MappingProxyType({

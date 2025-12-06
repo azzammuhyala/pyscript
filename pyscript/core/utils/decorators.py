@@ -1,3 +1,4 @@
+from ..bases import Pys
 from ..constants import PYSCRIPT_TYPECHECKING
 
 from os import environ
@@ -14,7 +15,12 @@ if environ.get(PYSCRIPT_TYPECHECKING, '1') == '1':
         except ImportError:
             environ[PYSCRIPT_TYPECHECKING] = '0'
 
-class _Utilities:
+class _PysNameSpaceUtilities(Pys):
+
+    __slots__ = ()
+
+    def __new__(cls):
+        raise TypeError("cannot create namespace object")
 
     def new_singleton(cls, *args, **kwargs):
         from ..cache import singletons
@@ -29,16 +35,16 @@ class _Utilities:
         raise TypeError("uninherited class")
 
 def immutable(cls):
-    cls.__setattr__ = _Utilities.readonly_attribute
-    cls.__delattr__ = _Utilities.readonly_attribute
+    cls.__setattr__ = _PysNameSpaceUtilities.readonly_attribute
+    cls.__delattr__ = _PysNameSpaceUtilities.readonly_attribute
     return cls
 
 def inheritable(cls):
-    cls.__init_subclass__ = _Utilities.inheritable_class
+    cls.__init_subclass__ = _PysNameSpaceUtilities.inheritable_class
     return cls
 
 def singleton(cls):
-    cls.__new__ = _Utilities.new_singleton
+    cls.__new__ = _PysNameSpaceUtilities.new_singleton
     if not hasattr(cls, '__new_singleton__'):
         cls.__new_singleton__ = super(cls, cls).__new__
     return cls

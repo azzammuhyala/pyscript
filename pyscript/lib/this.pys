@@ -3,7 +3,7 @@ try {
     local = {}
 
     try {
-        pyimport('builtins').exec(file.read(), globals={}, locals=local)
+        pyimport('builtins').exec(file.read(), {}, local)
         s = local['s']
     }
 

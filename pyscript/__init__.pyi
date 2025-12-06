@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from .core.version import PysVersionInfo
 
     from io import IOBase
+    from types import ModuleType
 
 from . import core as core
 
@@ -17,7 +18,7 @@ DEFAULT: int
 DEBUG: int
 SILENT: int
 RETRES: int
-COMMENT: int
+HIGHLIGHT: int
 NO_COLOR: int
 REVERSE_POW_XOR: int
 
@@ -35,9 +36,9 @@ def pys_highlight(
             [
                 str | Literal[
                     'start',
-                    'bracket-unmatch',
-                    'identifier', 'identifier-const', 'identifier-call', 'identifier-class',
-                    'keyword', 'keyword-identifier',
+                    'invalid',
+                    'identifier', 'identifier-constant', 'identifier-function', 'identifier-type',
+                    'keyword', 'keyword-constant',
                     'number', 'string', 'comment', 'newline',
                     'default',
                     'end'
@@ -48,8 +49,7 @@ def pys_highlight(
             str
         ]
     ] = None,
-    max_parenthesis_level: int = 3,
-    flags: int = DEFAULT
+    max_parenthesis_level: int = 3
 ) -> str: ...
 
 def pys_exec(
@@ -63,6 +63,10 @@ def pys_eval(
     globals: Optional[dict[str, Any] | PysSymbolTable | PysUndefined] = None,
     flags: int = DEFAULT
 ) -> Any | PysExecuteResult: ...
+
+def pys_require(
+    name: str | bytes
+) -> ModuleType | Any: ...
 
 def pys_shell(
     globals: Optional[dict[str, Any] | PysSymbolTable | PysUndefined] = None,
