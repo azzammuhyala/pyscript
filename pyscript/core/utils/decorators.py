@@ -1,19 +1,23 @@
 from ..bases import Pys
-from ..constants import PYSCRIPT_TYPECHECKING
+from ..constants import ENV_PYSCRIPT_NO_TYPECHECK
 
 from os import environ
 
 def typechecked(func, *args, **kwargs):
     return func
 
-if environ.get(PYSCRIPT_TYPECHECKING, '1') == '1':
+_TYPECHECK = False
+
+if environ.get(ENV_PYSCRIPT_NO_TYPECHECK) is None:
     try:
         from beartype import beartype as typechecked
+        _TYPECHECK = True
     except ImportError:
         try:
             from typeguard import typechecked
+            _TYPECHECK = True
         except ImportError:
-            environ[PYSCRIPT_TYPECHECKING] = '0'
+            pass
 
 class _PysNameSpaceUtilities(Pys):
 

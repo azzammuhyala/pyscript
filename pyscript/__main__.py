@@ -1,7 +1,6 @@
 from .core.buffer import PysFileBuffer
 from .core.cache import path, undefined
 from .core.constants import DEFAULT, DEBUG, NO_COLOR
-from .core.handlers import handle_execute
 from .core.highlight import HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight
 from .core.runner import pys_runner, pys_shell
 from .core.symtab import new_symbol_table
@@ -10,6 +9,7 @@ from .core.utils.path import normpath
 from .core.version import __version__
 
 from argparse import ArgumentParser
+from os import environ
 from sys import executable, stderr, version_info, exit, setrecursionlimit
 
 FORMAT_HIGHLIGHT_MAP = {
@@ -96,7 +96,7 @@ flags = DEFAULT
 
 if args.debug:
     flags |= DEBUG
-if args.no_color:
+if args.no_color or environ.get('NO_COLOR') is not None:
     flags |= NO_COLOR
 
 if args.file is not None:
@@ -137,18 +137,16 @@ if args.file is not None:
         if args.inspect:
             code = pys_shell(result.context.symbol_table, result.context.flags)
         else:
-            code = handle_execute(result)
+            code = result.process()[0]
 
 elif args.command is not None:
     file = PysFileBuffer(args.command)
-    code = handle_execute(
-        pys_runner(
-            file=file,
-            mode='exec',
-            symbol_table=new_symbol_table(file=file.name, name='__main__')[0],
-            flags=flags
-        )
-    )
+    code = pys_runner(
+        file=file,
+        mode='exec',
+        symbol_table=new_symbol_table(file=file.name, name='__main__')[0],
+        flags=flags
+    ).process()[0]
 
 else:
     code = pys_shell(undefined, flags)

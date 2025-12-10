@@ -3,7 +3,7 @@ from .cache import undefined
 from .checks import is_assign, is_equals, is_incremental, is_public_attribute
 from .context import PysClassContext
 from .exceptions import PysTraceback
-from .handlers import handle_exception, handle_call
+from .handlers import handle_call
 from .mapping import BINARY_FUNCTIONS_MAP, UNARY_FUNCTIONS_MAP, KEYWORDS_TO_VALUES_MAP
 from .nodes import PysNode, PysIdentifierNode, PysAttributeNode, PysSubscriptNode
 from .objects import PysFunction
@@ -57,7 +57,7 @@ def visit_IdentifierNode(node, context):
     name = node.name.value
     symbol_table = context.symbol_table
 
-    with handle_exception(result, context, position):
+    with result(context, position):
         value = symbol_table.get(name)
 
         if value is undefined:
@@ -101,7 +101,7 @@ def visit_DictionaryNode(node, context):
         if should_return():
             return result
 
-        with handle_exception(result, context, nkey.position):
+        with result(context, nkey.position):
             setitem(key, value)
 
         if should_return():
@@ -120,7 +120,7 @@ def visit_SetNode(node, context):
 
     for nelement in node.elements:
 
-        with handle_exception(result, context, nelement.position):
+        with result(context, nelement.position):
             add(register(visit(nelement, context)))
 
         if should_return():
@@ -170,7 +170,7 @@ def visit_AttributeNode(node, context):
     if should_return():
         return result
 
-    with handle_exception(result, context, nattribute.position):
+    with result(context, nattribute.position):
         return result.success(getattr(target, nattribute.value))
 
     if should_return():
@@ -190,7 +190,7 @@ def visit_SubscriptNode(node, context):
     if should_return():
         return result
 
-    with handle_exception(result, context, node.position):
+    with result(context, node.position):
         return result.success(target[slice])
 
     if should_return():
@@ -225,7 +225,7 @@ def visit_CallNode(node, context):
             if should_return():
                 return result
 
-    with handle_exception(result, context, nposition):
+    with result(context, nposition):
         handle_call(target, context, nposition)
         return result.success(target(*args, **kwargs))
 
@@ -244,7 +244,7 @@ def visit_ChainOperatorNode(node, context):
     if should_return():
         return result
 
-    with handle_exception(result, context, nposition):
+    with result(context, nposition):
 
         for i, toperand in enumerate(node.operations):
             omatch = toperand.match
@@ -288,7 +288,7 @@ def visit_TernaryOperatorNode(node, context):
     if should_return():
         return result
 
-    with handle_exception(result, context, ncondition.position):
+    with result(context, ncondition.position):
         return result.success(register(visit(node.valid if condition else node.invalid, context)))
 
     if should_return():
@@ -306,7 +306,7 @@ def visit_BinaryOperatorNode(node, context):
     if should_return():
         return result
 
-    with handle_exception(result, context, node.position):
+    with result(context, node.position):
         should_return_right = True
 
         if omatch(T_KEYWORD, KW_AND) or otype == T_AND:
@@ -346,7 +346,7 @@ def visit_UnaryOperatorNode(node, context):
     if should_return():
         return result
 
-    with handle_exception(result, context, nposition):
+    with result(context, nposition):
 
         if node.operand.match(T_KEYWORD, KW_NOT) or otype == T_NOT:
             return result.success(not value)
@@ -418,7 +418,7 @@ def visit_ImportNode(node, context):
     tname, tas_name = node.name
     name_position = tname.position
 
-    with handle_exception(result, context, name_position):
+    with result(context, name_position):
         name_module = tname.value
         use_python_package = False
 
@@ -456,7 +456,7 @@ def visit_ImportNode(node, context):
 
     if npackages == 'all':
 
-        with handle_exception(result, context, name_position):
+        with result(context, name_position):
             exported_packages = getattr(module, '__all__', undefined)
             if exported_packages is undefined:
                 exported_packages = filter(is_public_attribute, dir(module))
@@ -481,7 +481,7 @@ def visit_ImportNode(node, context):
 
         for tpackage, tas_package in npackages:
 
-            with handle_exception(result, context, tpackage.position):
+            with result(context, tpackage.position):
                 set_symbol(
                     (tpackage if tas_package is None else tas_package).value,
                     getattr(module, tpackage.value)
@@ -492,7 +492,7 @@ def visit_ImportNode(node, context):
 
     elif not (tname.type == T_STRING and tas_name is None):
 
-        with handle_exception(result, context, node.position):
+        with result(context, node.position):
             set_symbol((tname if tas_name is None else tas_name).value, module)
 
         if should_return():
@@ -512,7 +512,7 @@ def visit_IfNode(node, context):
         if should_return():
             return result
 
-        with handle_exception(result, context, ncondition.position):
+        with result(context, ncondition.position):
             condition = True if condition else False
 
         if should_return():
@@ -551,7 +551,7 @@ def visit_SwitchNode(node, context):
         if should_return():
             return result
 
-        with handle_exception(result, context, ncondition.position):
+        with result(context, ncondition.position):
             equal = True if target == case else False
 
         if should_return():
@@ -616,7 +616,7 @@ def visit_TryNode(node, context):
 
                 if tparameter:
 
-                    with handle_exception(result, context, tparameter.position):
+                    with result(context, tparameter.position):
                         context.symbol_table.set(tparameter.value, error.exception)
 
                     if should_return():
@@ -655,6 +655,7 @@ def visit_WithNode(node, context):
     register = result.register
     should_return = result.should_return
     append = exits.append
+    set_symbol = context.symbol_table.set
 
     for ncontext, nalias in node.contexts:
         ncontext_position = ncontext.position
@@ -663,28 +664,26 @@ def visit_WithNode(node, context):
         if should_return():
             return result
 
-        with handle_exception(result, context, ncontext_position):
+        with result(context, ncontext_position):
             enter = getattr(context_value, '__enter__', undefined)
             exit = getattr(context_value, '__exit__', undefined)
 
-            if enter is undefined:
-                return result.failure(
-                    PysTraceback(
-                        TypeError(
-                            f"{type(context_value).__name__!r} object does not support the context manager protocol"
-                        ),
-                        context,
-                        ncontext_position
-                    )
-                )
+            missed_enter = enter is undefined
+            missed_exit = exit is undefined
 
-            elif exit is undefined:
+            if missed_enter or missed_exit:
+                message = f"{type(context_value).__name__!r} object does not support the context manager protocol"
+
+                if missed_enter and missed_exit:
+                    pass
+                elif missed_enter:
+                    message += " (missed __enter__ method)"
+                elif missed_exit:
+                    message += " (missed __exit__ method)"
+
                 return result.failure(
                     PysTraceback(
-                        TypeError(
-                            f"{type(context_value).__name__!r} object does not support the context manager protocol "
-                            "(missed __exit__ method)"
-                        ),
+                        TypeError(message),
                         context,
                         ncontext_position
                     )
@@ -699,8 +698,8 @@ def visit_WithNode(node, context):
 
         if nalias:
 
-            with handle_exception(result, context, nalias.position):
-                context.symbol_table.set(nalias.value, enter_value)
+            with result(context, nalias.position):
+                set_symbol(nalias.value, enter_value)
 
             if should_return():
                 return result
@@ -709,7 +708,7 @@ def visit_WithNode(node, context):
     error = result.error
 
     for exit, ncontext_position in exits:
-        with handle_exception(result, context, ncontext_position):
+        with result(context, ncontext_position):
             handle_call(exit, context, ncontext_position)
             if exit(*get_error_args(error)):
                 result.failure(None)
@@ -740,7 +739,7 @@ def visit_ForNode(node, context):
         if should_return():
             return result
 
-        with handle_exception(result, context, niteration_position):
+        with result(context, niteration_position):
             handle_call(getattr(iteration, '__iter__', None), context, niteration_position)
             iteration = iter(iteration)
             next = iteration.__next__
@@ -749,7 +748,7 @@ def visit_ForNode(node, context):
             return result
 
         def condition():
-            with handle_exception(result, context, niteration_position):
+            with result(context, niteration_position):
                 handle_call(next, context, niteration_position)
                 register(visit_declaration_AssignNode(ndeclaration, context, next()))
 
@@ -779,7 +778,7 @@ def visit_ForNode(node, context):
                 if should_return():
                     return False
 
-                with handle_exception(result, context, ncondition_position):
+                with result(context, ncondition_position):
                     return True if value else False
 
         else:
@@ -841,7 +840,7 @@ def visit_WhileNode(node, context):
         if should_return():
             return result
 
-        with handle_exception(result, context, ncondition_position):
+        with result(context, ncondition_position):
             if not condition:
                 break
 
@@ -893,7 +892,7 @@ def visit_DoWhileNode(node, context):
         if should_return():
             return result
 
-        with handle_exception(result, context, ncondition_position):
+        with result(context, ncondition_position):
             if not condition:
                 break
 
@@ -938,7 +937,7 @@ def visit_ClassNode(node, context):
     if should_return():
         return result
 
-    with handle_exception(result, context, nposition):
+    with result(context, nposition):
         cls = type(name, tuple(bases), class_context.symbol_table.symbols)
         cls.__qualname__ = class_context.qualname
 
@@ -950,13 +949,13 @@ def visit_ClassNode(node, context):
         if should_return():
             return result
 
-        with handle_exception(result, context, ndecorator.position):
+        with result(context, ndecorator.position):
             cls = decorator(cls)
 
         if should_return():
             return result
 
-    with handle_exception(result, context, nposition):
+    with result(context, nposition):
         symbol_table.set(name, cls)
 
     if should_return():
@@ -1003,7 +1002,7 @@ def visit_FunctionNode(node, context):
         if should_return():
             return result
 
-        with handle_exception(result, context, ndecorator.position):
+        with result(context, ndecorator.position):
             func = decorator(func)
 
         if should_return():
@@ -1011,7 +1010,7 @@ def visit_FunctionNode(node, context):
 
     if name:
 
-        with handle_exception(result, context, nposition):
+        with result(context, nposition):
             context.symbol_table.set(name.value, func)
 
         if should_return():
@@ -1103,7 +1102,7 @@ def visit_AssertNode(node, context):
         if should_return():
             return result
 
-        with handle_exception(result, context, ncondition.position):
+        with result(context, ncondition.position):
 
             if not condition:
                 nmessage = node.message
@@ -1148,7 +1147,7 @@ def visit_DeleteNode(node, context):
         if ntarget_type is PysIdentifierNode:
             name = ntarget.name.value
 
-            with handle_exception(result, context, target_position):
+            with result(context, target_position):
 
                 if not symbol_table.remove(name):
                     closest_symbol = get_closest(symbol_table.symbols.keys(), name)
@@ -1181,7 +1180,7 @@ def visit_DeleteNode(node, context):
             if should_return():
                 return result
 
-            with handle_exception(result, context, target_position):
+            with result(context, target_position):
                 delattr(target, ntarget.attribute.value)
 
             if should_return():
@@ -1196,7 +1195,7 @@ def visit_DeleteNode(node, context):
             if should_return():
                 return result
 
-            with handle_exception(result, context, target_position):
+            with result(context, target_position):
                 del target[slice]
 
             if should_return():
@@ -1272,7 +1271,7 @@ def visit_declaration_AssignNode(node, context, value, operand=TOKENS['EQUAL']):
         symbol_table = context.symbol_table
         name = node.name.value
 
-        with handle_exception(result, context, node.position):
+        with result(context, node.position):
 
             if not symbol_table.set(name, value, operand=operand):
                 closest_symbol = get_closest(symbol_table.symbols.keys(), name)
@@ -1307,7 +1306,7 @@ def visit_declaration_AssignNode(node, context, value, operand=TOKENS['EQUAL']):
 
         attribute = node.attribute.value
 
-        with handle_exception(result, context, node.position):
+        with result(context, node.position):
             setattr(
                 target,
                 attribute,
@@ -1326,7 +1325,7 @@ def visit_declaration_AssignNode(node, context, value, operand=TOKENS['EQUAL']):
         if should_return():
             return result
 
-        with handle_exception(result, context, node.position):
+        with result(context, node.position):
             target[slice] = value if is_equals(operand) else BINARY_FUNCTIONS_MAP[operand](target[slice], value)
 
         if should_return():
@@ -1347,7 +1346,7 @@ def visit_declaration_AssignNode(node, context, value, operand=TOKENS['EQUAL']):
         elements = node.elements
         count = 0
 
-        with handle_exception(result, context, position):
+        with result(context, position):
 
             for element, element_value in zip(elements, value):
                 register(visit_declaration_AssignNode(element, context, element_value, operand))

@@ -1,8 +1,6 @@
-import random  # for randomizing bomb placement
+import random  # randomizing bomb placement
+import ansi    # coloring on the terminal
 import os      # to clear up the terminal
-
-# for coloring on the terminal
-from '_pyscript>utils' import ansi
 
 # for recursive settings (in Python, the maximum recursive runs may not be the same)
 sys = pyimport('sys')
@@ -42,19 +40,23 @@ class MineSweeper {
 
         if (len(cellSize) != 2)
             throw ValueError("MineSweeper(): cellSize must have a length of 2")
-        if (not isinstance(cellSize[0], int))
-            throw TypeError("MineSweeper(): cellSize[0] must be integer")
-        if (not isinstance(cellSize[1], int))
-            throw TypeError("MineSweeper(): cellSize[1] must be integer")
 
         w, h = cellSize
 
-        if (w < 5)
-            throw ValueError("MineSweeper(): cellSize[0] must be greater than 5")
-        if (h < 5)
-            throw ValueError("MineSweeper(): cellSize[1] must be greater than 5")
-        if (bombsCount >= w * h)
-            throw ValueError("MineSweeper(): bombsCount cannot more than the cell value")
+        if (not isinstance(w, int))
+            throw TypeError("MineSweeper(): width must be integer")
+        if (not isinstance(h, int))
+            throw TypeError("MineSweeper(): height must be integer")
+
+        if (w < 1)
+            throw ValueError("MineSweeper(): width must be greater than 1")
+        if (h < 1)
+            throw ValueError("MineSweeper(): height must be greater than 1")
+
+        totalCell = w * h
+
+        if (bombsCount >= totalCell)
+            throw ValueError("MineSweeper(): bombsCount cannot more than {}".format(totalCell))
 
         self.cellSize = cellSize
         self.bombsCount = bombsCount
@@ -131,7 +133,7 @@ class MineSweeper {
                     }
                 }
 
-                # set cell value
+                # set the cell value
                 self.board[row][col] = number
             }
         }
@@ -229,7 +231,7 @@ class MineSweeper {
     func showBoard(self, safe=none) {
         w, h = self.cellSize
 
-        buffer = '\x1b[H'
+        buffer = '\x1b[J\x1b[H'
         separator = '---+' * w
         columnNumber = '    {} '.format(
             ' '.join(
@@ -280,7 +282,6 @@ class MineSweeper {
         }
 
         buffer += '   +{}\n{}'.format(separator, columnNumber)
-
         print(buffer)
     }
 
@@ -296,7 +297,7 @@ class MineSweeper {
             }
 
             elif (result == 'e') {
-                return False, none, none
+                return false, none, none
             }
 
             position = result.split()
@@ -333,7 +334,7 @@ class MineSweeper {
                 col, row = position
 
                 if (0 <= col < w and 0 <= row < h)
-                    return True, position, setFlag
+                    return true, position, setFlag
 
                 print('Invalid position')
             }

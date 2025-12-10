@@ -1,10 +1,10 @@
 from .analyzer import PysAnalyzer
 from .buffer import PysFileBuffer
 from .cache import undefined, hook, PysUndefined
-from .constants import PYSCRIPT_SHELL, PYSCRIPT_TYPECHECKING, DEFAULT, SILENT, RETRES, HIGHLIGHT, NO_COLOR
+from .constants import ENV_PYSCRIPT_NO_READLINE, DEFAULT, SILENT, RETRES, HIGHLIGHT, NO_COLOR
 from .context import PysContext
 from .exceptions import PysTraceback, PysSignal
-from .handlers import handle_exception, handle_call, handle_execute
+from .handlers import handle_call
 from .interpreter import visit
 from .lexer import PysLexer
 from .parser import PysParser
@@ -13,29 +13,37 @@ from .pysbuiltins import require
 from .results import PysRunTimeResult, PysExecuteResult
 from .symtab import PysSymbolTable, new_symbol_table
 from .utils.ansi import BOLD, acolor
-from .utils.debug import print_display
-from .utils.decorators import typechecked
+from .utils.decorators import _TYPECHECK, typechecked
 from .utils.generic import setimuattr, get_frame, get_locals
+from .utils.shell import PysCommandLineShell
 from .version import version
 
 from os import environ
-from sys import stderr, version as pyversion
+from sys import platform, stderr, version as pyversion
 from types import ModuleType
 from typing import Any, Literal, Optional
 
+if platform != 'win32' and environ.get(ENV_PYSCRIPT_NO_READLINE) is None:
+    try:
+        import readline
+    except:
+        pass
+
 def _normalize_globals(file, globals):
     if globals is None:
-        symtab, _ = new_symbol_table(symbols=get_locals(3 if environ.get(PYSCRIPT_TYPECHECKING, '1') == '1' else 2))
+        symtab, _ = new_symbol_table(symbols=get_locals(3 if _TYPECHECK else 2))
     elif globals is undefined:
         symtab, _ = new_symbol_table(file=file.name, name='__main__')
     elif isinstance(globals, dict):
         symtab, _ = new_symbol_table(symbols=globals)
+    else:
+        symtab = globals
     return symtab
 
 @typechecked
 def pys_runner(
     file: PysFileBuffer,
-    mode: Literal['exec', 'eval'],
+    mode: Literal['exec', 'eval', 'single'],
     symbol_table: PysSymbolTable,
     flags: Optional[int] = None,
     context_parent: Optional[PysContext] = None,
@@ -55,7 +63,7 @@ def pys_runner(
     runtime_runner_result = PysRunTimeResult()
     position = PysPosition(file, -1, -1)
 
-    with handle_exception(runtime_runner_result, context, position):
+    with runtime_runner_result(context, position):
 
         try:
 
@@ -77,7 +85,7 @@ def pys_runner(
                 context_parent_entry_position=context_parent_entry_position
             )
 
-            ast = parser.parse(None if mode == 'exec' else parser.expr)
+            ast = parser.parse(parser.expr if mode == 'eval' else None)
             if ast.error:
                 return result.failure(ast.error)
 
@@ -104,11 +112,12 @@ def pys_runner(
         setimuattr(context, 'flags', parser.flags)
         runtime_result = visit(ast.node, context)
 
-        return (
-            result.failure(runtime_result.error)
-            if runtime_result.error else
-            result.success(runtime_result.value)
-        )
+        if runtime_result.error:
+            return result.failure(runtime_result.error)
+
+        if mode == 'single' and hook.display is not None:
+            hook.display(runtime_result.value)
+        return result.success(runtime_result.value)
 
     if runtime_runner_result.error:
         return result.failure(runtime_runner_result.error)
@@ -187,7 +196,8 @@ def pys_eval(
 
     return result.value
 
-def pys_require(name) -> ModuleType | Any:
+@typechecked
+def pys_require(name, flags: int = DEFAULT) -> ModuleType | Any:
 
     """
     Import a PyScript module.
@@ -197,8 +207,8 @@ def pys_require(name) -> ModuleType | Any:
     name: A name or path of the module to be imported.
     """
 
-    file = PysFileBuffer('', get_frame(1).f_code.co_filename)
-    handle_call(require, PysContext(file), PysPosition(file, -1, -1))
+    file = PysFileBuffer('', get_frame(2 if _TYPECHECK else 1).f_code.co_filename)
+    handle_call(require, PysContext(file=file, flags=flags), PysPosition(file, -1, -1))
     return require(name)
 
 @typechecked
@@ -219,11 +229,13 @@ def pys_shell(
     flags: A special flags.
     """
 
-    if environ.get(PYSCRIPT_SHELL, '0') == '1':
+    if hook.running_shell:
         raise RuntimeError("another shell is still running")
 
     file = PysFileBuffer('', '<pyscript-shell>')
     symtab = _normalize_globals(file, globals)
+    shell = PysCommandLineShell()
+    line = 0
 
     if flags & NO_COLOR:
         reset = ''
@@ -232,138 +244,38 @@ def pys_shell(
         reset = acolor('reset')
         bmagenta = acolor('magenta', BOLD)
 
-    line = 0
-    parenthesis_level = 0
-    in_string = False
-    in_decorator = False
-    is_triple_string = False
-    next_line = False
-    string_prefix = ''
-    full_text = ''
-
-    def reset_next_line():
-        nonlocal parenthesis_level, in_string, in_decorator, string_prefix, is_triple_string, next_line, full_text
-        parenthesis_level = 0
-        in_string = False
-        in_decorator = False
-        string_prefix = ''
-        is_triple_string = False
-        next_line = False
-        full_text = ''
-
-    def is_next_line():
-        return parenthesis_level > 0 or in_decorator or is_triple_string or next_line
-
     print(f'PyScript {version}')
     print(f'Python {pyversion}')
     print('Type "help" or "license" for more information; "exit" or "/exit" to exit the shell.')
 
     try:
-
-        environ[PYSCRIPT_SHELL] = '1'
-        hook.display = print_display
-
+        hook.running_shell = True
         while True:
 
             try:
+                shell.ps1 = f'{bmagenta}{hook.ps1}{reset}'
+                shell.ps2 = f'{bmagenta}{hook.ps2}{reset}'
 
-                if is_next_line():
-                    text = input(f'{bmagenta}{hook.ps2}{reset}')
-                else:
-                    text = input(f'{bmagenta}{hook.ps1}{reset}')
-                    if text == '/exit':
-                        return 0
-
-                next_line = False
-                in_decorator = False
-                is_space = True
-                i = 0
-
-                while i < len(text):
-                    character = text[i]
-
-                    if character == '\\':
-                        i += 1
-                        character = text[i:i+1]
-
-                        if character == '':
-                            next_line = True
-                            break
-
-                    elif character in '\'"':
-                        bind_3 = text[i:i+3]
-
-                        if is_triple_string:
-                            if len(bind_3) == 3 and string_prefix * 3 == bind_3:
-                                in_string = False
-                                is_triple_string = False
-                                i += 2
-
-                        else:
-                            if not in_string and bind_3 in ("'''", '"""'):
-                                is_triple_string = True
-                                i += 2
-
-                            if in_string and string_prefix == character:
-                                in_string = False
-                            else:
-                                string_prefix = character
-                                in_string = True
-
-                    if not in_string:
-
-                        if character == '#':
-                            break
-
-                        elif is_space and character == '@':
-                            in_decorator = True
-                            i += 1
-                            continue
-
-                        elif character in '([{':
-                            parenthesis_level += 1
-
-                        elif character in ')]}':
-                            parenthesis_level -= 1
-
-                        if not character.isspace():
-                            is_space = False
-
-                    i += 1
-
-                if in_decorator and is_space:
-                    in_decorator = False
-
-                if in_string and not (next_line or is_triple_string):
-                    in_string = False
-                    parenthesis_level = 0
-
-                if is_next_line():
-                    full_text += text + '\n'
-                    continue
+                text = shell.input()
+                if text == 0:
+                    return 0
 
                 result = pys_runner(
-                    file=PysFileBuffer(full_text + text, f'<pyscript-shell-{line}>'),
-                    mode='exec',
+                    file=PysFileBuffer(text, f'<pyscript-shell-{line}>'),
+                    mode='single',
                     symbol_table=symtab,
                     flags=flags
                 )
 
-                if result.error:
-                    if result.error.exception is SystemExit:
-                        return 0
-                    if type(result.error.exception) is SystemExit:
-                        return result.error.exception.code
-
                 flags = result.context.flags
-                code = handle_execute(result)
-                if code == 0:
+                code, exit = result.process()
+                if exit:
+                    return code
+                elif code == 0:
                     line += 1
 
-                reset_next_line()
-
             except KeyboardInterrupt:
-                reset_next_line()
+                shell.reset()
                 print(f'\r{bmagenta}KeyboardInterrupt{reset}', file=stderr)
 
             except EOFError:
@@ -371,5 +283,4 @@ def pys_shell(
                 return 0
 
     finally:
-        environ[PYSCRIPT_SHELL] = '0'
-        hook.display = None
+        hook.running_shell = False

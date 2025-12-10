@@ -137,13 +137,12 @@ class Parser {
         }
     }
 
-    func highlight(self, format=None, max_parenthesis_level=3) {
+    func highlight(self, format=None, max_bracket_level=3) {
         # this function only supports direct source buffers
         return _pyscript.highlight.pys_highlight(
             source=self.file,
             format=format,
-            max_parenthesis_level=max_parenthesis_level,
-            flags=self.flags
+            max_bracket_level=max_bracket_level
         )
     }
 
@@ -163,15 +162,15 @@ func analyze(source, mode='exec', flags=DEFAULT) {
     return Parser(source, flags).analyze(mode=mode)
 }
 
-func highlight(source, format=None, max_parenthesis_level=3, flags=DEFAULT) {
-    return Parser(source, flags).highlight(format=format, max_parenthesis_level=max_parenthesis_level)
+func highlight(source, format=None, max_bracket_level=3) {
+    return Parser(source).highlight(format=format, max_bracket_level=max_bracket_level)
 }
 
 __all__ = (
     'DOUBLE',
     'TRIPLE',
     'WITH_EQUAL',
-    'WITH_EXCLAMATION',
+    'SPECIAL',
     'TOKENS',
     'KEYWORDS',
     'DEFAULT',

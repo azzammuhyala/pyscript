@@ -1,9 +1,9 @@
 from .bases import Pys
-from .checks import is_right_parenthesis
+from .checks import is_right_bracket
 from .constants import TOKENS, KEYWORDS, DEFAULT, REVERSE_POW_XOR
 from .context import PysContext
 from .exceptions import PysTraceback
-from .mapping import PARENTHESISES_ITERABLE_MAP, NODE_ITERABLE_MAP, PARENTHESISES_MAP
+from .mapping import BRACKETS_ITERABLE_MAP, NODE_ITERABLE_MAP, BRACKETS_MAP
 from .nodes import *
 from .position import PysPosition
 from .results import PysParserResult
@@ -56,14 +56,14 @@ class PysParser(Pys):
     @typechecked
     def parse(self, func: Optional[Callable[[], PysParserResult]] = None) -> PysParserResult:
         self.token_index = 0
-        self.parenthesis_level = 0
+        self.bracket_level = 0
 
         self.update_current_token()
 
         result = (func or self.statements)()
 
         if not result.error:
-            if is_right_parenthesis(self.current_token.type):
+            if is_right_bracket(self.current_token.type):
                 return result.failure(self.new_error(f"unmatched {chr(self.current_token.type)!r}"))
             elif self.current_token.type != TOKENS['NULL']:
                 return result.failure(self.new_error("invalid syntax"))
@@ -76,9 +76,9 @@ class PysParser(Pys):
 
         statements = []
         more_statements = True
-        parenthesis_level = self.parenthesis_level
+        bracket_level = self.bracket_level
 
-        self.parenthesis_level = 0
+        self.bracket_level = 0
 
         while True:
             advance_count = self.skip(result, (TOKENS['NEWLINE'], TOKENS['SEMICOLON']))
@@ -99,7 +99,7 @@ class PysParser(Pys):
 
             more_statements = False
 
-        self.parenthesis_level = parenthesis_level
+        self.bracket_level = bracket_level
 
         return result.success(
             PysStatementsNode(
@@ -502,8 +502,8 @@ class PysParser(Pys):
         ):
 
             if self.current_token.type == TOKENS['LEFT-PARENTHESIS']:
-                left_parenthesis_token = self.current_token
-                self.parenthesis_level += 1
+                left_bracket_token = self.current_token
+                self.bracket_level += 1
 
                 result.register_advancement()
                 self.advance()
@@ -512,7 +512,7 @@ class PysParser(Pys):
                 seen_keyword_argument = False
                 arguments = []
 
-                while not is_right_parenthesis(self.current_token.type):
+                while not is_right_bracket(self.current_token.type):
 
                     argument_or_keyword = result.register(self.walrus(), True)
                     if result.error:
@@ -547,15 +547,15 @@ class PysParser(Pys):
                         self.advance()
                         self.skip(result)
 
-                    elif not is_right_parenthesis(self.current_token.type):
+                    elif not is_right_bracket(self.current_token.type):
                         return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
 
                 end = self.current_token.position.end
-                self.close_parenthesis(result, left_parenthesis_token)
+                self.close_bracket(result, left_bracket_token)
                 if result.error:
                     return result
 
-                self.parenthesis_level -= 1
+                self.bracket_level -= 1
                 self.skip_expr(result)
 
                 node = PysCallNode(
@@ -569,8 +569,8 @@ class PysParser(Pys):
                 )
 
             elif self.current_token.type == TOKENS['LEFT-SQUARE']:
-                left_parenthesis_token = self.current_token
-                self.parenthesis_level += 1
+                left_bracket_token = self.current_token
+                self.bracket_level += 1
 
                 index = 0
                 slices = []
@@ -592,11 +592,11 @@ class PysParser(Pys):
                         self.skip(result)
                         single_slice = False
 
-                if not single_slice or is_right_parenthesis(self.current_token.type):
+                if not single_slice or is_right_bracket(self.current_token.type):
                     slices.append(indices[0])
                     indices = [None, None, None]
 
-                while not is_right_parenthesis(self.current_token.type):
+                while not is_right_bracket(self.current_token.type):
 
                     if self.current_token.type != TOKENS['COLON']:
                         indices[index] = result.register(self.walrus(), True)
@@ -611,7 +611,7 @@ class PysParser(Pys):
                         self.advance()
                         self.skip(result)
 
-                        if is_right_parenthesis(self.current_token.type):
+                        if is_right_bracket(self.current_token.type):
                             break
 
                         indices[index] = result.try_register(self.walrus())
@@ -635,15 +635,15 @@ class PysParser(Pys):
                         self.skip(result)
                         single_slice = False
 
-                    elif not is_right_parenthesis(self.current_token.type):
+                    elif not is_right_bracket(self.current_token.type):
                         return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
 
                 end = self.current_token.position.end
-                self.close_parenthesis(result, left_parenthesis_token)
+                self.close_bracket(result, left_bracket_token)
                 if result.error:
                     return result
 
-                self.parenthesis_level -= 1
+                self.bracket_level -= 1
                 self.skip_expr(result)
 
                 if single_slice:
@@ -772,13 +772,13 @@ class PysParser(Pys):
     def sequence_expr(self, type, should_sequence=False):
         result = PysParserResult()
         start = self.current_token.position.start
-        left_parenthesis = PARENTHESISES_ITERABLE_MAP[type]
+        left_bracket = BRACKETS_ITERABLE_MAP[type]
 
-        if self.current_token.type != left_parenthesis:
-            return result.failure(self.new_error(f"expected {chr(left_parenthesis)!r}"))
+        if self.current_token.type != left_bracket:
+            return result.failure(self.new_error(f"expected {chr(left_bracket)!r}"))
 
-        left_parenthesis_token = self.current_token
-        self.parenthesis_level += 1
+        left_bracket_token = self.current_token
+        self.bracket_level += 1
 
         result.register_advancement()
         self.advance()
@@ -789,7 +789,7 @@ class PysParser(Pys):
         if type == 'dict':
             always_dict = False
 
-            while not is_right_parenthesis(self.current_token.type):
+            while not is_right_bracket(self.current_token.type):
                 key = result.register(self.single_expr(), True)
                 if result.error:
                     return result
@@ -798,7 +798,7 @@ class PysParser(Pys):
 
                 if self.current_token.type != TOKENS['COLON']:
                     if not always_dict:
-                        self.parenthesis_level -= 1
+                        self.bracket_level -= 1
                     return result.failure(self.new_error("expected ':'"), fatal=always_dict)
 
                 result.register_advancement()
@@ -817,12 +817,12 @@ class PysParser(Pys):
                     self.advance()
                     self.skip(result)
 
-                elif not is_right_parenthesis(self.current_token.type):
+                elif not is_right_bracket(self.current_token.type):
                     return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
 
         else:
 
-            while not is_right_parenthesis(self.current_token.type):
+            while not is_right_bracket(self.current_token.type):
                 elements.append(result.register(self.walrus(), True))
                 if result.error:
                     return result
@@ -835,15 +835,15 @@ class PysParser(Pys):
                     self.skip(result)
                     should_sequence = True
 
-                elif not is_right_parenthesis(self.current_token.type):
+                elif not is_right_bracket(self.current_token.type):
                     return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
 
         end = self.current_token.position.end
-        self.close_parenthesis(result, left_parenthesis_token)
+        self.close_bracket(result, left_bracket_token)
         if result.error:
             return result
 
-        self.parenthesis_level -= 1
+        self.bracket_level -= 1
         self.skip_expr(result)
 
         if type == 'tuple' and not should_sequence and elements:
@@ -953,13 +953,13 @@ class PysParser(Pys):
             packages = 'all'
 
         else:
-            parenthesis = False
+            bracket = False
             packages = []
 
             if self.current_token.type == TOKENS['LEFT-PARENTHESIS']:
-                parenthesis = True
-                left_parenthesis_token = self.current_token
-                self.parenthesis_level += 1
+                bracket = True
+                left_bracket_token = self.current_token
+                self.bracket_level += 1
 
                 result.register_advancement()
                 self.advance()
@@ -1004,18 +1004,18 @@ class PysParser(Pys):
                     self.advance()
                     self.skip_expr(result)
 
-                elif parenthesis and not is_right_parenthesis(self.current_token.type):
+                elif bracket and not is_right_bracket(self.current_token.type):
                     return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
 
                 else:
                     break
 
-            if parenthesis:
-                self.close_parenthesis(result, left_parenthesis_token)
+            if bracket:
+                self.close_bracket(result, left_bracket_token)
                 if result.error:
                     return result
 
-                self.parenthesis_level -= 1
+                self.bracket_level -= 1
 
         return result.success(
             PysImportNode(
@@ -1167,7 +1167,7 @@ class PysParser(Pys):
         if self.current_token.type != TOKENS['LEFT-CURLY']:
             return result.failure(self.new_error("expected '{'"))
 
-        left_parenthesis_token = self.current_token
+        left_bracket_token = self.current_token
 
         result.register_advancement()
         self.advance()
@@ -1218,7 +1218,7 @@ class PysParser(Pys):
 
                 break
 
-        self.close_parenthesis(result, left_parenthesis_token)
+        self.close_bracket(result, left_bracket_token)
         if result.error:
             return result
 
@@ -1262,14 +1262,14 @@ class PysParser(Pys):
                 self.advance()
                 self.skip(result)
 
-                parenthesis = False
+                bracket = False
                 target = None
                 parameter = None
 
                 if self.current_token.type == TOKENS['LEFT-PARENTHESIS']:
-                    parenthesis = True
-                    left_parenthesis_token = self.current_token
-                    self.parenthesis_level += 1
+                    bracket = True
+                    left_bracket_token = self.current_token
+                    self.bracket_level += 1
 
                     result.register_advancement()
                     self.advance()
@@ -1307,12 +1307,12 @@ class PysParser(Pys):
                 else:
                     all_catch_handler = True
 
-                if parenthesis:
-                    self.close_parenthesis(result, left_parenthesis_token)
+                if bracket:
+                    self.close_bracket(result, left_bracket_token)
                     if result.error:
                         return result
 
-                    self.parenthesis_level -= 1
+                    self.bracket_level -= 1
 
                 self.skip(result)
 
@@ -1371,16 +1371,16 @@ class PysParser(Pys):
         self.skip(result)
 
         if self.current_token.type == TOKENS['LEFT-PARENTHESIS']:
-            parenthesis = True
-            left_parenthesis_token = self.current_token
-            self.parenthesis_level += 1
+            bracket = True
+            left_bracket_token = self.current_token
+            self.bracket_level += 1
 
             result.register_advancement()
             self.advance()
             self.skip(result)
 
         else:
-            parenthesis = False
+            bracket = False
 
         contexts = []
 
@@ -1413,18 +1413,18 @@ class PysParser(Pys):
                 self.advance()
                 self.skip_expr(result)
 
-            elif parenthesis and not is_right_parenthesis(self.current_token.type):
+            elif bracket and not is_right_bracket(self.current_token.type):
                 return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
 
             else:
                 break
 
-        if parenthesis:
-            self.close_parenthesis(result, left_parenthesis_token)
+        if bracket:
+            self.close_bracket(result, left_bracket_token)
             if result.error:
                 return result
 
-            self.parenthesis_level -= 1
+            self.bracket_level -= 1
 
         self.skip(result)
 
@@ -1451,12 +1451,12 @@ class PysParser(Pys):
         self.advance()
         self.skip(result)
 
-        parenthesis = False
+        bracket = False
 
         if self.current_token.type == TOKENS['LEFT-PARENTHESIS']:
-            parenthesis = True
-            left_parenthesis_token = self.current_token
-            self.parenthesis_level += 1
+            bracket = True
+            left_bracket_token = self.current_token
+            self.bracket_level += 1
 
             result.register_advancement()
             self.advance()
@@ -1510,12 +1510,12 @@ class PysParser(Pys):
         else:
             return result.failure(self.new_error(f"expected {KEYWORDS['of']!r} or ';'"))
 
-        if parenthesis:
-            self.close_parenthesis(result, left_parenthesis_token)
+        if bracket:
+            self.close_bracket(result, left_bracket_token)
             if result.error:
                 return result
 
-            self.parenthesis_level -= 1
+            self.bracket_level -= 1
 
         self.skip(result)
 
@@ -1734,8 +1734,8 @@ class PysParser(Pys):
         if self.current_token.type != TOKENS['LEFT-PARENTHESIS']:
             return result.failure(self.new_error("expected identifier or '('" if name is None else "expected '('"))
 
-        left_parenthesis_token = self.current_token
-        self.parenthesis_level += 1
+        left_bracket_token = self.current_token
+        self.bracket_level += 1
 
         result.register_advancement()
         self.advance()
@@ -1744,7 +1744,7 @@ class PysParser(Pys):
         seen_keyword_argument = False
         parameters = []
 
-        while not is_right_parenthesis(self.current_token.type):
+        while not is_right_bracket(self.current_token.type):
             if self.current_token.type != TOKENS['IDENTIFIER']:
                 return result.failure(self.new_error("expected identifier"))
 
@@ -1778,16 +1778,16 @@ class PysParser(Pys):
                 self.advance()
                 self.skip(result)
 
-            elif not is_right_parenthesis(self.current_token.type):
+            elif not is_right_bracket(self.current_token.type):
                 return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
 
         end = self.current_token.position.end
 
-        self.close_parenthesis(result, left_parenthesis_token)
+        self.close_bracket(result, left_bracket_token)
         if result.error:
             return result
 
-        self.parenthesis_level -= 1
+        self.bracket_level -= 1
         self.skip(result)
 
         body = result.register(self.block_statements(), True)
@@ -1841,12 +1841,12 @@ class PysParser(Pys):
         self.skip(result)
 
         names = []
-        parenthesis = False
+        bracket = False
 
         if self.current_token.type == TOKENS['LEFT-PARENTHESIS']:
-            parenthesis = True
-            left_parenthesis_token = self.current_token
-            self.parenthesis_level += 1
+            bracket = True
+            left_bracket_token = self.current_token
+            self.bracket_level += 1
 
             result.register_advancement()
             self.advance()
@@ -1867,18 +1867,18 @@ class PysParser(Pys):
                 self.advance()
                 self.skip_expr(result)
 
-            elif parenthesis and not is_right_parenthesis(self.current_token.type):
+            elif bracket and not is_right_bracket(self.current_token.type):
                 return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
 
             else:
                 break
 
-        if parenthesis:
-            self.close_parenthesis(result, left_parenthesis_token)
+        if bracket:
+            self.close_bracket(result, left_bracket_token)
             if result.error:
                 return result
 
-            self.parenthesis_level -= 1
+            self.bracket_level -= 1
 
         return result.success(
             PysGlobalNode(
@@ -2025,7 +2025,7 @@ class PysParser(Pys):
         result = PysParserResult()
 
         if self.current_token.type == TOKENS['LEFT-CURLY']:
-            left_parenthesis_token = self.current_token
+            left_bracket_token = self.current_token
 
             result.register_advancement()
             self.advance()
@@ -2036,7 +2036,7 @@ class PysParser(Pys):
 
             end = self.current_token.position.end
 
-            self.close_parenthesis(result, left_parenthesis_token)
+            self.close_bracket(result, left_bracket_token)
             if result.error:
                 return result
 
@@ -2045,7 +2045,7 @@ class PysParser(Pys):
                     body, 'position',
                     PysPosition(
                         self.current_token.position.file,
-                        left_parenthesis_token.position.start,
+                        left_bracket_token.position.start,
                         end
                     )
                 )
@@ -2174,22 +2174,22 @@ class PysParser(Pys):
 
         return result.success(left)
 
-    def close_parenthesis(self, result, left_parenthesis_token):
-        if self.current_token.type != PARENTHESISES_MAP[left_parenthesis_token.type]:
+    def close_bracket(self, result, left_bracket_token):
+        if self.current_token.type != BRACKETS_MAP[left_bracket_token.type]:
 
-            if is_right_parenthesis(self.current_token.type):
+            if is_right_bracket(self.current_token.type):
                 return result.failure(
                     self.new_error(
                         f"closing parenthesis {chr(self.current_token.type)!r} "
-                        f"does not match opening parenthesis {chr(left_parenthesis_token.type)!r}"
+                        f"does not match opening parenthesis {chr(left_bracket_token.type)!r}"
                     )
                 )
 
             elif self.current_token.type == TOKENS['NULL']:
                 return result.failure(
                     self.new_error(
-                        f"{chr(left_parenthesis_token.type)!r} was never closed",
-                        left_parenthesis_token.position
+                        f"{chr(left_bracket_token.type)!r} was never closed",
+                        left_bracket_token.position
                     )
                 )
 
@@ -2212,7 +2212,7 @@ class PysParser(Pys):
         return count
 
     def skip_expr(self, result):
-        if self.parenthesis_level > 0:
+        if self.bracket_level > 0:
             return self.skip(result)
 
         return 0

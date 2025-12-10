@@ -454,7 +454,7 @@ class PysAnalyzer(Pys):
         if self.in_loop == 0 and self.in_switch == 0:
             self.throw("break outside of loop or switch case", node.position)
 
-    def visit_slice_SubscriptNode(self, nslice: tuple | slice | PysNode):
+    def visit_slice_SubscriptNode(self, nslice):
         type = nslice.__class__
 
         if type is slice:
@@ -482,7 +482,7 @@ class PysAnalyzer(Pys):
         else:
             self.visit(nslice)
 
-    def visit_declaration_AssignNode(self, node: PysNode, message: str):
+    def visit_declaration_AssignNode(self, node, message):
         type = node.__class__
 
         if type is PysAttributeNode:

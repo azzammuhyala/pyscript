@@ -6,7 +6,7 @@ core_path = _pyscript.constants.CORE_PATH
 executable = '{} -m pyscript'.format(_pysys.executable)
 getcontext = _pyscript.objects.PysPythonFunction(func(pyfunc) return pyfunc.__code__.context)
 flags = getcontext().flags
-gil = _pyos.environ.get(_pyscript.constants.PYSCRIPT_GIL, '1') == '1'
+gil = _pyscript.handlers._GIL
 hook = _pyscript.cache.hook
 path = _pyscript.cache.path
 loading_modules = _pyscript.cache.loading_modules

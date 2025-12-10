@@ -21,7 +21,7 @@ class FPSTimer {
 
     func tick(self, framerate) {
         currentTime = monotonic()
-        lastTick = self._lastTick
+        lastTick = FPSTimer._lastTick
         elapsedTime = currentTime - lastTick
 
         if (framerate > 0) {
@@ -33,28 +33,28 @@ class FPSTimer {
 
         currentTime = monotonic()
 
-        self._framesPerSecond = (
+        FPSTimer._framesPerSecond = (
             currentTime == lastTick ?
             0.0 : 1 / (currentTime - lastTick)
         )
 
-        self._timeElapsed = timeElapsed = currentTime - lastTick
-        self._rawTime = elapsedTime
-        self._lastTick = currentTime
+        FPSTimer._timeElapsed = timeElapsed = currentTime - lastTick
+        FPSTimer._rawTime = elapsedTime
+        FPSTimer._lastTick = currentTime
 
         return timeElapsed
     }
 
     func get_time(self) {
-        return self._timeElapsed
+        return FPSTimer._timeElapsed
     }
 
     func get_rawtime(self) {
-        return self._rawTime
+        return FPSTimer._rawTime
     }
 
     func get_fps(self) {
-        return self._framesPerSecond
+        return FPSTimer._framesPerSecond
     }
 
     getTime = get_time

@@ -39,6 +39,9 @@ python -m pyscript
 ```
 If successful, you can see the version, release date, and a `>>>` like Python shell (_REPL_).
 
+> If you are using the VS Code editor, you can use the
+[PyScript extension](https://marketplace.visualstudio.com/items?itemName=azzammuhyala.pyslang) for Syntax Highlight!
+
 ## Syntax
 <pre><span style="color:#C586C0">func</span><span style="color:#D4D4D4"> </span><span style="color:#DCDCAA">greet</span><span style="color:#FFD705">(</span><span style="color:#8CDCFE">name</span><span style="color:#FFD705">)</span><span style="color:#D4D4D4"> </span><span style="color:#FFD705">{</span><br><span style="color:#D4D4D4">    </span><span style="color:#DCDCAA">print</span><span style="color:#D45DBA">(</span><span style="color:#CE9178">&quot;Hello, &quot;</span><span style="color:#D4D4D4"> + </span><span style="color:#8CDCFE">name</span><span style="color:#D4D4D4">.</span><span style="color:#DCDCAA">title</span><span style="color:#1A9FFF">()</span><span style="color:#D4D4D4"> + </span><span style="color:#CE9178">&quot;!&quot;</span><span style="color:#D45DBA">)</span><br><span style="color:#FFD705">}</span><br><br><span style="color:#DCDCAA">greet</span><span style="color:#FFD705">(</span><span style="color:#CE9178">&quot;charlie klik&quot;</span><span style="color:#FFD705">)</span></pre>
 

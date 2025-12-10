@@ -1,0 +1,174 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "PyScript",
+	"scopeName": "source.pyscript",
+
+	"patterns": [
+		{"include": "#keywords"},
+		{"include": "#strings"},
+		{"include": "#numbers"},
+		{"include": "#comments"},
+		{"include": "#identifiers"}
+	],
+
+	"repository": {
+
+		"keywords": {
+
+			"patterns": [
+				{
+					"name": "keyword.control",
+					"match": "\\b(as|assert|break|case|catch|continue|default|del|delete|do|elif|else|finally|for|from|if|import|return|switch|throw|try|while|with)\\b"
+				},
+				{
+					"name": "constant.language",
+					"match": "\\b(__debug__|False|None|True|and|extends|false|global|in|is|not|none|of|or|true)\\b"
+				}
+			]
+
+		},
+
+		"identifiers": {
+
+			"patterns": [
+				{
+					"name": "meta.class.definition",
+					"match": "\\b(class)\\b\\s*((?:\\$(?:[^\\S\\r\\n]*))?\\b[a-zA-Z_][a-zA-Z0-9_]*)\\b",
+					"captures": {
+						"1": {"name": "constant.language"},
+						"2": {"name": "entity.name.type.class"}
+					}
+				},
+				{
+					"name": "meta.function.definition",
+					"match": "\\b(func|function)\\b\\s*((?:\\$(?:[^\\S\\r\\n]*))?\\b[a-zA-Z_][a-zA-Z0-9_]*)\\b",
+					"captures": {
+						"1": {"name": "constant.language"},
+						"2": {"name": "entity.name.function"}
+					}
+				},
+				{
+					"name": "constant.language",
+					"match": "\\b(class|func|function)\\b"
+				},
+				{
+					"name": "entity.name.type",
+					"match": "(?:\\$(?:[^\\S\\r\\n]*))?(?:ArithmeticError|AssertionError|AttributeError|BaseException|BaseExceptionGroup|BlockingIOError|BrokenPipeError|BufferError|BytesWarning|ChildProcessError|ConnectionAbortedError|ConnectionError|ConnectionRefusedError|ConnectionResetError|DeprecationWarning|EOFError|EncodingWarning|EnvironmentError|Exception|ExceptionGroup|FileExistsError|FileNotFoundError|FloatingPointError|FutureWarning|GeneratorExit|IOError|ImportError|ImportWarning|IndexError|InterruptedError|IsADirectoryError|KeyError|KeyboardInterrupt|LookupError|MemoryError|ModuleNotFoundError|NameError|NotADirectoryError|NotImplementedError|OSError|OverflowError|PendingDeprecationWarning|PermissionError|ProcessLookupError|PythonFinalizationError|RecursionError|ReferenceError|ResourceWarning|RuntimeError|RuntimeWarning|StopAsyncIteration|StopIteration|SyntaxError|SyntaxWarning|SystemError|SystemExit|TimeoutError|TypeError|UnboundLocalError|UnicodeDecodeError|UnicodeEncodeError|UnicodeError|UnicodeTranslateError|UnicodeWarning|UserWarning|ValueError|Warning|WindowsError|ZeroDivisionError|bool|bytearray|bytes|classmethod|complex|dict|enumerate|filter|float|frozenset|int|list|map|memoryview|object|property|range|reversed|set|slice|staticmethod|str|super|tuple|type|zip)\\b"
+				},
+				{
+					"name": "entity.name.function",
+					"match": "(?:\\$(?:[^\\S\\r\\n]*))?[a-zA-Z_][a-zA-Z0-9_]*(?=\\s*\\()|\\b(?:abs|aiter|all|anext|any|ascii|bin|breakpoint|callable|chr|delattr|divmod|exit|format|getattr|hasattr|hash|hex|id|input|isinstance|issubclass|iter|len|max|min|next|oct|open|ord|pow|print|quit|repr|round|setattr|sorted|sum|license|help|pyimport|require|globals|locals|vars|dir|exec|eval|ce|nce|increment|decrement|comprehension|isobjectof)\\b"
+				},
+				{
+					"name": "variable.other.constant",
+					"match": "(?:\\$(?:[^\\S\\r\\n]*))?\\b(?:[A-Z_]*[A-Z][A-Z0-9_]*)\\b"
+				},
+				{
+					"name": "variable.other",
+					"match": "(?:\\$(?:[^\\S\\r\\n]*))?\\b[a-zA-Z_][a-zA-Z0-9_]*\\b"
+				}
+			]
+
+		},
+
+		"strings": {
+
+			"patterns": [
+				{
+					"name": "string.quoted",
+					"patterns": [
+						{
+							"name": "string.quoted.triple",
+							"begin": "((?:[rRbBuU]{1,2})?)('''|\"\"\")",
+							"beginCaptures": {
+								"1": {"name": "storage.type.string.prefix"},
+								"2": {"name": "punctuation.definition.string.begin"}
+							},
+							"end": "(\\2)",
+							"endCaptures": {
+								"1": {"name": "punctuation.definition.string.end"}
+							},
+							"patterns": [
+								{"include": "#string-escapes"}
+							]
+						},
+						{
+							"name": "string.quoted.single",
+							"begin": "((?:[rRbBuU]{1,2})?)('|\")",
+							"beginCaptures": {
+								"1": {"name": "storage.type.string.prefix"},
+								"2": {"name": "punctuation.definition.string.begin"}
+							},
+							"end": "((?<!\\\\)\\2)|((?<!\\\\)(\\r?\\n))",
+							"endCaptures": {
+								"1": {"name": "punctuation.definition.string.end"},
+								"3": {"name": "invalid.illegal.unterminated-string"}
+							},
+							"patterns": [
+								{"include": "#string-escapes"}
+							]
+						}
+					]
+				}
+			]
+
+		},
+
+		"string-escapes": {
+
+			"patterns": [
+				{
+					"name": "constant.character.escape",
+					"match": "\\\\([nrtbfav\\\\'\"\\n\\r])"
+				},
+				{
+					"name": "constant.character.escape.octal",
+					"match": "\\\\[0-3][0-7]{0,2}"
+				},
+				{
+					"name": "constant.character.escape.hex",
+					"match": "\\\\x[0-9A-Fa-f]{2}"
+				},
+				{
+					"name": "constant.character.escape.unicode",
+					"match": "\\\\u[0-9A-Fa-f]{4}"
+				},
+				{
+					"name": "constant.character.escape.unicode",
+					"match": "\\\\U[0-9A-Fa-f]{8}"
+				},
+				{
+					"name": "constant.character.escape.unicode-name",
+					"match": "\\\\N\\{[^}]+\\}"
+				},
+				{
+					"name": "invalid.illegal.escape",
+					"match": "\\\\."
+				}
+			]
+
+		},
+
+		"numbers": {
+
+			"patterns": [
+				{
+					"name": "constant.numeric",
+					"match": "0[bB][01](_?[01])*[jJiI]?|0[oO][0-7](_?[0-7])*[jJiI]?|0[xX][0-9a-fA-F](_?[0-9a-fA-F])*[jJiI]?|((?:[0-9](_?[0-9])*)?\\.[0-9](_?[0-9])*|[0-9](_?[0-9])*\\.)([eE][+-]?[0-9](_?[0-9])*)?[jJiI]?|[0-9](_?[0-9])*([eE][+-]?[0-9](_?[0-9])*)[jJiI]?|[0-9](_?[0-9])*[jJiI]?"
+				}
+			]
+
+		},
+
+		"comments": {
+
+			"patterns": [
+				{
+					"name": "comment.line.number-sign",
+					"match": "#.*$"
+				}
+			]
+
+		}
+	}
+}

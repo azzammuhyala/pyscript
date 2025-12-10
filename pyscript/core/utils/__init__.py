@@ -5,6 +5,7 @@ from . import (
     generic,
     module,
     path,
+    shell,
     similarity,
     string
 )
@@ -16,6 +17,7 @@ __all__ = (
     'generic',
     'module',
     'path',
+    'shell',
     'similarity',
     'string'
 )

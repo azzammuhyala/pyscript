@@ -1,4 +1,9 @@
 from .bases import Pys
+from .cache import hook
+from .exceptions import PysTraceback, PysSignal
+from .position import PysPosition
+from .utils.debug import print_traceback
+from .utils.generic import get_error_args
 
 class PysResult(Pys):
     __slots__ = ()
@@ -45,13 +50,16 @@ class PysParserResult(PysResult):
 
 class PysRunTimeResult(PysResult):
 
-    __slots__ = ('should_continue', 'should_break', 'func_return_value', 'func_should_return', 'value', 'error')
+    __slots__ = (
+        'should_continue', 'should_break', 'func_return_value', 'func_should_return', 'value', 'error',
+        '_context', '_position'
+    )
 
     def reset(self):
         self.should_continue = False
         self.should_break = False
-        self.func_return_value = None
         self.func_should_return = False
+        self.func_return_value = None
 
         self.value = None
         self.error = None
@@ -63,8 +71,8 @@ class PysRunTimeResult(PysResult):
 
         self.should_continue = result.should_continue
         self.should_break = result.should_break
-        self.func_return_value = result.func_return_value
         self.func_should_return = result.func_should_return
+        self.func_return_value = result.func_return_value
 
         return result.value
 
@@ -75,8 +83,8 @@ class PysRunTimeResult(PysResult):
 
     def success_return(self, value):
         self.reset()
-        self.func_return_value = value
         self.func_should_return = True
+        self.func_return_value = value
         return self
 
     def success_continue(self):
@@ -102,6 +110,34 @@ class PysRunTimeResult(PysResult):
             self.should_break
         )
 
+    # --- HANDLE EXCEPTION ---
+
+    def __call__(self, context, position):
+        self._context = context
+        self._position = position
+        return self
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # return
+        # ^^^^^^  <--- debug only
+
+        if exc_type is not None:
+
+            self.register(exc_val.result) \
+            if exc_type is PysSignal else \
+            self.failure(
+                PysTraceback(
+                    exc_type if exc_val is None else exc_val,
+                    self._context,
+                    self._position
+                )
+            )
+
+        return True
+
 class PysExecuteResult(PysResult):
 
     def __init__(self, context):
@@ -117,3 +153,26 @@ class PysExecuteResult(PysResult):
     def failure(self, error):
         self.error = error
         return self
+
+    # --- HANDLE EXECUTE ---
+
+    def process(self):
+        result = PysRunTimeResult()
+
+        with result(self.context, PysPosition(self.context.file, -1, -1)):
+
+            if self.error:
+                if self.error.exception is SystemExit:
+                    return 0, True
+                elif type(self.error.exception) is SystemExit:
+                    return self.error.exception.code, True
+                elif hook.exception is not None:
+                    hook.exception(*get_error_args(self.error))
+                return 1, False
+
+        if result.should_return():
+            if result.error:
+                print_traceback(*get_error_args(result.error))
+            return 1, False
+
+        return 0, False

@@ -1,17 +1,15 @@
 from .bases import Pys
 from .constants import LIBRARIES_PATH, SITE_PACKAGES_PATH
-from .utils.debug import print_traceback
+from .utils.debug import print_display, print_traceback
 from .utils.decorators import inheritable, singleton
 
 from threading import RLock
-from re import compile as re_compile
 
 loading_modules = set()
 lock = RLock()
 modules = dict()
 path = [SITE_PACKAGES_PATH, LIBRARIES_PATH]
 singletons = dict()
-version_match = re_compile(r'^(\d+)\.(\d+)\.(\d+)((?:a|b|rc)(\d+)|\.(dev|post)(\d+))?$').match
 
 @singleton
 @inheritable
@@ -39,7 +37,9 @@ class PysHook(Pys):
     def __new_singleton__(cls):
         global hook
         hook = super(cls, cls).__new__(cls)
-        hook.display = None
+        hook.running_shell = False
+        hook.running_breakpoint = False
+        hook.display = print_display
         hook.exception = print_traceback
         hook.ps1 = '>>> '
         hook.ps2 = '... '
@@ -47,6 +47,22 @@ class PysHook(Pys):
 
     def __repr__(self):
         return f'<hook object at {id(self):016X}>'
+
+    @property
+    def running_shell(self):
+        return singletons['hook.running_shell']
+
+    @running_shell.setter
+    def running_shell(self, value):
+        singletons['hook.running_shell'] = bool(value)
+
+    @property
+    def running_breakpoint(self):
+        return singletons['hook.running_breakpoint']
+
+    @running_breakpoint.setter
+    def running_breakpoint(self, value):
+        singletons['hook.running_breakpoint'] = bool(value)
 
     @property
     def display(self):

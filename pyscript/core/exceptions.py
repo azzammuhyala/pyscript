@@ -24,17 +24,14 @@ class PysTraceback(Pys):
         context = self.context
         position = self.position
 
-        no_colored = context.flags & NO_COLOR
-        colored = not no_colored
-
-        if no_colored:
-            reset = ''
-            magenta = ''
-            bmagenta = ''
-        else:
+        if colored := not (context.flags & NO_COLOR):
             reset = acolor('reset')
             magenta = acolor('magenta')
             bmagenta = acolor('magenta', BOLD)
+        else:
+            reset = ''
+            magenta = ''
+            bmagenta = ''
 
         frames = []
 
@@ -79,17 +76,15 @@ class PysTraceback(Pys):
             result += f'{bmagenta}{self.exception.__name__}{reset}'
         else:
             message = str(self.exception)
-            result += (
-                f'{bmagenta}{type(self.exception).__name__}{reset}' +
-                (f': {magenta}{message}{reset}' if message else '')
-            )
+            result += f'{bmagenta}{type(self.exception).__name__}{reset}'
+            if message:
+                result += f': {magenta}{message}{reset}'
 
         return (
-            self.cause.string_traceback() + (
-                '\n\nThe above exception was the direct cause of the following exception:\n\n'
-                if self.directly else
-                '\n\nDuring handling of the above exception, another exception occurred:\n\n'
-            ) + result
+            self.cause.string_traceback() +
+            ('\n\nThe above exception was the direct cause of the following exception:\n\n'
+             if self.directly else
+             '\n\nDuring handling of the above exception, another exception occurred:\n\n') + result
             if self.cause else
             result
         )

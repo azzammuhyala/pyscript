@@ -1,9 +1,9 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
-from .checks import is_left_parenthesis, is_right_parenthesis, is_parenthesis, is_constant_keywords
-from .constants import TOKENS, KEYWORDS, HIGHLIGHT
+from .checks import is_left_bracket, is_right_bracket, is_bracket, is_constant_keywords, is_public_attribute
+from .constants import TOKENS, KEYWORDS, CONSTANT_KEYWORDS, HIGHLIGHT
 from .lexer import PysLexer
-from .mapping import PARENTHESISES_MAP, HIGHLIGHT_MAP
+from .mapping import BRACKETS_MAP, HIGHLIGHT_MAP
 from .position import PysPosition
 from .pysbuiltins import pys_builtins
 from .utils.ansi import acolor
@@ -12,8 +12,167 @@ from .utils.decorators import typechecked
 from html import escape as html_escape
 from typing import Callable, Optional
 
+_builtin_types = tuple(
+    name
+    for name, object in pys_builtins.__dict__.items()
+    if is_public_attribute(name) and isinstance(object, type)
+)
+
+_builtin_functions = tuple(
+    name 
+    for name, object in pys_builtins.__dict__.items()
+    if is_public_attribute(name) and callable(object)
+)
+
+try:
+    # if pygments module exists
+    from pygments.lexer import RegexLexer, include, bygroups
+    from pygments.token import Comment, Keyword, Name, Number, String, Text
+
+    _keyword_definitions = (KEYWORDS['class'], KEYWORDS['func'], KEYWORDS['function'])
+
+    class PygmentsPyScriptLexer(Pys, RegexLexer):
+
+        """
+        Pygments lexer for PyScript language.
+        """
+
+        name = 'PyScript'
+        aliases = ['pyscript']
+        filenames = ['*.pys']
+
+        tokens = {
+
+            "root": [
+                # Keywords
+                (
+                    rf"\b({'|'.join(keyword for keyword in KEYWORDS if not is_constant_keywords(keyword))})\b",
+                    Keyword.Reserved
+                ),
+                (
+                    r"\b(" +
+                    '|'.join(keyword for keyword in CONSTANT_KEYWORDS if keyword not in _keyword_definitions) +
+                    r")\b",
+                    Keyword.Constant
+                ),
+
+                # Strings
+                (
+                    r"((?:[rRbBuU]{1,2})?)(''')", 
+                    bygroups(String.Affix, String.Delimiter), 
+                    "string-triple-single"
+                ),
+                (
+                    r"((?:[rRbBuU]{1,2})?)(\"\"\")", 
+                    bygroups(String.Affix, String.Delimiter), 
+                    "string-triple-double"
+                ),
+                (
+                    r"((?:[rRbBuU]{1,2})?)(')", 
+                    bygroups(String.Affix, String.Delimiter), 
+                    "string-single"
+                ),
+                (
+                    r"((?:[rRbBuU]{1,2})?)(\")", 
+                    bygroups(String.Affix, String.Delimiter), 
+                    "string-double"
+                ),
+
+                # Numbers
+                (
+                    r"0[bB][01](_?[01])*[jJiI]?|0[oO][0-7](_?[0-7])*[jJiI]?|0[xX][0-9a-fA-F](_?[0-9a-fA-F])*[jJiI]?|((?"
+                    r":[0-9](_?[0-9])*)?\\.[0-9](_?[0-9])*|[0-9](_?[0-9])*\\.)([eE][+-]?[0-9](_?[0-9])*)?[jJiI]?|[0-9]("
+                    r"_?[0-9])*([eE][+-]?[0-9](_?[0-9])*)[jJiI]?|[0-9](_?[0-9])*[jJiI]?",
+                    Number
+                ),
+
+                # Comments
+                (r"#.*$", Comment.Single),
+
+                # Class definition
+                (
+                    rf"\b({KEYWORDS['class']})\b(\s*)((?:\$(?:[^\S\r\n]*))?\b[a-zA-Z_][a-zA-Z0-9_]*)\b",
+                    bygroups(Keyword.Declaration, Text, Name.Class)
+                ),
+
+                # Function definition
+                (
+                    rf"\b({KEYWORDS['func']}|{KEYWORDS['function']})\b"
+                    r"(\s*)((?:\$(?:[^\S\r\n]*))?\b[a-zA-Z_][a-zA-Z0-9_]*)\b",
+                    bygroups(Keyword.Declaration, Text, Name.Function)
+                ),
+
+                # Keywords (if that definition is unmatched)
+                (
+                    rf"\b({'|'.join(_keyword_definitions)})\b",
+                    Keyword.Constant
+                ),
+
+                # Built-in types and exceptions
+                (
+                    rf"(?:\$(?:[^\S\r\n]*))?(?:{'|'.join(_builtin_types)})\b",
+                    Name.Builtin
+                ),
+
+                # Built-in functions
+                (
+                    rf"(?:\$(?:[^\S\r\n]*))?[a-zA-Z_][a-zA-Z0-9_]*(?=\s*\()|\b(?:{'|'.join(_builtin_functions)})\b",
+                    Name.Builtin
+                ),
+
+                # Constants
+                (r"(?:\$(?:[^\S\r\n]*))?\b(?:[A-Z_]*[A-Z][A-Z0-9_]*)\b", Name.Constant),
+
+                # Variables
+                (r"(?:\$(?:[^\S\r\n]*))?\b[a-zA-Z_][a-zA-Z0-9_]*\b", Name),
+
+            ],
+
+            "string-escape": [
+                (r"\\([nrtbfav\\'\"\n\r])", String.Escape),
+                (r"\\[0-3][0-7]{0,2}", String.Escape.Octal),
+                (r"\\x[0-9A-Fa-f]{2}", String.Escape.Hex),
+                (r"\\u[0-9A-Fa-f]{4}", String.Escape.Unicode),
+                (r"\\U[0-9A-Fa-f]{8}", String.Escape.Unicode),
+                (r"\\N\{[^}]+\}", String.Escape.Unicode),
+                (r"\\.", String.Escape.Invalid)
+            ],
+
+            "string-single": [
+                (r"'", String.Delimiter, "#pop"),
+                include("string-escape"),
+                (r"[^'\\]+", String),
+            ],
+
+            "string-double": [
+                (r"\"", String.Delimiter, "#pop"),
+                include("string-escape"),
+                (r'[^"\\]+', String),
+            ],
+
+            "string-triple-single": [
+                (r"'''", String.Delimiter, "#pop"),
+                include("string-escape"),
+                (r"[^\\']+", String),
+            ],
+
+            "string-triple-double": [
+                (r'"""', String.Delimiter, "#pop"),
+                include("string-escape"),
+                (r'[^\\"]+', String),
+            ]
+
+        }
+
+except ImportError:
+
+    class PygmentsPyScriptLexer(Pys):
+
+        def __new__(cls, *args, **kwargs):
+            raise ModuleNotFoundError("pygments is not found")
+
 @typechecked
-class _HighlightFormatter(Pys):
+class _PysHighlightFormatter(Pys):
 
     def __init__(
         self,
@@ -67,21 +226,21 @@ def _ansi_open_block(position, type):
     color = HIGHLIGHT_MAP.get(type, 'default')
     return acolor(int(color[i:i+2], 16) for i in range(1, 6, 2))
 
-HLFMT_HTML = _HighlightFormatter(
+HLFMT_HTML = _PysHighlightFormatter(
     lambda position, content: '<br>'.join(html_escape(content).splitlines()),
     lambda position, type: f'<span style="color:{HIGHLIGHT_MAP.get(type, "default")}">',
     lambda position, type: '</span>',
     lambda position: '<br>'
 )
 
-HLFMT_ANSI = _HighlightFormatter(
+HLFMT_ANSI = _PysHighlightFormatter(
     lambda position, content: content,
     _ansi_open_block,
     lambda position, type: '\x1b[0m',
     lambda position: '\n'
 )
 
-HLFMT_BBCODE = _HighlightFormatter(
+HLFMT_BBCODE = _PysHighlightFormatter(
     lambda position, content: content,
     lambda position, type: f'[color={HIGHLIGHT_MAP.get(type, "default")}]',
     lambda position, type: '[/color]',
@@ -92,18 +251,18 @@ HLFMT_BBCODE = _HighlightFormatter(
 def pys_highlight(
     source,
     format: Optional[Callable[[str, PysPosition, str], str]] = None,
-    max_parenthesis_level: int = 3
+    max_bracket_level: int = 3
 ) -> str:
     """
     Highlight a PyScript code from source given.
 
     Parameters
     ----------
-    source: A valid PyScript (Lexer/Tokenize) source code.
+    source: A PyScript source code (tolerant of syntax errors).
 
     format: A function to format the code form.
 
-    max_parenthesis_level: Maximum difference level of parentheses (with circular indexing).
+    max_bracket_level: Maximum difference level of parentheses (with circular indexing).
     """
 
     file = PysFileBuffer(source)
@@ -111,8 +270,8 @@ def pys_highlight(
     if format is None:
         format = HLFMT_HTML
 
-    if max_parenthesis_level < 0:
-        raise ValueError("pys_highlight(): max_parenthesis_level must be grather than 0")
+    if max_bracket_level < 0:
+        raise ValueError("pys_highlight(): max_bracket_level must be grather than 0")
 
     lexer = PysLexer(
         file=file,
@@ -124,8 +283,8 @@ def pys_highlight(
     text = file.text
     result = ''
     last_index_position = 0
-    parenthesis_level = 0
-    parenthesises_level = {
+    bracket_level = 0
+    brackets_level = {
         TOKENS['RIGHT-PARENTHESIS']: 0,
         TOKENS['RIGHT-SQUARE']: 0,
         TOKENS['RIGHT-CURLY']: 0
@@ -135,9 +294,9 @@ def pys_highlight(
         ttype = token.type
         tvalue = token.value
 
-        if is_right_parenthesis(ttype):
-            parenthesises_level[ttype] -= 1
-            parenthesis_level -= 1
+        if is_right_bracket(ttype):
+            brackets_level[ttype] -= 1
+            bracket_level -= 1
 
         if ttype == TOKENS['NULL']:
             type_fmt = 'end'
@@ -146,13 +305,10 @@ def pys_highlight(
             type_fmt = 'keyword-constant' if is_constant_keywords(tvalue) else 'keyword'
 
         elif ttype == TOKENS['IDENTIFIER']:
-            obj = pys_builtins.__dict__.get(tvalue, None)
-
-            if isinstance(obj, type):
+            if tvalue in _builtin_types:
                 type_fmt = 'identifier-type'
-            elif callable(obj):
+            elif tvalue in _builtin_functions:
                 type_fmt = 'identifier-function'
-
             else:
                 j = i - 1
                 while j > 0 and tokens[j].type in (TOKENS['NEWLINE'], TOKENS['COMMENT']):
@@ -183,14 +339,14 @@ def pys_highlight(
         elif ttype == TOKENS['COMMENT']:
             type_fmt = 'comment'
 
-        elif is_parenthesis(ttype):
+        elif is_bracket(ttype):
             type_fmt = (
                 'invalid'
                 if
-                    parenthesises_level[PARENTHESISES_MAP.get(ttype, ttype)] < 0 or
-                    parenthesis_level < 0
+                    brackets_level[BRACKETS_MAP.get(ttype, ttype)] < 0 or
+                    bracket_level < 0
                 else
-                f'brackets-{parenthesis_level % max_parenthesis_level}'
+                f'brackets-{bracket_level % max_bracket_level}'
             )
 
         elif ttype == TOKENS['NONE']:
@@ -205,9 +361,9 @@ def pys_highlight(
 
         result += format(type_fmt, token.position, text[token.position.start:token.position.end])
 
-        if is_left_parenthesis(ttype):
-            parenthesises_level[PARENTHESISES_MAP[ttype]] += 1
-            parenthesis_level += 1
+        if is_left_bracket(ttype):
+            brackets_level[BRACKETS_MAP[ttype]] += 1
+            bracket_level += 1
 
         elif ttype == TOKENS['NULL']:
             break

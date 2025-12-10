@@ -25,7 +25,7 @@ def acolor(arg, style=DEFAULT):
     style = f'\x1b[{";".join(styles)}m' if styles else ''
 
     if isinstance(arg, str):
-        arg = arg.strip().lower()
+        arg = arg.strip().replace(' ', '-').replace('_', '-').lower()
         if arg in ANSI_NAMES_MAP:
             return f'{style}\x1b[{ANSI_NAMES_MAP[arg] + offset}m'
 

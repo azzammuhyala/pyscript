@@ -1,0 +1,41 @@
+{
+    "name": "pyslang",
+    "publisher": "AzzamMuhyala",
+    "displayName": "PyScript - PysLang",
+    "description": "Simple syntax highlights for PyScript (Programming Language)",
+    "version": "1.0.1",
+    "icon": "./PyScript.png",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/azzammuhyala/pyscript"
+    },
+    "engines": {
+        "vscode": "^1.106.1"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [
+            {
+                "id": "pyscript",
+                "aliases": ["PyScript", "pyscript"],
+                "extensions": [".pys"],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "pyscript",
+                "scopeName": "source.pyscript",
+                "path": "./syntaxes/pyscript.tmLanguage.json"
+            }
+        ],
+        "snippets": [
+            {
+                "language": "pyscript",
+                "path": "./snippets/pyslang.json"
+            }
+        ]
+    }
+}

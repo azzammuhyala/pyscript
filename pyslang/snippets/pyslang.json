@@ -1,0 +1,780 @@
+{
+    "Keyword - __debug__": {
+        "prefix": "__debug__",
+        "body": "__debug__",
+        "description": "flag DEBUG or -d activated"
+    },
+    "Keyword - False": {
+        "prefix": "False",
+        "body": "False",
+        "description": "boolean"
+    },
+    "Keyword - None": {
+        "prefix": "None",
+        "body": "None",
+        "description": "null"
+    },
+    "Keyword - True": {
+        "prefix": "True",
+        "body": "True",
+        "description": "boolean"
+    },
+    "Keyword - and": {
+        "prefix": "and",
+        "body": "and"
+    },
+    "Keyword - as": {
+        "prefix": "as",
+        "body": "as"
+    },
+    "Keyword - assert": {
+        "prefix": "assert",
+        "body": "assert"
+    },
+    "Keyword - break": {
+        "prefix": "break",
+        "body": "break"
+    },
+    "Keyword - case": {
+        "prefix": "case",
+        "body": "case"
+    },
+    "Keyword - catch": {
+        "prefix": "catch",
+        "body": "catch"
+    },
+    "Keyword - class": {
+        "prefix": "class",
+        "body": "class"
+    },
+    "Keyword - continue": {
+        "prefix": "continue",
+        "body": "continue"
+    },
+    "Keyword - default": {
+        "prefix": "default",
+        "body": "default"
+    },
+    "Keyword - del": {
+        "prefix": "del",
+        "body": "del"
+    },
+    "Keyword - delete": {
+        "prefix": "delete",
+        "body": "delete",
+        "description": "same as del"
+    },
+    "Keyword - do": {
+        "prefix": "do",
+        "body": "do"
+    },
+    "Keyword - elif": {
+        "prefix": "elif",
+        "body": "elif"
+    },
+    "Keyword - else": {
+        "prefix": "else",
+        "body": "else"
+    },
+    "Keyword - extends": {
+        "prefix": "extends",
+        "body": "extends"
+    },
+    "Keyword - false": {
+        "prefix": "false",
+        "body": "false",
+        "description": "same as False"
+    },
+    "Keyword - finally": {
+        "prefix": "finally",
+        "body": "finally"
+    },
+    "Keyword - for": {
+        "prefix": "for",
+        "body": "for"
+    },
+    "Keyword - from": {
+        "prefix": "from",
+        "body": "from"
+    },
+    "Keyword - func": {
+        "prefix": "func",
+        "body": "func"
+    },
+    "Keyword - function": {
+        "prefix": "function",
+        "body": "function",
+        "description": "same as func"
+    },
+    "Keyword - global": {
+        "prefix": "global",
+        "body": "global"
+    },
+    "Keyword - if": {
+        "prefix": "if",
+        "body": "if"
+    },
+    "Keyword - import": {
+        "prefix": "import",
+        "body": "import"
+    },
+    "Keyword - in": {
+        "prefix": "in",
+        "body": "in"
+    },
+    "Keyword - is": {
+        "prefix": "is",
+        "body": "is"
+    },
+    "Keyword - none": {
+        "prefix": "none",
+        "body": "none",
+        "description": "same as None"
+    },
+    "Keyword - not": {
+        "prefix": "not",
+        "body": "not"
+    },
+    "Keyword - true": {
+        "prefix": "true",
+        "body": "true",
+        "description": "same as True"
+    },
+    "Keyword - of": {
+        "prefix": "of",
+        "body": "of"
+    },
+    "Keyword - or": {
+        "prefix": "or",
+        "body": "or"
+    },
+    "Keyword - return": {
+        "prefix": "return",
+        "body": "return"
+    },
+    "Keyword - switch": {
+        "prefix": "switch",
+        "body": "switch"
+    },
+    "Keyword - throw": {
+        "prefix": "throw",
+        "body": "throw"
+    },
+    "Keyword - try": {
+        "prefix": "try",
+        "body": "try"
+    },
+    "Keyword - while": {
+        "prefix": "while",
+        "body": "while"
+    },
+    "Keyword - with": {
+        "prefix": "with",
+        "body": "with"
+    },
+
+    "Builtin - ArithmeticError": {
+        "prefix": "ArithmeticError",
+        "body": "ArithmeticError"
+    },
+    "Builtin - AssertionError": {
+        "prefix": "AssertionError",
+        "body": "AssertionError"
+    },
+    "Builtin - AttributeError": {
+        "prefix": "AttributeError",
+        "body": "AttributeError"
+    },
+    "Builtin - BaseException": {
+        "prefix": "BaseException",
+        "body": "BaseException"
+    },
+    "Builtin - BaseExceptionGroup": {
+        "prefix": "BaseExceptionGroup",
+        "body": "BaseExceptionGroup"
+    },
+    "Builtin - BlockingIOError": {
+        "prefix": "BlockingIOError",
+        "body": "BlockingIOError"
+    },
+    "Builtin - BrokenPipeError": {
+        "prefix": "BrokenPipeError",
+        "body": "BrokenPipeError"
+    },
+    "Builtin - BufferError": {
+        "prefix": "BufferError",
+        "body": "BufferError"
+    },
+    "Builtin - BytesWarning": {
+        "prefix": "BytesWarning",
+        "body": "BytesWarning"
+    },
+    "Builtin - ChildProcessError": {
+        "prefix": "ChildProcessError",
+        "body": "ChildProcessError"
+    },
+    "Builtin - ConnectionAbortedError": {
+        "prefix": "ConnectionAbortedError",
+        "body": "ConnectionAbortedError"
+    },
+    "Builtin - ConnectionError": {
+        "prefix": "ConnectionError",
+        "body": "ConnectionError"
+    },
+    "Builtin - ConnectionRefusedError": {
+        "prefix": "ConnectionRefusedError",
+        "body": "ConnectionRefusedError"
+    },
+    "Builtin - ConnectionResetError": {
+        "prefix": "ConnectionResetError",
+        "body": "ConnectionResetError"
+    },
+    "Builtin - DeprecationWarning": {
+        "prefix": "DeprecationWarning",
+        "body": "DeprecationWarning"
+    },
+    "Builtin - EOFError": {
+        "prefix": "EOFError",
+        "body": "EOFError"
+    },
+    "Builtin - Ellipsis": {
+        "prefix": "Ellipsis",
+        "body": "Ellipsis"
+    },
+    "Builtin - EncodingWarning": {
+        "prefix": "EncodingWarning",
+        "body": "EncodingWarning"
+    },
+    "Builtin - EnvironmentError": {
+        "prefix": "EnvironmentError",
+        "body": "EnvironmentError"
+    },
+    "Builtin - Exception": {
+        "prefix": "Exception",
+        "body": "Exception"
+    },
+    "Builtin - ExceptionGroup": {
+        "prefix": "ExceptionGroup",
+        "body": "ExceptionGroup"
+    },
+    "Builtin - FileExistsError": {
+        "prefix": "FileExistsError",
+        "body": "FileExistsError"
+    },
+    "Builtin - FileNotFoundError": {
+        "prefix": "FileNotFoundError",
+        "body": "FileNotFoundError"
+    },
+    "Builtin - FloatingPointError": {
+        "prefix": "FloatingPointError",
+        "body": "FloatingPointError"
+    },
+    "Builtin - FutureWarning": {
+        "prefix": "FutureWarning",
+        "body": "FutureWarning"
+    },
+    "Builtin - GeneratorExit": {
+        "prefix": "GeneratorExit",
+        "body": "GeneratorExit"
+    },
+    "Builtin - IOError": {
+        "prefix": "IOError",
+        "body": "IOError"
+    },
+    "Builtin - ImportError": {
+        "prefix": "ImportError",
+        "body": "ImportError"
+    },
+    "Builtin - ImportWarning": {
+        "prefix": "ImportWarning",
+        "body": "ImportWarning"
+    },
+    "Builtin - IndexError": {
+        "prefix": "IndexError",
+        "body": "IndexError"
+    },
+    "Builtin - InterruptedError": {
+        "prefix": "InterruptedError",
+        "body": "InterruptedError"
+    },
+    "Builtin - IsADirectoryError": {
+        "prefix": "IsADirectoryError",
+        "body": "IsADirectoryError"
+    },
+    "Builtin - KeyError": {
+        "prefix": "KeyError",
+        "body": "KeyError"
+    },
+    "Builtin - KeyboardInterrupt": {
+        "prefix": "KeyboardInterrupt",
+        "body": "KeyboardInterrupt"
+    },
+    "Builtin - LookupError": {
+        "prefix": "LookupError",
+        "body": "LookupError"
+    },
+    "Builtin - MemoryError": {
+        "prefix": "MemoryError",
+        "body": "MemoryError"
+    },
+    "Builtin - ModuleNotFoundError": {
+        "prefix": "ModuleNotFoundError",
+        "body": "ModuleNotFoundError"
+    },
+    "Builtin - NameError": {
+        "prefix": "NameError",
+        "body": "NameError"
+    },
+    "Builtin - NotADirectoryError": {
+        "prefix": "NotADirectoryError",
+        "body": "NotADirectoryError"
+    },
+    "Builtin - NotImplemented": {
+        "prefix": "NotImplemented",
+        "body": "NotImplemented"
+    },
+    "Builtin - NotImplementedError": {
+        "prefix": "NotImplementedError",
+        "body": "NotImplementedError"
+    },
+    "Builtin - OSError": {
+        "prefix": "OSError",
+        "body": "OSError"
+    },
+    "Builtin - OverflowError": {
+        "prefix": "OverflowError",
+        "body": "OverflowError"
+    },
+    "Builtin - PendingDeprecationWarning": {
+        "prefix": "PendingDeprecationWarning",
+        "body": "PendingDeprecationWarning"
+    },
+    "Builtin - PermissionError": {
+        "prefix": "PermissionError",
+        "body": "PermissionError"
+    },
+    "Builtin - ProcessLookupError": {
+        "prefix": "ProcessLookupError",
+        "body": "ProcessLookupError"
+    },
+    "Builtin - PythonFinalizationError": {
+        "prefix": "PythonFinalizationError",
+        "body": "PythonFinalizationError"
+    },
+    "Builtin - RecursionError": {
+        "prefix": "RecursionError",
+        "body": "RecursionError"
+    },
+    "Builtin - ReferenceError": {
+        "prefix": "ReferenceError",
+        "body": "ReferenceError"
+    },
+    "Builtin - ResourceWarning": {
+        "prefix": "ResourceWarning",
+        "body": "ResourceWarning"
+    },
+    "Builtin - RuntimeError": {
+        "prefix": "RuntimeError",
+        "body": "RuntimeError"
+    },
+    "Builtin - RuntimeWarning": {
+        "prefix": "RuntimeWarning",
+        "body": "RuntimeWarning"
+    },
+    "Builtin - StopAsyncIteration": {
+        "prefix": "StopAsyncIteration",
+        "body": "StopAsyncIteration"
+    },
+    "Builtin - StopIteration": {
+        "prefix": "StopIteration",
+        "body": "StopIteration"
+    },
+    "Builtin - SyntaxError": {
+        "prefix": "SyntaxError",
+        "body": "SyntaxError"
+    },
+    "Builtin - SyntaxWarning": {
+        "prefix": "SyntaxWarning",
+        "body": "SyntaxWarning"
+    },
+    "Builtin - SystemError": {
+        "prefix": "SystemError",
+        "body": "SystemError"
+    },
+    "Builtin - SystemExit": {
+        "prefix": "SystemExit",
+        "body": "SystemExit"
+    },
+    "Builtin - TimeoutError": {
+        "prefix": "TimeoutError",
+        "body": "TimeoutError"
+    },
+    "Builtin - TypeError": {
+        "prefix": "TypeError",
+        "body": "TypeError"
+    },
+    "Builtin - UnboundLocalError": {
+        "prefix": "UnboundLocalError",
+        "body": "UnboundLocalError"
+    },
+    "Builtin - UnicodeDecodeError": {
+        "prefix": "UnicodeDecodeError",
+        "body": "UnicodeDecodeError"
+    },
+    "Builtin - UnicodeEncodeError": {
+        "prefix": "UnicodeEncodeError",
+        "body": "UnicodeEncodeError"
+    },
+    "Builtin - UnicodeError": {
+        "prefix": "UnicodeError",
+        "body": "UnicodeError"
+    },
+    "Builtin - UnicodeTranslateError": {
+        "prefix": "UnicodeTranslateError",
+        "body": "UnicodeTranslateError"
+    },
+    "Builtin - UnicodeWarning": {
+        "prefix": "UnicodeWarning",
+        "body": "UnicodeWarning"
+    },
+    "Builtin - UserWarning": {
+        "prefix": "UserWarning",
+        "body": "UserWarning"
+    },
+    "Builtin - ValueError": {
+        "prefix": "ValueError",
+        "body": "ValueError"
+    },
+    "Builtin - Warning": {
+        "prefix": "Warning",
+        "body": "Warning"
+    },
+    "Builtin - WindowsError": {
+        "prefix": "WindowsError",
+        "body": "WindowsError"
+    },
+    "Builtin - ZeroDivisionError": {
+        "prefix": "ZeroDivisionError",
+        "body": "ZeroDivisionError"
+    },
+    "Builtin - abs": {
+        "prefix": "abs",
+        "body": "abs"
+    },
+    "Builtin - aiter": {
+        "prefix": "aiter",
+        "body": "aiter"
+    },
+    "Builtin - all": {
+        "prefix": "all",
+        "body": "all"
+    },
+    "Builtin - anext": {
+        "prefix": "anext",
+        "body": "anext"
+    },
+    "Builtin - any": {
+        "prefix": "any",
+        "body": "any"
+    },
+    "Builtin - ascii": {
+        "prefix": "ascii",
+        "body": "ascii"
+    },
+    "Builtin - bin": {
+        "prefix": "bin",
+        "body": "bin"
+    },
+    "Builtin - bool": {
+        "prefix": "bool",
+        "body": "bool"
+    },
+    "Builtin - bytearray": {
+        "prefix": "bytearray",
+        "body": "bytearray"
+    },
+    "Builtin - bytes": {
+        "prefix": "bytes",
+        "body": "bytes"
+    },
+    "Builtin - callable": {
+        "prefix": "callable",
+        "body": "callable"
+    },
+    "Builtin - chr": {
+        "prefix": "chr",
+        "body": "chr"
+    },
+    "Builtin - classmethod": {
+        "prefix": "classmethod",
+        "body": "classmethod"
+    },
+    "Builtin - complex": {
+        "prefix": "complex",
+        "body": "complex"
+    },
+    "Builtin - delattr": {
+        "prefix": "delattr",
+        "body": "delattr"
+    },
+    "Builtin - dict": {
+        "prefix": "dict",
+        "body": "dict"
+    },
+    "Builtin - divmod": {
+        "prefix": "divmod",
+        "body": "divmod"
+    },
+    "Builtin - enumerate": {
+        "prefix": "enumerate",
+        "body": "enumerate"
+    },
+    "Builtin - exit": {
+        "prefix": "exit",
+        "body": "exit"
+    },
+    "Builtin - filter": {
+        "prefix": "filter",
+        "body": "filter"
+    },
+    "Builtin - float": {
+        "prefix": "float",
+        "body": "float"
+    },
+    "Builtin - format": {
+        "prefix": "format",
+        "body": "format"
+    },
+    "Builtin - frozenset": {
+        "prefix": "frozenset",
+        "body": "frozenset"
+    },
+    "Builtin - getattr": {
+        "prefix": "getattr",
+        "body": "getattr"
+    },
+    "Builtin - hasattr": {
+        "prefix": "hasattr",
+        "body": "hasattr"
+    },
+    "Builtin - hash": {
+        "prefix": "hash",
+        "body": "hash"
+    },
+    "Builtin - hex": {
+        "prefix": "hex",
+        "body": "hex"
+    },
+    "Builtin - id": {
+        "prefix": "id",
+        "body": "id"
+    },
+    "Builtin - input": {
+        "prefix": "input",
+        "body": "input"
+    },
+    "Builtin - int": {
+        "prefix": "int",
+        "body": "int"
+    },
+    "Builtin - isinstance": {
+        "prefix": "isinstance",
+        "body": "isinstance"
+    },
+    "Builtin - issubclass": {
+        "prefix": "issubclass",
+        "body": "issubclass"
+    },
+    "Builtin - iter": {
+        "prefix": "iter",
+        "body": "iter"
+    },
+    "Builtin - len": {
+        "prefix": "len",
+        "body": "len"
+    },
+    "Builtin - list": {
+        "prefix": "list",
+        "body": "list"
+    },
+    "Builtin - map": {
+        "prefix": "map",
+        "body": "map"
+    },
+    "Builtin - max": {
+        "prefix": "max",
+        "body": "max"
+    },
+    "Builtin - memoryview": {
+        "prefix": "memoryview",
+        "body": "memoryview"
+    },
+    "Builtin - min": {
+        "prefix": "min",
+        "body": "min"
+    },
+    "Builtin - next": {
+        "prefix": "next",
+        "body": "next"
+    },
+    "Builtin - object": {
+        "prefix": "object",
+        "body": "object"
+    },
+    "Builtin - oct": {
+        "prefix": "oct",
+        "body": "oct"
+    },
+    "Builtin - open": {
+        "prefix": "open",
+        "body": "open"
+    },
+    "Builtin - ord": {
+        "prefix": "ord",
+        "body": "ord"
+    },
+    "Builtin - pow": {
+        "prefix": "pow",
+        "body": "pow"
+    },
+    "Builtin - print": {
+        "prefix": "print",
+        "body": "print"
+    },
+    "Builtin - property": {
+        "prefix": "property",
+        "body": "property"
+    },
+    "Builtin - quit": {
+        "prefix": "quit",
+        "body": "quit"
+    },
+    "Builtin - range": {
+        "prefix": "range",
+        "body": "range"
+    },
+    "Builtin - repr": {
+        "prefix": "repr",
+        "body": "repr"
+    },
+    "Builtin - reversed": {
+        "prefix": "reversed",
+        "body": "reversed"
+    },
+    "Builtin - round": {
+        "prefix": "round",
+        "body": "round"
+    },
+    "Builtin - set": {
+        "prefix": "set",
+        "body": "set"
+    },
+    "Builtin - setattr": {
+        "prefix": "setattr",
+        "body": "setattr"
+    },
+    "Builtin - slice": {
+        "prefix": "slice",
+        "body": "slice"
+    },
+    "Builtin - sorted": {
+        "prefix": "sorted",
+        "body": "sorted"
+    },
+    "Builtin - staticmethod": {
+        "prefix": "staticmethod",
+        "body": "staticmethod"
+    },
+    "Builtin - str": {
+        "prefix": "str",
+        "body": "str"
+    },
+    "Builtin - sum": {
+        "prefix": "sum",
+        "body": "sum"
+    },
+    "Builtin - super": {
+        "prefix": "super",
+        "body": "super"
+    },
+    "Builtin - tuple": {
+        "prefix": "tuple",
+        "body": "tuple"
+    },
+    "Builtin - type": {
+        "prefix": "type",
+        "body": "type"
+    },
+    "Builtin - zip": {
+        "prefix": "zip",
+        "body": "zip"
+    },
+    "Builtin - license": {
+        "prefix": "license",
+        "body": "license"
+    },
+    "Builtin - help": {
+        "prefix": "help",
+        "body": "help"
+    },
+    "Builtin - require": {
+        "prefix": "require",
+        "body": "require"
+    },
+    "Builtin - pyimport": {
+        "prefix": "pyimport",
+        "body": "pyimport"
+    },
+    "Builtin - breakpoint": {
+        "prefix": "breakpoint",
+        "body": "breakpoint"
+    },
+    "Builtin - globals": {
+        "prefix": "globals",
+        "body": "globals"
+    },
+    "Builtin - locals": {
+        "prefix": "locals",
+        "body": "locals"
+    },
+    "Builtin - vars": {
+        "prefix": "vars",
+        "body": "vars"
+    },
+    "Builtin - dir": {
+        "prefix": "dir",
+        "body": "dir"
+    },
+    "Builtin - exec": {
+        "prefix": "exec",
+        "body": "exec"
+    },
+    "Builtin - eval": {
+        "prefix": "eval",
+        "body": "eval"
+    },
+    "Builtin - ce": {
+        "prefix": "ce",
+        "body": "ce"
+    },
+    "Builtin - nce": {
+        "prefix": "nce",
+        "body": "nce"
+    },
+    "Builtin - increment": {
+        "prefix": "increment",
+        "body": "increment"
+    },
+    "Builtin - decrement": {
+        "prefix": "decrement",
+        "body": "decrement"
+    },
+    "Builtin - comprehension": {
+        "prefix": "comprehension",
+        "body": "comprehension"
+    },
+    "Builtin - isobjectof": {
+        "prefix": "isobjectof",
+        "body": "isobjectof"
+    }
+}

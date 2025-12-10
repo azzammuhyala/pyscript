@@ -537,6 +537,11 @@ class PysLexer(Pys):
 
         elif decoded_error_message is not None:
             self.advance()
+
+            if is_triple_quote:
+                self.advance()
+                self.advance()
+
             self.throw(start, self.index, decoded_error_message, add_token=False)
 
         else:

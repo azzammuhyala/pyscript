@@ -59,13 +59,13 @@ KEYWORDS_TO_VALUES_MAP = MappingProxyType({
     KEYWORDS['none']: None
 })
 
-PARENTHESISES_MAP = MappingProxyType({
+BRACKETS_MAP = MappingProxyType({
     TOKENS['LEFT-PARENTHESIS']: TOKENS['RIGHT-PARENTHESIS'],
     TOKENS['LEFT-SQUARE']: TOKENS['RIGHT-SQUARE'],
     TOKENS['LEFT-CURLY']: TOKENS['RIGHT-CURLY']
 })
 
-PARENTHESISES_ITERABLE_MAP = MappingProxyType({
+BRACKETS_ITERABLE_MAP = MappingProxyType({
     'dict': TOKENS['LEFT-CURLY'],
     'set': TOKENS['LEFT-CURLY'],
     'list': TOKENS['LEFT-SQUARE'],
@@ -81,6 +81,7 @@ NODE_ITERABLE_MAP = MappingProxyType({
 
 ANSI_NAMES_MAP = MappingProxyType({
     'reset': 0,
+    'black': 30,
     'red': 31,
     'green': 32,
     'yellow': 33,
@@ -88,6 +89,8 @@ ANSI_NAMES_MAP = MappingProxyType({
     'magenta': 35,
     'cyan': 36,
     'white': 37,
+    'gray': 90,
+    'bright-black': 90,
     'bright-red': 91,
     'bright-green': 92,
     'bright-yellow': 93,

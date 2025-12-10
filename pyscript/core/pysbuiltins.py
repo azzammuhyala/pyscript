@@ -1,14 +1,15 @@
 from .buffer import PysFileBuffer
-from .cache import loading_modules, modules, path, undefined
+from .cache import loading_modules, modules, path, undefined, hook
 from .checks import is_blacklist_python_builtins, is_private_attribute
 from .exceptions import PysSignal
 from .handlers import handle_call
 from .objects import PysPythonFunction
 from .results import PysRunTimeResult
 from .symtab import new_symbol_table
-from .utils.generic import is_object_of as isobjectof
+from .utils.generic import get_any, is_object_of as isobjectof
 from .utils.module import get_module_name_from_path, get_module_path, set_python_path
 from .utils.path import getcwd, normpath
+from .utils.shell import PysCommandLineShell
 from .utils.string import normstr
 
 from math import isclose
@@ -155,6 +156,87 @@ def require(pyfunc, name):
 def pyimport(pyfunc, name):
     set_python_path(dirname(pyfunc.__code__.context.file.name))
     return import_module(normstr(name))
+
+@PysPythonFunction
+def breakpoint(pyfunc):
+    if hook.running_breakpoint:
+        raise RuntimeError("another breakpoint is still running")
+
+    from .runner import pys_runner
+
+    code = pyfunc.__code__
+    symtab = code.context.symbol_table
+    shell = PysCommandLineShell('(Pdb) ', '...   ')
+    scopes = []
+
+    try:
+        hook.running_breakpoint = True
+
+        while True:
+
+            try:
+                text = shell.input()
+
+                split = text.split()
+                if split:
+                    command, *args = split
+                else:
+                    command, args = '', []
+
+                if command in (0, 'q', 'quit', 'exit'):
+                    raise SystemExit(get_any(args, 0))
+
+                elif command in ('c', 'continue'):
+                    return
+
+                elif command in ('u', 'up'):
+                    count = get_any(args, 0, '')
+                    for _ in range(int(count) if count.isdigit() else 1):
+                        if scopes:
+                            symtab = scopes.pop()
+                        else:
+                            print('*** Oldest frame')
+                            break
+
+                elif command in ('d', 'down'):
+                    count = get_any(args, 0, '')
+                    parent = symtab.parent
+                    for _ in range(int(count) if count.isdigit() else 1):
+                        if parent is None:
+                            print('*** Newest frame')
+                            break
+                        else:
+                            scopes.append(symtab)
+                            symtab = parent
+
+                elif command in ('h', 'help'):
+                    print(
+                        "\n"
+                        "Documented commands:\n"
+                        "====================\n"
+                        "(c)ontinue          : Exit the debugger and continue the program.\n"
+                        "(d)own [count]      : Decrease the scope level (default one) to the older frame.\n"
+                        "(h)elp              : Show this help display.\n"
+                        "(q)uit / exit [code]: Exit the interpreter by throwing SystemExit.\n"
+                        "(u)p [count]        : Increase the scope level (default one) to the older frame.\n"
+                    )
+
+                else:
+                    pys_runner(
+                        file=PysFileBuffer(text, '<breakpoint>'),
+                        mode='single',
+                        symbol_table=symtab
+                    ).process()
+
+            except KeyboardInterrupt:
+                shell.reset()
+                print('\r--keyboardIterrupt--')
+
+            except EOFError as e:
+                raise SystemExit from e
+
+    finally:
+        hook.running_breakpoint = False
 
 @PysPythonFunction
 def globals(pyfunc):
@@ -332,8 +414,9 @@ pys_builtins.false = False
 pys_builtins.none = None
 pys_builtins.license = license
 pys_builtins.help = help
-pys_builtins.pyimport = pyimport
 pys_builtins.require = require
+pys_builtins.pyimport = pyimport
+pys_builtins.breakpoint = breakpoint
 pys_builtins.globals = globals
 pys_builtins.locals = locals
 pys_builtins.vars = vars

@@ -1,4 +1,4 @@
-from ..constants import PYSCRIPT_EXCEPTHOOK
+from ..constants import ENV_PYSCRIPT_NO_EXCEPTHOOK
 from ..exceptions import PysSignal
 
 from os import environ
@@ -21,7 +21,7 @@ def sys_excepthook(exc_type, exc_value, exc_tb):
 def thread_excepthook(args):
     sys_excepthook(args.exc_type, args.exc_value, args.exc_traceback)
 
-if environ.get(PYSCRIPT_EXCEPTHOOK, '1') == '1':
+if environ.get(ENV_PYSCRIPT_NO_EXCEPTHOOK) is None:
     import sys
     import threading
 

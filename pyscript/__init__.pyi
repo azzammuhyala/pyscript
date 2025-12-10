@@ -1,9 +1,11 @@
+from .core.highlight import PygmentsPyScriptLexer as PygmentsPyScriptLexer
+
 from typing import TYPE_CHECKING, Any, Callable, Iterator, Literal, Optional
 
 if TYPE_CHECKING:
     from .core.buffer import PysFileBuffer
     from .core.cache import PysUndefined
-    from .core.highlight import _HighlightFormatter
+    from .core.highlight import _PysHighlightFormatter
     from .core.position import PysPosition
     from .core.results import PysExecuteResult
     from .core.symtab import PysSymbolTable
@@ -22,9 +24,9 @@ HIGHLIGHT: int
 NO_COLOR: int
 REVERSE_POW_XOR: int
 
-HLFMT_HTML: _HighlightFormatter
-HLFMT_ANSI: _HighlightFormatter
-HLFMT_BBCODE: _HighlightFormatter
+HLFMT_HTML: _PysHighlightFormatter
+HLFMT_ANSI: _PysHighlightFormatter
+HLFMT_BBCODE: _PysHighlightFormatter
 
 undefined: PysUndefined
 version_info: PysVersionInfo
@@ -49,7 +51,7 @@ def pys_highlight(
             str
         ]
     ] = None,
-    max_parenthesis_level: int = 3
+    max_bracket_level: int = 3
 ) -> str: ...
 
 def pys_exec(
@@ -65,7 +67,8 @@ def pys_eval(
 ) -> Any | PysExecuteResult: ...
 
 def pys_require(
-    name: str | bytes
+    name: str | bytes,
+    flags: int = DEFAULT
 ) -> ModuleType | Any: ...
 
 def pys_shell(

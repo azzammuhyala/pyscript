@@ -14,8 +14,8 @@ class PysPosition(Pys):
         is_positionless = start < 0 or end < 0 or start > end
 
         setimuattr(self, 'file', file)
-        setimuattr(self, 'start', start)
-        setimuattr(self, 'end', end)
+        setimuattr(self, 'start', -1 if is_positionless else start)
+        setimuattr(self, 'end', -1 if is_positionless else end)
         setimuattr(self, 'start_line', -1 if is_positionless else file.text.count('\n', 0, start) + 1)
         setimuattr(self, 'start_column', -1 if is_positionless else start - file.text.rfind('\n', 0, start))
         setimuattr(self, 'end_line', -1 if is_positionless else file.text.count('\n', 0, end) + 1)
@@ -25,7 +25,7 @@ class PysPosition(Pys):
     def __repr__(self):
         return f'<Position({self.start!r}, {self.end!r}) from {self.file.name!r}>'
 
-    def format_arrow(self, colored=False):
+    def format_arrow(self, colored=True):
         if self.is_positionless:
             return ''
 

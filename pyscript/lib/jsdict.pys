@@ -1,17 +1,7 @@
-from os import environ
-
-func silent(boolean) {
-    environ['JSDICT_SILENT'] = boolean ? '1' : '0'
-}
-
-func issilent() {
-    return environ.get('JSDICT_SILENT', '0') == '1'
-}
-
 class jsdict extends dict {
 
-    func __getattr__(self, name) {
-        return issilent() ? self.get(name, None) : self[name]
+    func __getattribute__(self, name) {
+        return name in self ? self[name] : None
     }
 
     func __setattr__(self, name, value) {
@@ -19,16 +9,13 @@ class jsdict extends dict {
     }
 
     func __delattr__(self, name) {
-        if (issilent() and name not in self) {
-            return
+        if (name in self) {
+            del self[name]
         }
-        del self[name]
     }
 
 }
 
 __all__ = (
-    'silent',
-    'issilent',
     'jsdict'
 )

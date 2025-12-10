@@ -33,8 +33,7 @@ class ExplorerResult {
         return 'ExplorerResult(success={!r}, exception={!r})'.format(self.success, self.exception)
     }
 
-    func __enter__(self)
-        ...
+    func __enter__(self);
 
     func __exit__(self, exc_type, exc_value, exc_tb) {
         exc_type is None ? self.successed() : self.failured(exc_value is None ? exc_type : exc_value)
