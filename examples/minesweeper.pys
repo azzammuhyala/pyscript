@@ -27,8 +27,10 @@ BOMB_COLOR = ansi.acolor(CELL_COLORS[9], ansi.BACKGROUND)
 sys.setrecursionlimit(RECURSION_LIMIT)
 
 # clear up screen
-func clear()
-    os.system(os.name == 'nt' ? 'cls' : 'clear')
+if (os.name == 'nt')
+    func clear() => os.system('cls')
+else
+    func clear() => os.system('clear')
 
 class MineSweeper {
 
@@ -71,10 +73,10 @@ class MineSweeper {
         self.board = list(
             comprehension(
                 range(h),
-                func (i) return list(
+                func(i) => list(
                     comprehension(
                         range(w),
-                        func (i) return 0
+                        func(i) => 0
                     )
                 )
             )
@@ -236,7 +238,7 @@ class MineSweeper {
         columnNumber = '    {} '.format(
             ' '.join(
                 map(
-                    func (x) {return format(x, '^3')},
+                    func(x) => format(x, '^3'),
                     range(1, w + 1)
                 )
             )
@@ -322,7 +324,7 @@ class MineSweeper {
             }
 
             try {
-                position = tuple(map(func (x) {return int(x) - 1}, position))
+                position = tuple(map(func(x) => int(x) - 1, position))
             }
 
             catch {

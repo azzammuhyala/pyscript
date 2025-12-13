@@ -5,6 +5,10 @@ class jsdict extends dict {
     }
 
     func __setattr__(self, name, value) {
+        if (value is None) {
+            delattr(self, name)
+            return
+        }
         self[name] = value
     }
 

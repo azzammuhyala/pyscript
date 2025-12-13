@@ -2,8 +2,7 @@ from .core.buffer import PysFileBuffer
 from .core.cache import path, undefined
 from .core.constants import DEFAULT, DEBUG, NO_COLOR
 from .core.highlight import HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight
-from .core.runner import pys_runner, pys_shell
-from .core.symtab import new_symbol_table
+from .core.runner import _normalize_globals, pys_runner, pys_shell
 from .core.utils.module import get_module_name_from_path
 from .core.utils.path import normpath
 from .core.version import __version__
@@ -130,7 +129,7 @@ if args.file is not None:
         result = pys_runner(
             file=file,
             mode='exec',
-            symbol_table=new_symbol_table(file=file.name, name='__main__')[0],
+            symbol_table=_normalize_globals(file, undefined),
             flags=flags
         )
 
@@ -144,7 +143,7 @@ elif args.command is not None:
     code = pys_runner(
         file=file,
         mode='exec',
-        symbol_table=new_symbol_table(file=file.name, name='__main__')[0],
+        symbol_table=_normalize_globals(file, undefined),
         flags=flags
     ).process()[0]
 

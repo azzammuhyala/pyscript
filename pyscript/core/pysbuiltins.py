@@ -6,7 +6,7 @@ from .handlers import handle_call
 from .objects import PysPythonFunction
 from .results import PysRunTimeResult
 from .symtab import new_symbol_table
-from .utils.generic import get_any, is_object_of as isobjectof
+from .utils.generic import get_any, is_object_of as isobjectof, import_readline
 from .utils.module import get_module_name_from_path, get_module_path, set_python_path
 from .utils.path import getcwd, normpath
 from .utils.shell import PysCommandLineShell
@@ -169,6 +169,8 @@ def breakpoint(pyfunc):
     shell = PysCommandLineShell('(Pdb) ', '...   ')
     scopes = []
 
+    import_readline()
+
     try:
         hook.running_breakpoint = True
 
@@ -184,7 +186,8 @@ def breakpoint(pyfunc):
                     command, args = '', []
 
                 if command in (0, 'q', 'quit', 'exit'):
-                    raise SystemExit(get_any(args, 0))
+                    code = get_any(args, 0, '0')
+                    raise SystemExit(int(code) if code.isdigit() else code)
 
                 elif command in ('c', 'continue'):
                     return

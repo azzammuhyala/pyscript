@@ -1,6 +1,10 @@
+from collections.abc import Sequence
 from inspect import currentframe
 from re import compile as re_compile
-from collections.abc import Sequence
+from sys import platform
+from os import environ
+
+from ..constants import ENV_PYSCRIPT_NO_READLINE
 
 delimuattr = object.__delattr__
 setimuattr = object.__setattr__
@@ -34,6 +38,16 @@ def is_object_of(obj, class_or_tuple):
         isinstance(obj, class_or_tuple) or
         (isinstance(obj, type) and issubclass(obj, class_or_tuple))
     )
+
+_READLINE = environ.get(ENV_PYSCRIPT_NO_READLINE) is None
+
+def import_readline():
+    if platform != 'win32' and _READLINE:
+        try:
+            import readline
+        except:
+            return False
+    return True
 
 def get_error_args(exception):
     if exception is None:

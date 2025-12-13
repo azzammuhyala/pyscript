@@ -1,7 +1,7 @@
 from .analyzer import PysAnalyzer
 from .buffer import PysFileBuffer
 from .cache import undefined, hook, PysUndefined
-from .constants import ENV_PYSCRIPT_NO_READLINE, DEFAULT, SILENT, RETRES, HIGHLIGHT, NO_COLOR
+from .constants import DEFAULT, SILENT, RETRES, HIGHLIGHT, NO_COLOR
 from .context import PysContext
 from .exceptions import PysTraceback, PysSignal
 from .handlers import handle_call
@@ -14,20 +14,13 @@ from .results import PysRunTimeResult, PysExecuteResult
 from .symtab import PysSymbolTable, new_symbol_table
 from .utils.ansi import BOLD, acolor
 from .utils.decorators import _TYPECHECK, typechecked
-from .utils.generic import setimuattr, get_frame, get_locals
+from .utils.generic import setimuattr, get_frame, get_locals, import_readline
 from .utils.shell import PysCommandLineShell
 from .version import version
 
-from os import environ
-from sys import platform, stderr, version as pyversion
+from sys import stderr, version as pyversion
 from types import ModuleType
 from typing import Any, Literal, Optional
-
-if platform != 'win32' and environ.get(ENV_PYSCRIPT_NO_READLINE) is None:
-    try:
-        import readline
-    except:
-        pass
 
 def _normalize_globals(file, globals):
     if globals is None:
@@ -243,6 +236,8 @@ def pys_shell(
     else:
         reset = acolor('reset')
         bmagenta = acolor('magenta', BOLD)
+
+    import_readline()
 
     print(f'PyScript {version}')
     print(f'Python {pyversion}')

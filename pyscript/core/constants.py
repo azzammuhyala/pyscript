@@ -85,6 +85,7 @@ TOKENS = MappingProxyType({
     'EQUAL-DOUBLE-LESS-THAN': ord('<') + DOUBLE + WITH_EQUAL,
     'EQUAL-DOUBLE-GREATER-THAN': ord('>') + DOUBLE + WITH_EQUAL,
     'NONE': SPECIAL,
+    'EQUAL-ARROW': ord('>') + SPECIAL,
     'EXCLAMATION-TILDE': ord('~') + SPECIAL
 })
 

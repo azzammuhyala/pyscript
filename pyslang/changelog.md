@@ -1,6 +1,6 @@
 # Change Log
 
-## [1.0.1] - 10/12/2025
+## [1.1.0] - 13/12/2025
 
 ### Fixed
-- Highlight fixes.
+- String highlight fixes.

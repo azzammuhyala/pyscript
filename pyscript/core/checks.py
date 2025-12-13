@@ -43,5 +43,5 @@ is_bracket = frozenset(BRACKETS_MAP.keys() | BRACKETS_MAP.values()).__contains__
 
 is_constant_keywords = frozenset(CONSTANT_KEYWORDS).__contains__
 
-is_private_attribute = lambda name : name.startswith('_')
-is_public_attribute = lambda name : not name.startswith('_')
+is_private_attribute = lambda name : name.startswith('_') if isinstance(name, str) else name
+is_public_attribute = lambda name : not name.startswith('_') if isinstance(name, str) else name

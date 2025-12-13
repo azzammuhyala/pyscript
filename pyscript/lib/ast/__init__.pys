@@ -11,7 +11,7 @@ Node = nodes.PysNode
 locals().update(
     comprehension(
         Node.__subclasses__(),
-        func (cls) {
+        func(cls) {
             name = cls.__name__
             nodeName = name.removeprefix('Pys')
             all.append(nodeName)

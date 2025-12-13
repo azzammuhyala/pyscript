@@ -118,11 +118,8 @@ class PysLexer(Pys):
             elif self.character_in('BRbr"\''):
                 self.make_string()
 
-            elif self.character_are('isidentifier'):
+            elif self.character_are('isidentifier') or self.current_character == '$':
                 self.make_identifier()
-
-            elif self.current_character == '$':
-                self.make_dollar()
 
             elif self.current_character == '+':
                 self.make_plus()
@@ -209,13 +206,14 @@ class PysLexer(Pys):
 
             else:
                 char = self.current_character
+                unicode = ord(char)
 
                 self.advance()
                 self.throw(
                     self.index - 1, self.index,
-                    f"invalid character '{char}' (U+{ord(char):04X})"
+                    f"invalid character '{char}' (U+{unicode:04X})"
                     if char.isprintable() else
-                    f"invalid non-printable character U+{ord(char):04X}"
+                    f"invalid non-printable character U+{unicode:04X}"
                 )
 
         self.add_token(TOKENS['NULL'])
@@ -269,7 +267,6 @@ class PysLexer(Pys):
 
             elif self.current_character == '.' and not is_scientific and format is int:
                 format = float
-
                 number += '.'
                 self.advance()
 
@@ -385,17 +382,25 @@ class PysLexer(Pys):
                     f"codec can't decode bytes in position {start}-{end}: {message}"
                 )
 
+        if is_triple_quote:
+            end = triple_quote
+            end_prefix = triple_quote
+        else:
+            terminated_string = prefix + '\n'
+            def end():
+                return self.character_in(terminated_string)
+            def end_prefix():
+                return self.current_character == prefix
+
         self.advance()
+        start_string = self.index
 
         if is_triple_quote:
             self.advance()
             self.advance()
             start_string = self.index
 
-        else:
-            start_string = self.index
-
-        while self.not_end_of_file() and not (triple_quote() if is_triple_quote else self.character_in(prefix + '\n')):
+        while self.not_end_of_file() and not end():
 
             if self.current_character == '\\':
                 start_escape = self.index - start_string
@@ -452,7 +457,6 @@ class PysLexer(Pys):
                             length = 8
 
                         end_escape = self.index - start_string
-
                         self.advance()
 
                         while self.character_in('0123456789ABCDEFabcdef') and len(escape) < length:
@@ -476,7 +480,6 @@ class PysLexer(Pys):
 
                     elif self.current_character == 'N':
                         end_escape = self.index - start_string
-
                         self.advance()
 
                         if self.current_character != '{':
@@ -528,30 +531,22 @@ class PysLexer(Pys):
                 string += self.current_character
                 self.advance()
 
-        if not (triple_quote() if is_triple_quote else self.current_character == prefix):
+        if not end_prefix():
             self.throw(
-                start, start + 1,
+                start, start_string,
                 "unterminated bytes literal" if is_bytes else "unterminated string literal",
                 add_token=False
             )
 
-        elif decoded_error_message is not None:
-            self.advance()
-
-            if is_triple_quote:
-                self.advance()
-                self.advance()
-
-            self.throw(start, self.index, decoded_error_message, add_token=False)
-
         else:
             self.advance()
-
             if is_triple_quote:
                 self.advance()
                 self.advance()
 
-            if is_bytes:
+            if decoded_error_message is not None:
+                self.throw(start, self.index, decoded_error_message, add_token=False)
+            elif is_bytes:
                 try:
                     string = string.encode('latin-1')
                 except UnicodeEncodeError:
@@ -559,8 +554,22 @@ class PysLexer(Pys):
 
         self.add_token(TOKENS['STRING'], start, string)
 
-    def make_identifier(self, as_identifier=False, start=None):
-        start = start if as_identifier else self.index
+    def make_identifier(self):
+        start = self.index
+        identifier = False
+
+        if self.current_character == '$':
+            identifier = True
+            self.advance()
+
+            while self.not_end_of_file() and self.current_character != '\n' and self.character_are('isspace'):
+                self.advance()
+
+            if not self.character_are('isidentifier'):
+                self.advance()
+                self.throw(self.index - 1, self.index, "expected identifier")
+                return
+
         name = ''
 
         while self.not_end_of_file() and (name + self.current_character).isidentifier():
@@ -568,25 +577,10 @@ class PysLexer(Pys):
             self.advance()
 
         self.add_token(
-            TOKENS['KEYWORD'] if not as_identifier and is_keyword(name) else TOKENS['IDENTIFIER'],
+            TOKENS['KEYWORD'] if not identifier and is_keyword(name) else TOKENS['IDENTIFIER'],
             start,
             name
         )
-
-    def make_dollar(self):
-        start = self.index
-
-        self.advance()
-
-        while self.not_end_of_file() and self.current_character != '\n' and self.character_are('isspace'):
-            self.advance()
-
-        if not self.character_are('isidentifier'):
-            self.advance()
-            self.throw(self.index - 1, self.index, "expected identifier")
-            return
-
-        self.make_identifier(as_identifier=True, start=start)
 
     def make_plus(self):
         start = self.index
@@ -752,6 +746,10 @@ class PysLexer(Pys):
 
         if self.current_character == '=':
             type = TOKENS['DOUBLE-EQUAL']
+            self.advance()
+
+        elif self.current_character == '>':
+            type = TOKENS['EQUAL-ARROW']
             self.advance()
 
         self.add_token(type, start)

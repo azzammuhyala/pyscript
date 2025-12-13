@@ -28,8 +28,12 @@ try:
     # if pygments module exists
     from pygments.lexer import RegexLexer, include, bygroups
     from pygments.token import Comment, Keyword, Name, Number, String, Text
+    from pygments.unistring import xid_start, xid_continue
 
     _keyword_definitions = (KEYWORDS['class'], KEYWORDS['func'], KEYWORDS['function'])
+    _raw_string_prefixes = r'((?:R|r|BR|RB|Br|rB|Rb|bR|br|rb))'
+    _string_prefixes = r'((?:B|b)?)'
+    _unicode_name = f'[{xid_start}][{xid_continue}]'
 
     class PygmentsPyScriptLexer(Pys, RegexLexer):
 
@@ -43,124 +47,172 @@ try:
 
         tokens = {
 
-            "root": [
+            'root': [
                 # Keywords
                 (
-                    rf"\b({'|'.join(keyword for keyword in KEYWORDS if not is_constant_keywords(keyword))})\b",
-                    Keyword.Reserved
+                    r'\b(' + '|'.join(filter(lambda k: not is_constant_keywords(k), KEYWORDS)) + r')\b',
+                    Keyword
                 ),
                 (
-                    r"\b(" +
-                    '|'.join(keyword for keyword in CONSTANT_KEYWORDS if keyword not in _keyword_definitions) +
-                    r")\b",
+                    r'\b(' + '|'.join(filter(lambda k: k not in _keyword_definitions, CONSTANT_KEYWORDS)) + r')\b',
                     Keyword.Constant
                 ),
 
                 # Strings
                 (
-                    r"((?:[rRbBuU]{1,2})?)(''')", 
+                    _raw_string_prefixes + r"(''')", 
                     bygroups(String.Affix, String.Delimiter), 
-                    "string-triple-single"
+                    'raw-string-apostrophe-triple'
                 ),
                 (
-                    r"((?:[rRbBuU]{1,2})?)(\"\"\")", 
+                    _raw_string_prefixes + r'(""")', 
                     bygroups(String.Affix, String.Delimiter), 
-                    "string-triple-double"
+                    'raw-string-quotation-triple'
                 ),
                 (
-                    r"((?:[rRbBuU]{1,2})?)(')", 
+                    _string_prefixes + r"(''')", 
                     bygroups(String.Affix, String.Delimiter), 
-                    "string-single"
+                    'string-apostrophe-triple'
                 ),
                 (
-                    r"((?:[rRbBuU]{1,2})?)(\")", 
+                    _string_prefixes + r'(""")', 
                     bygroups(String.Affix, String.Delimiter), 
-                    "string-double"
+                    'string-quotation-triple'
+                ),
+                (
+                    _raw_string_prefixes + r"(')", 
+                    bygroups(String.Affix, String.Delimiter), 
+                    'raw-string-apostrophe-single'
+                ),
+                (
+                    _raw_string_prefixes + r'(")', 
+                    bygroups(String.Affix, String.Delimiter), 
+                    'raw-string-quotation-single'
+                ),
+                (
+                    _string_prefixes + r"(')", 
+                    bygroups(String.Affix, String.Delimiter), 
+                    'string-apostrophe-single'
+                ),
+                (
+                    _string_prefixes + r'(")', 
+                    bygroups(String.Affix, String.Delimiter), 
+                    'string-quotation-single'
                 ),
 
                 # Numbers
                 (
-                    r"0[bB][01](_?[01])*[jJiI]?|0[oO][0-7](_?[0-7])*[jJiI]?|0[xX][0-9a-fA-F](_?[0-9a-fA-F])*[jJiI]?|((?"
-                    r":[0-9](_?[0-9])*)?\\.[0-9](_?[0-9])*|[0-9](_?[0-9])*\\.)([eE][+-]?[0-9](_?[0-9])*)?[jJiI]?|[0-9]("
-                    r"_?[0-9])*([eE][+-]?[0-9](_?[0-9])*)[jJiI]?|[0-9](_?[0-9])*[jJiI]?",
+                    r'0[bB][01](_?[01])*[jJiI]?|0[oO][0-7](_?[0-7])*[jJiI]?|0[xX][0-9a-fA-F](_?[0-9a-fA-F])*[jJiI]?|((?'
+                    r':[0-9](_?[0-9])*)?\\.[0-9](_?[0-9])*|[0-9](_?[0-9])*\\.)([eE][+-]?[0-9](_?[0-9])*)?[jJiI]?|[0-9]('
+                    r'_?[0-9])*([eE][+-]?[0-9](_?[0-9])*)[jJiI]?|[0-9](_?[0-9])*[jJiI]?',
                     Number
                 ),
 
                 # Comments
-                (r"#.*$", Comment.Single),
+                (r'#.*$', Comment.Single),
 
                 # Class definition
                 (
-                    rf"\b({KEYWORDS['class']})\b(\s*)((?:\$(?:[^\S\r\n]*))?\b[a-zA-Z_][a-zA-Z0-9_]*)\b",
+                    r'\b(' + KEYWORDS['class'] + r')\b'
+                    r'(\s*)((?:\$(?:[^\S\r\n]*))?\b' + _unicode_name + r'*)\b',
                     bygroups(Keyword.Declaration, Text, Name.Class)
                 ),
 
                 # Function definition
                 (
-                    rf"\b({KEYWORDS['func']}|{KEYWORDS['function']})\b"
-                    r"(\s*)((?:\$(?:[^\S\r\n]*))?\b[a-zA-Z_][a-zA-Z0-9_]*)\b",
+                    r'\b(' + KEYWORDS['func'] + '|' + KEYWORDS['function'] + r')\b' +
+                    r'(\s*)((?:\$(?:[^\S\r\n]*))?\b' + _unicode_name + r'*)\b',
                     bygroups(Keyword.Declaration, Text, Name.Function)
                 ),
 
                 # Keywords (if that definition is unmatched)
                 (
-                    rf"\b({'|'.join(_keyword_definitions)})\b",
+                    r'\b(' + '|'.join(_keyword_definitions) + r')\b',
                     Keyword.Constant
                 ),
 
                 # Built-in types and exceptions
                 (
-                    rf"(?:\$(?:[^\S\r\n]*))?(?:{'|'.join(_builtin_types)})\b",
-                    Name.Builtin
+                    r'(?:\$(?:[^\S\r\n]*))?(?:' + '|'.join(_builtin_types) + r')\b',
+                    Name.Builtin.Class
                 ),
 
                 # Built-in functions
                 (
-                    rf"(?:\$(?:[^\S\r\n]*))?[a-zA-Z_][a-zA-Z0-9_]*(?=\s*\()|\b(?:{'|'.join(_builtin_functions)})\b",
-                    Name.Builtin
+                    r'(?:\$(?:[^\S\r\n]*))?' + _unicode_name + r'*(?=\s*\()|\b(?:' +
+                    '|'.join(_builtin_functions) + r')\b',
+                    Name.Builtin.Function
                 ),
 
                 # Constants
-                (r"(?:\$(?:[^\S\r\n]*))?\b(?:[A-Z_]*[A-Z][A-Z0-9_]*)\b", Name.Constant),
+                (r'(?:\$(?:[^\S\r\n]*))?\b(?:[A-Z_]*[A-Z][A-Z0-9_]*)\b', Name.Constant),
 
                 # Variables
-                (r"(?:\$(?:[^\S\r\n]*))?\b[a-zA-Z_][a-zA-Z0-9_]*\b", Name),
-
+                (r'(?:\$(?:[^\S\r\n]*))?\b' + _unicode_name + r'*\b', Name),
             ],
 
-            "string-escape": [
-                (r"\\([nrtbfav\\'\"\n\r])", String.Escape),
-                (r"\\[0-3][0-7]{0,2}", String.Escape.Octal),
-                (r"\\x[0-9A-Fa-f]{2}", String.Escape.Hex),
-                (r"\\u[0-9A-Fa-f]{4}", String.Escape.Unicode),
-                (r"\\U[0-9A-Fa-f]{8}", String.Escape.Unicode),
-                (r"\\N\{[^}]+\}", String.Escape.Unicode),
-                (r"\\.", String.Escape.Invalid)
+            'string-escapes': [
+                (r'\\([nrtbfav\'"\n\r])', String.Escape),
+                (r'\\[0-7]{1,3}}', String.Escape.Octal),
+                (r'\\x[0-9A-Fa-f]{2}', String.Escape.Hex),
+                (r'\\u[0-9A-Fa-f]{4}', String.Escape.Unicode),
+                (r'\\U[0-9A-Fa-f]{8}', String.Escape.Unicode),
+                (r'\\N\{[^}]+\}', String.Escape.Unicode),
+                (r'\\.', String.Escape.Invalid)
             ],
 
-            "string-single": [
-                (r"'", String.Delimiter, "#pop"),
-                include("string-escape"),
-                (r"[^'\\]+", String),
+            'raw-string-escapes': [
+                (r'\\([\'"\n\r])', String),
+                (r'\\.', String)
             ],
 
-            "string-double": [
-                (r"\"", String.Delimiter, "#pop"),
-                include("string-escape"),
-                (r'[^"\\]+', String),
+            'raw-string-apostrophe-triple': [
+                (r"'''", String.Delimiter, '#pop'),
+                include('raw-string-escapes'),
+                (r'.', String)
             ],
 
-            "string-triple-single": [
-                (r"'''", String.Delimiter, "#pop"),
-                include("string-escape"),
-                (r"[^\\']+", String),
+            'raw-string-quotation-triple': [
+                (r'"""', String.Delimiter, '#pop'),
+                include('raw-string-escapes'),
+                (r'.', String)
             ],
 
-            "string-triple-double": [
-                (r'"""', String.Delimiter, "#pop"),
-                include("string-escape"),
-                (r'[^\\"]+', String),
-            ]
+            'string-apostrophe-triple': [
+                (r"'''", String.Delimiter, '#pop'),
+                include('string-escapes'),
+                (r'.', String)
+            ],
+
+            'string-quotation-triple': [
+                (r'"""', String.Delimiter, '#pop'),
+                include('string-escapes'),
+                (r'.', String)
+            ],
+
+            'raw-string-apostrophe-single': [
+                (r"'", String.Delimiter, '#pop'),
+                include('raw-string-escapes'),
+                (r'.', String)
+            ],
+
+            'raw-string-quotation-single': [
+                (r'"', String.Delimiter, '#pop'),
+                include('raw-string-escapes'),
+                (r'.', String)
+            ],
+
+            'string-apostrophe-single': [
+                (r"'", String.Delimiter, '#pop'),
+                include('string-escapes'),
+                (r'.', String)
+            ],
+
+            'string-quotation-single': [
+                (r'"', String.Delimiter, '#pop'),
+                include('string-escapes'),
+                (r'.', String)
+            ],
 
         }
 

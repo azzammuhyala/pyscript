@@ -1,6 +1,7 @@
 from collections.abc import Iterator
-from io import IOBase
+from io import IOBase, TextIOWrapper
 from json import detect_encoding
+from types import BuiltinMethodType
 
 def normstr(obj):
     if isinstance(obj, str):
@@ -17,7 +18,7 @@ def normstr(obj):
     elif isinstance(obj, Iterator):
         return '\n'.join(map(normstr, obj))
 
-    elif callable(obj):
+    elif isinstance(obj, BuiltinMethodType) and isinstance(getattr(obj, '__self__', None), TextIOWrapper):
         lines = []
         while True:
             if not (line := obj()):

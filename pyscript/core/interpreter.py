@@ -32,6 +32,10 @@ T_CE = TOKENS['EQUAL-TILDE']
 T_NCE = TOKENS['EXCLAMATION-TILDE']
 T_NULLISH = TOKENS['DOUBLE-QUESTION']
 
+BINARY_FUNCTIONS_MAP_GETITEM = BINARY_FUNCTIONS_MAP.__getitem__
+UNARY_FUNCTIONS_MAP_GETITEM = UNARY_FUNCTIONS_MAP.__getitem__
+KEYWORDS_TO_VALUES_MAP_GETITEM = KEYWORDS_TO_VALUES_MAP.__getitem__
+
 def visit(node, context):
     return visitors[node.__class__](node, context)
 
@@ -47,7 +51,7 @@ def visit_KeywordNode(node, context):
     return PysRunTimeResult().success(
         bool(context.flags & DEBUG)
         if name == KW__DEBUG__ else
-        KEYWORDS_TO_VALUES_MAP[name]
+        KEYWORDS_TO_VALUES_MAP_GETITEM(name)
     )
 
 def visit_IdentifierNode(node, context):
@@ -265,7 +269,7 @@ def visit_ChainOperatorNode(node, context):
                 handle_call(nce, context, nposition)
                 value = nce(left, right)
             else:
-                value = BINARY_FUNCTIONS_MAP[otype](left, right)
+                value = BINARY_FUNCTIONS_MAP_GETITEM(otype)(left, right)
 
             if not value:
                 break
@@ -328,7 +332,7 @@ def visit_BinaryOperatorNode(node, context):
         return result.success(
             right
             if should_return_right else
-            BINARY_FUNCTIONS_MAP[otype](left, right)
+            BINARY_FUNCTIONS_MAP_GETITEM(otype)(left, right)
         )
 
     if should_return():
@@ -366,7 +370,7 @@ def visit_UnaryOperatorNode(node, context):
 
             return result.success(value)
 
-        return result.success(UNARY_FUNCTIONS_MAP[otype](value))
+        return result.success(UNARY_FUNCTIONS_MAP_GETITEM(otype)(value))
 
     if should_return():
         return result
@@ -457,8 +461,10 @@ def visit_ImportNode(node, context):
     if npackages == 'all':
 
         with result(context, name_position):
-            exported_packages = getattr(module, '__all__', undefined)
+            exported_from = '__all__'
+            exported_packages = getattr(module, exported_from, undefined)
             if exported_packages is undefined:
+                exported_from = '__dir__()'
                 exported_packages = filter(is_public_attribute, dir(module))
 
             for package in exported_packages:
@@ -466,7 +472,10 @@ def visit_ImportNode(node, context):
                 if not isinstance(package, str):
                     return result.failure(
                         PysTraceback(
-                            TypeError(f"Item in {module.__name__}.__all__ must be str, not {type(package).__name__}"),
+                            TypeError(
+                                f"Item in {module.__name__}.{exported_from} must be str, "
+                                f"not {type(package).__name__}"
+                            ),
                             context,
                             name_position
                         )
@@ -949,7 +958,10 @@ def visit_ClassNode(node, context):
         if should_return():
             return result
 
-        with result(context, ndecorator.position):
+        dposition = ndecorator.position
+
+        with result(context, dposition):
+            handle_call(decorator, context, dposition)
             cls = decorator(cls)
 
         if should_return():
@@ -1002,7 +1014,10 @@ def visit_FunctionNode(node, context):
         if should_return():
             return result
 
-        with result(context, ndecorator.position):
+        dposition = ndecorator.position
+
+        with result(context, dposition):
+            handle_call(decorator, context, dposition)
             func = decorator(func)
 
         if should_return():
@@ -1310,7 +1325,9 @@ def visit_declaration_AssignNode(node, context, value, operand=TOKENS['EQUAL']):
             setattr(
                 target,
                 attribute,
-                value if is_equals(operand) else BINARY_FUNCTIONS_MAP[operand](getattr(target, attribute), value)
+                value
+                if is_equals(operand) else
+                BINARY_FUNCTIONS_MAP_GETITEM(operand)(getattr(target, attribute), value)
             )
 
         if should_return():
@@ -1326,7 +1343,7 @@ def visit_declaration_AssignNode(node, context, value, operand=TOKENS['EQUAL']):
             return result
 
         with result(context, node.position):
-            target[slice] = value if is_equals(operand) else BINARY_FUNCTIONS_MAP[operand](target[slice], value)
+            target[slice] = value if is_equals(operand) else BINARY_FUNCTIONS_MAP_GETITEM(operand)(target[slice], value)
 
         if should_return():
             return result

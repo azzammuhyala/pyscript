@@ -30,17 +30,14 @@ class Parser {
 
         # source is a list of tokens
         if (isinstance(source, tuple)) {
-            if (not source) {
+            if (not source)
                 throw ValueError("Parser(): source got empty tuple")
-            }
 
             for (i, token of enumerate(source)) {
-                if (not isinstance(token, _pyscript.token.PysToken)) {
+                if (not isinstance(token, _pyscript.token.PysToken))
                     throw TypeError("Parser(): source must be tuple of tokens")
-                }
-                if (token.type in (TOKENS['COMMENT'], TOKENS['NONE'])) {
+                if (token.type in (TOKENS['COMMENT'], TOKENS['NONE']))
                     throw ValueError("Parser(): source token with comment or none token is invalid")
-                }
             }
 
             file = source[0].position.file
@@ -59,9 +56,8 @@ class Parser {
             compiled = 'none'
         }
 
-        if (not isinstance(flags, int)) {
+        if (not isinstance(flags, int))
             throw TypeError("Parser(): flags must be integer")
-        }
 
         _pyscript.utils.generic.setimuattr(self, 'source', source)
         _pyscript.utils.generic.setimuattr(self, 'flags', flags)
@@ -70,12 +66,10 @@ class Parser {
     }
 
     func tokenize(self) {
-        if (self._compiled == 'tokenize') {
+        if (self._compiled == 'tokenize')
             return self.source
-        }
-        elif (self._compiled == 'ast') {
+        elif (self._compiled == 'ast')
             throw TypeError("tokenize(): cannot tokenize AST source")
-        }
 
         lexer = _pyscript.lexer.PysLexer(
             file=self.file,
@@ -83,27 +77,22 @@ class Parser {
         )
 
         tokens, error = lexer.make_tokens()
-        if (error) {
+        if (error)
             throw error.exception
-        }
 
         return tokens
     }
 
     func ast(self, mode='exec') {
-        if (mode not in ('exec', 'eval')) {
+        if (mode not in ('exec', 'eval'))
             throw ValueError("ast(): mode must be 'exec' or 'eval'")
-        }
 
-        if (self._compiled == 'tokenize') {
+        if (self._compiled == 'tokenize')
             tokens = self.source
-        }
-        elif (self._compiled == 'ast') {
+        elif (self._compiled == 'ast')
             return self.source
-        }
-        else {
+        else
             tokens = self.tokenize()
-        }
 
         parser = _pyscript.parser.PysParser(
             tokens=tokens,
@@ -111,20 +100,17 @@ class Parser {
         )
 
         ast = parser.parse(mode == 'exec' ? None : parser.expr)
-        if (ast.error) {
+        if (ast.error)
             throw ast.error.exception
-        }
 
         return ast.node
     }
 
     func analyze(self, mode='exec') {
-        if (self._compiled == 'ast') {
+        if (self._compiled == 'ast')
             ast = self.source
-        }
-        else {
+        else
             ast = self.ast(mode=mode)
-        }
 
         analyzer = _pyscript.analyzer.PysAnalyzer(
             node=ast,
@@ -132,9 +118,8 @@ class Parser {
         )
 
         error = analyzer.analyze()
-        if (error) {
+        if (error)
             throw error.exception
-        }
     }
 
     func highlight(self, format=None, max_bracket_level=3) {
@@ -150,21 +135,17 @@ class Parser {
 
 # wrap functions
 
-func tokenize(source, flags=DEFAULT) {
+func tokenize(source, flags=DEFAULT)
     return Parser(source, flags).tokenize()
-}
 
-func ast(source, mode='exec', flags=DEFAULT) {
+func ast(source, mode='exec', flags=DEFAULT)
     return Parser(source, flags).ast(mode=mode)
-}
 
-func analyze(source, mode='exec', flags=DEFAULT) {
+func analyze(source, mode='exec', flags=DEFAULT)
     return Parser(source, flags).analyze(mode=mode)
-}
 
-func highlight(source, format=None, max_bracket_level=3) {
+func highlight(source, format=None, max_bracket_level=3)
     return Parser(source).highlight(format=format, max_bracket_level=max_bracket_level)
-}
 
 __all__ = (
     'DOUBLE',

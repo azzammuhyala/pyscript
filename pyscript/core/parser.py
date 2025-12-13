@@ -1790,9 +1790,24 @@ class PysParser(Pys):
         self.bracket_level -= 1
         self.skip(result)
 
-        body = result.register(self.block_statements(), True)
-        if result.error:
-            return result
+        if self.current_token.type == TOKENS['EQUAL-ARROW']:
+            position = self.current_token.position
+            result.register_advancement()
+            self.advance()
+            self.skip(result)
+
+            body = result.register(self.single_expr(), True)
+            if result.error:
+                return result
+
+            body = PysReturnNode(body, position)
+
+        else:
+            body = result.register(self.block_statements(), True)
+            if result.error:
+                return result.failure(self.new_error("expected statement, expression, '{', ';', or '=>'"))
+
+        self.skip_expr(result)
 
         return result.success(
             PysFunctionNode(

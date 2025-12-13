@@ -5,7 +5,7 @@ with open('README.md', 'r', encoding='utf-8') as file:
 
 setup(
     name='pyscript-programming-language',
-    version='1.7.0',
+    version='1.7.1',
     description='PyScript Programming Language',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -17,13 +17,13 @@ setup(
         'Bug Tracker': 'https://github.com/azzammuhyala/pyscript/issues'
     },
     extras_require={
-        'typecheck': ['beartype']
+        'extras': ['beartype', 'pygments']
     },
     license='MIT',
     python_requires='>=3.10',
     packages=find_packages(),
     include_package_data=True,
-    keywords=['pyscript', 'pys', 'programming', 'language', 'programming language'],
+    keywords=['pyscript', 'pyslang', 'pys', 'programming', 'language', 'programming language'],
     classifiers=[
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
