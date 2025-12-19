@@ -17,7 +17,8 @@ def pyscript_doc():
     run(
         args='clip',
         text=True,
-        input=f'<pre>{pyscript.pys_highlight(source.strip())}</pre>'
+        input=f'<pre>{pyscript.pys_highlight(source.strip())}</pre>',
+        encoding='utf-8'
     )
 
 if __name__ == '__main__':

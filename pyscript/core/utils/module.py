@@ -1,7 +1,8 @@
-from os.path import isdir, isfile, join
-from sys import path as pypath
-
 from .path import normpath, base, extension
+
+from os.path import isdir, isfile, join
+
+import sys
 
 def get_module_name_from_path(path):
     return base(normpath(path, absolute=False))
@@ -21,5 +22,9 @@ def get_module_path(path):
         return candidate
 
 def set_python_path(path):
-    if path not in pypath:
-        pypath.insert(0, path)
+    if path not in sys.path:
+        sys.path.insert(0, path)
+
+def remove_python_path(path):
+    if path in sys.path:
+        sys.path.remove(path)

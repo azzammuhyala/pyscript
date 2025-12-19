@@ -1,12 +1,21 @@
 from .bases import Pys
-from .mapping import TAG_VERSION_MAP
 from .utils.decorators import immutable, inheritable, singleton
 from .utils.generic import version_match
 
-__version__ = '1.7.1'
-__date__ = '13 December 2025, 15:45 UTC+7'
+from types import MappingProxyType
+
+__version__ = '1.7.2'
+__date__ = '19 December 2025, 13:00 UTC+7'
 
 version = f'{__version__} ({__date__})'
+
+TAG_VERSION_MAP = MappingProxyType({
+    'a': 'alpha',
+    'b': 'beta',
+    'rc': 'release candidate',
+    'dev': 'development',
+    'post': 'post'
+})
 
 @singleton
 @immutable
@@ -87,8 +96,17 @@ class PysVersionInfo(Pys, tuple):
 
     def __repr__(self):
         return (
-            f'VersionInfo(major={self.major!r}, minor={self.minor!r}, micro={self.micro!r}' +
-            ('' if self.pre_tag is None else f', pre_tag={self.pre_tag!r}, pre_num={self.pre_num!r}') +
+            'VersionInfo('
+                f'major={self.major!r}, '
+                f'minor={self.minor!r}, '
+                f'micro={self.micro!r}' +
+                (
+                    ''
+                    if self.pre_tag is None else
+                    ', '
+                    f'pre_tag={self.pre_tag!r}, '
+                    f'pre_num={self.pre_num!r}'
+                ) +
             ')'
         )
 

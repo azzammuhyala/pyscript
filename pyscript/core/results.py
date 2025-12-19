@@ -51,7 +51,7 @@ class PysParserResult(PysResult):
 class PysRunTimeResult(PysResult):
 
     __slots__ = (
-        'should_continue', 'should_break', 'func_return_value', 'func_should_return', 'value', 'error',
+        'should_continue', 'should_break', 'func_should_return', 'func_return_value', 'value', 'error',
         '_context', '_position'
     )
 

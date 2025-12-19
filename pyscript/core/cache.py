@@ -71,7 +71,7 @@ class PysHook(Pys):
     @display.setter
     def display(self, value):
         if value is not None and not callable(value):
-            raise TypeError("sys.hook.display: must be callable")
+            raise TypeError("hook.display: must be callable")
         singletons['hook.display'] = value
 
     @property
@@ -81,7 +81,7 @@ class PysHook(Pys):
     @exception.setter
     def exception(self, value):
         if value is not None and not callable(value):
-            raise TypeError("sys.hook.exception: must be callable")
+            raise TypeError("hook.exception: must be callable")
         singletons['hook.exception'] = value
 
     @property
@@ -91,7 +91,7 @@ class PysHook(Pys):
     @ps1.setter
     def ps1(self, value):
         if not isinstance(value, str):
-            raise TypeError("sys.hook.ps1: must be a string")
+            raise TypeError("hook.ps1: must be a string")
         singletons['hook.ps1'] = value
 
     @property
@@ -101,7 +101,7 @@ class PysHook(Pys):
     @ps2.setter
     def ps2(self, value):
         if not isinstance(value, str):
-            raise TypeError("sys.hook.ps2: must be a string")
+            raise TypeError("hook.ps2: must be a string")
         singletons['hook.ps2'] = value
 
 PysUndefined()

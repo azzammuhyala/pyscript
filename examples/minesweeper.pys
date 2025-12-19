@@ -21,8 +21,8 @@ CELL_COLORS = {
     10: (200,20 ,20 )   # flag
 }
 
-FLAG_COLOR = ansi.acolor(CELL_COLORS[10], ansi.BACKGROUND | ansi.BOLD | ansi.ITALIC)
-BOMB_COLOR = ansi.acolor(CELL_COLORS[9], ansi.BACKGROUND)
+FLAG_COLOR = ansi.acolor(CELL_COLORS[10], style=ansi.BACKGROUND | ansi.BOLD | ansi.ITALIC)
+BOMB_COLOR = ansi.acolor(CELL_COLORS[9], style=ansi.BACKGROUND)
 
 sys.setrecursionlimit(RECURSION_LIMIT)
 
@@ -37,9 +37,6 @@ class MineSweeper {
     func __init__(self, cellSize, bombsCount) {
         if (not isinstance(cellSize, (tuple, list)))
             throw TypeError("MineSweeper(): cellSize must be tuple or list")
-        if (not isinstance(bombsCount, int))
-            throw TypeError("MineSweeper(): bombsCount must be integer")
-
         if (len(cellSize) != 2)
             throw ValueError("MineSweeper(): cellSize must have a length of 2")
 
@@ -49,15 +46,17 @@ class MineSweeper {
             throw TypeError("MineSweeper(): width must be integer")
         if (not isinstance(h, int))
             throw TypeError("MineSweeper(): height must be integer")
+        if (w < 3)
+            throw ValueError("MineSweeper(): width must be greater than 3")
+        if (h < 3)
+            throw ValueError("MineSweeper(): height must be greater than 3")
 
-        if (w < 1)
-            throw ValueError("MineSweeper(): width must be greater than 1")
-        if (h < 1)
-            throw ValueError("MineSweeper(): height must be greater than 1")
+        if (not isinstance(bombsCount, int))
+            throw TypeError("MineSweeper(): bombsCount must be integer")
 
-        totalCell = w * h
+        totalCell = w * h - 1
 
-        if (bombsCount >= totalCell)
+        if (bombsCount > totalCell)
             throw ValueError("MineSweeper(): bombsCount cannot more than {}".format(totalCell))
 
         self.cellSize = cellSize
@@ -84,16 +83,19 @@ class MineSweeper {
     }
 
     # create a new board (the makeNewEmptyBoard function should have been called)
-    func makeNewBoard(self, position) {
+    func makeNewBoard(self, savePosition) {
         w, h = self.cellSize
-        col, row = position
+        col, row = savePosition
 
         # STEP 1: position the bomb
 
         # the starting position of the player should be chosen as the section where there should be no bombs to avoid
         # losing at the start of the game
-        illegalXMin, illegalYMin = max(0, col - 1), max(0, row - 1)
-        illegalXMax, illegalYMax = min(w, col + 2), min(h, row + 2)
+        saveXMin, saveYMin = max(0, col - 1), max(0, row - 1)
+        saveXMax, saveYMax = min(w, col + 2), min(h, row + 2)
+
+        # check whether there is enough space to save the area around the initial position
+        enoughSpace = self.bombsCount <= (w * h) - ((saveXMax - saveXMin) * (saveYMax - saveYMin))
 
         # place bombs randomly on the board
         bombsPlanted = 0
@@ -104,7 +106,10 @@ class MineSweeper {
 
             # if there is already a bomb in this position or the position is close to the initial position the player
             # chooses, then continue selecting another bomb location
-            if (self.board[row][col] == 9 or (illegalXMin <= col <= illegalXMax and illegalYMin <= row <= illegalYMax))
+            if (
+                self.board[row][col] == 9 or
+                (enoughSpace and saveXMin < col + 1 <= saveXMax and saveYMin < row + 1 <= saveYMax)
+            )
                 continue
 
             # place bomb
@@ -269,7 +274,7 @@ class MineSweeper {
                         else
                             buffer += '{} * \x1b[0m'.format(BOMB_COLOR)
                     else
-                        buffer += '{}{:^3}\x1b[0m'.format(ansi.acolor(CELL_COLORS[cell], ansi.BACKGROUND), cell)
+                        buffer += '{}{:^3}\x1b[0m'.format(ansi.acolor(CELL_COLORS[cell], style=ansi.BACKGROUND), cell)
                 }
 
                 elif (position in self.flags)
@@ -392,9 +397,9 @@ class MineSweeper {
 
 # wrap function
 
-func play(cellSize=CELL_SIZE, bombsCount=BOMBS_COUNT)
+func playMineSweeper(cellSize=CELL_SIZE, bombsCount=BOMBS_COUNT)
     MineSweeper(cellSize, bombsCount).main()
 
 # run the game
 if (__name__ == '__main__')
-    play()
+    playMineSweeper()

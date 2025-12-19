@@ -3,14 +3,32 @@ from .buffer import PysFileBuffer
 from .checks import is_left_bracket, is_right_bracket, is_bracket, is_constant_keywords, is_public_attribute
 from .constants import TOKENS, KEYWORDS, CONSTANT_KEYWORDS, HIGHLIGHT
 from .lexer import PysLexer
-from .mapping import BRACKETS_MAP, HIGHLIGHT_MAP
+from .mapping import BRACKETS_MAP
 from .position import PysPosition
 from .pysbuiltins import pys_builtins
 from .utils.ansi import acolor
 from .utils.decorators import typechecked
 
 from html import escape as html_escape
+from types import MappingProxyType
 from typing import Callable, Optional
+
+HIGHLIGHT_MAP = MappingProxyType({
+    'default': '#D4D4D4',
+    'keyword': '#C586C0',
+    'keyword-constant': '#307CD6',
+    'identifier': '#8CDCFE',
+    'identifier-constant': '#2EA3FF',
+    'identifier-function': '#DCDCAA',
+    'identifier-type': '#4EC9B0',
+    'number': '#B5CEA8',
+    'string': '#CE9178',
+    'brackets-0': '#FFD705',
+    'brackets-1': '#D45DBA',
+    'brackets-2': '#1A9FFF',
+    'comment': '#549952',
+    'invalid': '#B51819'
+})
 
 _builtin_types = tuple(
     name
@@ -221,7 +239,7 @@ except ImportError:
     class PygmentsPyScriptLexer(Pys):
 
         def __new__(cls, *args, **kwargs):
-            raise ModuleNotFoundError("pygments is not found")
+            raise ModuleNotFoundError("module pygments is not found")
 
 @typechecked
 class _PysHighlightFormatter(Pys):

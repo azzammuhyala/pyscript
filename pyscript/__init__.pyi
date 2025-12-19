@@ -1,5 +1,3 @@
-from .core.highlight import PygmentsPyScriptLexer as PygmentsPyScriptLexer
-
 from typing import TYPE_CHECKING, Any, Callable, Iterator, Literal, Optional
 
 if TYPE_CHECKING:
@@ -15,6 +13,7 @@ if TYPE_CHECKING:
     from types import ModuleType
 
 from . import core as core
+from .core.highlight import PygmentsPyScriptLexer as PygmentsPyScriptLexer
 
 DEFAULT: int
 DEBUG: int
@@ -37,13 +36,8 @@ def pys_highlight(
         Callable[
             [
                 str | Literal[
-                    'start',
-                    'invalid',
-                    'identifier', 'identifier-constant', 'identifier-function', 'identifier-type',
-                    'keyword', 'keyword-constant',
-                    'number', 'string', 'comment', 'newline',
-                    'default',
-                    'end'
+                    'start', 'invalid', 'identifier', 'identifier-constant', 'identifier-function', 'identifier-type',
+                    'keyword', 'keyword-constant', 'number', 'string', 'comment', 'newline', 'default', 'end'
                 ],
                 PysPosition,
                 str

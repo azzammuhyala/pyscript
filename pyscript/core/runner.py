@@ -18,9 +18,10 @@ from .utils.generic import setimuattr, get_frame, get_locals, import_readline
 from .utils.shell import PysCommandLineShell
 from .version import version
 
-from sys import stderr, version as pyversion
 from types import ModuleType
 from typing import Any, Literal, Optional
+
+import sys
 
 def _normalize_globals(file, globals):
     if globals is None:
@@ -235,13 +236,13 @@ def pys_shell(
         bmagenta = ''
     else:
         reset = acolor('reset')
-        bmagenta = acolor('magenta', BOLD)
+        bmagenta = acolor('magenta', style=BOLD)
 
     import_readline()
 
     print(f'PyScript {version}')
-    print(f'Python {pyversion}')
-    print('Type "help" or "license" for more information; "exit" or "/exit" to exit the shell.')
+    print(f'Python {sys.version}')
+    print('Type "help" or "license" for more information; Type "exit" or "/exit" to exit the shell')
 
     try:
         hook.running_shell = True
@@ -271,7 +272,7 @@ def pys_shell(
 
             except KeyboardInterrupt:
                 shell.reset()
-                print(f'\r{bmagenta}KeyboardInterrupt{reset}', file=stderr)
+                print(f'\r{bmagenta}KeyboardInterrupt{reset}', file=sys.stderr)
 
             except EOFError:
                 print()

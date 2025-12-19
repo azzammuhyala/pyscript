@@ -9,8 +9,23 @@ from .token import PysToken
 from .utils.decorators import typechecked
 
 from unicodedata import lookup as unicode_lookup
+from types import MappingProxyType
 from typing import Optional
-from sys import stderr
+
+import sys
+
+ESCAPE_CHARACTERS_MAP = MappingProxyType({
+    '\\': '\\',
+    "'": "'",
+    '"': '"',
+    'n': '\n',
+    'r': '\r',
+    't': '\t',
+    'b': '\b',
+    'f': '\f',
+    'a': '\a',
+    'v': '\v'
+})
 
 class PysLexer(Pys):
 
@@ -415,24 +430,8 @@ class PysLexer(Pys):
                         self.advance()
 
                 elif self.character_in('\\\'"nrtbfav\n'):
-
-                    if self.character_in('\\\'"'):
-                        string += self.current_character
-                    elif self.current_character == 'n':
-                        string += '\n'
-                    elif self.current_character == 'r':
-                        string += '\r'
-                    elif self.current_character == 't':
-                        string += '\t'
-                    elif self.current_character == 'b':
-                        string += '\b'
-                    elif self.current_character == 'f':
-                        string += '\f'
-                    elif self.current_character == 'a':
-                        string += '\a'
-                    elif self.current_character == 'v':
-                        string += '\v'
-
+                    if escape_character := ESCAPE_CHARACTERS_MAP.get(self.current_character):
+                        string += escape_character
                     self.advance()
 
                 elif decoded_error_message is None:
@@ -521,7 +520,7 @@ class PysLexer(Pys):
                             warning_displayed = True
                             print(
                                 f"SyntaxWarning: invalid escape sequence '\\{self.current_character}'",
-                                file=stderr
+                                file=sys.stderr
                             )
 
                         string += '\\' + self.current_character

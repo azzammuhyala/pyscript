@@ -11,7 +11,7 @@ class PysPosition(Pys):
 
     @typechecked
     def __init__(self, file: PysFileBuffer, start: int, end: int) -> None:
-        is_positionless = start < 0 or end < 0 or start > end
+        is_positionless = start < 0 or end < 0 or start > end or end > len(file.text) + 1
 
         setimuattr(self, 'file', file)
         setimuattr(self, 'start', -1 if is_positionless else start)
@@ -31,7 +31,7 @@ class PysPosition(Pys):
 
         if colored:
             reset = acolor('reset')
-            bred = acolor('red', BOLD)
+            bred = acolor('red', style=BOLD)
         else:
             reset = ''
             bred = ''

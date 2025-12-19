@@ -41,13 +41,16 @@ def is_object_of(obj, class_or_tuple):
 
 _READLINE = environ.get(ENV_PYSCRIPT_NO_READLINE) is None
 
-def import_readline():
-    if platform != 'win32' and _READLINE:
+if platform != 'win32' and _READLINE:
+    def import_readline():
         try:
             import readline
+            return True
         except:
             return False
-    return True
+else:
+    def import_readline():
+        return False
 
 def get_error_args(exception):
     if exception is None:

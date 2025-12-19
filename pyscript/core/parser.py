@@ -3,7 +3,7 @@ from .checks import is_right_bracket
 from .constants import TOKENS, KEYWORDS, DEFAULT, REVERSE_POW_XOR
 from .context import PysContext
 from .exceptions import PysTraceback
-from .mapping import BRACKETS_ITERABLE_MAP, NODE_ITERABLE_MAP, BRACKETS_MAP
+from .mapping import BRACKETS_MAP
 from .nodes import *
 from .position import PysPosition
 from .results import PysParserResult
@@ -11,7 +11,22 @@ from .token import PysToken
 from .utils.decorators import typechecked
 from .utils.generic import setimuattr
 
+from types import MappingProxyType
 from typing import Optional, Callable
+
+BRACKETS_ITERABLE_MAP = MappingProxyType({
+    'dict': TOKENS['LEFT-CURLY'],
+    'set': TOKENS['LEFT-CURLY'],
+    'list': TOKENS['LEFT-SQUARE'],
+    'tuple': TOKENS['LEFT-PARENTHESIS']
+})
+
+NODE_ITERABLE_MAP = MappingProxyType({
+    'dict': PysDictionaryNode,
+    'set': PysSetNode,
+    'list': PysListNode,
+    'tuple': PysTupleNode
+})
 
 class PysParser(Pys):
 

@@ -29,9 +29,7 @@ class PysSymbolTable(Pys):
             builtins = self.symbols.get('__builtins__', undefined)
             if builtins is not undefined:
                 return (
-                    builtins
-                    if isinstance(builtins, dict) else
-                    getattr(builtins, '__dict__', EMPTY_MAP)
+                    builtins if isinstance(builtins, dict) else getattr(builtins, '__dict__', EMPTY_MAP)
                 ).get(name, undefined)
 
         return value

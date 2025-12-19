@@ -24,7 +24,7 @@ class _PysNameSpaceUtilities(Pys):
     __slots__ = ()
 
     def __new__(cls):
-        raise TypeError("cannot create namespace object")
+        raise TypeError("cannot create namespace class instances")
 
     def new_singleton(cls, *args, **kwargs):
         from ..cache import singletons

@@ -7,7 +7,7 @@ from .objects import PysPythonFunction
 from .results import PysRunTimeResult
 from .symtab import new_symbol_table
 from .utils.generic import get_any, is_object_of as isobjectof, import_readline
-from .utils.module import get_module_name_from_path, get_module_path, set_python_path
+from .utils.module import get_module_name_from_path, get_module_path, set_python_path, remove_python_path
 from .utils.path import getcwd, normpath
 from .utils.shell import PysCommandLineShell
 from .utils.string import normstr
@@ -18,6 +18,7 @@ from os.path import dirname
 from types import ModuleType
 
 import builtins
+import sys
 
 def _supported_method(pyfunc, object, name, *args, **kwargs):
     method = getattr(object, name, undefined)
@@ -83,13 +84,14 @@ def require(pyfunc, name):
     name, *other_components = normstr(name).split('>')
     code = pyfunc.__code__
     context = code.context
+    filename = context.file.name
 
     for p in path:
         module_path = get_module_path(normpath(p, name, absolute=False))
         if module_path is not None:
             break
     else:
-        module_path = get_module_path(normpath(dirname(context.file.name) or getcwd(), name, absolute=False))
+        module_path = get_module_path(normpath(dirname(filename) or getcwd(), name, absolute=False))
 
     if module_path is None:
         if name == '_pyscript':
@@ -104,7 +106,7 @@ def require(pyfunc, name):
         if module_path in loading_modules:
             raise ImportError(
                 f"cannot import module name {name!r} "
-                f"from partially initialized module {context.file.name!r}, "
+                f"from partially initialized module {filename!r}, "
                 "mostly during circular import"
             )
 
@@ -154,8 +156,12 @@ def require(pyfunc, name):
 
 @PysPythonFunction
 def pyimport(pyfunc, name):
-    set_python_path(dirname(pyfunc.__code__.context.file.name))
-    return import_module(normstr(name))
+    dirpath = dirname(pyfunc.__code__.context.file.name)
+    try:
+        set_python_path(dirpath)
+        return import_module(normstr(name))
+    finally:
+        remove_python_path(dirpath)
 
 @PysPythonFunction
 def breakpoint(pyfunc):
@@ -165,11 +171,16 @@ def breakpoint(pyfunc):
     from .runner import pys_runner
 
     code = pyfunc.__code__
-    symtab = code.context.symbol_table
+    context = code.context
+    position = code.position
+    symtab = context.symbol_table
+
     shell = PysCommandLineShell('(Pdb) ', '...   ')
     scopes = []
 
     import_readline()
+
+    print(f"> {context.file.name}({position.start_line}){context.name}")
 
     try:
         hook.running_breakpoint = True
@@ -233,7 +244,7 @@ def breakpoint(pyfunc):
 
             except KeyboardInterrupt:
                 shell.reset()
-                print('\r--keyboardIterrupt--')
+                print('\r--KeyboardInterrupt--', file=sys.stderr)
 
             except EOFError as e:
                 raise SystemExit from e

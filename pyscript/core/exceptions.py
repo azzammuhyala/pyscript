@@ -27,7 +27,7 @@ class PysTraceback(Pys):
         if colored := not (context.flags & NO_COLOR):
             reset = acolor('reset')
             magenta = acolor('magenta')
-            bmagenta = acolor('magenta', BOLD)
+            bmagenta = acolor('magenta', style=BOLD)
         else:
             reset = ''
             magenta = ''
