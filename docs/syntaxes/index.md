@@ -1,3 +1,3 @@
 [`<- Back`](../index.md)
 
-# PyScript Builtins
+# PyScript Syntaxes
