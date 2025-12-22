@@ -157,23 +157,25 @@ class PysAnalyzer(Pys):
         self.visit(node.right)
 
     def visit_UnaryOperatorNode(self, node):
+        value = node.value
+
         if is_incremental(node.operand.type):
-            type = node.value.__class__
+            type = value.__class__
             operator = 'increase' if node.operand.type == TOKENS['DOUBLE-PLUS'] else 'decrease'
 
             if type is PysKeywordNode:
-                self.throw(f"cannot {operator} {node.value.token.value}", node.value.position)
+                self.throw(f"cannot {operator} {value.name.value}", value.position)
                 return
 
-            elif isinstance(node.value, PysNode):
+            elif isinstance(value, PysNode):
                 if type not in (PysIdentifierNode, PysAttributeNode, PysSubscriptNode):
-                    self.throw(f"cannot {operator} literal", node.value.position)
+                    self.throw(f"cannot {operator} literal", value.position)
                     return
 
             else:
                 raise TypeError("UnaryOperator: node.value is not PysNode")
 
-        self.visit(node.value)
+        self.visit(value)
 
     def visit_StatementsNode(self, node):
         for element in node.body:
@@ -435,7 +437,7 @@ class PysAnalyzer(Pys):
                     return
 
             elif type is PysKeywordNode:
-                self.throw(f"cannot delete {target.token.value}", target.position)
+                self.throw(f"cannot delete {target.name.value}", target.position)
                 return
 
             elif isinstance(target, PysNode):
@@ -502,7 +504,7 @@ class PysAnalyzer(Pys):
                     return
 
         elif type is PysKeywordNode:
-            self.throw(f"cannot assign to {node.token.value}", node.position)
+            self.throw(f"cannot assign to {node.name.value}", node.position)
 
         elif isinstance(node, PysNode):
             if type is not PysIdentifierNode:

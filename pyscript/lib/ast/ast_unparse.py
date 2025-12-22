@@ -1,71 +1,8 @@
 from pyscript.core.checks import is_keyword
 from pyscript.core.constants import TOKENS, KEYWORDS
+from pyscript.core.mapping import SYMBOLS_TOKEN_MAP
 from pyscript.core.nodes import PysNode
 from pyscript.core.utils.string import indent as sindent
-
-SYMBOLS_TOKEN_MAPPING = {
-    TOKENS['NOT-IN']: KEYWORDS['not'] + ' ' + KEYWORDS['in'],
-    TOKENS['IS-NOT']: KEYWORDS['is'] + ' ' + KEYWORDS['not'],
-    TOKENS['NULL']: '\0',
-    TOKENS['NEWLINE']: '\n',
-    TOKENS['EXCLAMATION']: '!',
-    TOKENS['COMMENT']: '#',
-    TOKENS['PERCENT']: '%',
-    TOKENS['AMPERSAND']: '&',
-    TOKENS['RIGHT-PARENTHESIS']: ')',
-    TOKENS['LEFT-PARENTHESIS']: '(',
-    TOKENS['STAR']: '*',
-    TOKENS['PLUS']: '+',
-    TOKENS['COMMA']: ',',
-    TOKENS['MINUS']: '-',
-    TOKENS['DOT']: '.',
-    TOKENS['SLASH']: '/',
-    TOKENS['COLON']: ':',
-    TOKENS['SEMICOLON']: ';',
-    TOKENS['LESS-THAN']: '<',
-    TOKENS['EQUAL']: '=',
-    TOKENS['GREATER-THAN']: '>',
-    TOKENS['QUESTION']: '?',
-    TOKENS['AT']: '@',
-    TOKENS['LEFT-SQUARE']: '[',
-    TOKENS['RIGHT-SQUARE']: ']',
-    TOKENS['CIRCUMFLEX']: '^',
-    TOKENS['LEFT-CURLY']: '{',
-    TOKENS['PIPE']: '|',
-    TOKENS['RIGHT-CURLY']: '}',
-    TOKENS['TILDE']: '~',
-    TOKENS['DOUBLE-AMPERSAND']: '&&',
-    TOKENS['DOUBLE-STAR']: '**',
-    TOKENS['DOUBLE-PLUS']: '++',
-    TOKENS['DOUBLE-MINUS']: '--',
-    TOKENS['DOUBLE-SLASH']: '//',
-    TOKENS['DOUBLE-LESS-THAN']: '<<',
-    TOKENS['DOUBLE-EQUAL']: '==',
-    TOKENS['DOUBLE-GREATER-THAN']: '>>',
-    TOKENS['DOUBLE-QUESTION']: '??',
-    TOKENS['DOUBLE-PIPE']: '||',
-    TOKENS['TRIPLE-DOT']: '...',
-    TOKENS['EQUAL-EXCLAMATION']: '!=',
-    TOKENS['EQUAL-PERCENT']: '%=',
-    TOKENS['EQUAL-AMPERSAND']: '&=',
-    TOKENS['EQUAL-STAR']: '*=',
-    TOKENS['EQUAL-PLUS']: '+=',
-    TOKENS['EQUAL-MINUS']: '-=',
-    TOKENS['EQUAL-SLASH']: '/=',
-    TOKENS['EQUAL-COLON']: ':=',
-    TOKENS['EQUAL-LESS-THAN']: '<=',
-    TOKENS['EQUAL-GREATER-THAN']: '>=',
-    TOKENS['EQUAL-AT']: '@=',
-    TOKENS['EQUAL-CIRCUMFLEX']: '^=',
-    TOKENS['EQUAL-PIPE']: '|=',
-    TOKENS['EQUAL-TILDE']: '~=',
-    TOKENS['EQUAL-DOUBLE-STAR']: '**=',
-    TOKENS['EQUAL-DOUBLE-SLASH']: '//=',
-    TOKENS['EQUAL-DOUBLE-LESS-THAN']: '<<=',
-    TOKENS['EQUAL-DOUBLE-GREATER-THAN']: '>>=',
-    TOKENS['EQUAL-ARROW']: '=>',
-    TOKENS['EXCLAMATION-TILDE']: '~!'
-}
 
 def indent(string):
     return sindent(string, 4)
@@ -135,7 +72,7 @@ def visit_SubscriptNode(node):
 
             indices.append(index_string)
 
-        string += index_string[0] + ',' if len(index_string) == 1 else ','.join(index_string)
+        string += indices[0] + ',' if len(indices) == 1 else ', '.join(indices)
 
     else:
         string += unparse(node.slice)
@@ -167,7 +104,7 @@ def visit_ChainOperatorNode(node):
         elif operand.match(TOKENS['KEYWORD'], KEYWORDS['is']):
             string += KEYWORDS['is']
         else:
-            string += SYMBOLS_TOKEN_MAPPING[operand.type]
+            string += SYMBOLS_TOKEN_MAP[operand.type]
 
         string += ' '
         string += unparse(node.expressions[i + 1])
@@ -183,7 +120,7 @@ def visit_BinaryOperatorNode(node):
     elif node.operand.match(TOKENS['KEYWORD'], KEYWORDS['or']):
         operand = '||'
     else:
-        operand = SYMBOLS_TOKEN_MAPPING[node.operand.type]
+        operand = SYMBOLS_TOKEN_MAP[node.operand.type]
 
     return f'({unparse(node.left)} {operand} {unparse(node.right)})'
 
@@ -191,7 +128,7 @@ def visit_UnaryOperatorNode(node):
     if node.operand.match(TOKENS['KEYWORD'], KEYWORDS['not']):
         operand = '!'
     else:
-        operand = SYMBOLS_TOKEN_MAPPING[node.operand.type]
+        operand = SYMBOLS_TOKEN_MAP[node.operand.type]
 
     value = unparse(node.value)
 
@@ -201,7 +138,7 @@ def visit_StatementsNode(node):
     return '\n'.join(map(unparse, node.body))
 
 def visit_AssignNode(node):
-    return f'{unparse(node.target)} {SYMBOLS_TOKEN_MAPPING[node.operand.type]} {unparse(node.value)}'
+    return f'{unparse(node.target)} {SYMBOLS_TOKEN_MAP[node.operand.type]} {unparse(node.value)}'
 
 def visit_ImportNode(node):
     string = ''

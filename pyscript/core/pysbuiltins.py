@@ -1,3 +1,4 @@
+from .bases import Pys
 from .buffer import PysFileBuffer
 from .cache import loading_modules, modules, path, undefined, hook
 from .checks import is_blacklist_python_builtins, is_private_attribute
@@ -16,6 +17,7 @@ from math import isclose
 from importlib import import_module
 from os.path import dirname
 from types import ModuleType
+from typing import Any, Callable, Iterable, Optional
 
 import builtins
 import sys
@@ -37,7 +39,7 @@ def _supported_method(pyfunc, object, name, *args, **kwargs):
 
     return False, None
 
-class _Printer:
+class _Printer(Pys):
 
     def __init__(self, name, text):
         self.name = name
@@ -81,6 +83,15 @@ help = _Helper()
 
 @PysPythonFunction
 def require(pyfunc, name):
+
+    """
+    require(name: str | bytes) -> ModuleType | Any
+
+    Import a PyScript module.
+
+    name: A name or path of the module to be imported.
+    """
+
     name, *other_components = normstr(name).split('>')
     code = pyfunc.__code__
     context = code.context
@@ -156,6 +167,15 @@ def require(pyfunc, name):
 
 @PysPythonFunction
 def pyimport(pyfunc, name):
+
+    """
+    pyimport(name: str | bytes) -> types.ModuleType
+
+    Import a Python module.
+
+    name: A name of the module to be imported.
+    """
+
     dirpath = dirname(pyfunc.__code__.context.file.name)
     try:
         set_python_path(dirpath)
@@ -165,6 +185,11 @@ def pyimport(pyfunc, name):
 
 @PysPythonFunction
 def breakpoint(pyfunc):
+
+    """
+    Pauses program execution and enters shell debugging mode.
+    """
+
     if hook.running_breakpoint:
         raise RuntimeError("another breakpoint is still running")
 
@@ -190,13 +215,13 @@ def breakpoint(pyfunc):
             try:
                 text = shell.input()
 
-                split = text.split()
+                split = ['exit'] if text == 0 else text.split()
                 if split:
                     command, *args = split
                 else:
                     command, args = '', []
 
-                if command in (0, 'q', 'quit', 'exit'):
+                if command in ('q', 'quit', 'exit'):
                     code = get_any(args, 0, '0')
                     raise SystemExit(int(code) if code.isdigit() else code)
 
@@ -254,6 +279,14 @@ def breakpoint(pyfunc):
 
 @PysPythonFunction
 def globals(pyfunc):
+
+    """
+    Returns a dictionary containing the current global scope of variables.
+
+    NOTE: Modifying the contents of a dictionary within a program or module scope will affect that scope. However,
+    this does not apply to local scopes (creating a new dictionary).
+    """
+
     symbol_table = pyfunc.__code__.context.symbol_table.parent
 
     if symbol_table:
@@ -269,30 +302,55 @@ def globals(pyfunc):
 
 @PysPythonFunction
 def locals(pyfunc):
+
+    """
+    Returns a dictionary containing the current local scope of variables.
+
+    NOTE: Changing the contents of the dictionary will affect the scope.
+    """
+
     return pyfunc.__code__.context.symbol_table.symbols
 
 pyvars = builtins.vars
-
-@PysPythonFunction
-def vars(pyfunc, object=None):
-    return (
-        pyfunc.__code__.context.symbol_table.symbols
-        if object is None else
-        pyvars(object)
-    )
-
 pydir = builtins.dir
 
 @PysPythonFunction
+def vars(pyfunc, *args):
+
+    """
+    Without arguments, equivalent to locals(). With an argument, equivalent to object.__dict__.
+    """
+
+    return pyvars(*args) if args else pyfunc.__code__.context.symbol_table.symbols
+
+@PysPythonFunction
 def dir(pyfunc, *args):
-    return (
-        pydir(*args)
-        if args else
-        list(pyfunc.__code__.context.symbol_table.symbols.keys())
-    )
+
+    """
+    If called without an argument, return the names in the current scope. Else, return an alphabetized list of names
+    comprising (some of) the attributes of the given object, and of attributes reachable from it. If the object supplies
+    a method named __dir__, it will be used; otherwise the default dir() logic is used and returns:
+        for a module object: the module's attributes.
+        for a class object: its attributes, and recursively the attributes of its bases.
+        for any other object: its attributes, its class's attributes, and recursively the attributes of its class's base
+            classes.
+    """
+
+    return pydir(*args) if args else list(pyfunc.__code__.context.symbol_table.symbols.keys())
 
 @PysPythonFunction
 def exec(pyfunc, source, globals=None):
+
+    """
+    exec(source: str | bytes, globals: Optional[dict]) -> None
+
+    Executes PyScript code statements from the given source.
+
+    source: A string containing the code statements to be executed.
+    globals: The namespace scope for the code that can be accessed, modified, and deleted. If not provided, the current
+             local scope will be used.
+    """
+
     if not isinstance(globals, (type(None), dict)):
         raise TypeError("exec(): globals must be dict")
 
@@ -319,6 +377,17 @@ def exec(pyfunc, source, globals=None):
 
 @PysPythonFunction
 def eval(pyfunc, source, globals=None):
+
+    """
+    eval(source: str | bytes, globals: Optional[dict]) -> None
+
+    Executes a PyScript code expression from the given source.
+
+    source: A string containing the code statements to be executed.
+    globals: The namespace scope for the code that can be accessed, modified, and deleted. If not provided, the current
+             local scope will be used.
+    """
+
     if not isinstance(globals, (type(None), dict)):
         raise TypeError("eval(): globals must be dict")
 
@@ -347,6 +416,20 @@ def eval(pyfunc, source, globals=None):
 
 @PysPythonFunction
 def ce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
+
+    """
+    ce(a: Any, b: Any, *, rel_tol: Any = 1e-9, abs_tol: Any = 0) -> Any
+    a ~= b
+
+    Comparing two objects a and b to close equal.
+
+    a, b: Two objects to be compared. If both are integer or float, it will call `math.isclose` function. Otherwise, it
+          will attempt to call the __ce__ method of one of the two objects. If all else fails, it will throw a
+          TypeError.
+    rel_tol: maximum difference for being considered "close", relative to the magnitude of the input values.
+    abs_tol: maximum difference for being considered "close", regardless of the magnitude of the input values.
+    """
+
     if isinstance(a, (int, float)) and isinstance(b, (int, float)):
         return isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
 
@@ -362,6 +445,20 @@ def ce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
 
 @PysPythonFunction
 def nce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
+
+    """
+    nce(a: Any, b: Any, *, rel_tol: Any = 1e-9, abs_tol: Any = 0) -> Any
+    a ~! b
+
+    Comparing two objects a and b to not close equal.
+
+    a, b: Two objects to be compared. If both are integer or float, it calls the `not math.isclose` function. Otherwise,
+          it attempts to call the __nce__ method (if both fail, it calls the negated __ce__ method) of one of the two
+          objects. If both fail, it throws a TypeError.
+    rel_tol: maximum difference for being considered "close", relative to the magnitude of the input values.
+    abs_tol: maximum difference for being considered "close", regardless of the magnitude of the input values.
+    """
+
     if isinstance(a, (int, float)) and isinstance(b, (int, float)):
         return not isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
 
@@ -382,6 +479,16 @@ def nce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
 
 @PysPythonFunction
 def increment(pyfunc, object):
+
+    """
+    increment(object: Any) -> Any
+    object++
+    ++object
+
+    Increase to the object. If the given type is integer or float, it will increment by 1. Otherwise, it will attempt to
+    call the __increment__ method, which if unsuccessful will throw a TypeError.
+    """
+
     if isinstance(object, (int, float)):
         return object + 1
 
@@ -393,6 +500,16 @@ def increment(pyfunc, object):
 
 @PysPythonFunction
 def decrement(pyfunc, object):
+
+    """
+    decrement(object: Any) -> Any
+    object--
+    --object
+
+    Decrease to the object. If the given type is integer or float, it will decrement by 1. Otherwise, it will attempt to
+    call the __decrement__ method, which if unsuccessful will throw a TypeError.
+    """
+
     if isinstance(object, (int, float)):
         return object - 1
 
@@ -402,7 +519,21 @@ def decrement(pyfunc, object):
 
     return result
 
-def comprehension(init, wrap, condition=None):
+def comprehension(
+    init: Iterable[Any],
+    wrap: Callable[[Any], Any],
+    condition: Optional[Callable[[Any], bool]] = None
+) -> Iterable[Any]:
+
+    """
+    A replacement function for Python's list comprehension, which uses the syntax
+    `[wrap for item in init if condition]`.
+
+    init: The iterable object to be iterated.
+    wrap: The function that wraps the results of the iteration.
+    condition: The function that filters the iteration.
+    """
+
     if not callable(wrap):
         raise TypeError("comprehension(): wrap must be callable")
     if not (condition is None or callable(condition)):
@@ -418,7 +549,7 @@ pys_builtins = ModuleType(
 
 pys_builtins.__dict__.update(
     (name, getattr(builtins, name))
-    for name in builtins.dir(builtins)
+    for name in pydir(builtins)
     if not (is_private_attribute(name) or is_blacklist_python_builtins(name))
 )
 

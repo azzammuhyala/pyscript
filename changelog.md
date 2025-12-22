@@ -1,8 +1,11 @@
 # Change Log
 
-## [1.7.2] - 19/12/2025
+## [1.7.3] - 22/12/2025
+
+### Added
+- Interactive shell command `/clear` (clear terminal).
+- `literal_eval()` function in `ast` module.
+- Documentation on builtins.
 
 ### Fixed
-- Utility fixes.
-- Builtin `breakpoint()` and `pyimport()` fixes.
 - Fixed some bugs.

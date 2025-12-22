@@ -21,6 +21,8 @@ class PysTraceback(Pys):
         return f'<traceback of exception {self.exception!r}>'
 
     def string_traceback(self):
+        from .position import format_arrow  # circular import problem solved
+
         context = self.context
         position = self.position
 
@@ -44,7 +46,7 @@ class PysTraceback(Pys):
                 '{}{}{}'.format(
                     '' if is_positionless else f', line {magenta}{position.start_line}{reset}',
                     '' if context_name is None else f', in {magenta}{context_name}{reset}',
-                    '' if is_positionless else f'\n{indent(position.format_arrow(colored), 4)}'
+                    '' if is_positionless else f'\n{indent(format_arrow(position, colored), 4)}'
                 )
             )
 

@@ -9,7 +9,8 @@ from .core.version import __version__
 
 from argparse import ArgumentParser
 from os import environ
-from sys import executable, stderr, version_info, exit, setrecursionlimit
+
+import sys
 
 FORMAT_HIGHLIGHT_MAP = {
     'html': HLFMT_HTML,
@@ -18,8 +19,8 @@ FORMAT_HIGHLIGHT_MAP = {
 }
 
 parser = ArgumentParser(
-    prog=f'{get_module_name_from_path(executable)} -m pyscript',
-    description=f'PyScript Launcher for Python Version {".".join(map(str, version_info))}'
+    prog=f'{get_module_name_from_path(sys.executable)} -m pyscript',
+    description=f'PyScript Launcher for Python Version {".".join(map(str, sys.version_info))}'
 )
 
 parser.add_argument(
@@ -27,7 +28,7 @@ parser.add_argument(
     type=str,
     nargs='?',
     default=None,
-    help="file path"
+    help="File path to be executed"
 )
 
 parser.add_argument(
@@ -40,53 +41,53 @@ parser.add_argument(
     '-c', '--command',
     type=str,
     default=None,
-    help="execute PyScript from argument",
+    help="Execute program from a string argument",
 )
 
 parser.add_argument(
     '-d', '--debug',
     action='store_true',
-    help="set a debug flag, this will remove the assert statement"
+    help="Set a debug flag, this will remove the assert statement"
 )
 
 parser.add_argument(
     '-i', '--inspect',
     action='store_true',
-    help="inspect interactively after running a file",
+    help="Inspect interactively after running a 'file'",
 )
 
 parser.add_argument(
     '-l', '--highlight',
     choices=tuple(FORMAT_HIGHLIGHT_MAP.keys()),
     default=None,
-    help='generate PyScript highlight code from a file'
+    help="Generate highlight code from a 'file'"
 )
 
 parser.add_argument(
     '-n', '--no-color',
     action='store_true',
-    help="no colorful traceback"
+    help="Suppress colored output"
 )
 
 parser.add_argument(
     '-r', '--py-recursion',
     type=int,
     default=None,
-    help="set a python recursion limit"
+    help="Set a Python recursion limit"
 )
 
 def argument_error(argument, message):
-    parser.print_usage(stderr)
+    parser.print_usage(sys.stderr)
     parser.exit(2, f"{parser.prog}: error: argument {argument}: {message}\n")
 
 args = parser.parse_args()
 
 if args.highlight and args.file is None:
-    argument_error("-l/--highlight", "file path require")
+    argument_error("-l/--highlight", "argument 'file' required")
 
 if args.py_recursion is not None:
     try:
-        setrecursionlimit(args.py_recursion)
+        sys.setrecursionlimit(args.py_recursion)
     except BaseException as e:
         argument_error("-r/--py-recursion", e)
 
@@ -121,7 +122,7 @@ if args.file is not None:
 
     if args.highlight:
         try:
-            print(pys_highlight(file, FORMAT_HIGHLIGHT_MAP.get(args.highlight, None)))
+            print(pys_highlight(file, FORMAT_HIGHLIGHT_MAP.get(args.highlight)))
         except BaseException as e:
             parser.error(f"file {path!r}: Highlight error: {e}")
 
@@ -150,4 +151,4 @@ elif args.command is not None:
 else:
     code = pys_shell(undefined, flags)
 
-exit(code)
+sys.exit(code)

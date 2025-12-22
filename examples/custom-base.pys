@@ -1,0 +1,29 @@
+func base(n, base_characters, sign_character='-') {
+    if (n == 0) {
+        return base_characters[0]
+    }
+
+    base = len(base_characters)
+    result = []
+
+    if (n < 0) {
+        singed = true
+        n = abs(n)
+    }
+    else {
+        singed = false
+    }
+
+    while (n > 0) {
+        result.append(base_characters[n % base])
+        n //= base
+    }
+
+    if (singed) {
+        result.append(sign_character)
+    }
+
+    return list(reversed(result))
+}
+
+print(''.join(base(3276872, 'abcdefghijklmnopqrstuvwxyz')))

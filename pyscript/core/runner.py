@@ -199,6 +199,8 @@ def pys_require(name, flags: int = DEFAULT) -> ModuleType | Any:
     Parameters
     ----------
     name: A name or path of the module to be imported.
+
+    flags: A special flags.
     """
 
     file = PysFileBuffer('', get_frame(2 if _TYPECHECK else 1).f_code.co_filename)
@@ -246,6 +248,7 @@ def pys_shell(
 
     try:
         hook.running_shell = True
+
         while True:
 
             try:

@@ -1,10 +1,12 @@
+from ..constants import ENV_PYSCRIPT_NO_READLINE
+
 from collections.abc import Sequence
 from inspect import currentframe
+from os import environ, system
 from re import compile as re_compile
-from sys import platform
-from os import environ
+from types import UnionType
 
-from ..constants import ENV_PYSCRIPT_NO_READLINE
+import sys
 
 delimuattr = object.__delattr__
 setimuattr = object.__setattr__
@@ -33,24 +35,37 @@ def get_any(object, key, default=None):
         return object[key] if 0 <= key < len(object) else default
     raise TypeError("unknown object")
 
-def is_object_of(obj, class_or_tuple):
+def is_object_of(obj: object | type, class_or_tuple: type | UnionType | tuple[type | UnionType, ...]) -> bool:
+
+    """
+    Returns whether an object is derived from a parent class.
+    The object here can be an initialized object, which calls `isinstance(obj, class_or_type)`,
+    or a class type, which calls `issubclass(obj, class_or_tuple)`.
+    """
+
     return (
         isinstance(obj, class_or_tuple) or
         (isinstance(obj, type) and issubclass(obj, class_or_tuple))
     )
 
-_READLINE = environ.get(ENV_PYSCRIPT_NO_READLINE) is None
+def import_readline():
+    return False
 
-if platform != 'win32' and _READLINE:
-    def import_readline():
-        try:
-            import readline
-            return True
-        except:
-            return False
+if sys.platform == 'win32':
+    def clear_console():
+        system('cls')
+
 else:
-    def import_readline():
-        return False
+    def clear_console():
+        system('clear')
+
+    if environ.get(ENV_PYSCRIPT_NO_READLINE) is None:
+        def import_readline():
+            try:
+                import readline
+                return True
+            except:
+                return False
 
 def get_error_args(exception):
     if exception is None:

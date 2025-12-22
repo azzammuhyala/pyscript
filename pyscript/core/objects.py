@@ -19,10 +19,11 @@ class PysCode(PysObject):
 class PysPythonFunction(PysObject):
 
     def __init__(self, func):
-        from .handlers import handle_call
+        from .handlers import handle_call  # circular import problem solved
 
-        self.__name__ = func.__name__
-        self.__qualname__ = func.__qualname__
+        self.__name__ = getattr(func, '__name__', '<function>')
+        self.__qualname__ = getattr(func, '__qualname__', '<function>')
+        self.__doc__ = getattr(func, '__doc__', None)
         self.__func__ = func
         self.__code__ = PysCode(
             position=None,
@@ -46,7 +47,7 @@ class PysPythonFunction(PysObject):
 class PysFunction(PysObject):
 
     def __init__(self, name, qualname, parameters, body, position, context):
-        from .interpreter import visit
+        from .interpreter import visit  # circular import problem solved
 
         context = context.parent if isinstance(context, PysClassContext) else context
 

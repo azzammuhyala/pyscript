@@ -1,5 +1,5 @@
-from sys import stdout
 from getch import getch
+sys = pyimport('sys')
 
 func default_input() {
     while (True) {
@@ -11,8 +11,8 @@ func default_input() {
 }
 
 func default_output(byte) {
-    stdout.write(chr(byte))
-    stdout.flush()
+    sys.stdout.write(chr(byte))
+    sys.stdout.flush()
 }
 
 class BFInterpreter {

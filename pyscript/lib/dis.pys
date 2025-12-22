@@ -1,7 +1,7 @@
-class Lol extends Exception {
+class LOL extends Exception {
     func __init__(self) {
-        super(Lol, self).__init__("PyScript doesn't compile an AST to bytecode")
+        super(LOL, self).__init__("PyScript doesn't compile an AST to bytecode")
     }
 }
 
-throw Lol()
+throw LOL()

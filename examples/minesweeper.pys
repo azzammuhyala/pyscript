@@ -21,8 +21,16 @@ CELL_COLORS = {
     10: (200,20 ,20 )   # flag
 }
 
-FLAG_COLOR = ansi.acolor(CELL_COLORS[10], style=ansi.BACKGROUND | ansi.BOLD | ansi.ITALIC)
-BOMB_COLOR = ansi.acolor(CELL_COLORS[9], style=ansi.BACKGROUND)
+ANSI_CELL_COLORS = dict(
+    comprehension(
+        CELL_COLORS.items(),
+        func(item) => (item[0], ansi.acolor(CELL_COLORS[item[0]], style=ansi.BACKGROUND)),
+        func(item) => item[0] not in (9, 10)
+    )
+)
+ANSI_CELL_COLORS[9] = ansi.acolor(CELL_COLORS[9], style=ansi.BACKGROUND)
+ANSI_CELL_COLORS[10] = ansi.acolor(CELL_COLORS[10], style=ansi.BACKGROUND | ansi.BOLD | ansi.ITALIC)
+ANSI_CELL_COLORS[11] = ansi.acolor(CELL_COLORS[10], style=ansi.BACKGROUND | ansi.STRIKET)
 
 sys.setrecursionlimit(RECURSION_LIMIT)
 
@@ -234,54 +242,83 @@ class MineSweeper {
             self.flags.add(position)
     }
 
+    # to get this is very rare!
+    func _is9(self, position) {
+        w, h = self.cellSize
+        col, row = position
+
+        bombsCount = 0
+
+        for (r of range(max(0, row - 1), min(h, row + 2)))
+            for (c of range(max(0, col - 1), min(w, col + 2)))
+                if (self.board[r][c] == 9)
+                    bombsCount++
+
+        return bombsCount == 9
+    }
+
     # displays the board
     func showBoard(self, safe=none) {
+        gameOver = safe is not none
         w, h = self.cellSize
+
+        bombColor = ANSI_CELL_COLORS[9]
+        flagColor = ANSI_CELL_COLORS[10]
+        wrongFlagColor = ANSI_CELL_COLORS[11]
 
         buffer = '\x1b[J\x1b[H'
         separator = '---+' * w
-        columnNumber = '    {} '.format(
-            ' '.join(
-                map(
-                    func(x) => format(x, '^3'),
-                    range(1, w + 1)
-                )
-            )
-        )
+        columnNumber = '    {} '.format(' '.join(map(func(x) => format(x, '^3'), range(1, w + 1))))
 
-        buffer += '{}Flags\x1b[0m: {} \n{}\n'.format(
-            FLAG_COLOR,
-            self.bombsCount - len(self.flags),
-            columnNumber
-        )
+        buffer += '{}Flags\x1b[0m: {} \n{}\n'.format(flagColor, self.bombsCount - len(self.flags), columnNumber)
 
         for (row of range(h)) {
             buffer += '   +{}\n{:>3}'.format(separator, row + 1)
 
             for (col of range(w)) {
                 position = (col, row)
+                cell = self.board[row][col]
 
-                if (position in self.dug or safe is not none) {
-                    buffer += '|'
+                buffer += '|'
 
-                    cell = self.board[row][col]
-
-                    if (cell == 0)
-                        buffer += '   '
-                    elif (cell == 9)
-                        if safe
-                            buffer += ' {}F\x1b[0m '.format(FLAG_COLOR)
+                if (gameOver) {
+                    if (position in self.flags) {
+                        buffer += ' {}F\x1b[0m '.format(cell == 9 ? flagColor : wrongFlagColor)
+                    }
+                    elif (position in self.dug) {
+                        if (cell == 0)
+                            buffer += '   '
                         else
-                            buffer += '{} * \x1b[0m'.format(BOMB_COLOR)
-                    else
-                        buffer += '{}{:^3}\x1b[0m'.format(ansi.acolor(CELL_COLORS[cell], style=ansi.BACKGROUND), cell)
+                            buffer += '{}{:^3}\x1b[0m'.format(ANSI_CELL_COLORS[cell], cell)
+                    }
+                    elif (safe) {
+                        buffer += ' {}F\x1b[0m '.format(flagColor)
+                    }
+                    elif (cell == 9) {
+                        if self._is9(position)
+                            buffer += '{} 9 \x1b[0m'.format(bombColor)
+                        else
+                            buffer += '{} * \x1b[0m'.format(bombColor)
+                    }
+                    else {
+                        buffer += ' # '
+                    }
                 }
 
-                elif (position in self.flags)
-                    buffer += '| {}F\x1b[0m '.format(FLAG_COLOR)
+                elif (position in self.dug) {
+                    if (cell == 0)
+                        buffer += '   '
+                    else
+                        buffer += '{}{:^3}\x1b[0m'.format(ANSI_CELL_COLORS[cell], cell)
+                }
 
-                else
-                    buffer += '| # '
+                elif (position in self.flags) {
+                    buffer += ' {}F\x1b[0m '.format(flagColor)
+                }
+
+                else {
+                    buffer += ' # '
+                }
 
             }
 
@@ -289,6 +326,7 @@ class MineSweeper {
         }
 
         buffer += '   +{}\n{}'.format(separator, columnNumber)
+
         print(buffer)
     }
 

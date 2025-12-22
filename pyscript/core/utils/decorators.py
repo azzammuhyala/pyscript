@@ -27,7 +27,7 @@ class _PysNameSpaceUtilities(Pys):
         raise TypeError("cannot create namespace class instances")
 
     def new_singleton(cls, *args, **kwargs):
-        from ..cache import singletons
+        from ..cache import singletons  # circular import problem solved
         if type(singletons.get(cls, None)) is not cls:
             singletons[cls] = cls.__new_singleton__(cls, *args, **kwargs)
         return singletons[cls]

@@ -1,4 +1,5 @@
 from ..bases import Pys
+from .generic import clear_console
 
 class PysCommandLineShell(Pys):
 
@@ -35,6 +36,9 @@ class PysCommandLineShell(Pys):
                 text = input(self.ps1)
                 if text == '/exit':
                     return 0
+                elif text == '/clear':
+                    clear_console()
+                    continue
 
             self._next_line = False
             self._in_decorator = False
