@@ -5,7 +5,7 @@ from .nodes import *
 is_expression = frozenset([
     PysNumberNode, PysStringNode, PysKeywordNode, PysIdentifierNode, PysDictionaryNode, PysSetNode, PysListNode,
     PysTupleNode, PysAttributeNode, PysSubscriptNode, PysCallNode, PysChainOperatorNode, PysTernaryOperatorNode,
-    PysBinaryOperatorNode, PysUnaryOperatorNode, PysFunctionNode, PysEllipsisNode
+    PysBinaryOperatorNode, PysUnaryOperatorNode, PysMatchNode, PysFunctionNode, PysEllipsisNode
 ]).__contains__
 
 is_statement = frozenset([

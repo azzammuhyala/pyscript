@@ -121,6 +121,7 @@ KEYWORDS = MappingProxyType({
     'import': 'import',
     'in': 'in',
     'is': 'is',
+    'match': 'match',
     'none': 'none',
     'not': 'not',
     'true': 'true',

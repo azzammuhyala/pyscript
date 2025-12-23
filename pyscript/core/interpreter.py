@@ -293,7 +293,11 @@ def visit_TernaryOperatorNode(node, context):
         return result
 
     with result(context, ncondition.position):
-        return result.success(register(visit(node.valid if condition else node.invalid, context)))
+        value = register(visit(node.valid if condition else node.invalid, context))
+        if should_return():
+            return result
+
+        return result.success(value)
 
     if should_return():
         return result
@@ -585,6 +589,51 @@ def visit_SwitchNode(node, context):
             return result
 
         result.should_break = False
+
+    return result.success(None)
+
+def visit_MatchNode(node, context):
+    result = PysRunTimeResult()
+
+    register = result.register
+    should_return = result.should_return
+    ntarget = node.target
+
+    compare = False
+
+    if ntarget:
+        target = register(visit(ntarget, context))
+        if should_return():
+            return result
+
+        compare = True
+
+    for ncondition, nvalue in node.cases:
+        condition = register(visit(ncondition, context))
+        if should_return():
+            return result
+
+        with result(context, ncondition.position):
+            valid = target == condition if compare else condition
+
+        if should_return():
+            return result
+
+        if valid:
+            value = register(visit(nvalue, context))
+            if should_return():
+                return result
+
+            return result.success(value)
+
+    ndefault = node.default
+
+    if ndefault:
+        default = register(visit(ndefault, context))
+        if should_return():
+            return result
+
+        return result.success(default)
 
     return result.success(None)
 

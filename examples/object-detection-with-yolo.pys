@@ -1,0 +1,42 @@
+import sys
+import cv2                    # pip install opencv-python
+from ultralytics import YOLO  # pip install ultralytics
+
+VIDEO_SOURCE = 0
+MODEL_WEIGHTS = 'yolo11l.pt'
+CONFIDENCE_THRESHOLD = 0.1
+
+print("Loading for YOLO model...")
+model = YOLO(MODEL_WEIGHTS)
+
+cap = cv2.VideoCapture(VIDEO_SOURCE)
+if not cap.isOpened() {
+    print("Error: Could not open the video")
+    sys.exit(1)
+}
+
+while true {
+    success, frame = cap.read()
+    if not success
+        break
+
+    results = model.predict(
+        frame,
+        conf=CONFIDENCE_THRESHOLD,
+        show=false,
+        verbose=false
+    )
+
+    for r of results {
+        annotated = r.plot()
+        cv2.imshow("Object Detection", annotated)
+    }
+
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('q') or key == 27
+        break
+}
+
+cap.release()
+cv2.destroyAllWindows()
+print("close")

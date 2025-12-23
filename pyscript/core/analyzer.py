@@ -230,6 +230,26 @@ class PysAnalyzer(Pys):
 
         self.in_switch -= 1
 
+    def visit_MatchNode(self, node):
+        if node.target:
+            self.visit(node.target)
+            if self.error:
+                return
+
+        for condition, value in node.cases:
+            self.visit(condition)
+            if self.error:
+                return
+
+            self.visit(value)
+            if self.error:
+                return
+
+        if node.default:
+            self.visit(node.default)
+            if self.error:
+                return
+
     def visit_TryNode(self, node):
         self.visit(node.body)
         if self.error:

@@ -1,5 +1,4 @@
-from pyscript.core.constants import TOKENS
-from pyscript.core.interpreter import UNARY_FUNCTIONS_MAP_GETITEM, KEYWORDS_TO_VALUES_MAP_GETITEM
+from pyscript.core.interpreter import KW__DEBUG__, UNARY_FUNCTIONS_MAP_GETITEM, KEYWORDS_TO_VALUES_MAP_GETITEM
 from pyscript.core.mapping import UNARY_FUNCTIONS_MAP
 from pyscript.core.nodes import PysNode, PysIdentifierNode
 
@@ -16,8 +15,8 @@ def visit_StringNode(node):
     return node.value.value
 
 def visit_KeywordNode(node):
-    if (name := node.name.value) == TOKENS['__debug__']:
-        raise ValueError(f"invalid constant keyword for {TOKENS['__debug__']}")
+    if (name := node.name.value) == KW__DEBUG__:
+        raise ValueError(f"invalid constant keyword for {KW__DEBUG__}")
     #      vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv <- always boolean or nonetype
     return KEYWORDS_TO_VALUES_MAP_GETITEM(name)
 
@@ -34,7 +33,8 @@ def visit_TupleNode(node):
     return tuple(map(visit, node.elements))
 
 def visit_CallNode(node):
-    if isinstance(node.target, PysIdentifierNode) and node.target.name.value == 'set' and not node.arguments:
+    target = node.target
+    if isinstance(target, PysIdentifierNode) and target.name.value == 'set' and not node.arguments:
         return set()
     raise ValueError("invalid call except for 'set()'")
 

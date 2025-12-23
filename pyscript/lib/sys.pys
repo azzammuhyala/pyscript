@@ -5,6 +5,7 @@ _pyos = pyimport('os')
 core_path = _pyscript.constants.CORE_PATH
 executable = '{} -m pyscript'.format(_pysys.executable)
 getcontext = _pyscript.objects.PysPythonFunction(func(pyfunc) => pyfunc.__code__.context)
+exit = _pysys.exit
 flags = getcontext().flags
 gil = _pyscript.handlers._GIL
 hook = _pyscript.cache.hook

@@ -263,11 +263,13 @@ class PysParser(Pys):
         return result.success(node)
 
     def single_expr(self):
-        return (
-            self.func_expr()
-            if self.current_token.matches(TOKENS['KEYWORD'], (KEYWORDS['func'], KEYWORDS['function'])) else
-            self.ternary()
-        )
+        if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['match']):
+            return self.match_expr()
+
+        elif self.current_token.matches(TOKENS['KEYWORD'], (KEYWORDS['func'], KEYWORDS['function'])):
+            return self.func_expr()
+
+        return self.ternary()
 
     def ternary(self):
         result = PysParserResult()
@@ -1242,6 +1244,100 @@ class PysParser(Pys):
                 target,
                 cases,
                 default_body,
+                position
+            )
+        )
+
+    def match_expr(self):
+        result = PysParserResult()
+        position = self.current_token.position
+
+        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['match']):
+            return result.failure(self.new_error(f"expected {KEYWORDS['match']!r}"))
+
+        result.register_advancement()
+        self.advance()
+        self.skip(result)
+
+        target = None
+
+        if self.current_token.type != TOKENS['LEFT-CURLY']:
+            target = result.try_register(self.walrus())
+            if result.error:
+                return result
+
+            self.skip(result)
+
+        left_bracket_token = self.current_token
+        self.bracket_level += 1
+
+        result.register_advancement()
+        self.advance()
+        self.skip(result)
+
+        cases = []
+        default = None
+
+        while not is_right_bracket(self.current_token.type):
+
+            if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['default']):
+                result.register_advancement()
+                self.advance()
+                self.skip(result)
+
+                if self.current_token.type != TOKENS['COLON']:
+                    return result.failure(self.new_error("expected ':'"))
+
+                result.register_advancement()
+                self.advance()
+                self.skip(result)
+
+                default = result.register(self.single_expr(), True)
+                if result.error:
+                    return result
+
+                break
+
+            condition = result.register(self.single_expr(), True)
+            if result.error:
+                return result
+
+            if self.current_token.type != TOKENS['COLON']:
+                return result.failure(self.new_error("expected ':'"))
+
+            result.register_advancement()
+            self.advance()
+            self.skip(result)
+
+            value = result.register(self.single_expr(), True)
+            if result.error:
+                return result
+
+            cases.append((condition, value))
+
+            if self.current_token.type == TOKENS['COMMA']:
+                result.register_advancement()
+                self.advance()
+                self.skip(result)
+
+            elif not is_right_bracket(self.current_token.type):
+                return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
+
+        if not cases:
+            return result.failure(self.new_error("requires at least one condition", position))
+
+        self.close_bracket(result, left_bracket_token)
+        if result.error:
+            return result
+
+        self.bracket_level -= 1
+        self.skip_expr(result)
+
+        return result.success(
+            PysMatchNode(
+                target,
+                cases,
+                default,
                 position
             )
         )
@@ -2228,10 +2324,7 @@ class PysParser(Pys):
         result.register_advancement()
         self.advance()
 
-    def skip(self, result, types=TOKENS['NEWLINE']):
-        if not isinstance(types, tuple):
-            types = (types,)
-
+    def skip(self, result, types=(TOKENS['NEWLINE'],)):
         count = 0
 
         while self.current_token.type in types:

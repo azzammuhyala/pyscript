@@ -244,6 +244,37 @@ def visit_SwitchNode(node):
 
     return string
 
+def visit_MatchNode(node):
+    string = KEYWORDS['match']
+    string += ' '
+
+    if node.target:
+        string += '('
+        string += unparse(node.target)
+        string += ') '
+
+    cases = []
+
+    for condition, value in node.cases:
+        case_string = unparse(condition)
+        case_string += ': '
+        case_string += unparse(value)
+
+        cases.append(case_string)
+
+    if node.default:
+        default_string = KEYWORDS['default']
+        default_string += ': '
+        default_string += unparse(node.default)
+
+        cases.append(default_string)
+
+    string += '{\n'
+    string += indent(',\n'.join(cases))
+    string += '\n}'
+
+    return string
+
 def visit_TryNode(node):
     catch_cases = []
 

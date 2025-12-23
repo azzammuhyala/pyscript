@@ -71,7 +71,7 @@ class DumpNode:
                 self._format_parameter('step', self.visit(object.step))
             ]
         elif type_object is dict:
-            parameters = [self.visit(key) + ': ' + self.visit(value) for key, value in object.items()]
+            parameters = [f'{self.visit(key)}: {self.visit(value)}' for key, value in object.items()]
         else:
             parameters = tuple(map(self.visit, object))
 
@@ -84,11 +84,7 @@ class DumpNode:
         return f'{open_parenthesis}{formatted_parameters}{close_parenthesis}'
 
     def visit(self, node):
-        return getattr(
-            self,
-            'visit_' + type(node).__name__.removeprefix('Pys'),
-            self._any_representation
-        )(node)
+        return getattr(self, 'visit_' + type(node).__name__.removeprefix('Pys'), self._any_representation)(node)
 
     def visit_NumberNode(self, node):
         return self._node_representation(
@@ -264,6 +260,16 @@ class DumpNode:
                 ('target', node.target),
                 ('case_cases', node.case_cases),
                 ('default_body', node.default_body)
+            ]
+        )
+
+    def visit_MatchNode(self, node):
+        return self._node_representation(
+            node,
+            [
+                ('target', node.target),
+                ('cases', node.cases),
+                ('default', node.default)
             ]
         )
 

@@ -4,8 +4,8 @@ from .utils.generic import version_match
 
 from types import MappingProxyType
 
-__version__ = '1.7.3'
-__date__ = '22 December 2025, 13:00 UTC+7'
+__version__ = '1.8.0'
+__date__ = '23 December 2025, 14:25 UTC+7'
 
 version = f'{__version__} ({__date__})'
 

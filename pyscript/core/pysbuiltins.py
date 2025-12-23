@@ -4,7 +4,7 @@ from .cache import loading_modules, modules, path, undefined, hook
 from .checks import is_blacklist_python_builtins, is_private_attribute
 from .exceptions import PysSignal
 from .handlers import handle_call
-from .objects import PysPythonFunction
+from .objects import PysPythonFunction, PysFunction
 from .results import PysRunTimeResult
 from .symtab import new_symbol_table
 from .utils.generic import get_any, is_object_of as isobjectof, import_readline
@@ -15,6 +15,7 @@ from .utils.string import normstr
 
 from math import isclose
 from importlib import import_module
+from inspect import isfunction, signature
 from os.path import dirname
 from types import ModuleType
 from typing import Any, Callable, Iterable, Optional
@@ -38,6 +39,30 @@ def _supported_method(pyfunc, object, name, *args, **kwargs):
             pass
 
     return False, None
+
+def _unpack_comprehension_function(function):
+    final = function
+
+    if isinstance(function, PysFunction):
+        length = len(function.__code__.parameter_names)
+        if length == 0:
+            def final(item):
+                return function()
+        elif length > 1:
+            def final(item):
+                return function(*item)
+
+    elif isfunction(function):
+        parameters = signature(function).parameters
+        length = len(parameters)
+        if length == 0:
+            def final(item):
+                return function()
+        elif length > 1 or any(p.kind == p.VAR_POSITIONAL for p in parameters.values()):
+            def final(item):
+                return function(*item)
+
+    return final
 
 class _Printer(Pys):
 
@@ -530,8 +555,8 @@ def comprehension(
     `[wrap for item in init if condition]`.
 
     init: The iterable object to be iterated.
-    wrap: The function that wraps the results of the iteration.
-    condition: The function that filters the iteration.
+    wrap: The function that wraps the results of the iteration (Unpack per-iteration if parameter is more than 1).
+    condition: The function that filters the iteration (Unpack per-iteration if parameter is more than 1).
     """
 
     if not callable(wrap):
@@ -539,7 +564,10 @@ def comprehension(
     if not (condition is None or callable(condition)):
         raise TypeError("comprehension(): condition must be callable")
 
-    return map(wrap, init if condition is None else filter(condition, init))
+    return map(
+        _unpack_comprehension_function(wrap),
+        init if condition is None else filter(_unpack_comprehension_function(condition), init)
+    )
 
 pys_builtins = ModuleType(
     'built-in',

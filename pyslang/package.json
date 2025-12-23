@@ -3,7 +3,7 @@
     "publisher": "AzzamMuhyala",
     "displayName": "PyScript - PysLang",
     "description": "Simple syntax highlights for PyScript (Programming Language)",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "icon": "./PyScript.png",
     "repository": {
         "type": "git",

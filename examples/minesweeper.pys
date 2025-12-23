@@ -1,3 +1,9 @@
+# check for PyScript version (must be 1.8.0+)!
+import sys
+
+if sys.version_info < (1, 8, 0)
+    throw RuntimeError("this minesweeper only works on PyScript 1.8.0+")
+
 import random  # randomizing bomb placement
 import ansi    # coloring on the terminal
 import os      # to clear up the terminal
@@ -24,8 +30,8 @@ CELL_COLORS = {
 ANSI_CELL_COLORS = dict(
     comprehension(
         CELL_COLORS.items(),
-        func(item) => (item[0], ansi.acolor(CELL_COLORS[item[0]], style=ansi.BACKGROUND)),
-        func(item) => item[0] not in (9, 10)
+        func(cell, color) => (cell, ansi.acolor(color, style=ansi.BACKGROUND)),
+        func(cell, color) => cell not in (9, 10)
     )
 )
 ANSI_CELL_COLORS[9] = ansi.acolor(CELL_COLORS[9], style=ansi.BACKGROUND)
@@ -77,17 +83,7 @@ class MineSweeper {
 
         self.dug = set()
         self.flags = set()
-        self.board = list(
-            comprehension(
-                range(h),
-                func(i) => list(
-                    comprehension(
-                        range(w),
-                        func(i) => 0
-                    )
-                )
-            )
-        )
+        self.board = list(comprehension(range(h), func() => [0] * w))
     }
 
     # create a new board (the makeNewEmptyBoard function should have been called)

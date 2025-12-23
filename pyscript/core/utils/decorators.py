@@ -2,6 +2,7 @@ from ..bases import Pys
 from ..constants import ENV_PYSCRIPT_NO_TYPECHECK
 
 from os import environ
+from types import MethodType
 
 def typechecked(func, *args, **kwargs):
     return func
@@ -35,8 +36,8 @@ class _PysNameSpaceUtilities(Pys):
     def readonly_attribute(*args, **kwargs):
         raise AttributeError("readonly attribute")
 
-    def inheritable_class(*args, **kwargs):
-        raise TypeError("uninherited class")
+    def inheritable_class(self, *args, **kwargs):
+        raise TypeError(f"uninherited class for {self.__name__}")
 
 def immutable(cls):
     cls.__setattr__ = _PysNameSpaceUtilities.readonly_attribute
@@ -44,7 +45,7 @@ def immutable(cls):
     return cls
 
 def inheritable(cls):
-    cls.__init_subclass__ = _PysNameSpaceUtilities.inheritable_class
+    cls.__init_subclass__ = MethodType(_PysNameSpaceUtilities.inheritable_class, cls)
     return cls
 
 def singleton(cls):

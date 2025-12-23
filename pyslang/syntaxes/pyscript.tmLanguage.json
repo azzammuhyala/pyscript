@@ -16,7 +16,7 @@
 			"patterns": [
 				{
 					"name": "keyword.control",
-					"match": "\\b(as|assert|break|case|catch|continue|default|del|delete|do|elif|else|finally|for|from|if|import|return|switch|throw|try|while|with)\\b"
+					"match": "\\b(as|assert|break|case|catch|continue|default|del|delete|do|elif|else|finally|for|from|if|import|match|return|switch|throw|try|while|with)\\b"
 				},
 				{
 					"name": "constant.language",
@@ -136,10 +136,27 @@
 		"numbers": {
 			"patterns": [
 				{
-					"name": "constant.numeric",
-					"match": "0[bB][01](_?[01])*[jJiI]?|0[oO][0-7](_?[0-7])*[jJiI]?|0[xX][0-9a-fA-F](_?[0-9a-fA-F])*[jJiI]?|((?:[0-9](_?[0-9])*)?\\.[0-9](_?[0-9])*|[0-9](_?[0-9])*\\.)([eE][+-]?[0-9](_?[0-9])*)?[jJiI]?|[0-9](_?[0-9])*([eE][+-]?[0-9](_?[0-9])*)[jJiI]?|[0-9](_?[0-9])*[jJiI]?"
+					"name": "constant.numeric.binary",
+					"match": "0[bB][01](_?[01])*[jJiI]?"
+				},
+				{
+					"name": "constant.numeric.octal",
+					"match": "0[oO][0-7](_?[0-7])*[jJiI]?"
+				},
+				{
+					"name": "constant.numeric.hex",
+					"match": "0[xX][0-9a-fA-F](_?[0-9a-fA-F])*[jJiI]?"
+				},
+				{
+					"name": "constant.numeric.float",
+					"match": "((?:[0-9](_?[0-9])*)?\\.[0-9](_?[0-9])*|[0-9](_?[0-9])*\\.)([eE][+-]?[0-9](_?[0-9])*)?[jJiI]?|[0-9](_?[0-9])*([eE][+-]?[0-9](_?[0-9])*)[jJiI]?"
+				},
+				{
+					"name": "constant.numeric.integer",
+					"match": "[0-9](_?[0-9])*[jJiI]?"
 				}
 			]
+
 		},
 
 		"comments": {

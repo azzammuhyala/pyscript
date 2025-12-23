@@ -126,6 +126,10 @@
         "prefix": "is",
         "body": "is"
     },
+    "Keyword - match": {
+        "prefix": "match",
+        "body": "match"
+    },
     "Keyword - none": {
         "prefix": "none",
         "body": "none",

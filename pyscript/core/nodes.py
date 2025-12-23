@@ -1,7 +1,7 @@
 from .bases import Pys
 from .position import PysPosition
 from .token import PysToken
-from .utils.decorators import typechecked, immutable
+from .utils.decorators import typechecked, immutable, inheritable
 from .utils.generic import setimuattr
 
 from typing import Literal
@@ -14,6 +14,10 @@ class PysNode(Pys):
     @typechecked
     def __init__(self, position: PysPosition) -> None:
         setimuattr(self, 'position', position)
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        inheritable(cls)
 
     def __repr__(self):
         return 'Node()'
@@ -341,6 +345,27 @@ class PysSwitchNode(PysNode):
 
     def __repr__(self):
         return f'Switch(target={self.target!r}, case_cases={self.case_cases!r}, default_body={self.default_body!r})'
+
+class PysMatchNode(PysNode):
+
+    __slots__ = ('target', 'cases', 'default')
+
+    @typechecked
+    def __init__(
+        self,
+        target: PysNode | None,
+        cases: list[tuple[PysNode, PysNode]],
+        default: PysNode | None,
+        position: PysPosition
+    ) -> None:
+
+        super().__init__(position)
+        setimuattr(self, 'target', target)
+        setimuattr(self, 'cases', tuple(cases))
+        setimuattr(self, 'default', default)
+
+    def __repr__(self):
+        return f'Match(target={self.target!r}, cases={self.cases!r}, default={self.default!r})'
 
 class PysTryNode(PysNode):
 

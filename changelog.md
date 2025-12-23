@@ -1,11 +1,11 @@
 # Change Log
 
-## [1.7.3] - 22/12/2025
+## [1.8.0] - 23/12/2025
 
 ### Added
-- Interactive shell command `/clear` (clear terminal).
-- `literal_eval()` function in `ast` module.
-- Documentation on builtins.
+- Unpack parameters in `comprehension()`.
+- New expression `match`.
 
 ### Fixed
 - Fixed some bugs.
+- Fixed syntax highlight.

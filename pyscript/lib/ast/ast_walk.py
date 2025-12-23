@@ -124,6 +124,19 @@ def walk(node):
         if node.default_body:
             yield from walk(node.default_body)
 
+    elif isinstance(node, PysMatchNode):
+        yield node
+
+        if node.target:
+            yield from walk(node.target)
+
+        for condition, value in node.cases:
+            yield from walk(condition)
+            yield from walk(value)
+
+        if node.default:
+            yield from walk(node.default)
+
     elif isinstance(node, PysTryNode):
         yield node
         yield from walk(node.body)

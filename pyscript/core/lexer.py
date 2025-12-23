@@ -1,7 +1,7 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
 from .checks import is_keyword
-from .constants import TOKENS, DEFAULT, HIGHLIGHT
+from .constants import TOKENS, DEFAULT, SILENT, HIGHLIGHT
 from .context import PysContext
 from .exceptions import PysTraceback
 from .position import PysPosition
@@ -86,6 +86,11 @@ class PysLexer(Pys):
                 )
             )
 
+    def warning(self, message):
+        if not (self.flags & SILENT or self.flags & HIGHLIGHT or message in self.warnings):
+            print(message, file=sys.stderr)
+            self.warnings.add(message)
+
     def throw(self, start, end, message, add_token=True):
         if self.error is None:
 
@@ -111,6 +116,7 @@ class PysLexer(Pys):
     def make_tokens(self) -> tuple[tuple[PysToken, ...] | tuple[PysToken], PysTraceback | None]:
         self.index = 0
         self.tokens = []
+        self.warnings = set()
         self.error = None
 
         self.update_current_character()
@@ -385,7 +391,6 @@ class PysLexer(Pys):
             return self.file.text[self.index:self.index + 3] == triple_prefix
 
         is_triple_quote = triple_quote()
-        warning_displayed = False
         decoded_error_message = None
 
         def decode_error(is_unicode_error, start, end, message):
@@ -516,14 +521,8 @@ class PysLexer(Pys):
                             string += '\\'
                             break
 
-                        if not (warning_displayed or self.flags & HIGHLIGHT):
-                            warning_displayed = True
-                            print(
-                                f"SyntaxWarning: invalid escape sequence '\\{self.current_character}'",
-                                file=sys.stderr
-                            )
-
                         string += '\\' + self.current_character
+                        self.warning(f"SyntaxWarning: invalid escape sequence '\\{self.current_character}'")
                         self.advance()
 
             else:
