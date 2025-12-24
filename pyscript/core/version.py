@@ -4,8 +4,8 @@ from .utils.generic import version_match
 
 from types import MappingProxyType
 
-__version__ = '1.8.0'
-__date__ = '23 December 2025, 14:25 UTC+7'
+__version__ = '1.8.1'
+__date__ = '24 December 2025, 17:20 UTC+7'
 
 version = f'{__version__} ({__date__})'
 
@@ -24,7 +24,7 @@ class PysVersionInfo(Pys, tuple):
 
     __slots__ = ()
 
-    def __new_singleton__(cls):
+    def __new_singleton__(cls) -> 'PysVersionInfo':
         match = version_match(__version__)
         if not match:
             raise ValueError(f"invalid format version {__version__!r}")
@@ -53,48 +53,48 @@ class PysVersionInfo(Pys, tuple):
         return version_info
 
     @property
-    def major(self):
+    def major(self) -> int:
         return self[0]
 
     @property
-    def minor(self):
+    def minor(self) -> int:
         return self[1]
 
     @property
-    def micro(self):
+    def micro(self) -> int:
         return self[2]
 
     @property
-    def pre_tag(self):
+    def pre_tag(self) -> str | None:
         return self[3]
 
     @property
-    def pre_num(self):
+    def pre_num(self) -> int | None:
         return self[4]
 
     @property
-    def release(self):
+    def release(self) -> tuple[int, int, int]:
         return self[0:3]
 
-    def __lt__(self, other):
+    def __lt__(self, other: tuple) -> bool:
         return self.release < other
 
-    def __gt__(self, other):
+    def __gt__(self, other: tuple) -> bool:
         return self.release > other
 
-    def __le__(self, other):
+    def __le__(self, other: tuple) -> bool:
         return self.release <= other
 
-    def __ge__(self, other):
+    def __ge__(self, other: tuple) -> bool:
         return self.release >= other
 
-    def __eq__(self, value):
-        return self.release == value
+    def __eq__(self, other: tuple) -> bool:
+        return self.release == other
 
-    def __ne__(self, value):
-        return self.release != value
+    def __ne__(self, other: tuple) -> bool:
+        return self.release != other
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             'VersionInfo('
                 f'major={self.major!r}, '

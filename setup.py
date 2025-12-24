@@ -5,7 +5,7 @@ with open('README.md', 'r', encoding='utf-8') as file:
 
 setup(
     name='pyscript-programming-language',
-    version='1.8.0',
+    version='1.8.1',
     description='PyScript Programming Language',
     long_description=long_description,
     long_description_content_type='text/markdown',

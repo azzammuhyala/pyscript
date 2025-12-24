@@ -1,12 +1,13 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
 from .checks import is_keyword
-from .constants import TOKENS, DEFAULT, SILENT, HIGHLIGHT
+from .constants import TOKENS, DEFAULT, SILENT, HIGHLIGHT, NO_COLOR
 from .context import PysContext
 from .exceptions import PysTraceback
-from .position import PysPosition
+from .position import PysPosition, format_arrow
 from .token import PysToken
 from .utils.decorators import typechecked
+from .utils.string import indent
 
 from unicodedata import lookup as unicode_lookup
 from types import MappingProxyType
@@ -57,7 +58,7 @@ class PysLexer(Pys):
             self.update_current_character()
 
     def not_end_of_file(self):
-        return self.current_character is not None
+        return self.current_character is not None and self.error is None
 
     def character_in(self, characters):
         return self.not_end_of_file() and self.current_character in characters
@@ -521,8 +522,17 @@ class PysLexer(Pys):
                             string += '\\'
                             break
 
-                        string += '\\' + self.current_character
-                        self.warning(f"SyntaxWarning: invalid escape sequence '\\{self.current_character}'")
+                        position = PysPosition(self.file, self.index, self.index + 1)
+                        character = self.current_character
+
+                        string += '\\' + character
+                        self.warning(
+                            f"{self.file.name}:{position.start_line}:{position.start_column + 1}: "
+                            f"SyntaxWarning: \"\\{character}\" "
+                            "is an invalid escape sequence. Such sequences will not work in the future. Did you mean "
+                            f"\"\\\\{character}\"? A raw string is also an option.\n" +
+                            indent(format_arrow(position, not (self.flags & NO_COLOR)), 2)
+                        )
                         self.advance()
 
             else:

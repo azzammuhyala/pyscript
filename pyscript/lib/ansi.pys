@@ -1,10 +1,14 @@
-import _pyscript
-
-DEFAULT = _pyscript.utils.ansi.DEFAULT
-BACKGROUND = _pyscript.utils.ansi.BACKGROUND
-BOLD = _pyscript.utils.ansi.BOLD
-ITALIC = _pyscript.utils.ansi.ITALIC
-UNDER = _pyscript.utils.ansi.UNDER
-STRIKET = _pyscript.utils.ansi.STRIKET
-
-acolor = _pyscript.utils.ansi.acolor
+from '_pyscript>utils>ansi' import (
+    DEFAULT,
+    BACKGROUND,
+    BOLD,
+    FAINT,
+    ITALIC,
+    UNDERLINE,
+    BLINK,
+    RAPIDBLINK,
+    STRIKETHROUGH,
+    DOUBLEUNDERLINE,
+    acolor,
+    fansi
+)

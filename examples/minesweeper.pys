@@ -1,8 +1,8 @@
-# check for PyScript version (must be 1.8.0+)!
+# check for PyScript version (must be 1.8.1+)!
 import sys
 
-if sys.version_info < (1, 8, 0)
-    throw RuntimeError("this minesweeper only works on PyScript 1.8.0+")
+if sys.version_info < (1, 8, 1)
+    throw RuntimeError("this minesweeper only works on PyScript 1.8.1+")
 
 import random  # randomizing bomb placement
 import ansi    # coloring on the terminal
@@ -36,7 +36,7 @@ ANSI_CELL_COLORS = dict(
 )
 ANSI_CELL_COLORS[9] = ansi.acolor(CELL_COLORS[9], style=ansi.BACKGROUND)
 ANSI_CELL_COLORS[10] = ansi.acolor(CELL_COLORS[10], style=ansi.BACKGROUND | ansi.BOLD | ansi.ITALIC)
-ANSI_CELL_COLORS[11] = ansi.acolor(CELL_COLORS[10], style=ansi.BACKGROUND | ansi.STRIKET)
+ANSI_CELL_COLORS[11] = ansi.acolor(CELL_COLORS[10], style=ansi.BACKGROUND | ansi.STRIKETHROUGH)
 
 sys.setrecursionlimit(RECURSION_LIMIT)
 

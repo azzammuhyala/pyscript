@@ -1,5 +1,5 @@
 from .bases import Pys
-from .checks import is_right_bracket
+from .checks import is_left_bracket, is_right_bracket
 from .constants import TOKENS, KEYWORDS, DEFAULT, REVERSE_POW_XOR
 from .context import PysContext
 from .exceptions import PysTraceback
@@ -982,6 +982,9 @@ class PysParser(Pys):
                 self.advance()
                 self.skip(result)
 
+            elif is_left_bracket(self.current_token.type):
+                return result.failure(self.new_error(f"expected '(' not {chr(self.current_token.type)!r}"))
+
             if self.current_token.type != TOKENS['IDENTIFIER']:
                 return result.failure(self.new_error("expected identifier"))
 
@@ -1262,9 +1265,9 @@ class PysParser(Pys):
         target = None
 
         if self.current_token.type != TOKENS['LEFT-CURLY']:
-            target = result.try_register(self.walrus())
+            target = result.register(self.walrus(), True)
             if result.error:
-                return result
+                return result.failure(self.new_error("expected expression or '{'"))
 
             self.skip(result)
 
@@ -1481,6 +1484,8 @@ class PysParser(Pys):
         self.advance()
         self.skip(result)
 
+        bracket = False
+
         if self.current_token.type == TOKENS['LEFT-PARENTHESIS']:
             bracket = True
             left_bracket_token = self.current_token
@@ -1489,9 +1494,6 @@ class PysParser(Pys):
             result.register_advancement()
             self.advance()
             self.skip(result)
-
-        else:
-            bracket = False
 
         contexts = []
 
@@ -1977,6 +1979,9 @@ class PysParser(Pys):
             result.register_advancement()
             self.advance()
             self.skip(result)
+
+        elif is_left_bracket(self.current_token.type):
+            return result.failure(self.new_error(f"expected '(' not {chr(self.current_token.type)!r}"))
 
         if self.current_token.type != TOKENS['IDENTIFIER']:
             return result.failure(self.new_error("expected identifier"))

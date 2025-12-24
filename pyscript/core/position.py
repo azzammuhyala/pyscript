@@ -22,7 +22,7 @@ class PysPosition(Pys):
         setimuattr(self, 'end_column', -1 if is_positionless else end - file.text.rfind('\n', 0, end))
         setimuattr(self, 'is_positionless', is_positionless)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<Position({self.start!r}, {self.end!r}) from {self.file.name!r}>'
 
 def format_arrow(position, colored=True):

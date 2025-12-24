@@ -4,6 +4,7 @@ from .utils.debug import print_display, print_traceback
 from .utils.decorators import inheritable, singleton
 
 from threading import RLock
+from typing import Literal
 
 loading_modules = set()
 lock = RLock()
@@ -17,15 +18,15 @@ class PysUndefined(Pys):
 
     __slots__ = ()
 
-    def __new_singleton__(cls):
+    def __new_singleton__(cls) -> 'PysUndefined':
         global undefined
         undefined = super(cls, cls).__new__(cls)
         return undefined
 
-    def __repr__(self):
+    def __repr__(self) -> Literal['undefined']:
         return 'undefined'
 
-    def __bool__(self):
+    def __bool__(self) -> Literal[False]:
         return False
 
 @singleton

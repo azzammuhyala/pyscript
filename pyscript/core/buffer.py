@@ -13,7 +13,7 @@ class PysFileBuffer(PysBuffer):
 
     __slots__ = ('text', 'name')
 
-    def __init__(self, text, name=None):
+    def __init__(self, text, name=None) -> None:
 
         if isinstance(text, PysFileBuffer):
             name = normstr(text.name if name is None else name)
@@ -30,5 +30,5 @@ class PysFileBuffer(PysBuffer):
         setimuattr(self, 'text', text)
         setimuattr(self, 'name', name)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<FileBuffer from {self.name!r}>'

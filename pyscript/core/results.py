@@ -1,9 +1,12 @@
 from .bases import Pys
 from .cache import hook
+from .context import PysContext
 from .exceptions import PysTraceback, PysSignal
 from .position import PysPosition
 from .utils.debug import print_traceback
 from .utils.generic import get_error_args
+
+from typing import Any
 
 class PysResult(Pys):
     __slots__ = ()
@@ -140,23 +143,23 @@ class PysRunTimeResult(PysResult):
 
 class PysExecuteResult(PysResult):
 
-    def __init__(self, context):
+    def __init__(self, context: PysContext) -> None:
         self.context = context
 
         self.value = None
         self.error = None
 
-    def success(self, value):
+    def success(self, value: Any) -> 'PysExecuteResult':
         self.value = value
         return self
 
-    def failure(self, error):
+    def failure(self, error: PysTraceback) -> 'PysExecuteResult':
         self.error = error
         return self
 
     # --- HANDLE EXECUTE ---
 
-    def process(self):
+    def process(self) -> tuple[int | Any, bool]:
         result = PysRunTimeResult()
 
         with result(self.context, PysPosition(self.context.file, -1, -1)):

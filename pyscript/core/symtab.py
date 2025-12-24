@@ -1,25 +1,26 @@
 from .bases import Pys
 from .checks import is_equals
 from .constants import TOKENS
-from .cache import undefined
+from .cache import PysUndefined, undefined
 from .mapping import BINARY_FUNCTIONS_MAP, EMPTY_MAP
 from .utils.decorators import immutable
 from .utils.generic import setimuattr
 from .utils.similarity import get_closest
 
 from types import ModuleType
+from typing import Any, Optional
 
 @immutable
 class PysSymbolTable(Pys):
 
     __slots__ = ('parent', 'symbols', 'globals')
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional['PysSymbolTable'] = None) -> None:
         setimuattr(self, 'parent', parent.parent if isinstance(parent, PysClassSymbolTable) else parent)
         setimuattr(self, 'symbols', {})
         setimuattr(self, 'globals', set())
 
-    def get(self, name):
+    def get(self, name: str) -> Any | PysUndefined:
         value = self.symbols.get(name, undefined)
 
         if value is undefined:
@@ -34,7 +35,7 @@ class PysSymbolTable(Pys):
 
         return value
 
-    def set(self, name, value, *, operand=TOKENS['EQUAL']):
+    def set(self, name: str, value: Any, *, operand: int = TOKENS['EQUAL']) -> bool:
         if is_equals(operand):
 
             if name in self.globals and self.parent:
@@ -53,7 +54,7 @@ class PysSymbolTable(Pys):
         self.symbols[name] = BINARY_FUNCTIONS_MAP[operand](self.symbols[name], value)
         return True
 
-    def remove(self, name):
+    def remove(self, name: str) -> bool:
         if name not in self.symbols:
             if name in self.globals and self.parent:
                 return self.parent.remove(name)
@@ -66,7 +67,7 @@ class PysClassSymbolTable(PysSymbolTable):
 
     __slots__ = ()
 
-    def __init__(self, parent):
+    def __init__(self, parent: PysSymbolTable) -> None:
         super().__init__(parent)
 
 def find_closest(symtab, name):

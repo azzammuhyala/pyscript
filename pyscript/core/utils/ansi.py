@@ -1,5 +1,19 @@
 from collections.abc import Iterable
+from functools import reduce
+from html.parser import HTMLParser
+from operator import or_
 from types import MappingProxyType
+
+DEFAULT = 0
+BACKGROUND = 1 << 0
+BOLD = 1 << 1
+FAINT = 1 << 2
+ITALIC = 1 << 3
+UNDERLINE = 1 << 4
+BLINK = 1 << 5
+RAPIDBLINK = 1 << 6
+STRIKETHROUGH = 1 << 7
+DOUBLEUNDERLINE = 1 << 8
 
 ANSI_NAMES_MAP = MappingProxyType({
     'reset': 0,
@@ -22,14 +36,20 @@ ANSI_NAMES_MAP = MappingProxyType({
     'bright-white': 97
 })
 
-DEFAULT = 0
-BACKGROUND = 1 << 0
-BOLD = 1 << 1
-ITALIC = 1 << 2
-UNDER = 1 << 3
-STRIKET = 1 << 4
+STYLE_MAP = MappingProxyType({
+    'DEFAULT': DEFAULT,
+    'BACKGROUND': BACKGROUND,
+    'BOLD': BOLD,
+    'FAINT': FAINT,
+    'ITALIC': ITALIC,
+    'UNDERLINE': UNDERLINE,
+    'BLINK': BLINK,
+    'RAPIDBLINK': RAPIDBLINK,
+    'STRIKETHROUGH': STRIKETHROUGH,
+    'DOUBLEUNDERLINE': DOUBLEUNDERLINE,
+})
 
-def acolor(*args, style=DEFAULT):
+def acolor(*args, style: int = DEFAULT) -> str:
     if not args:
         raise TypeError("acolor(): need at least 1 argument")
     elif len(args) == 1:
@@ -43,9 +63,9 @@ def acolor(*args, style=DEFAULT):
         styles += '1'
     if style & ITALIC:
         styles += '3'
-    if style & UNDER:
+    if style & UNDERLINE:
         styles += '4'
-    if style & STRIKET:
+    if style & STRIKETHROUGH:
         styles += '9'
 
     offset = 10 if style & BACKGROUND else 0
@@ -54,7 +74,7 @@ def acolor(*args, style=DEFAULT):
     if isinstance(arg, str):
         if (color := arg.strip().lower().replace(' ', '-').replace('_', '-')) in ANSI_NAMES_MAP:
             return f'{style}\x1b[{ANSI_NAMES_MAP[color] + offset}m'
-        arg = arg.split()
+        arg = arg.replace(',', ' ').split()
 
     if isinstance(arg, Iterable):
         color = tuple(map(int, arg))
@@ -62,3 +82,44 @@ def acolor(*args, style=DEFAULT):
             return f'{style}\x1b[{38 + offset};2;{";".join(map(str, color))}m'
 
     raise TypeError("acolor(): the argument is invalid for ansi color")
+
+class AnsiParser(HTMLParser):
+
+    def __init__(self):
+        super().__init__()
+        self.result = []
+        self.stack = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag != 'ansi':
+            raise ValueError(f'unknown tag: {tag}')
+
+        attrs = dict(attrs)
+
+        color = attrs.get('color')
+        if color is None:
+            color = (attrs['r'], attrs['g'], attrs['b'])
+        styles = attrs.get('style', 'DEFAULT').split()
+
+        self.result.append(acolor(color, style=reduce(or_, (STYLE_MAP[style].upper() for style in styles))))
+        self.stack += 1
+
+    def handle_endtag(self, tag):
+        if self.stack <= 0:
+            raise SyntaxError(f'unmatch tag: {tag}')
+        if tag != 'ansi':
+            raise ValueError(f'unknown tag: {tag}')
+
+        self.result.append(acolor('reset'))
+        self.stack -= 1
+
+    def handle_data(self, data):
+        self.result.append(data)
+
+    def get_output(self):
+        return ''.join(self.result)
+
+def fansi(string: str) -> str:
+    parser = AnsiParser()
+    parser.feed(string)
+    return parser.get_output()

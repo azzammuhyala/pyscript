@@ -60,6 +60,7 @@ class PysFunction(PysObject):
             context=context,
             visit=visit,
             call_context=context,
+            parameters_length=len(parameters),
             argument_names=tuple(item for item in parameters if not isinstance(item, tuple)),
             keyword_argument_names=tuple(item[0] for item in parameters if isinstance(item, tuple)),
             parameter_names=tuple(item[0] if isinstance(item, tuple) else item for item in parameters),
@@ -78,9 +79,9 @@ class PysFunction(PysObject):
         code_position = code.position
         code_context = code.context
         code_call_context = code.call_context
+        code_parameters_length = code.parameters_length
         code_parameter_names = code.parameter_names
-        total_arguments = len(args)
-        total_parameters = len(code.parameters)
+        arguments_length = len(args)
 
         result = PysRunTimeResult()
         symbol_table = PysSymbolTable(code_context.symbol_table)
@@ -138,7 +139,7 @@ class PysFunction(PysObject):
 
         total_registered = len(registered_arguments)
 
-        if total_registered < total_parameters:
+        if total_registered < code_parameters_length:
             missing_arguments = [repr(name) for name in code_parameter_names if name not in registered_arguments]
             total_missing = len(missing_arguments)
 
@@ -159,19 +160,19 @@ class PysFunction(PysObject):
                 )
             )
 
-        elif total_registered > total_parameters or total_arguments > total_parameters:
-            given_arguments = total_arguments if total_arguments > total_parameters else total_registered
+        elif total_registered > code_parameters_length or arguments_length > code_parameters_length:
+            given_arguments = arguments_length if arguments_length > code_parameters_length else total_registered
 
             raise PysSignal(
                 result.failure(
                     PysTraceback(
                         TypeError(
                             f"{qualname}() takes no arguments ({given_arguments} given)"
-                            if total_parameters == 0 else
+                            if code_parameters_length == 0 else
                             "{}() takes {} positional argument{} but {} were given".format(
                                 qualname,
-                                total_parameters,
-                                '' if total_parameters == 1 else 's',
+                                code_parameters_length,
+                                '' if code_parameters_length == 1 else 's',
                                 given_arguments
                             )
                         ),
