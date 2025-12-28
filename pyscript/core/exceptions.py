@@ -5,22 +5,37 @@ from .utils.decorators import immutable
 from .utils.generic import setimuattr
 from .utils.string import indent
 
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from .context import PysContext
+    from .position import PysPosition
+    from .results import PysRunTimeResult
+
 @immutable
 class PysTraceback(Pys):
 
     __slots__ = ('exception', 'context', 'position', 'cause', 'directly')
 
-    def __init__(self, exception, context, position, cause=None, directly=False):
+    def __init__(
+        self,
+        exception: BaseException | type[BaseException],
+        context: 'PysContext',
+        position: 'PysPosition',
+        cause: Optional['PysTraceback'] = None,
+        directly: bool = False
+    ) -> None:
+
         setimuattr(self, 'exception', exception)
         setimuattr(self, 'context', context)
         setimuattr(self, 'position', position)
         setimuattr(self, 'cause', cause)
         setimuattr(self, 'directly', directly)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<traceback of exception {self.exception!r}>'
 
-    def string_traceback(self):
+    def string_traceback(self) -> str:
         from .position import format_arrow  # circular import problem solved
 
         context = self.context
@@ -95,11 +110,11 @@ class PysSignal(Pys, BaseException):
 
     __slots__ = ('result',)
 
-    def __init__(self, result):
+    def __init__(self, result: 'PysRunTimeResult') -> None:
         super().__init__()
         self.result = result
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.result.error is None:
             return '<signal>'
 

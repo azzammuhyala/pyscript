@@ -129,3 +129,5 @@ SYMBOLS_TOKEN_MAP = MappingProxyType({
 })
 
 EMPTY_MAP = MappingProxyType({})
+
+REVERSE_TOKENS = MappingProxyType({type: name for name, type in TOKENS.items()})

@@ -28,12 +28,12 @@
 * To share your extension with the world, read on
   https://code.visualstudio.com/api/working-with-extensions/publishing-extension about publishing an extension.
 
-## Test
-```sh
-code --install-extension pyslang-1.1.0.vsix
-```
-
-## Compile
+## Compile the extension
 ```sh
 vsce package
+```
+
+## Test the extension
+```sh
+code --install-extension pyslang-$VERSION.vsix
 ```

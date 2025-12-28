@@ -46,7 +46,7 @@ class PysSymbolTable(Pys):
             self.symbols[name] = value
             return True
 
-        if name not in self.symbols:
+        elif name not in self.symbols:
             if name in self.globals and self.parent:
                 return self.parent.set(name, value, operand=operand)
             return False
@@ -70,7 +70,7 @@ class PysClassSymbolTable(PysSymbolTable):
     def __init__(self, parent: PysSymbolTable) -> None:
         super().__init__(parent)
 
-def find_closest(symtab, name):
+def find_closest(symtab: PysSymbolTable, name: str) -> str | None:
     symbols = set(symtab.symbols.keys())
 
     parent = symtab.parent
@@ -80,13 +80,7 @@ def find_closest(symtab, name):
 
     builtins = symtab.get('__builtins__')
     if builtins is not undefined:
-        symbols.update(
-            (
-                builtins
-                if isinstance(builtins, dict) else
-                getattr(builtins, '__dict__', EMPTY_MAP)
-            ).keys()
-        )
+        symbols.update((builtins if isinstance(builtins, dict) else getattr(builtins, '__dict__', EMPTY_MAP)).keys())
 
     return get_closest(symbols, name)
 

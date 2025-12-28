@@ -1,12 +1,14 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
-from .cache import loading_modules, modules, path, undefined, hook
+from .cache import loading_modules, modules, path, hook
 from .checks import is_blacklist_python_builtins, is_private_attribute
+from .constants import NO_COLOR
 from .exceptions import PysSignal
 from .handlers import handle_call
-from .objects import PysPythonFunction, PysFunction
+from .objects import PysBuiltinFunction, PysFunction
 from .results import PysRunTimeResult
 from .symtab import new_symbol_table
+from .utils.ansi import BOLD, acolor
 from .utils.generic import get_any, is_object_of as isobjectof, import_readline
 from .utils.module import get_module_name_from_path, get_module_path, set_python_path, remove_python_path
 from .utils.path import getcwd, normpath
@@ -23,12 +25,12 @@ from typing import Any, Callable, Iterable, Optional
 import builtins
 import sys
 
-def _supported_method(pyfunc, object, name, *args, **kwargs):
-    method = getattr(object, name, undefined)
-    if method is undefined:
-        return False, None
+pyhelp = builtins.help
+pyvars = builtins.vars
+pydir = builtins.dir
 
-    if callable(method):
+def _supported_method(pyfunc, object, name, *args, **kwargs):
+    if callable(method := getattr(object, name, None)):
         code = pyfunc.__code__
         handle_call(method, code.context, code.position)
         try:
@@ -37,7 +39,6 @@ def _supported_method(pyfunc, object, name, *args, **kwargs):
                 return True, result
         except NotImplementedError:
             pass
-
     return False, None
 
 def _unpack_comprehension_function(function):
@@ -94,7 +95,7 @@ class _Helper(_Printer):
                 "type 'help(\"builtins\")'."
             )
         else:
-            return builtins.help(*args, **kwargs)
+            return pyhelp(*args, **kwargs)
 
 license = _Printer(
     'license',
@@ -106,7 +107,7 @@ license = _Printer(
 
 help = _Helper()
 
-@PysPythonFunction
+@PysBuiltinFunction
 def require(pyfunc, name):
 
     """
@@ -190,11 +191,11 @@ def require(pyfunc, name):
 
     return module
 
-@PysPythonFunction
+@PysBuiltinFunction
 def pyimport(pyfunc, name):
 
     """
-    pyimport(name: str | bytes) -> types.ModuleType
+    pyimport(name: str | bytes) -> ModuleType
 
     Import a Python module.
 
@@ -208,7 +209,7 @@ def pyimport(pyfunc, name):
     finally:
         remove_python_path(dirpath)
 
-@PysPythonFunction
+@PysBuiltinFunction
 def breakpoint(pyfunc):
 
     """
@@ -225,7 +226,14 @@ def breakpoint(pyfunc):
     position = code.position
     symtab = context.symbol_table
 
-    shell = PysCommandLineShell('(Pdb) ', '...   ')
+    if context.flags & NO_COLOR:
+        reset = ''
+        bmagenta = ''
+    else:
+        reset = acolor('reset')
+        bmagenta = acolor('magenta', style=BOLD)
+
+    shell = PysCommandLineShell(f'{bmagenta}(Pdb) {reset}', f'{bmagenta}...   {reset}')
     scopes = []
 
     import_readline()
@@ -246,12 +254,28 @@ def breakpoint(pyfunc):
                 else:
                     command, args = '', []
 
-                if command in ('q', 'quit', 'exit'):
+                if command in ('c', 'continue'):
+                    return
+
+                elif command in ('h', 'help'):
+                    print(
+                        "\n"
+                        "Documented commands:\n"
+                        "====================\n"
+                        "(c)ontinue          : Exit the debugger and continue the program.\n"
+                        "(d)own [count]      : Decrease the scope level (default one) to the older frame.\n"
+                        "(h)elp              : Show this help display.\n"
+                        "(l)ine              : Show the position where breakpoint() was called.\n"
+                        "(q)uit / exit [code]: Exit the interpreter by throwing SystemExit.\n"
+                        "(u)p [count]        : Increase the scope level (default one) to the older frame.\n"
+                    )
+
+                elif command in ('l', 'line'):
+                    print(f"> {context.file.name}({position.start_line}){context.name}")
+
+                elif command in ('q', 'quit', 'exit'):
                     code = get_any(args, 0, '0')
                     raise SystemExit(int(code) if code.isdigit() else code)
-
-                elif command in ('c', 'continue'):
-                    return
 
                 elif command in ('u', 'up'):
                     count = get_any(args, 0, '')
@@ -273,18 +297,6 @@ def breakpoint(pyfunc):
                             scopes.append(symtab)
                             symtab = parent
 
-                elif command in ('h', 'help'):
-                    print(
-                        "\n"
-                        "Documented commands:\n"
-                        "====================\n"
-                        "(c)ontinue          : Exit the debugger and continue the program.\n"
-                        "(d)own [count]      : Decrease the scope level (default one) to the older frame.\n"
-                        "(h)elp              : Show this help display.\n"
-                        "(q)uit / exit [code]: Exit the interpreter by throwing SystemExit.\n"
-                        "(u)p [count]        : Increase the scope level (default one) to the older frame.\n"
-                    )
-
                 else:
                     pys_runner(
                         file=PysFileBuffer(text, '<breakpoint>'),
@@ -302,7 +314,7 @@ def breakpoint(pyfunc):
     finally:
         hook.running_breakpoint = False
 
-@PysPythonFunction
+@PysBuiltinFunction
 def globals(pyfunc):
 
     """
@@ -325,7 +337,7 @@ def globals(pyfunc):
 
     return pyfunc.__code__.context.symbol_table.symbols
 
-@PysPythonFunction
+@PysBuiltinFunction
 def locals(pyfunc):
 
     """
@@ -336,10 +348,7 @@ def locals(pyfunc):
 
     return pyfunc.__code__.context.symbol_table.symbols
 
-pyvars = builtins.vars
-pydir = builtins.dir
-
-@PysPythonFunction
+@PysBuiltinFunction
 def vars(pyfunc, *args):
 
     """
@@ -348,7 +357,7 @@ def vars(pyfunc, *args):
 
     return pyvars(*args) if args else pyfunc.__code__.context.symbol_table.symbols
 
-@PysPythonFunction
+@PysBuiltinFunction
 def dir(pyfunc, *args):
 
     """
@@ -363,7 +372,7 @@ def dir(pyfunc, *args):
 
     return pydir(*args) if args else list(pyfunc.__code__.context.symbol_table.symbols.keys())
 
-@PysPythonFunction
+@PysBuiltinFunction
 def exec(pyfunc, source, globals=None):
 
     """
@@ -400,7 +409,7 @@ def exec(pyfunc, source, globals=None):
     if result.error:
         raise PysSignal(PysRunTimeResult().failure(result.error))
 
-@PysPythonFunction
+@PysBuiltinFunction
 def eval(pyfunc, source, globals=None):
 
     """
@@ -439,7 +448,7 @@ def eval(pyfunc, source, globals=None):
 
     return result.value
 
-@PysPythonFunction
+@PysBuiltinFunction
 def ce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
 
     """
@@ -448,9 +457,9 @@ def ce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
 
     Comparing two objects a and b to close equal.
 
-    a, b: Two objects to be compared. If both are integer or float, it will call `math.isclose` function. Otherwise, it
-          will attempt to call the __ce__ method of one of the two objects. If all else fails, it will throw a
-          TypeError.
+    a, b: Two objects to be compared. If both are integer or float, it will call `math.isclose()` function. Otherwise,
+          it will attempt to call the __ce__ method (if both fail, it calls the negated __nce__ method) of one of the
+          two objects. If all else fails, it will throw a TypeError.
     rel_tol: maximum difference for being considered "close", relative to the magnitude of the input values.
     abs_tol: maximum difference for being considered "close", regardless of the magnitude of the input values.
     """
@@ -462,13 +471,18 @@ def ce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
     if not success:
         success, result = _supported_method(pyfunc, b, '__ce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
         if not success:
-            raise TypeError(
-                f"unsupported operand type(s) for ~= or ce(): {type(a).__name__!r} and {type(b).__name__!r}"
-            )
+            success, result = _supported_method(pyfunc, a, '__nce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
+            if not success:
+                success, result = _supported_method(pyfunc, b, '__nce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
+                if not success:
+                    raise TypeError(
+                        f"unsupported operand type(s) for ~= or ce(): {type(a).__name__!r} and {type(b).__name__!r}"
+                    )
+            result = not result
 
     return result
 
-@PysPythonFunction
+@PysBuiltinFunction
 def nce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
 
     """
@@ -477,9 +491,9 @@ def nce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
 
     Comparing two objects a and b to not close equal.
 
-    a, b: Two objects to be compared. If both are integer or float, it calls the `not math.isclose` function. Otherwise,
-          it attempts to call the __nce__ method (if both fail, it calls the negated __ce__ method) of one of the two
-          objects. If both fail, it throws a TypeError.
+    a, b: Two objects to be compared. If both are integer or float, it calls the `not math.isclose()` function.
+          Otherwise, it attempts to call the __nce__ method (if both fail, it calls the negated __ce__ method) of one of
+          the two objects. If both fail, it throws a TypeError.
     rel_tol: maximum difference for being considered "close", relative to the magnitude of the input values.
     abs_tol: maximum difference for being considered "close", regardless of the magnitude of the input values.
     """
@@ -502,7 +516,7 @@ def nce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
 
     return result
 
-@PysPythonFunction
+@PysBuiltinFunction
 def increment(pyfunc, object):
 
     """
@@ -523,7 +537,7 @@ def increment(pyfunc, object):
 
     return result
 
-@PysPythonFunction
+@PysBuiltinFunction
 def decrement(pyfunc, object):
 
     """

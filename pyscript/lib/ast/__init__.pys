@@ -5,13 +5,12 @@ from ast_unparse import unparse
 from ast_walk import walk
 from _pyscript import nodes
 
-func literal_eval(node_or_string) {
+func literal_eval(node_or_string)
     return _visit_literal_eval(parse(node_or_string, mode='eval'))
-}
-
-all = []
 
 Node = nodes.PysNode
+
+allNodes = []
 
 locals().update(
     comprehension(
@@ -19,7 +18,7 @@ locals().update(
         func(cls) {
             name = cls.__name__
             nodeName = name.removeprefix('Pys')
-            all.append(nodeName)
+            allNodes.append(nodeName)
             return nodeName, getattr(nodes, name)
         }
     )
@@ -32,6 +31,6 @@ __all__ = (
     'unparse',
     'walk',
     'Node'
-) + tuple(all)
+) + tuple(allNodes)
 
-del all, nodes
+del allNodes, nodes

@@ -15,11 +15,11 @@ class PysNode(Pys):
     def __init__(self, position: PysPosition) -> None:
         setimuattr(self, 'position', position)
 
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, **kwargs) -> None:
         super().__init_subclass__(**kwargs)
         inheritable(cls)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return 'Node()'
 
 class PysNumberNode(PysNode):
@@ -31,7 +31,7 @@ class PysNumberNode(PysNode):
         super().__init__(value.position)
         setimuattr(self, 'value', value)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Number(value={self.value!r})'
 
 class PysStringNode(PysNode):
@@ -43,7 +43,7 @@ class PysStringNode(PysNode):
         super().__init__(value.position)
         setimuattr(self, 'value', value)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'String(value={self.value!r})'
 
 class PysKeywordNode(PysNode):
@@ -55,7 +55,7 @@ class PysKeywordNode(PysNode):
         super().__init__(name.position)
         setimuattr(self, 'name', name)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Keyword(name={self.name!r})'
 
 class PysIdentifierNode(PysNode):
@@ -67,7 +67,7 @@ class PysIdentifierNode(PysNode):
         super().__init__(name.position)
         setimuattr(self, 'name', name)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Identifier(name={self.name!r})'
 
 class PysDictionaryNode(PysNode):
@@ -79,7 +79,7 @@ class PysDictionaryNode(PysNode):
         super().__init__(position)
         setimuattr(self, 'pairs', tuple(pairs))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Dictionary(pairs={self.pairs!r})'
 
 class PysSetNode(PysNode):
@@ -91,7 +91,7 @@ class PysSetNode(PysNode):
         super().__init__(position)
         setimuattr(self, 'elements', tuple(elements))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Set(elements={self.elements!r})'
 
 class PysListNode(PysNode):
@@ -103,7 +103,7 @@ class PysListNode(PysNode):
         super().__init__(position)
         setimuattr(self, 'elements', tuple(elements))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'List(elements={self.elements!r})'
 
 class PysTupleNode(PysNode):
@@ -115,7 +115,7 @@ class PysTupleNode(PysNode):
         super().__init__(position)
         setimuattr(self, 'elements', tuple(elements))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Tuple(elements={self.elements!r})'
 
 class PysAttributeNode(PysNode):
@@ -128,7 +128,7 @@ class PysAttributeNode(PysNode):
         setimuattr(self, 'target', target)
         setimuattr(self, 'attribute', attribute)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Attribute(target={self.target!r}, attribute={self.attribute!r})'
 
 class PysSubscriptNode(PysNode):
@@ -147,7 +147,7 @@ class PysSubscriptNode(PysNode):
         setimuattr(self, 'target', target)
         setimuattr(self, 'slice', tuple(slice) if isinstance(slice, list) else slice)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Subscript(target={self.target!r}, slice={self.slice!r})'
 
 class PysCallNode(PysNode):
@@ -166,7 +166,7 @@ class PysCallNode(PysNode):
         setimuattr(self, 'target', target)
         setimuattr(self, 'arguments', tuple(arguments))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Call(target={self.target!r}, arguments={self.arguments!r})'
 
 class PysChainOperatorNode(PysNode):
@@ -186,7 +186,7 @@ class PysChainOperatorNode(PysNode):
         setimuattr(self, 'operations', tuple(operations))
         setimuattr(self, 'expressions', tuple(expressions))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'ChainOperator(operations={self.operations!r}, expressions={self.expressions!r})'
 
 class PysTernaryOperatorNode(PysNode):
@@ -212,7 +212,7 @@ class PysTernaryOperatorNode(PysNode):
         setimuattr(self, 'invalid', invalid)
         setimuattr(self, 'style', style)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             'TernaryOperator('
                 f'condition={self.condition!r}, '
@@ -233,7 +233,7 @@ class PysBinaryOperatorNode(PysNode):
         setimuattr(self, 'operand', operand)
         setimuattr(self, 'right', right)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'BinaryOperator(left={self.left!r}, operand={self.operand!r}, right={self.right!r})'
 
 class PysUnaryOperatorNode(PysNode):
@@ -252,7 +252,7 @@ class PysUnaryOperatorNode(PysNode):
         setimuattr(self, 'value', value)
         setimuattr(self, 'operand_position', operand_position)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             'UnaryOperator('
                 f'operand={self.operand!r}, '
@@ -270,7 +270,7 @@ class PysStatementsNode(PysNode):
         super().__init__(position)
         setimuattr(self, 'body', tuple(body))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Statements(body={self.body!r})'
 
 class PysAssignNode(PysNode):
@@ -284,7 +284,7 @@ class PysAssignNode(PysNode):
         setimuattr(self, 'operand', operand)
         setimuattr(self, 'value', value)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Assign(target={self.target!r}, operand={self.operand!r}, value={self.value!r})'
 
 class PysImportNode(PysNode):
@@ -303,7 +303,7 @@ class PysImportNode(PysNode):
         setimuattr(self, 'name', name)
         setimuattr(self, 'packages', tuple(packages) if isinstance(packages, list) else packages)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Import(name={self.name!r}, packages={self.packages!r})'
 
 class PysIfNode(PysNode):
@@ -322,7 +322,7 @@ class PysIfNode(PysNode):
         setimuattr(self, 'cases_body', tuple(cases_body))
         setimuattr(self, 'else_body', else_body)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'If(cases_body={self.cases_body!r}, else_body={self.else_body!r})'
 
 class PysSwitchNode(PysNode):
@@ -343,7 +343,7 @@ class PysSwitchNode(PysNode):
         setimuattr(self, 'case_cases', tuple(case_cases))
         setimuattr(self, 'default_body', default_body)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Switch(target={self.target!r}, case_cases={self.case_cases!r}, default_body={self.default_body!r})'
 
 class PysMatchNode(PysNode):
@@ -364,7 +364,7 @@ class PysMatchNode(PysNode):
         setimuattr(self, 'cases', tuple(cases))
         setimuattr(self, 'default', default)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Match(target={self.target!r}, cases={self.cases!r}, default={self.default!r})'
 
 class PysTryNode(PysNode):
@@ -387,7 +387,7 @@ class PysTryNode(PysNode):
         setimuattr(self, 'else_body', else_body)
         setimuattr(self, 'finally_body', finally_body)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             'Try('
                 f'body={self.body!r}, '
@@ -407,7 +407,7 @@ class PysWithNode(PysNode):
         setimuattr(self, 'contexts', tuple(contexts))
         setimuattr(self, 'body', body)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'With(contexts={self.contexts!r}, body={self.body!r})'
 
 class PysForNode(PysNode):
@@ -429,7 +429,7 @@ class PysForNode(PysNode):
         setimuattr(self, 'body', body)
         setimuattr(self, 'else_body', else_body)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'For(header={self.header!r}, body={self.body!r}, else_body={self.else_body!r})'
 
 class PysWhileNode(PysNode):
@@ -450,7 +450,7 @@ class PysWhileNode(PysNode):
         setimuattr(self, 'body', body)
         setimuattr(self, 'else_body', else_body)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'While(condition={self.condition!r}, body={self.body!r}, else_body={self.else_body!r})'
 
 class PysDoWhileNode(PysNode):
@@ -471,7 +471,7 @@ class PysDoWhileNode(PysNode):
         setimuattr(self, 'condition', condition)
         setimuattr(self, 'else_body', else_body)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'DoWhile(body={self.body!r}, condition={self.condition!r}, else_body={self.else_body!r})'
 
 class PysClassNode(PysNode):
@@ -494,12 +494,12 @@ class PysClassNode(PysNode):
         setimuattr(self, 'bases', tuple(bases))
         setimuattr(self, 'body', body)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Class(decorators={self.decorators!r}, name={self.name!r}, bases={self.bases!r}, body={self.body!r})'
 
 class PysFunctionNode(PysNode):
 
-    __slots__ = ('decorators', 'name', 'parameters', 'body')
+    __slots__ = ('decorators', 'name', 'parameters', 'body', 'constructor')
 
     @typechecked
     def __init__(
@@ -508,6 +508,7 @@ class PysFunctionNode(PysNode):
         name: PysToken | None,
         parameters: list[PysToken | tuple[PysToken, PysNode]],
         body: PysNode,
+        constructor: bool,
         position: PysPosition
     ) -> None:
 
@@ -516,11 +517,17 @@ class PysFunctionNode(PysNode):
         setimuattr(self, 'name', name)
         setimuattr(self, 'parameters', tuple(parameters))
         setimuattr(self, 'body', body)
+        setimuattr(self, 'constructor', bool(constructor))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             'Function('
-            f'decorators={self.decorators!r}, name={self.name!r}, parameters={self.parameters!r}, body={self.body!r})'
+                f'decorators={self.decorators!r}, '
+                f'name={self.name!r}, '
+                f'parameters={self.parameters!r}, '
+                f'body={self.body!r}, '
+                f'constructor={self.constructor!r}'
+            ')'
         )
 
 class PysGlobalNode(PysNode):
@@ -530,9 +537,9 @@ class PysGlobalNode(PysNode):
     @typechecked
     def __init__(self, identifiers: list[PysToken], position: PysPosition) -> None:
         super().__init__(position)
-        setimuattr(self, 'identifiers', tuple(identifiers))
+        setimuattr(self, 'identifiers', tuple(frozenset(identifiers)))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Global(identifiers={self.identifiers!r})'
 
 class PysReturnNode(PysNode):
@@ -544,7 +551,7 @@ class PysReturnNode(PysNode):
         super().__init__(position)
         setimuattr(self, 'value', value)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Return(value={self.value!r})'
 
 class PysThrowNode(PysNode):
@@ -564,7 +571,7 @@ class PysThrowNode(PysNode):
         setimuattr(self, 'target', target)
         setimuattr(self, 'cause', cause)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Throw(target={self.target!r}, cause={self.cause!r})'
 
 class PysAssertNode(PysNode):
@@ -577,7 +584,7 @@ class PysAssertNode(PysNode):
         setimuattr(self, 'condition', condition)
         setimuattr(self, 'message', message)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Assert(condition={self.condition!r}, message={self.message!r})'
 
 class PysDeleteNode(PysNode):
@@ -589,26 +596,26 @@ class PysDeleteNode(PysNode):
         super().__init__(position)
         setimuattr(self, 'targets', tuple(targets))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Delete(targets={self.targets!r})'
 
 class PysEllipsisNode(PysNode):
 
     __slots__ = ()
 
-    def __repr__(self):
+    def __repr__(self) -> Literal['Ellipsis()']:
         return 'Ellipsis()'
 
 class PysContinueNode(PysNode):
 
     __slots__ = ()
 
-    def __repr__(self):
+    def __repr__(self) -> Literal['Continue()']:
         return 'Continue()'
 
 class PysBreakNode(PysNode):
 
     __slots__ = ()
 
-    def __repr__(self):
+    def __repr__(self) -> Literal['Break()']:
         return 'Break()'

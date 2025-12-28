@@ -32,7 +32,7 @@ class PysPythonFunction(PysObject):
         )
 
     def __repr__(self):
-        return f'<python function {self.__name__}>'
+        return f'<python function {self.__qualname__} at 0x{id(self):016X}>'
 
     def __get__(self, instance, owner):
         return self if instance is None else MethodType(self, instance)
@@ -43,6 +43,11 @@ class PysPythonFunction(PysObject):
 
         code.handle_call(func, code.context, code.position)
         return func(self, *args, **kwargs)
+
+class PysBuiltinFunction(PysPythonFunction):
+
+    def __repr__(self):
+        return f'<built-in function {self.__qualname__}>'
 
 class PysFunction(PysObject):
 

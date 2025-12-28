@@ -12,6 +12,7 @@
 	],
 
 	"repository": {
+
 		"keywords": {
 			"patterns": [
 				{
@@ -20,7 +21,16 @@
 				},
 				{
 					"name": "constant.language",
-					"match": "\\b(__debug__|False|None|True|and|extends|false|global|in|is|not|none|of|or|true)\\b"
+					"match": "\\b(__debug__|False|None|True|and|constructor|extends|false|global|in|is|not|none|of|or|true)\\b"
+				}
+			]
+		},
+
+		"todo-keywords": {
+			"patterns": [
+				{
+					"name": "markup.bold.todo",
+					"match": "\\b(TODO|NOTE|FIXME|BUG|HACK)\\b"
 				}
 			]
 		},
@@ -54,7 +64,8 @@
 						"1": {"name": "punctuation.definition.string.end"}
 					},
 					"patterns": [
-						{"include": "#string-escapes"}
+						{"include": "#string-escapes"},
+						{"include": "#todo-keywords"}
 					]
 				},
 				{
@@ -86,7 +97,8 @@
 						"3": {"name": "invalid.illegal.unterminated-string"}
 					},
 					"patterns": [
-						{"include": "#string-escapes"}
+						{"include": "#string-escapes"},
+						{"include": "#todo-keywords"}
 					]
 				}
 			]
@@ -128,6 +140,7 @@
 		"raw-string-escapes": {
 			"patterns": [
 				{
+					"name": "constant.character.escape",
 					"match": "\\\\([\\'\"\\n\\r])"
 				}
 			]
@@ -156,14 +169,17 @@
 					"match": "[0-9](_?[0-9])*[jJiI]?"
 				}
 			]
-
 		},
 
 		"comments": {
 			"patterns": [
 				{
 					"name": "comment.line",
-					"match": "#.*$"
+					"begin": "#",
+					"end": "$",
+					"patterns": [
+						{"include": "#todo-keywords"}
+					]
 				}
 			]
 		},

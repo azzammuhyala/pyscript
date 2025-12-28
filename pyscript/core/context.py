@@ -1,7 +1,12 @@
 from .bases import Pys
+from .buffer import PysFileBuffer
 from .constants import DEFAULT
+from .position import PysPosition
+from .symtab import PysSymbolTable
 from .utils.decorators import immutable
 from .utils.generic import setimuattr
+
+from typing import Optional
 
 @immutable
 class PysContext(Pys):
@@ -10,14 +15,15 @@ class PysContext(Pys):
 
     def __init__(
         self,
-        file,
-        name=None,
-        qualname=None,
-        flags=None,
-        symbol_table=None,
-        parent=None,
-        parent_entry_position=None
-    ):
+        *,
+        file: PysFileBuffer,
+        name: Optional[str] = None,
+        qualname: Optional[str] = None,
+        flags: Optional[int] = None,
+        symbol_table: Optional[PysSymbolTable] = None,
+        parent: Optional['PysContext'] = None,
+        parent_entry_position: Optional[PysPosition] = None
+    ) -> None:
         if flags is None and parent:
             flags = parent.flags
 
@@ -29,7 +35,7 @@ class PysContext(Pys):
         setimuattr(self, 'parent', parent)
         setimuattr(self, 'parent_entry_position', parent_entry_position)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<Context {self.name!r}>'
 
 class PysClassContext(PysContext):
@@ -38,11 +44,12 @@ class PysClassContext(PysContext):
 
     def __init__(
         self,
-        name,
-        symbol_table,
-        parent,
-        parent_entry_position
-    ):
+        *,
+        name: str,
+        symbol_table: PysSymbolTable,
+        parent: PysContext,
+        parent_entry_position: PysPosition
+    ) -> None:
         qualname = parent.qualname
         super().__init__(
             file=parent.file,

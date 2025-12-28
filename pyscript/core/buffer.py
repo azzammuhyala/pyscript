@@ -4,6 +4,7 @@ from .utils.generic import setimuattr
 from .utils.string import normstr
 
 from io import IOBase
+from typing import Callable, Iterable, Optional
 
 @immutable
 class PysBuffer(Pys):
@@ -13,7 +14,11 @@ class PysFileBuffer(PysBuffer):
 
     __slots__ = ('text', 'name')
 
-    def __init__(self, text, name=None) -> None:
+    def __init__(
+        self,
+        text: str | bytes | bytearray | Iterable | Callable | IOBase | 'PysFileBuffer',
+        name: Optional[str | bytes] = None
+    ) -> None:
 
         if isinstance(text, PysFileBuffer):
             name = normstr(text.name if name is None else name)

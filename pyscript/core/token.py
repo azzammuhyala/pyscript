@@ -1,10 +1,10 @@
 from .bases import Pys
-from .constants import TOKENS
+from .mapping import REVERSE_TOKENS
 from .position import PysPosition
 from .utils.decorators import typechecked, immutable
 from .utils.generic import setimuattr
 
-from typing import Any, Optional
+from typing import Any, Iterable, Optional
 
 @immutable
 class PysToken(Pys):
@@ -17,23 +17,15 @@ class PysToken(Pys):
         setimuattr(self, 'position', position)
         setimuattr(self, 'value', value)
 
-    def __repr__(self):
-        name = '<UNKNOWN>'
-        type = self.type
+    def __repr__(self) -> str:
         value = self.value
-
-        for token_name, token_type in TOKENS.items():
-            if token_type == type:
-                name = token_name
-                break
-
         return 'Token({}{})'.format(
-            name,
+            REVERSE_TOKENS.get(self.type, '<UNKNOWN>'),
             '' if value is None else f', value={value!r}'
         )
 
-    def match(self, type, value):
+    def match(self, type: int, value: Any) -> bool:
         return self.type == type and self.value == value
 
-    def matches(self, type, values):
+    def matches(self, type: int, values: Iterable) -> bool:
         return self.type == type and self.value in values

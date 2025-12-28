@@ -1,11 +1,15 @@
 # Change Log
 
-## [1.8.1] - 24/12/2025
+## [1.9.0] - 28/12/2025
 
 ### Added
-- New styles and a new function (`fansi()`) in `ansi` module.
-- Type hints for some objects.
+- Class `pyscript.core.objects.PysBuiltinFunction` (builtins from PyScript are wrapped with this).
+- The `constructor` keyword (an alternative to the `func __init__(self, ...)` code).
+- Added type hints on some objects.
+- Builtin `ce()` supports a method called `__nce__` (negated).
+- Keyword `match` now tolerates the absence of a condition.
+- Builin `breakpoint()` added new commands and ansi prompt support.
 
 ### Fixed
-- Warning messages in lexer.
 - Fixed some bugs.
+- Fixed syntax highlight.

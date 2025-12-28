@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import Iterable
 from io import IOBase, TextIOWrapper
 from json import detect_encoding
 from types import BuiltinMethodType
@@ -15,7 +15,7 @@ def normstr(obj):
             raise TypeError("unreadable IO")
         return normstr(obj.read())
 
-    elif isinstance(obj, Iterator):
+    elif isinstance(obj, Iterable):
         return '\n'.join(map(normstr, obj))
 
     elif isinstance(obj, BuiltinMethodType) and \
@@ -23,7 +23,7 @@ def normstr(obj):
         obj.__name__ == 'readline':
 
         if not self.readable():
-            raise TypeError("unreadable IO")
+            raise TypeError("unreadable IO, provides readline function")
 
         lines = []
         while True:

@@ -341,7 +341,8 @@ class DumpNode:
                 ('decorators', node.decorators),
                 ('name', node.name),
                 ('parameters', node.parameters),
-                ('body', node.body)
+                ('body', node.body),
+                ('constructor', node.constructor)
             ]
         )
 

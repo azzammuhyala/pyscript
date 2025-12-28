@@ -43,9 +43,9 @@ _builtin_functions = tuple(
 )
 
 try:
-    # if pygments module exists
+    # if pygments module already exists
     from pygments.lexer import RegexLexer, include, bygroups
-    from pygments.token import Comment, Keyword, Name, Number, String, Text
+    from pygments.token import Comment, Keyword, Name, Number, Punctuation, String, Whitespace
     from pygments.unistring import xid_start, xid_continue
 
     _keyword_definitions = (KEYWORDS['class'], KEYWORDS['func'], KEYWORDS['function'])
@@ -66,6 +66,12 @@ try:
         tokens = {
 
             'root': [
+                # Whitespaces
+                (r'\s+', Whitespace),
+
+                # Punctuation
+                (r'[!%&\(\)\*\+,\-\./:;<=>\?@\[\]^{\|}~\\]+', Punctuation),
+
                 # Keywords
                 (
                     r'\b(' + '|'.join(filter(lambda k: not is_constant_keywords(k), KEYWORDS)) + r')\b',
@@ -121,11 +127,11 @@ try:
                 # Numbers
                 (
                     r'0[bB][01](_?[01])*[jJiI]?',
-                    Number.Binary
+                    Number.Bin
                 ),
                 (
                     r'0[oO][0-7](_?[0-7])*[jJiI]?',
-                    Number.Octal
+                    Number.Oct
                 ),
                 (
                     r'0[xX][0-9a-fA-F](_?[0-9a-fA-F])*[jJiI]?',
@@ -142,20 +148,24 @@ try:
                 ),
 
                 # Comments
-                (r'#.*$', Comment.Single),
+                (
+                    r'#',
+                    Comment.Single,
+                    'in-comment'
+                ),
 
                 # Class definition
                 (
                     r'\b(' + KEYWORDS['class'] + r')\b'
                     r'(\s*)((?:\$(?:[^\S\r\n]*))?\b' + _unicode_name + r'*)\b',
-                    bygroups(Keyword.Declaration, Text, Name.Class)
+                    bygroups(Keyword.Constant, Whitespace, Name.Class)
                 ),
 
                 # Function definition
                 (
                     r'\b(' + KEYWORDS['func'] + '|' + KEYWORDS['function'] + r')\b' +
                     r'(\s*)((?:\$(?:[^\S\r\n]*))?\b' + _unicode_name + r'*)\b',
-                    bygroups(Keyword.Declaration, Text, Name.Function)
+                    bygroups(Keyword.Constant, Whitespace, Name.Function)
                 ),
 
                 # Keywords (if that definition is unmatched)
@@ -184,13 +194,17 @@ try:
                 (r'(?:\$(?:[^\S\r\n]*))?\b' + _unicode_name + r'*\b', Name),
             ],
 
+            'todo-keywords': [
+                (r'\b(TODO|NOTE|FIXME|BUG|HACK)\b', Keyword.Constant.Todo)
+            ],
+
             'string-escapes': [
                 (r'\\([nrtbfav\'"\n\r])', String.Escape),
                 (r'\\[0-7]{1,3}}', String.Escape.Octal),
                 (r'\\x[0-9A-Fa-f]{2}', String.Escape.Hex),
                 (r'\\u[0-9A-Fa-f]{4}', String.Escape.Unicode),
                 (r'\\U[0-9A-Fa-f]{8}', String.Escape.Unicode),
-                (r'\\N\{[^}]+\}', String.Escape.Unicode),
+                (r'\\N\{[^}]+\}', String.Escape.UnicodeName),
                 (r'\\.', String.Escape.Invalid)
             ],
 
@@ -214,12 +228,14 @@ try:
             'string-apostrophe-triple': [
                 (r"'''", String.Delimiter, '#pop'),
                 include('string-escapes'),
+                include('todo-keywords'),
                 (r'.', String)
             ],
 
             'string-quotation-triple': [
                 (r'"""', String.Delimiter, '#pop'),
                 include('string-escapes'),
+                include('todo-keywords'),
                 (r'.', String)
             ],
 
@@ -238,23 +254,31 @@ try:
             'string-apostrophe-single': [
                 (r"'", String.Delimiter, '#pop'),
                 include('string-escapes'),
+                include('todo-keywords'),
                 (r'.', String)
             ],
 
             'string-quotation-single': [
                 (r'"', String.Delimiter, '#pop'),
                 include('string-escapes'),
+                include('todo-keywords'),
                 (r'.', String)
             ],
 
+            'in-comment': [
+                (r'$', Comment.Single, '#pop'),
+                include('todo-keywords'),
+                (r'.', Comment.Single),
+            ]
+
         }
 
-except ImportError:
+except ImportError as e:
 
     class PygmentsPyScriptLexer(Pys):
 
         def __new__(cls, *args, **kwargs):
-            raise ModuleNotFoundError("module pygments is not found")
+            raise ModuleNotFoundError(f"cannot import module pygments: {e}")
 
 @typechecked
 class _PysHighlightFormatter(Pys):

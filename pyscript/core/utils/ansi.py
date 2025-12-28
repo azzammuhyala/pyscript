@@ -92,23 +92,23 @@ class AnsiParser(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         if tag != 'ansi':
-            raise ValueError(f'unknown tag: {tag}')
+            raise ValueError(f"unknown start-tag: {tag}")
 
         attrs = dict(attrs)
-
         color = attrs.get('color')
+        styles = attrs.get('style', 'DEFAULT').replace(',', ' ').split()
+
         if color is None:
             color = (attrs['r'], attrs['g'], attrs['b'])
-        styles = attrs.get('style', 'DEFAULT').split()
 
-        self.result.append(acolor(color, style=reduce(or_, (STYLE_MAP[style].upper() for style in styles))))
+        self.result.append(acolor(color, style=reduce(or_, (STYLE_MAP[style.upper()] for style in styles))))
         self.stack += 1
 
     def handle_endtag(self, tag):
         if self.stack <= 0:
-            raise SyntaxError(f'unmatch tag: {tag}')
+            raise SyntaxError(f"unmatch tag: {tag}, stack {self.stack}")
         if tag != 'ansi':
-            raise ValueError(f'unknown tag: {tag}')
+            raise ValueError(f"unknown end-tag: {tag}")
 
         self.result.append(acolor('reset'))
         self.stack -= 1
@@ -117,6 +117,8 @@ class AnsiParser(HTMLParser):
         self.result.append(data)
 
     def get_output(self):
+        if self.stack != 0:
+            raise SyntaxError("unmatch tag got EOF")
         return ''.join(self.result)
 
 def fansi(string: str) -> str:

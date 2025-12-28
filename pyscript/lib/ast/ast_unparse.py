@@ -452,11 +452,13 @@ def visit_FunctionNode(node):
         string += '\n'.join(decorators)
         string += '\n'
 
-    string += KEYWORDS['func']
-
-    if node.name:
-        string += ' '
-        string += node.name.value
+    if node.constructor:
+        string += KEYWORDS['constructor']
+    else:
+        string += KEYWORDS['func']
+        if node.name:
+            string += ' '
+            string += node.name.value
 
     string += '('
     string += ', '.join(parameters)

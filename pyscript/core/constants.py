@@ -102,6 +102,7 @@ KEYWORDS = MappingProxyType({
     'case': 'case',
     'catch': 'catch',
     'class': 'class',
+    'constructor': 'constructor',
     'continue': 'continue',
     'default': 'default',
     'del': 'del',
@@ -137,15 +138,16 @@ KEYWORDS = MappingProxyType({
 
 CONSTANT_KEYWORDS = (
     KEYWORDS['__debug__'], KEYWORDS['False'], KEYWORDS['None'], KEYWORDS['True'], KEYWORDS['and'], KEYWORDS['class'],
-    KEYWORDS['extends'], KEYWORDS['func'], KEYWORDS['function'], KEYWORDS['false'], KEYWORDS['global'], KEYWORDS['in'],
-    KEYWORDS['is'], KEYWORDS['not'], KEYWORDS['none'], KEYWORDS['of'], KEYWORDS['or'], KEYWORDS['true']
+    KEYWORDS['constructor'], KEYWORDS['extends'], KEYWORDS['func'], KEYWORDS['function'], KEYWORDS['false'],
+    KEYWORDS['global'], KEYWORDS['in'], KEYWORDS['is'], KEYWORDS['not'], KEYWORDS['none'], KEYWORDS['of'],
+    KEYWORDS['or'], KEYWORDS['true']
 )
 
 # flags
 DEFAULT = 0
 DEBUG = 1 << 0
 SILENT = 1 << 1
-RETRES = 1 << 2
+RETURN_RESULT = 1 << 2
 HIGHLIGHT = 1 << 3
 NO_COLOR = 1 << 4
 REVERSE_POW_XOR = 1 << 5

@@ -8,9 +8,8 @@ class ExplorerResult {
 
     __slots__ = ('success', 'exception')
 
-    func __init__(self) {
+    func __init__(self)
         self.successed()
-    }
 
     func successed(self) {
         self.success = True
@@ -29,9 +28,8 @@ class ExplorerResult {
         self.exception = result.exception
     }
 
-    func __repr__(self) {
+    func __repr__(self)
         return 'ExplorerResult(success={!r}, exception={!r})'.format(self.success, self.exception)
-    }
 
     func __enter__(self);
 
@@ -44,171 +42,141 @@ class ExplorerResult {
 
 func newfile(path, exists_ok=True) {
     result = ExplorerResult()
-
     path = normpath(path, absolute=False)
 
-    if (os.path.exists(path)) {
-        if (not exists_ok) {
+    if os.path.exists(path)
+        if not exists_ok
             result.failured(FileExistsError("{!r} already exists".format(path)))
-        }
-    } else {
-        with (result) {
+    else
+        with result
             open(path, 'a').close()
-        }
-    }
 
     return result
 }
 
 func newfolder(path, exists_ok=True) {
     result = ExplorerResult()
-
     path = normpath(path, absolute=False)
 
-    if (os.path.exists(path)) {
-        if (not exists_ok) {
+    if os.path.exists(path)
+        if not exists_ok
             result.failured(FileExistsError("{!r} already exists".format(path)))
-        }
-    } else {
-        with (result) {
+    else
+        with result
             os.mkdir(path)
-        }
-    }
 
     return result
 }
 
 func rename(path, name) {
     result = ExplorerResult()
-
     path = normpath(path, absolute=False)
-    dirname = os.path.dirname(path)
-    newname = os.path.join(dirname, name)
+    newname = os.path.join(os.path.dirname(path), name)
 
-    with (result) {
+    with result
         os.rename(path, newname)
-    }
 
     return result
 }
 
 func move(path, dist, replace=False) {
     result = ExplorerResult()
-
     path = normpath(path, absolute=False)
     dist = normpath(dist, absolute=False)
 
-    if (not os.path.exists(path)) {
+    if not os.path.exists(path)
         return result.failured(FileNotFoundError("{!r} not found".format(path)))
-    }
 
     basename = os.path.basename(path)
     distpath = os.path.join(dist, basename)
 
-    if (os.path.exists(distpath)) {
-        if (replace) {
+    if os.path.exists(distpath)
+        if replace {
             result.register(remove(distpath))
-            if (not result.success) {
+            if not result.success
                 return result
-            }
-        } else {
+        }
+        else {
             return result.failured(FileExistsError("{!r} already exists".format(distpath)))
         }
-    }
 
-    with (result) {
+    with result
         shutil.move(path, distpath)
-    }
 
     return result
 }
 
 func copy(path, dist, replace=False, metadata=True) {
     result = ExplorerResult()
-
     path = normpath(path, absolute=False)
     dist = normpath(dist, absolute=False)
 
-    if (not os.path.exists(path)) {
+    if not os.path.exists(path)
         return result.failured(FileNotFoundError("{!r} not found".format(path)))
-    }
 
     basename = os.path.basename(path)
     distpath = os.path.join(dist, basename)
 
-    if (os.path.exists(distpath)) {
-        if (replace) {
+    if os.path.exists(distpath)
+        if replace {
             result.register(remove(distpath))
-            if (not result.success) {
+            if not result.success
                 return result
-            }
-        } else {
+        }
+        else {
             return result.failured(FileExistsError("{!r} already exists".format(distpath)))
         }
-    }
 
     copyfunc = metadata ? shutil.copy2 : shutil.copy
 
-    with (result) {
-        if (os.path.isfile(path)) {
+    with result
+        if os.path.isfile(path)
             copyfunc(path, distpath)
-        }
-        elif (os.path.isdir(path)) {
+        elif os.path.isdir(path)
             shutil.copytree(path, distpath, copy_function=copyfunc)
-        }
-    }
 
     return result
 }
 
 func clear(path) {
     result = ExplorerResult()
-
     path = normpath(path, absolute=False)
 
-    if (not os.path.exists(path)) {
+    if not os.path.exists(path)
         return result.failured(FileNotFoundError("{!r} not found".format(path)))
-    }
 
-    with (result) {
-        if (os.path.isfile(path)) {
+    with result
+        if os.path.isfile(path) {
             file = open(path, 'w')
             file.write('')
             file.close()
         }
-        elif (os.path.isdir(path)) {
-            for (child of os.listdir(path)) {
+        elif os.path.isdir(path) {
+            for child of os.listdir(path) {
                 result.register(remove(os.path.join(path, child)))
-                if (not result.success) {
+                if not result.success
                     break
-                }
             }
         }
-    }
 
     return result
 }
 
 func remove(path) {
     result = ExplorerResult()
-
     path = normpath(path, absolute=False)
 
-    if (not os.path.exists(path)) {
+    if not os.path.exists(path)
         return result.failured(FileNotFoundError("{!r} not found".format(path)))
-    }
 
-    with (result) {
-        if (os.path.isfile(path)) {
+    with result
+        if os.path.isfile(path)
             os.remove(path)
-        }
-        elif (os.path.isdir(path)) {
+        elif os.path.isdir(path)
             shutil.rmtree(path, onerror=func(fn, path, excinfo) {
                 os.chmod(path, stat.S_IWRITE)
                 fn(path)
             })
-        }
-    }
 
     return result
 }

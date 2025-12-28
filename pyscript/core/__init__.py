@@ -1,5 +1,5 @@
 """
-PyScript implementations.
+The Core of PyScript Implementations.
 """
 
 from . import (

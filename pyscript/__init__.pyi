@@ -1,8 +1,8 @@
-from typing import TYPE_CHECKING, Any, Callable, Iterator, Literal, Optional
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Literal, Optional
 
 if TYPE_CHECKING:
     from .core.buffer import PysFileBuffer
-    from .core.cache import PysUndefined
+    from .core.cache import PysUndefined, PysHook
     from .core.highlight import _PysHighlightFormatter
     from .core.position import PysPosition
     from .core.results import PysExecuteResult
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from .core.version import PysVersionInfo
 
     from io import IOBase
-    from types import ModuleType
+    from types import BuiltinMethodType, ModuleType
 
 from . import core as core
 from .core.highlight import PygmentsPyScriptLexer as PygmentsPyScriptLexer
@@ -18,7 +18,7 @@ from .core.highlight import PygmentsPyScriptLexer as PygmentsPyScriptLexer
 DEFAULT: int
 DEBUG: int
 SILENT: int
-RETRES: int
+RETURN_RESULT: int
 HIGHLIGHT: int
 NO_COLOR: int
 REVERSE_POW_XOR: int
@@ -28,10 +28,12 @@ HLFMT_ANSI: _PysHighlightFormatter
 HLFMT_BBCODE: _PysHighlightFormatter
 
 undefined: PysUndefined
+hook: PysHook
+version: str
 version_info: PysVersionInfo
 
 def pys_highlight(
-    source: str | bytes | bytearray | Iterator | Callable | IOBase | PysFileBuffer,
+    source: str | bytes | bytearray | Iterable | BuiltinMethodType | IOBase | PysFileBuffer,
     format: Optional[
         Callable[
             [
@@ -49,13 +51,13 @@ def pys_highlight(
 ) -> str: ...
 
 def pys_exec(
-    source: str | bytes | bytearray | Iterator | Callable | IOBase | PysFileBuffer,
+    source: str | bytes | bytearray | Iterable | BuiltinMethodType | IOBase | PysFileBuffer,
     globals: Optional[dict[str, Any] | PysSymbolTable | PysUndefined] = None,
     flags: int = DEFAULT
 ) -> None | PysExecuteResult: ...
 
 def pys_eval(
-    source: str | bytes | bytearray | Iterator | Callable | IOBase | PysFileBuffer,
+    source: str | bytes | bytearray | Iterable | BuiltinMethodType | IOBase | PysFileBuffer,
     globals: Optional[dict[str, Any] | PysSymbolTable | PysUndefined] = None,
     flags: int = DEFAULT
 ) -> Any | PysExecuteResult: ...

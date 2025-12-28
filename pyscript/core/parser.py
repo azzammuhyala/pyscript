@@ -266,7 +266,10 @@ class PysParser(Pys):
         if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['match']):
             return self.match_expr()
 
-        elif self.current_token.matches(TOKENS['KEYWORD'], (KEYWORDS['func'], KEYWORDS['function'])):
+        elif self.current_token.matches(
+            TOKENS['KEYWORD'],
+            (KEYWORDS['func'], KEYWORDS['function'], KEYWORDS['constructor'])
+        ):
             return self.func_expr()
 
         return self.ternary()
@@ -1203,7 +1206,7 @@ class PysParser(Pys):
                 self.advance()
                 self.skip(result)
 
-                case = result.register(self.walrus(), True)
+                case = result.register(self.single_expr(), True)
                 if result.error:
                     return result
 
@@ -1271,6 +1274,9 @@ class PysParser(Pys):
 
             self.skip(result)
 
+            if self.current_token.type != TOKENS['LEFT-CURLY']:
+                return result.failure(self.new_error("expected '{'"))
+
         left_bracket_token = self.current_token
         self.bracket_level += 1
 
@@ -1325,9 +1331,6 @@ class PysParser(Pys):
 
             elif not is_right_bracket(self.current_token.type):
                 return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
-
-        if not cases:
-            return result.failure(self.new_error("requires at least one condition", position))
 
         self.close_bracket(result, left_bracket_token)
         if result.error:
@@ -1826,20 +1829,33 @@ class PysParser(Pys):
 
     def func_expr(self, decorators=None):
         result = PysParserResult()
-        start = self.current_token.position.start
+        position = self.current_token.position
+        start = position.start
 
-        if not self.current_token.matches(TOKENS['KEYWORD'], (KEYWORDS['func'], KEYWORDS['function'])):
-            return result.failure(self.new_error(f"expected {KEYWORDS['func']!r} or {KEYWORDS['function']!r}"))
+        constructor = False
+
+        if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['constructor']):
+            constructor = True
+        elif not self.current_token.matches(TOKENS['KEYWORD'], (KEYWORDS['func'], KEYWORDS['function'])):
+            return result.failure(
+                self.new_error(
+                    f"expected {KEYWORDS['func']!r}, {KEYWORDS['function']!r}, or {KEYWORDS['constructor']}"
+                )
+            )
 
         result.register_advancement()
         self.advance()
         self.skip(result)
 
         name = None
+        parameters = []
 
-        if self.current_token.type == TOKENS['IDENTIFIER']:
+        if constructor:
+            name = PysToken(TOKENS['IDENTIFIER'], position, '__init__')
+            parameters.append(PysToken(TOKENS['IDENTIFIER'], position, 'self'))
+
+        elif self.current_token.type == TOKENS['IDENTIFIER']:
             name = self.current_token
-
             result.register_advancement()
             self.advance()
             self.skip(result)
@@ -1855,7 +1871,6 @@ class PysParser(Pys):
         self.skip(result)
 
         seen_keyword_argument = False
-        parameters = []
 
         while not is_right_bracket(self.current_token.type):
             if self.current_token.type != TOKENS['IDENTIFIER']:
@@ -1903,7 +1918,7 @@ class PysParser(Pys):
         self.bracket_level -= 1
         self.skip(result)
 
-        if self.current_token.type == TOKENS['EQUAL-ARROW']:
+        if not constructor and self.current_token.type == TOKENS['EQUAL-ARROW']:
             position = self.current_token.position
             result.register_advancement()
             self.advance()
@@ -1918,7 +1933,13 @@ class PysParser(Pys):
         else:
             body = result.register(self.block_statements(), True)
             if result.error:
-                return result.failure(self.new_error("expected statement, expression, '{', ';', or '=>'"))
+                return result.failure(
+                    self.new_error(
+                        "expected statement, expression, '{', ';'"
+                        if constructor else
+                        "expected statement, expression, '{', ';', or '=>'"
+                    )
+                )
 
         self.skip_expr(result)
 
@@ -1928,6 +1949,7 @@ class PysParser(Pys):
                 name,
                 parameters,
                 body,
+                constructor,
                 PysPosition(self.current_token.position.file, start, end)
             )
         )
@@ -2136,7 +2158,10 @@ class PysParser(Pys):
 
             self.skip(result, (TOKENS['NEWLINE'], TOKENS['SEMICOLON']))
 
-        if self.current_token.matches(TOKENS['KEYWORD'], (KEYWORDS['func'], KEYWORDS['function'])):
+        if self.current_token.matches(
+            TOKENS['KEYWORD'],
+            (KEYWORDS['func'], KEYWORDS['function'], KEYWORDS['constructor'])
+        ):
             func_expr = result.register(self.func_expr(decorators))
             if result.error:
                 return result

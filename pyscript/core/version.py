@@ -4,8 +4,8 @@ from .utils.generic import version_match
 
 from types import MappingProxyType
 
-__version__ = '1.8.1'
-__date__ = '24 December 2025, 17:20 UTC+7'
+__version__ = '1.9.0'
+__date__ = '28 December 2025, 17:30 UTC+7'
 
 version = f'{__version__} ({__date__})'
 
@@ -27,7 +27,7 @@ class PysVersionInfo(Pys, tuple):
     def __new_singleton__(cls) -> 'PysVersionInfo':
         match = version_match(__version__)
         if not match:
-            raise ValueError(f"invalid format version {__version__!r}")
+            raise ValueError(f"invalid format version: {__version__!r}")
 
         major, minor, micro, pre_full, pre_num1, pre_tag2, pre_num2 = match.groups()
 
@@ -36,7 +36,6 @@ class PysVersionInfo(Pys, tuple):
             if pre_tag2:
                 pre_num = int(pre_num2)
                 pre_tag_full = TAG_VERSION_MAP[pre_tag2]
-
             else:
                 pre_num = int(pre_num1)
                 pre_tag_full = (

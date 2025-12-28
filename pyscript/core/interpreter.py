@@ -1,6 +1,6 @@
 from .constants import TOKENS, KEYWORDS, DEBUG
 from .cache import undefined
-from .checks import is_assign, is_equals, is_incremental, is_public_attribute
+from .checks import is_unpack_assignment, is_equals, is_incremental, is_public_attribute
 from .context import PysClassContext
 from .exceptions import PysTraceback
 from .handlers import handle_call
@@ -477,8 +477,7 @@ def visit_ImportNode(node, context):
                     return result.failure(
                         PysTraceback(
                             TypeError(
-                                f"Item in {module.__name__}.{exported_from} must be str, "
-                                f"not {type(package).__name__}"
+                                f"Item in {module.__name__}.{exported_from} must be str, not {type(package).__name__}"
                             ),
                             context,
                             name_position
@@ -1397,7 +1396,7 @@ def visit_declaration_AssignNode(node, context, value, operand=TOKENS['EQUAL']):
         if should_return():
             return result
 
-    elif is_assign(ntype):
+    elif is_unpack_assignment(ntype):
         position = node.position
 
         if not isinstance(value, Iterable):

@@ -1,7 +1,7 @@
 from .analyzer import PysAnalyzer
 from .buffer import PysFileBuffer
 from .cache import undefined, hook, PysUndefined
-from .constants import DEFAULT, SILENT, RETRES, HIGHLIGHT, NO_COLOR
+from .constants import DEFAULT, SILENT, RETURN_RESULT, HIGHLIGHT, NO_COLOR
 from .context import PysContext
 from .exceptions import PysTraceback, PysSignal
 from .handlers import handle_call
@@ -146,7 +146,7 @@ def pys_exec(
         flags=flags
     )
 
-    if flags & RETRES:
+    if flags & RETURN_RESULT:
         return result
 
     elif result.error and not (flags & SILENT):
@@ -182,7 +182,7 @@ def pys_eval(
         flags=flags
     )
 
-    if flags & RETRES:
+    if flags & RETURN_RESULT:
         return result
 
     elif result.error and not (flags & SILENT):

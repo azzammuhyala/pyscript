@@ -1,6 +1,6 @@
 from .bases import Pys
-from .checks import is_assign, is_incremental
-from .constants import TOKENS, DEFAULT
+from .checks import is_unpack_assignment, is_incremental
+from .constants import TOKENS, KEYWORDS, DEFAULT
 from .context import PysContext
 from .exceptions import PysTraceback
 from .nodes import PysNode, PysKeywordNode, PysIdentifierNode, PysAttributeNode, PysSubscriptNode
@@ -42,9 +42,10 @@ class PysAnalyzer(Pys):
     def analyze(self) -> PysTraceback | None:
         self.in_loop = 0
         self.in_function = 0
+        self.in_class = 0
         self.in_switch = 0
-        self.error = None
         self.parameters = set()
+        self.error = None
 
         self.visit(self.node)
         return self.error
@@ -357,15 +358,23 @@ class PysAnalyzer(Pys):
         self.in_function = 0
         self.in_switch = 0
 
+        self.in_class += 1
+
         self.visit(node.body)
         if self.error:
             return
+
+        self.in_class -= 1
 
         self.in_loop = in_loop
         self.in_function = in_function
         self.in_switch = in_switch
 
     def visit_FunctionNode(self, node):
+        if node.constructor and self.in_class == 0:
+            self.throw(f"{KEYWORDS['constructor']} function outside of class", node.name.position)
+            return
+
         for decorator in node.decorators:
             self.visit(decorator)
             if self.error:
@@ -387,9 +396,10 @@ class PysAnalyzer(Pys):
                 if self.error:
                     return
 
-        in_loop, in_switch, parameters = self.in_loop, self.in_switch, self.parameters
+        in_loop, in_class, in_switch, parameters = self.in_loop, self.in_class, self.in_switch, self.parameters
 
         self.in_loop = 0
+        self.in_class = 0
         self.in_switch = 0
 
         self.in_function += 1
@@ -403,20 +413,21 @@ class PysAnalyzer(Pys):
         self.parameters = parameters
 
         self.in_loop = in_loop
+        self.in_class = in_class
         self.in_switch = in_switch
 
     def visit_GlobalNode(self, node):
         if self.in_function == 0:
-            self.throw("global outside of function", node.position)
+            self.throw(f"{KEYWORDS['global']} outside of function", node.position)
 
         for identifier in node.identifiers:
             if identifier.value in self.parameters:
-                self.throw("name {!r} is parameter and global".format(identifier.value), identifier.position)
+                self.throw(f"name {identifier.value!r} is parameter and global", identifier.position)
                 return
 
     def visit_ReturnNode(self, node):
         if self.in_function == 0:
-            self.throw("return outside of function", node.position)
+            self.throw(f"{KEYWORDS['return']} outside of function", node.position)
             return
 
         if node.value:
@@ -457,12 +468,12 @@ class PysAnalyzer(Pys):
                     return
 
             elif type is PysKeywordNode:
-                self.throw(f"cannot delete {target.name.value}", target.position)
+                self.throw(f"cannot {KEYWORDS['delete']} {target.name.value}", target.position)
                 return
 
             elif isinstance(target, PysNode):
                 if type is not PysIdentifierNode:
-                    self.throw("cannot delete literal", target.position)
+                    self.throw(f"cannot {KEYWORDS['delete']} literal", target.position)
                     return
 
             else:
@@ -470,11 +481,11 @@ class PysAnalyzer(Pys):
 
     def visit_ContinueNode(self, node):
         if self.in_loop == 0:
-            self.throw("continue outside of loop", node.position)
+            self.throw(f"{KEYWORDS['continue']} outside of loop", node.position)
 
     def visit_BreakNode(self, node):
         if self.in_loop == 0 and self.in_switch == 0:
-            self.throw("break outside of loop or switch case", node.position)
+            self.throw(f"{KEYWORDS['break']} outside of loop or switch case", node.position)
 
     def visit_slice_SubscriptNode(self, nslice):
         type = nslice.__class__
@@ -517,7 +528,7 @@ class PysAnalyzer(Pys):
 
             self.visit_slice_SubscriptNode(node.slice)
 
-        elif is_assign(type):
+        elif is_unpack_assignment(type):
             for element in node.elements:
                 self.visit_declaration_AssignNode(element, message)
                 if self.error:

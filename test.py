@@ -1,17 +1,25 @@
-source = """
-
-"""
+with open('test.pys', 'r') as file:
+    source = file.read()
 
 import pyscript
 import sys
 
 from subprocess import run
+from pygments import highlight
+from pygments.formatters import HtmlFormatter
 
 def pyscript_tester():
-    result = pyscript.pys_exec(source, pyscript.undefined, pyscript.RETRES)
+    result = pyscript.pys_exec(source, pyscript.undefined, pyscript.RETURN_RESULT)
     code, exit = result.process()
     if code != 0:
         sys.exit(code)
+
+def pyscript_highlight_tester():
+    lexer = pyscript.PygmentsPyScriptLexer()
+    formatter = HtmlFormatter(full=True)
+    result = highlight(source, lexer, formatter)
+    with open('result.html', 'w') as file:
+        file.write(result)
 
 def pyscript_doc():
     run(
@@ -22,4 +30,4 @@ def pyscript_doc():
     )
 
 if __name__ == '__main__':
-    pass
+    pyscript_highlight_tester()
