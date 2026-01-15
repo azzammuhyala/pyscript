@@ -25,6 +25,5 @@ def thread_excepthook(args):
 
 if environ.get(ENV_PYSCRIPT_NO_EXCEPTHOOK) is None:
     import threading
-
     sys.excepthook = sys_excepthook
     threading.excepthook = thread_excepthook

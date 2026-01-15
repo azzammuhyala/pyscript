@@ -3,6 +3,7 @@ from .position import PysPosition
 from .token import PysToken
 from .utils.decorators import typechecked, immutable, inheritable
 from .utils.generic import setimuattr
+from .utils.jsdict import jsdict
 
 from typing import Literal
 
@@ -72,15 +73,22 @@ class PysIdentifierNode(PysNode):
 
 class PysDictionaryNode(PysNode):
 
-    __slots__ = ('pairs',)
+    __slots__ = ('pairs', 'class_type')
 
     @typechecked
-    def __init__(self, pairs: list[tuple[PysNode, PysNode]], position: PysPosition) -> None:
+    def __init__(
+        self,
+        pairs: list[tuple[PysNode, PysNode]],
+        class_type: type[dict] | type[jsdict],
+        position: PysPosition
+    ) -> None:
+
         super().__init__(position)
         setimuattr(self, 'pairs', tuple(pairs))
+        setimuattr(self, 'class_type', class_type)
 
     def __repr__(self) -> str:
-        return f'Dictionary(pairs={self.pairs!r})'
+        return f'Dictionary(pairs={self.pairs!r}, class_type={self.class_type.__name__})'
 
 class PysSetNode(PysNode):
 
@@ -375,7 +383,7 @@ class PysTryNode(PysNode):
     def __init__(
         self,
         body: PysNode,
-        catch_cases: list[tuple[tuple[PysIdentifierNode | None, PysToken | None], PysNode]],
+        catch_cases: list[tuple[tuple[tuple[PysIdentifierNode, ...], PysToken | None], PysNode]],
         else_body: PysNode | None,
         finally_body: PysNode | None,
         position: PysPosition
@@ -473,6 +481,27 @@ class PysDoWhileNode(PysNode):
 
     def __repr__(self) -> str:
         return f'DoWhile(body={self.body!r}, condition={self.condition!r}, else_body={self.else_body!r})'
+
+class PysRepeatNode(PysNode):
+
+    __slots__ = ('body', 'condition', 'else_body')
+
+    @typechecked
+    def __init__(
+        self,
+        body: PysNode,
+        condition: PysNode,
+        else_body: PysNode | None,
+        position: PysPosition
+    ) -> None:
+
+        super().__init__(position)
+        setimuattr(self, 'body', body)
+        setimuattr(self, 'condition', condition)
+        setimuattr(self, 'else_body', else_body)
+
+    def __repr__(self) -> str:
+        return f'Repeat(body={self.body!r}, condition={self.condition!r}, else_body={self.else_body!r})'
 
 class PysClassNode(PysNode):
 

@@ -31,7 +31,7 @@ func getcode(fn) {
     if (not iscode(code)) {
         throw TypeError("getcode(): fn has no valid __code__ attribute")
     }
-    return fn.__code__
+    return code
 }
 
 __all__ = (

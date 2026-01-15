@@ -68,13 +68,12 @@ def walk(node):
         if node.style == 'general':
             yield from walk(node.condition)
             yield from walk(node.valid)
+            yield from walk(node.invalid)
+
         elif node.style == 'pythonic':
             yield from walk(node.valid)
             yield from walk(node.condition)
-        else:
-            raise ValueError(f"invalid PysTernaryOperatorNode.style named {node.style!r}")
-
-        yield from walk(node.invalid)
+            yield from walk(node.invalid)
 
     elif isinstance(node, PysBinaryOperatorNode):
         yield node
@@ -83,10 +82,6 @@ def walk(node):
 
     elif isinstance(node, PysUnaryOperatorNode):
         yield node
-
-        if node.operand_position not in ('left', 'right'):
-            raise ValueError(f"invalid PysUnaryOperatorNode.operand_position named {node.operand_position!r}")
-
         yield from walk(node.value)
 
     elif isinstance(node, PysStatementsNode):
@@ -141,9 +136,9 @@ def walk(node):
         yield node
         yield from walk(node.body)
 
-        for (error, parameter), body in node.catch_cases:
-            if error:
-                yield from walk(error)
+        for (targets, parameter), body in node.catch_cases:
+            for target in targets:
+                yield from walk(target)
             yield from walk(body)
 
         if node.else_body:
@@ -172,9 +167,6 @@ def walk(node):
                 if part:
                     yield from walk(part)
 
-        else:
-            raise TypeError("invalid PysForNode.header")
-
         yield from walk(node.body)
 
         if node.else_body:
@@ -189,6 +181,14 @@ def walk(node):
             yield from walk(node.else_body)
 
     elif isinstance(node, PysDoWhileNode):
+        yield node
+        yield from walk(node.body)
+        yield from walk(node.condition)
+
+        if node.else_body:
+            yield from walk(node.else_body)
+
+    elif isinstance(node, PysRepeatNode):
         yield node
         yield from walk(node.body)
         yield from walk(node.condition)
@@ -250,6 +250,3 @@ def walk(node):
 
     elif isinstance(node, PysNode):
         yield node
-
-    else:
-        raise TypeError("unknown Node")

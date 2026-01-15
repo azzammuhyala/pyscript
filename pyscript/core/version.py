@@ -1,11 +1,13 @@
 from .bases import Pys
 from .utils.decorators import immutable, inheritable, singleton
-from .utils.generic import version_match
 
+from re import compile as re_compile
 from types import MappingProxyType
 
-__version__ = '1.9.0'
-__date__ = '28 December 2025, 17:30 UTC+7'
+version_match = re_compile(r'^(\d+)\.(\d+)\.(\d+)((?:a|b|rc)(\d+)|\.(dev|post)(\d+))?$').match
+
+__version__ = '1.10.0'
+__date__ = '15 January 2026, 18:00 UTC+7'
 
 version = f'{__version__} ({__date__})'
 

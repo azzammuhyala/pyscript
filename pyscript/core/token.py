@@ -4,7 +4,7 @@ from .position import PysPosition
 from .utils.decorators import typechecked, immutable
 from .utils.generic import setimuattr
 
-from typing import Any, Iterable, Optional
+from typing import Any, Optional
 
 @immutable
 class PysToken(Pys):
@@ -24,8 +24,5 @@ class PysToken(Pys):
             '' if value is None else f', value={value!r}'
         )
 
-    def match(self, type: int, value: Any) -> bool:
-        return self.type == type and self.value == value
-
-    def matches(self, type: int, values: Iterable) -> bool:
+    def match(self, type: int, *values: Any) -> bool:
         return self.type == type and self.value in values

@@ -4,14 +4,12 @@ from .exceptions import PysTraceback
 from .utils.debug import print_display, print_traceback
 from .utils.decorators import inheritable, singleton
 
-from threading import RLock
 from typing import Any, Callable, Literal
 
 loading_modules = set()
-lock = RLock()
-modules = dict()
+modules = {}
 path = [SITE_PACKAGES_PATH, LIBRARIES_PATH]
-singletons = dict()
+singletons = {}
 
 @singleton
 @inheritable

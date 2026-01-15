@@ -1,11 +1,27 @@
 from .core.buffer import PysFileBuffer
 from .core.cache import path, undefined
-from .core.constants import DEFAULT, DEBUG, NO_COLOR
-from .core.highlight import HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight
+from .core.constants import DEFAULT, DEBUG, DONT_SHOW_BANNER_ON_SHELL, NO_COLOR
+from .core.highlight import (
+    HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight, PygmentsPyScriptStyle, PygmentsPyScriptLexer
+)
 from .core.runner import _normalize_globals, pys_runner, pys_shell
 from .core.utils.module import get_module_name_from_path
 from .core.utils.path import normpath
 from .core.version import __version__
+
+try:
+    from pygments import highlight
+    from pygments.formatters import TerminalFormatter, TerminalTrueColorFormatter, Terminal256Formatter
+
+    FORMAT_PYGMENTS_MAP = {
+        'pm-terminal': TerminalFormatter,
+        'pm-true-terminal': TerminalTrueColorFormatter,
+        'pm-256-terminal': Terminal256Formatter
+    }
+
+    PYGMENTS = True
+except ImportError:
+    PYGMENTS = False
 
 from argparse import ArgumentParser
 from os import environ
@@ -58,7 +74,7 @@ parser.add_argument(
 
 parser.add_argument(
     '-l', '--highlight',
-    choices=tuple(FORMAT_HIGHLIGHT_MAP.keys()),
+    choices=tuple(FORMAT_HIGHLIGHT_MAP.keys()) + tuple(FORMAT_PYGMENTS_MAP.keys() if PYGMENTS else ()),
     default=None,
     help="Generate highlight code from a 'file'"
 )
@@ -74,6 +90,12 @@ parser.add_argument(
     type=int,
     default=None,
     help="Set a Python recursion limit"
+)
+
+parser.add_argument(
+    '-q',
+    action='store_true',
+    help="Don't print version and copyright messages on interactive startup"
 )
 
 def argument_error(argument, message):
@@ -98,6 +120,8 @@ if args.debug:
     flags |= DEBUG
 if args.no_color or environ.get('NO_COLOR') is not None:
     flags |= NO_COLOR
+if args.q:
+    flags |= DONT_SHOW_BANNER_ON_SHELL
 
 if args.file is not None:
     path = normpath(args.file)
@@ -122,7 +146,22 @@ if args.file is not None:
 
     if args.highlight:
         try:
-            print(pys_highlight(file, FORMAT_HIGHLIGHT_MAP.get(args.highlight)))
+            if args.highlight in FORMAT_HIGHLIGHT_MAP:
+                print(
+                    pys_highlight(
+                        source=file,
+                        format=FORMAT_HIGHLIGHT_MAP[args.highlight]
+                    )
+                )
+            else:
+                print(
+                    flush=True,
+                    end=highlight(
+                        code=file.text,
+                        lexer=PygmentsPyScriptLexer(),
+                        formatter=FORMAT_PYGMENTS_MAP[args.highlight](style=PygmentsPyScriptStyle)
+                    )
+                )
         except BaseException as e:
             parser.error(f"file {path!r}: Highlight error: {e}")
 
@@ -135,9 +174,13 @@ if args.file is not None:
         )
 
         if args.inspect:
-            code = pys_shell(result.context.symbol_table, result.context.flags)
+            code = pys_shell(
+                globals=result.context.symbol_table,
+                flags=result.context.flags,
+                parser_flags=result.parser_flags
+            )
         else:
-            code = result.process()[0]
+            code = result.end_process()[0]
 
 elif args.command is not None:
     file = PysFileBuffer(args.command)
@@ -146,9 +189,12 @@ elif args.command is not None:
         mode='exec',
         symbol_table=_normalize_globals(file, undefined),
         flags=flags
-    ).process()[0]
+    ).end_process()[0]
 
 else:
-    code = pys_shell(undefined, flags)
+    code = pys_shell(
+        globals=undefined,
+        flags=flags
+    )
 
 sys.exit(code)

@@ -3,18 +3,21 @@
     "publisher": "AzzamMuhyala",
     "displayName": "PyScript - PysLang",
     "description": "Simple syntax highlights for PyScript (Programming Language)",
-    "version": "1.2.0",
-    "icon": "./PyScript.png",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/azzammuhyala/pyscript"
-    },
+    "version": "1.2.1",
+    "icon": "./images/PyScript.png",
     "engines": {
         "vscode": "^1.106.1"
     },
     "categories": [
         "Programming Languages"
     ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/azzammuhyala/pyscript"
+    },
+    "bugs": {
+        "url": "https://github.com/azzammuhyala/pyscript/issues"
+    },
     "contributes": {
         "languages": [
             {

@@ -1,6 +1,6 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
-from .utils.ansi import BOLD, acolor
+from .mapping import ACOLORS
 from .utils.decorators import typechecked, immutable
 from .utils.generic import setimuattr
 
@@ -30,18 +30,17 @@ def format_arrow(position, colored=True):
         return ''
 
     if colored:
-        reset = acolor('reset')
-        bred = acolor('red', style=BOLD)
+        reset = ACOLORS['reset']
+        bred =  ACOLORS['bold-red']
     else:
         reset = ''
         bred = ''
 
+    text = position.file.text
     line_start = position.start_line
     line_end = position.end_line
     column_start = position.start_column
     column_end = position.end_column
-
-    text = position.file.text
 
     start = text.rfind('\n', 0, position.start) + 1
     end = text.find('\n', start + 1)
@@ -63,8 +62,7 @@ def format_arrow(position, colored=True):
 
         lines.append(
             (
-                line,
-                len(line.lstrip()),
+                line, len(line.lstrip()),
                 column_start - 1 if i == 0 else 0,
                 column_end - 1 if i == count - 1 else len(line)
             )
@@ -83,13 +81,11 @@ def format_arrow(position, colored=True):
 
         if i == 0:
             sr = start - minimum_indent
-
             arrow = '^' * (end - start)
             line = f'{line[:sr]}{bred}{line[sr:er]}{reset}{line[er:]}\n{" " * sr}{bred}{arrow}{reset}'
 
         else:
             indent = len(line) - line_code_length
-
             arrow = '^' * (end - start - (minimum_indent + indent))
             line = f'{line[:indent]}{bred}{line[indent:er]}{reset}{line[er:]}\n{" " * indent}{bred}{arrow}{reset}'
 

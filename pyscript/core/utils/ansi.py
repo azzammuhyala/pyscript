@@ -4,17 +4,6 @@ from html.parser import HTMLParser
 from operator import or_
 from types import MappingProxyType
 
-DEFAULT = 0
-BACKGROUND = 1 << 0
-BOLD = 1 << 1
-FAINT = 1 << 2
-ITALIC = 1 << 3
-UNDERLINE = 1 << 4
-BLINK = 1 << 5
-RAPIDBLINK = 1 << 6
-STRIKETHROUGH = 1 << 7
-DOUBLEUNDERLINE = 1 << 8
-
 ANSI_NAMES_MAP = MappingProxyType({
     'reset': 0,
     'black': 30,
@@ -36,7 +25,18 @@ ANSI_NAMES_MAP = MappingProxyType({
     'bright-white': 97
 })
 
-STYLE_MAP = MappingProxyType({
+DEFAULT = 0
+BACKGROUND = 1 << 0
+BOLD = 1 << 1
+FAINT = 1 << 2
+ITALIC = 1 << 3
+UNDERLINE = 1 << 4
+BLINK = 1 << 5
+RAPIDBLINK = 1 << 6
+STRIKETHROUGH = 1 << 7
+DOUBLEUNDERLINE = 1 << 8
+
+FLAGS_MAP = MappingProxyType({
     'DEFAULT': DEFAULT,
     'BACKGROUND': BACKGROUND,
     'BOLD': BOLD,
@@ -46,7 +46,7 @@ STYLE_MAP = MappingProxyType({
     'BLINK': BLINK,
     'RAPIDBLINK': RAPIDBLINK,
     'STRIKETHROUGH': STRIKETHROUGH,
-    'DOUBLEUNDERLINE': DOUBLEUNDERLINE,
+    'DOUBLEUNDERLINE': DOUBLEUNDERLINE
 })
 
 def acolor(*args, style: int = DEFAULT) -> str:
@@ -85,9 +85,9 @@ def acolor(*args, style: int = DEFAULT) -> str:
 
 class AnsiParser(HTMLParser):
 
-    def __init__(self):
-        super().__init__()
-        self.result = []
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.result = ''
         self.stack = 0
 
     def handle_starttag(self, tag, attrs):
@@ -99,9 +99,9 @@ class AnsiParser(HTMLParser):
         styles = attrs.get('style', 'DEFAULT').replace(',', ' ').split()
 
         if color is None:
-            color = (attrs['r'], attrs['g'], attrs['b'])
+            color = attrs.get('r', 0), attrs.get('g', 0), attrs.get('b', 0)
 
-        self.result.append(acolor(color, style=reduce(or_, (STYLE_MAP[style.upper()] for style in styles))))
+        self.result += acolor(color, style=reduce(or_, (FLAGS_MAP[style.upper()] for style in styles)))
         self.stack += 1
 
     def handle_endtag(self, tag):
@@ -110,18 +110,18 @@ class AnsiParser(HTMLParser):
         if tag != 'ansi':
             raise ValueError(f"unknown end-tag: {tag}")
 
-        self.result.append(acolor('reset'))
+        self.result += acolor('reset')
         self.stack -= 1
 
     def handle_data(self, data):
-        self.result.append(data)
+        self.result += data
 
     def get_output(self):
         if self.stack != 0:
             raise SyntaxError("unmatch tag got EOF")
-        return ''.join(self.result)
+        return self.result
 
-def fansi(string: str) -> str:
+def ahtml(string: str) -> str:
     parser = AnsiParser()
     parser.feed(string)
     return parser.get_output()

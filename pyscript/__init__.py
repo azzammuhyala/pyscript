@@ -8,21 +8,26 @@ if __import__('sys').version_info < (3, 10):
 
 from . import core
 
-from .core.constants import DEFAULT, DEBUG, SILENT, RETURN_RESULT, HIGHLIGHT, NO_COLOR, REVERSE_POW_XOR
+from .core.constants import (
+    DEFAULT, NO_COLOR, DEBUG, SILENT, RETURN_RESULT, DONT_SHOW_BANNER_ON_SHELL, HIGHLIGHT, DICT_TO_JSDICT
+)
 from .core.cache import undefined, hook
-from .core.highlight import HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight, PygmentsPyScriptLexer
+from .core.highlight import (
+    HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight, PygmentsPyScriptStyle, PygmentsPyScriptLexer
+)
 from .core.runner import pys_exec, pys_eval, pys_require, pys_shell
 from .core.version import version, version_info, __version__, __date__
 
 __all__ = (
     'core',
     'DEFAULT',
+    'NO_COLOR',
     'DEBUG',
     'SILENT',
     'RETURN_RESULT',
+    'DONT_SHOW_BANNER_ON_SHELL',
     'HIGHLIGHT',
-    'NO_COLOR',
-    'REVERSE_POW_XOR',
+    'DICT_TO_JSDICT',
     'HLFMT_HTML',
     'HLFMT_ANSI',
     'HLFMT_BBCODE',
@@ -35,5 +40,6 @@ __all__ = (
     'pys_eval',
     'pys_require',
     'pys_shell',
+    'PygmentsPyScriptStyle',
     'PygmentsPyScriptLexer'
 )

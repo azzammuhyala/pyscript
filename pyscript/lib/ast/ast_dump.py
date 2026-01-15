@@ -122,7 +122,8 @@ class DumpNode:
         return self._node_representation(
             node,
             [
-                ('pairs', node.pairs)
+                ('pairs', node.pairs),
+                ('class_type', node.class_type.__name__)
             ]
         )
 
@@ -314,6 +315,16 @@ class DumpNode:
         )
 
     def visit_DoWhileNode(self, node):
+        return self._node_representation(
+            node,
+            [
+                ('body', node.body),
+                ('condition', node.condition),
+                ('else_body', node.else_body)
+            ]
+        )
+
+    def visit_RepeatNode(self, node):
         return self._node_representation(
             node,
             [

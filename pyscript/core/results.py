@@ -1,5 +1,6 @@
 from .bases import Pys
 from .cache import hook
+from .constants import DEFAULT
 from .context import PysContext
 from .exceptions import PysTraceback, PysSignal
 from .position import PysPosition
@@ -30,7 +31,6 @@ class PysParserResult(PysResult):
         self.last_registered_advance_count = result.advance_count
         self.advance_count += result.advance_count
         self.fatal = require or result.fatal
-
         self.error = result.error
 
         return result.node
@@ -47,8 +47,9 @@ class PysParserResult(PysResult):
 
     def failure(self, error, fatal=True):
         if not self.error or self.last_registered_advance_count == 0:
-            self.error = error
             self.fatal = fatal
+            self.node = None
+            self.error = error
         return self
 
 class PysRunTimeResult(PysResult):
@@ -143,8 +144,9 @@ class PysRunTimeResult(PysResult):
 
 class PysExecuteResult(PysResult):
 
-    def __init__(self, context: PysContext) -> None:
+    def __init__(self, context: PysContext, parser_flags: int = DEFAULT) -> None:
         self.context = context
+        self.parser_flags = parser_flags
 
         self.value = None
         self.error = None
@@ -159,7 +161,7 @@ class PysExecuteResult(PysResult):
 
     # --- HANDLE EXECUTE ---
 
-    def process(self) -> tuple[int | Any, bool]:
+    def end_process(self) -> tuple[int | Any, bool]:
         result = PysRunTimeResult()
 
         with result(self.context, PysPosition(self.context.file, -1, -1)):

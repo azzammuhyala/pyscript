@@ -1,9 +1,11 @@
 from ..bases import Pys
 from .generic import clear_console
 
+from typing import Literal
+
 class PysCommandLineShell(Pys):
 
-    def __init__(self, ps1='>>> ', ps2='... '):
+    def __init__(self, ps1: str = '>>> ', ps2: str = '... ') -> None:
         self.ps1 = ps1
         self.ps2 = ps2
 
@@ -18,7 +20,7 @@ class PysCommandLineShell(Pys):
     def _is_nextline(self):
         return self._brackets_level > 0 or self._in_decorator or self._is_triple_string or self._next_line
 
-    def reset(self):
+    def reset(self) -> None:
         self._brackets_level = 0
         self._in_string = False
         self._in_decorator = False
@@ -27,7 +29,7 @@ class PysCommandLineShell(Pys):
         self._next_line = False
         self._full_text = ''
 
-    def input(self):
+    def input(self) -> str | Literal[0]:
         while True:
 
             if self._is_nextline():

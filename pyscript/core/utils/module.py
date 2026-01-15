@@ -8,7 +8,8 @@ def get_module_name_from_path(path):
     return base(normpath(path, absolute=False))
 
 def get_module_path(path):
-    from ..checks import is_python_extensions  # circular import problem solved
+    # circular import problem solved
+    from ..checks import is_python_extensions
 
     if isfile(path) and not is_python_extensions(extension(path)):
         return path

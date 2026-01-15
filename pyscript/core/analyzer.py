@@ -22,21 +22,8 @@ class PysAnalyzer(Pys):
 
         self.node = node
         self.flags = flags
-        self.context = context_parent
+        self.context_parent = context_parent
         self.context_parent_entry_position = context_parent_entry_position
-
-    def throw(self, message, position):
-        if self.error is None:
-            self.error = PysTraceback(
-                SyntaxError(message),
-                PysContext(
-                    file=self.node.position.file,
-                    flags=self.flags,
-                    parent=self.context,
-                    parent_entry_position=self.context_parent_entry_position
-                ),
-                position
-            )
 
     @typechecked
     def analyze(self) -> PysTraceback | None:
@@ -49,6 +36,19 @@ class PysAnalyzer(Pys):
 
         self.visit(self.node)
         return self.error
+
+    def throw(self, message, position):
+        if self.error is None:
+            self.error = PysTraceback(
+                SyntaxError(message),
+                PysContext(
+                    file=self.node.position.file,
+                    flags=self.flags,
+                    parent=self.context_parent,
+                    parent_entry_position=self.context_parent_entry_position
+                ),
+                position
+            )
 
     def visit(self, node):
         func = getattr(self, 'visit_' + type(node).__name__.removeprefix('Pys'), None)
@@ -106,11 +106,9 @@ class PysAnalyzer(Pys):
             if isinstance(element, tuple):
                 token, value = element
                 name = token.value
-
                 if name in keyword_names:
                     self.throw(f"duplicate argument {name!r} in call definition", token.position)
                     return
-
                 keyword_names.add(name)
 
             else:
@@ -136,6 +134,8 @@ class PysAnalyzer(Pys):
             if self.error:
                 return
 
+            self.visit(node.invalid)
+
         elif node.style == 'pythonic':
             self.visit(node.valid)
             if self.error:
@@ -145,10 +145,7 @@ class PysAnalyzer(Pys):
             if self.error:
                 return
 
-        else:
-            raise ValueError(f"unknown ternary operator style {node.style!r}")
-
-        self.visit(node.invalid)
+            self.visit(node.invalid)
 
     def visit_BinaryOperatorNode(self, node):
         self.visit(node.left)
@@ -158,25 +155,12 @@ class PysAnalyzer(Pys):
         self.visit(node.right)
 
     def visit_UnaryOperatorNode(self, node):
-        value = node.value
-
         if is_incremental(node.operand.type):
-            type = value.__class__
             operator = 'increase' if node.operand.type == TOKENS['DOUBLE-PLUS'] else 'decrease'
+            self.visit_declaration_AssignNode(node.value, f"cannot {operator} literal", operator)
+            return
 
-            if type is PysKeywordNode:
-                self.throw(f"cannot {operator} {value.name.value}", value.position)
-                return
-
-            elif isinstance(value, PysNode):
-                if type not in (PysIdentifierNode, PysAttributeNode, PysSubscriptNode):
-                    self.throw(f"cannot {operator} literal", value.position)
-                    return
-
-            else:
-                raise TypeError("UnaryOperator: node.value is not PysNode")
-
-        self.visit(value)
+        self.visit(node.value)
 
     def visit_StatementsNode(self, node):
         for element in node.body:
@@ -185,11 +169,8 @@ class PysAnalyzer(Pys):
                 return
 
     def visit_AssignNode(self, node):
-        self.visit_declaration_AssignNode(
-            node.target,
-            "cannot assign to expression here. Maybe you meant '==' instead of '='?"
-        )
-
+        self.visit_declaration_AssignNode(node.target,
+                                          "cannot assign to expression here. Maybe you meant '==' instead of '='?")
         if self.error:
             return
 
@@ -248,8 +229,6 @@ class PysAnalyzer(Pys):
 
         if node.default:
             self.visit(node.default)
-            if self.error:
-                return
 
     def visit_TryNode(self, node):
         self.visit(node.body)
@@ -295,9 +274,6 @@ class PysAnalyzer(Pys):
                 if self.error:
                     return
 
-        else:
-            raise ValueError(f"unknown header struct {node.header}")
-
         self.in_loop += 1
 
         self.visit(node.body)
@@ -326,6 +302,22 @@ class PysAnalyzer(Pys):
             self.visit(node.else_body)
 
     def visit_DoWhileNode(self, node):
+        self.in_loop += 1
+
+        self.visit(node.body)
+        if self.error:
+            return
+
+        self.in_loop -= 1
+
+        self.visit(node.condition)
+        if self.error:
+            return
+
+        if node.else_body:
+            self.visit(node.else_body)
+
+    def visit_RepeatNode(self, node):
         self.in_loop += 1
 
         self.visit(node.body)
@@ -471,13 +463,9 @@ class PysAnalyzer(Pys):
                 self.throw(f"cannot {KEYWORDS['delete']} {target.name.value}", target.position)
                 return
 
-            elif isinstance(target, PysNode):
-                if type is not PysIdentifierNode:
-                    self.throw(f"cannot {KEYWORDS['delete']} literal", target.position)
-                    return
-
-            else:
-                raise TypeError("DeleteNode: node.targets, target is not PysNode")
+            elif type is not PysIdentifierNode:
+                self.throw(f"cannot {KEYWORDS['delete']} literal", target.position)
+                return
 
     def visit_ContinueNode(self, node):
         if self.in_loop == 0:
@@ -515,7 +503,7 @@ class PysAnalyzer(Pys):
         else:
             self.visit(nslice)
 
-    def visit_declaration_AssignNode(self, node, message):
+    def visit_declaration_AssignNode(self, node, message, operator_name='assign'):
         type = node.__class__
 
         if type is PysAttributeNode:
@@ -530,16 +518,12 @@ class PysAnalyzer(Pys):
 
         elif is_unpack_assignment(type):
             for element in node.elements:
-                self.visit_declaration_AssignNode(element, message)
+                self.visit_declaration_AssignNode(element, message, operator_name)
                 if self.error:
                     return
 
         elif type is PysKeywordNode:
-            self.throw(f"cannot assign to {node.name.value}", node.position)
+            self.throw(f"cannot {operator_name} to {node.name.value}", node.position)
 
-        elif isinstance(node, PysNode):
-            if type is not PysIdentifierNode:
-                self.throw(message, node.position)
-
-        else:
-            raise TypeError("declaration AssignNode: node is not PysNode")
+        elif type is not PysIdentifierNode:
+            self.throw(message, node.position)

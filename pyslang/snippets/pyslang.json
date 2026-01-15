@@ -39,14 +39,14 @@
         "prefix": "case",
         "body": [
             "case ${1:condition}:",
-            "\t${0:# TODO Something}"
+            "\t${0:# code}"
         ]
     },
     "Keyword - catch": {
         "prefix": "catch",
         "body": [
             "catch (${1:e}) {",
-            "\t${0:# TODO Something}",
+            "\t${0:# code}",
             "}"
         ]
     },
@@ -55,7 +55,7 @@
         "body": [
             "class ${1:ClassName} {",
             "\tconstructor(${2:parameter}) {",
-            "\t\t${0:# TODO Something}",
+            "\t\t${0:# code}",
             "\t}",
             "}"
         ]
@@ -68,7 +68,7 @@
         "prefix": "constructor",
         "body": [
             "constructor(${1:parameter}) {",
-            "\t${0:# TODO Something}",
+            "\t${0:# code}",
             "}"
         ]
     },
@@ -78,18 +78,18 @@
     },
     "Keyword - del": {
         "prefix": "del",
-        "body": "del ${0:targets}"
+        "body": "del ${0:target}"
     },
     "Keyword - delete": {
         "prefix": "delete",
-        "body": "delete ${0:targets}",
+        "body": "delete ${0:target}",
         "description": "same as del"
     },
     "Keyword - do": {
         "prefix": "do",
         "body": [
             "do {",
-            "\t${0:# TODO Something}",
+            "\t${0:# code}",
             "} while (${1:condition})"
         ]
     },
@@ -97,7 +97,7 @@
         "prefix": "elif",
         "body": [
             "elif (${1:condition}) {",
-            "\t${0:# TODO Something}",
+            "\t${0:# code}",
             "}"
         ]
     },
@@ -105,9 +105,18 @@
         "prefix": "else",
         "body": [
             "else {",
-            "\t${0:# TODO Something}",
+            "\t${0:# code}",
             "}"
         ]
+    },
+    "Keyword - except": {
+        "prefix": "except",
+        "body": [
+            "except (${1:e}) {",
+            "\t${0:# code}",
+            "}"
+        ],
+        "description": "same as catch"
     },
     "Keyword - extends": {
         "prefix": "extends",
@@ -122,7 +131,7 @@
         "prefix": "finally",
         "body": [
             "finally {",
-            "\t${0:# TODO Something}",
+            "\t${0:# code}",
             "}"
         ]
     },
@@ -130,7 +139,7 @@
         "prefix": "for",
         "body": [
             "for (${1:i = 0; i < 10; i++}) {",
-            "\t${0:# TODO Something}",
+            "\t${0:# code}",
             "}"
         ]
     },
@@ -142,7 +151,7 @@
         "prefix": "func",
         "body": [
             "func ${1:functionName}(${2:parameter}) {",
-            "\t${0:# TODO Something}",
+            "\t${0:# code}",
             "}"
         ]
     },
@@ -150,20 +159,20 @@
         "prefix": "function",
         "body": [
             "function ${1:functionName}(${2:parameter}) {",
-            "\t${0:# TODO Something}",
+            "\t${0:# code}",
             "}"
         ],
         "description": "same as func"
     },
     "Keyword - global": {
         "prefix": "global",
-        "body": "global ${0:variables}"
+        "body": "global ${0:variable}"
     },
     "Keyword - if": {
         "prefix": "if",
         "body": [
             "if (${1:condition}) {",
-            "\t${0:# TODO Something}",
+            "\t${0:# code}",
             "}"
         ]
     },
@@ -188,9 +197,19 @@
             "}"
         ]
     },
+    "Keyword - nil": {
+        "prefix": "nil",
+        "body": "nil",
+        "description": "same as None"
+    },
     "Keyword - none": {
         "prefix": "none",
         "body": "none",
+        "description": "same as None"
+    },
+    "Keyword - null": {
+        "prefix": "null",
+        "body": "null",
         "description": "same as None"
     },
     "Keyword - not": {
@@ -210,6 +229,19 @@
         "prefix": "or",
         "body": "or"
     },
+    "Keyword - raise": {
+        "prefix": "raise",
+        "body": "raise ${0:Exception}",
+        "description": "same as throw"
+    },
+    "Keyword - repeat": {
+        "prefix": "repeat",
+        "body": [
+            "repeat {",
+            "\t${0:# code}",
+            "} until (${1:condition})"
+        ]
+    },
     "Keyword - return": {
         "prefix": "return",
         "body": "return"
@@ -219,9 +251,9 @@
         "body": [
             "switch (${1:target}) {",
             "\tcase ${2:condition}:",
-            "\t\t${3:# TODO Something}",
+            "\t\t${3:# code}",
             "\tdefault:",
-            "\t\t${4:# TODO Something}",
+            "\t\t${4:# code}",
             "}"
         ]
     },
@@ -233,17 +265,21 @@
         "prefix": "try",
         "body": [
             "try {",
-            "\t${1:# TODO Something}",
+            "\t${1:# code}",
             "} catch (e) {",
-            "\t${2:# TODO Something}",
+            "\t${2:# code}",
             "}"
         ]
+    },
+    "Keyword - until": {
+        "prefix": "until",
+        "body": "until (${0:condition})"
     },
     "Keyword - while": {
         "prefix": "while",
         "body": [
             "while (${1:condition}) {",
-            "\t${0:# TODO Something}",
+            "\t${0:# code}",
             "}"
         ]
     },
@@ -251,7 +287,7 @@
         "prefix": "with",
         "body": [
             "with (${1:contextObject as context}) {",
-            "\t${0:# TODO Something}",
+            "\t${0:# code}",
             "}"
         ]
     },
@@ -376,6 +412,11 @@
         "prefix": "IndexError",
         "body": "IndexError"
     },
+    "Builtin - Infinity": {
+        "prefix": "Infinity",
+        "body": "Infinity",
+        "description": "same as inf"
+    },
     "Builtin - InterruptedError": {
         "prefix": "InterruptedError",
         "body": "InterruptedError"
@@ -404,6 +445,11 @@
         "prefix": "ModuleNotFoundError",
         "body": "ModuleNotFoundError"
     },
+    "Builtin - NaN": {
+        "prefix": "NaN",
+        "body": "NaN",
+        "description": "same as nan"
+    },
     "Builtin - NameError": {
         "prefix": "NameError",
         "body": "NameError"
@@ -411,6 +457,11 @@
     "Builtin - NotADirectoryError": {
         "prefix": "NotADirectoryError",
         "body": "NotADirectoryError"
+    },
+    "Builtin - NotANumber": {
+        "prefix": "NotANumber",
+        "body": "NotANumber",
+        "description": "same as nan"
     },
     "Builtin - NotImplemented": {
         "prefix": "NotImplemented",
@@ -572,6 +623,10 @@
         "prefix": "bool",
         "body": "bool"
     },
+    "Builtin - breakpoint": {
+        "prefix": "breakpoint",
+        "body": "breakpoint()"
+    },
     "Builtin - bytearray": {
         "prefix": "bytearray",
         "body": "bytearray"
@@ -583,6 +638,10 @@
     "Builtin - callable": {
         "prefix": "callable",
         "body": "callable($0)"
+    },
+    "Builtin - ce": {
+        "prefix": "ce",
+        "body": "ce($0)"
     },
     "Builtin - chr": {
         "prefix": "chr",
@@ -596,6 +655,14 @@
         "prefix": "complex",
         "body": "complex"
     },
+    "Builtin - comprehension": {
+        "prefix": "comprehension",
+        "body": "comprehension($0)"
+    },
+    "Builtin - decrement": {
+        "prefix": "decrement",
+        "body": "decrement($0)"
+    },
     "Builtin - delattr": {
         "prefix": "delattr",
         "body": "delattr($0)"
@@ -604,6 +671,10 @@
         "prefix": "dict",
         "body": "dict"
     },
+    "Builtin - dir": {
+        "prefix": "dir",
+        "body": "dir($0)"
+    },
     "Builtin - divmod": {
         "prefix": "divmod",
         "body": "divmod($0)"
@@ -611,6 +682,14 @@
     "Builtin - enumerate": {
         "prefix": "enumerate",
         "body": "enumerate($0)"
+    },
+    "Builtin - eval": {
+        "prefix": "eval",
+        "body": "eval($0)"
+    },
+    "Builtin - exec": {
+        "prefix": "exec",
+        "body": "exec($0)"
     },
     "Builtin - exit": {
         "prefix": "exit",
@@ -636,6 +715,10 @@
         "prefix": "getattr",
         "body": "getattr($0)"
     },
+    "Builtin - globals": {
+        "prefix": "globals",
+        "body": "globals()"
+    },
     "Builtin - hasattr": {
         "prefix": "hasattr",
         "body": "hasattr($0)"
@@ -644,6 +727,10 @@
         "prefix": "hash",
         "body": "hash($0)"
     },
+    "Builtin - help": {
+        "prefix": "help",
+        "body": "help($0)"
+    },
     "Builtin - hex": {
         "prefix": "hex",
         "body": "hex($0)"
@@ -651,6 +738,19 @@
     "Builtin - id": {
         "prefix": "id",
         "body": "id($0)"
+    },
+    "Builtin - increment": {
+        "prefix": "increment",
+        "body": "increment($0)"
+    },
+    "Builtin - inf": {
+        "prefix": "inf",
+        "body": "inf"
+    },
+    "Builtin - infinity": {
+        "prefix": "infinity",
+        "body": "infinity",
+        "description": "same as inf"
     },
     "Builtin - input": {
         "prefix": "input",
@@ -664,6 +764,10 @@
         "prefix": "isinstance",
         "body": "isinstance($0)"
     },
+    "Builtin - isobjectof": {
+        "prefix": "isobjectof",
+        "body": "isobjectof($0)"
+    },
     "Builtin - issubclass": {
         "prefix": "issubclass",
         "body": "issubclass($0)"
@@ -676,9 +780,17 @@
         "prefix": "len",
         "body": "len($0)"
     },
+    "Builtin - license": {
+        "prefix": "license",
+        "body": "license()"
+    },
     "Builtin - list": {
         "prefix": "list",
         "body": "list($0)"
+    },
+    "Builtin - locals": {
+        "prefix": "locals",
+        "body": "locals()"
     },
     "Builtin - map": {
         "prefix": "map",
@@ -696,9 +808,22 @@
         "prefix": "min",
         "body": "min($0)"
     },
+    "Builtin - nce": {
+        "prefix": "nce",
+        "body": "nce($0)"
+    },
     "Builtin - next": {
         "prefix": "next",
         "body": "next($0)"
+    },
+    "Builtin - nan": {
+        "prefix": "nan",
+        "body": "nan"
+    },
+    "Builtin - notanumber": {
+        "prefix": "notanumber",
+        "body": "notanumber",
+        "description": "same as nan"
     },
     "Builtin - object": {
         "prefix": "object",
@@ -728,6 +853,10 @@
         "prefix": "property",
         "body": "property"
     },
+    "Builtin - pyimport": {
+        "prefix": "pyimport",
+        "body": "pyimport($0)"
+    },
     "Builtin - quit": {
         "prefix": "quit",
         "body": "quit($0)"
@@ -739,6 +868,10 @@
     "Builtin - repr": {
         "prefix": "repr",
         "body": "repr($0)"
+    },
+    "Builtin - require": {
+        "prefix": "require",
+        "body": "require($0)"
     },
     "Builtin - reversed": {
         "prefix": "reversed",
@@ -788,77 +921,17 @@
         "prefix": "type",
         "body": "type"
     },
-    "Builtin - zip": {
-        "prefix": "zip",
-        "body": "zip($0)"
-    },
-    "Builtin - license": {
-        "prefix": "license",
-        "body": "license()"
-    },
-    "Builtin - help": {
-        "prefix": "help",
-        "body": "help($0)"
-    },
-    "Builtin - require": {
-        "prefix": "require",
-        "body": "require($0)"
-    },
-    "Builtin - pyimport": {
-        "prefix": "pyimport",
-        "body": "pyimport($0)"
-    },
-    "Builtin - breakpoint": {
-        "prefix": "breakpoint",
-        "body": "breakpoint()"
-    },
-    "Builtin - globals": {
-        "prefix": "globals",
-        "body": "globals()"
-    },
-    "Builtin - locals": {
-        "prefix": "locals",
-        "body": "locals()"
+    "Builtin - unpack": {
+        "prefix": "unpack",
+        "body": "unpack($0)"
     },
     "Builtin - vars": {
         "prefix": "vars",
         "body": "vars($0)"
     },
-    "Builtin - dir": {
-        "prefix": "dir",
-        "body": "dir($0)"
-    },
-    "Builtin - exec": {
-        "prefix": "exec",
-        "body": "exec($0)"
-    },
-    "Builtin - eval": {
-        "prefix": "eval",
-        "body": "eval($0)"
-    },
-    "Builtin - ce": {
-        "prefix": "ce",
-        "body": "ce($0)"
-    },
-    "Builtin - nce": {
-        "prefix": "nce",
-        "body": "nce($0)"
-    },
-    "Builtin - increment": {
-        "prefix": "increment",
-        "body": "increment($0)"
-    },
-    "Builtin - decrement": {
-        "prefix": "decrement",
-        "body": "decrement($0)"
-    },
-    "Builtin - comprehension": {
-        "prefix": "comprehension",
-        "body": "comprehension($0)"
-    },
-    "Builtin - isobjectof": {
-        "prefix": "isobjectof",
-        "body": "isobjectof($0)"
+    "Builtin - zip": {
+        "prefix": "zip",
+        "body": "zip($0)"
     },
     "Suggesstion - forloop": {
         "prefix": "fl",
@@ -879,5 +952,9 @@
     "Suggesstion - lambda": {
         "prefix": "lambda",
         "body": "func(${1:parameter}) => ${0:returnValue}"
+    },
+    "Suggesstion - future": {
+        "prefix": "future",
+        "body": "from __future__ import ${0:futureName}"
     }
 }

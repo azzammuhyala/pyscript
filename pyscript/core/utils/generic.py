@@ -3,23 +3,27 @@ from ..constants import ENV_PYSCRIPT_NO_READLINE
 from collections.abc import Sequence
 from inspect import currentframe
 from os import environ, system
-from re import compile as re_compile
 from types import UnionType
 
 import sys
 
-delimuattr = object.__delattr__
+getattribute = object.__getattribute__
 setimuattr = object.__setattr__
-version_match = re_compile(r'^(\d+)\.(\d+)\.(\d+)((?:a|b|rc)(\d+)|\.(dev|post)(\d+))?$').match
+delimuattr = object.__delattr__
+dcontains = dict.__contains__
+dgetitem = dict.__getitem__
+dsetitem = dict.__setitem__
+ddelitem = dict.__delitem__
+dget = dict.get
+dkeys = dict.keys
+ditems = dict.items
 
 def get_frame(deep=0):
     deep += 1
     frame = currentframe()
-
     while deep > 0 and frame:
         frame = frame.f_back
         deep -= 1
-
     return frame
 
 def get_locals(deep=0):
@@ -67,13 +71,9 @@ else:
             except:
                 return False
 
-def get_error_args(exception):
-    if exception is None:
-        return None, None, None
-
-    pyexception = exception.exception
-    return (
-        (pyexception, None, exception)
-        if isinstance(pyexception, type) else
-        (type(pyexception), pyexception, exception)
+def get_error_args(traceback):
+    return (None, None, None) if traceback is None else (
+        (exception, None, traceback)
+        if isinstance(exception := traceback.exception, type) else
+        (type(exception), exception, traceback)
     )

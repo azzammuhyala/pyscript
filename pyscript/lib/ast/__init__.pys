@@ -1,12 +1,12 @@
-from parser import ast as parse
+from parser import DEFAULT, ast as parse
 from ast_dump import dump
 from ast_literal_eval import visit as _visit_literal_eval
 from ast_unparse import unparse
 from ast_walk import walk
 from _pyscript import nodes
 
-func literal_eval(node_or_string)
-    return _visit_literal_eval(parse(node_or_string, mode='eval'))
+func literal_eval(node_or_string, flags=DEFAULT)
+    return _visit_literal_eval(parse(node_or_string, mode='eval', flags=flags))
 
 Node = nodes.PysNode
 

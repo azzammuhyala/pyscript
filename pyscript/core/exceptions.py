@@ -1,6 +1,5 @@
 from .bases import Pys
 from .constants import NO_COLOR
-from .utils.ansi import BOLD, acolor
 from .utils.decorators import immutable
 from .utils.generic import setimuattr
 from .utils.string import indent
@@ -36,15 +35,17 @@ class PysTraceback(Pys):
         return f'<traceback of exception {self.exception!r}>'
 
     def string_traceback(self) -> str:
-        from .position import format_arrow  # circular import problem solved
+        # circular import problem solved
+        from .mapping import ACOLORS
+        from .position import format_arrow
 
         context = self.context
         position = self.position
 
         if colored := not (context.flags & NO_COLOR):
-            reset = acolor('reset')
-            magenta = acolor('magenta')
-            bmagenta = acolor('magenta', style=BOLD)
+            reset = ACOLORS['reset']
+            magenta = ACOLORS['magenta']
+            bmagenta = ACOLORS['bold-magenta']
         else:
             reset = ''
             magenta = ''
@@ -99,9 +100,11 @@ class PysTraceback(Pys):
 
         return (
             self.cause.string_traceback() +
-            ('\n\nThe above exception was the direct cause of the following exception:\n\n'
-             if self.directly else
-             '\n\nDuring handling of the above exception, another exception occurred:\n\n') + result
+            (
+                '\n\nThe above exception was the direct cause of the following exception:\n\n'
+                if self.directly else
+                '\n\nDuring handling of the above exception, another exception occurred:\n\n'
+            ) + result
             if self.cause else
             result
         )
@@ -115,12 +118,8 @@ class PysSignal(Pys, BaseException):
         self.result = result
 
     def __str__(self) -> str:
-        if self.result.error is None:
-            return '<signal>'
-
-        exception = self.result.error.exception
-
-        if isinstance(exception, type):
-            return exception.__name__
-        message = str(exception)
-        return type(exception).__name__ + (f': {message}' if message else '')
+        return '<signal>' if (error := self.result.error) is None else (
+            exception.__name__
+            if isinstance(exception := error.exception, type) else
+            type(exception).__name__ + (f': {message}' if (message := str(exception)) else '')
+        )

@@ -85,7 +85,9 @@ TOKENS = MappingProxyType({
     'EQUAL-DOUBLE-LESS-THAN': ord('<') + DOUBLE + WITH_EQUAL,
     'EQUAL-DOUBLE-GREATER-THAN': ord('>') + DOUBLE + WITH_EQUAL,
     'NONE': SPECIAL,
+    'MINUS-GREATER-THAN': ord('-') + SPECIAL,
     'EQUAL-ARROW': ord('>') + SPECIAL,
+    'EXCLAMATION-GREATER-THAN': ord('!') + SPECIAL,
     'EXCLAMATION-TILDE': ord('~') + SPECIAL
 })
 
@@ -110,6 +112,7 @@ KEYWORDS = MappingProxyType({
     'do': 'do',
     'elif': 'elif',
     'else': 'else',
+    'except': 'except',
     'extends': 'extends',
     'false': 'false',
     'finally': 'finally',
@@ -123,15 +126,20 @@ KEYWORDS = MappingProxyType({
     'in': 'in',
     'is': 'is',
     'match': 'match',
+    'nil': 'nil',
     'none': 'none',
+    'null': 'null',
     'not': 'not',
     'true': 'true',
     'of': 'of',
     'or': 'or',
+    'raise': 'raise',
+    'repeat': 'repeat',
     'return': 'return',
     'switch': 'switch',
     'throw': 'throw',
     'try': 'try',
+    'until': 'until',
     'while': 'while',
     'with': 'with'
 })
@@ -139,15 +147,18 @@ KEYWORDS = MappingProxyType({
 CONSTANT_KEYWORDS = (
     KEYWORDS['__debug__'], KEYWORDS['False'], KEYWORDS['None'], KEYWORDS['True'], KEYWORDS['and'], KEYWORDS['class'],
     KEYWORDS['constructor'], KEYWORDS['extends'], KEYWORDS['func'], KEYWORDS['function'], KEYWORDS['false'],
-    KEYWORDS['global'], KEYWORDS['in'], KEYWORDS['is'], KEYWORDS['not'], KEYWORDS['none'], KEYWORDS['of'],
-    KEYWORDS['or'], KEYWORDS['true']
+    KEYWORDS['global'], KEYWORDS['in'], KEYWORDS['is'], KEYWORDS['not'], KEYWORDS['nil'], KEYWORDS['none'],
+    KEYWORDS['null'], KEYWORDS['of'], KEYWORDS['or'], KEYWORDS['true']
 )
 
 # flags
 DEFAULT = 0
-DEBUG = 1 << 0
-SILENT = 1 << 1
-RETURN_RESULT = 1 << 2
-HIGHLIGHT = 1 << 3
-NO_COLOR = 1 << 4
-REVERSE_POW_XOR = 1 << 5
+NO_COLOR = 1 << 0
+DEBUG = 1 << 1
+SILENT = 1 << 2
+RETURN_RESULT = 1 << 3
+DONT_SHOW_BANNER_ON_SHELL = 1 << 4
+
+# parser flags
+HIGHLIGHT = 1 << 0
+DICT_TO_JSDICT = 1 << 1

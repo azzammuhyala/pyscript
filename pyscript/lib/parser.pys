@@ -10,10 +10,10 @@ SPECIAL = _pyscript.constants.SPECIAL
 TOKENS = _pyscript.constants.TOKENS
 KEYWORDS = _pyscript.constants.KEYWORDS
 
-# flags
+# parser flags
 DEFAULT = _pyscript.constants.DEFAULT
 HIGHLIGHT = _pyscript.constants.HIGHLIGHT
-REVERSE_POW_XOR = _pyscript.constants.REVERSE_POW_XOR
+DICT_TO_JSDICT = _pyscript.constants.DICT_TO_JSDICT
 
 # highlight formatter
 HLFMT_HTML = _pyscript.highlight.HLFMT_HTML
@@ -73,7 +73,7 @@ class Parser {
 
         lexer = _pyscript.lexer.PysLexer(
             file=self.file,
-            flags=self.flags
+            parser_flags=self.flags
         )
 
         tokens, error = lexer.make_tokens()
@@ -96,14 +96,14 @@ class Parser {
 
         parser = _pyscript.parser.PysParser(
             tokens=tokens,
-            flags=self.flags
+            parser_flags=self.flags
         )
 
-        ast = parser.parse(mode == 'exec' ? None : parser.expr)
-        if (ast.error)
-            throw ast.error.exception
+        node, error = parser.parse(mode == 'exec' ? None : parser.expr)
+        if (error)
+            throw error.exception
 
-        return ast.node
+        return node
     }
 
     func analyze(self, mode='exec') {
@@ -112,10 +112,7 @@ class Parser {
         else
             ast = self.ast(mode=mode)
 
-        analyzer = _pyscript.analyzer.PysAnalyzer(
-            node=ast,
-            flags=self.flags
-        )
+        analyzer = _pyscript.analyzer.PysAnalyzer(node=ast)
 
         error = analyzer.analyze()
         if (error)
@@ -156,7 +153,7 @@ __all__ = (
     'KEYWORDS',
     'DEFAULT',
     'HIGHLIGHT',
-    'REVERSE_POW_XOR',
+    'DICT_TO_JSDICT',
     'HLFMT_HTML',
     'HLFMT_ANSI',
     'HLFMT_BBCODE',

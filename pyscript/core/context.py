@@ -2,7 +2,7 @@ from .bases import Pys
 from .buffer import PysFileBuffer
 from .constants import DEFAULT
 from .position import PysPosition
-from .symtab import PysSymbolTable
+from .symtab import PysSymbolTable, PysClassSymbolTable
 from .utils.decorators import immutable
 from .utils.generic import setimuattr
 
@@ -24,6 +24,7 @@ class PysContext(Pys):
         parent: Optional['PysContext'] = None,
         parent_entry_position: Optional[PysPosition] = None
     ) -> None:
+
         if flags is None and parent:
             flags = parent.flags
 
@@ -46,10 +47,11 @@ class PysClassContext(PysContext):
         self,
         *,
         name: str,
-        symbol_table: PysSymbolTable,
+        symbol_table: PysClassSymbolTable,
         parent: PysContext,
         parent_entry_position: PysPosition
     ) -> None:
+
         qualname = parent.qualname
         super().__init__(
             file=parent.file,

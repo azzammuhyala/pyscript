@@ -35,86 +35,19 @@ class PysLexer(Pys):
         self,
         file: PysFileBuffer,
         flags: int = DEFAULT,
+        parser_flags: int = DEFAULT,
         context_parent: Optional[PysContext] = None,
         context_parent_entry_position: Optional[PysPosition] = None
     ) -> None:
 
         self.file = file
         self.flags = flags
+        self.parser_flags = parser_flags
         self.context_parent = context_parent
         self.context_parent_entry_position = context_parent_entry_position
 
-    def update_current_character(self):
-        self.current_character = self.file.text[self.index] if 0 <= self.index < len(self.file.text) else None
-
-    def advance(self):
-        if self.error is None:
-            self.index += 1
-            self.update_current_character()
-
-    def reverse(self, amount=1):
-        if self.error is None:
-            self.index -= amount
-            self.update_current_character()
-
-    def not_end_of_file(self):
-        return self.current_character is not None and self.error is None
-
-    def character_in(self, characters):
-        return self.not_end_of_file() and self.current_character in characters
-
-    def character_are(self, string_method, *args, **kwargs):
-        return self.not_end_of_file() and getattr(self.current_character, string_method)(*args, **kwargs)
-
-    def add_token(self, type, start=None, value=None):
-        if self.error is None:
-
-            if start is None:
-                start = self.index
-                end = self.index + 1
-            else:
-                end = self.index
-
-            self.tokens.append(
-                PysToken(
-                    type,
-                    PysPosition(
-                        self.file,
-                        start,
-                        end
-                    ),
-                    value
-                )
-            )
-
-    def warning(self, message):
-        if not (self.flags & SILENT or self.flags & HIGHLIGHT or message in self.warnings):
-            print(message, file=sys.stderr)
-            self.warnings.add(message)
-
-    def throw(self, start, end, message, add_token=True):
-        if self.error is None:
-
-            if self.flags & HIGHLIGHT:
-                if add_token:
-                    self.add_token(TOKENS['NONE'], start)
-
-            else:
-                self.current_character = None
-                self.tokens = []
-                self.error = PysTraceback(
-                    SyntaxError(message),
-                    PysContext(
-                        file=self.file,
-                        flags=self.flags,
-                        parent=self.context_parent,
-                        parent_entry_position=self.context_parent_entry_position
-                    ),
-                    PysPosition(self.file, start, end)
-                )
-
     @typechecked
-    def make_tokens(self) -> tuple[tuple[PysToken, ...] | tuple[PysToken], PysTraceback | None]:
+    def make_tokens(self) -> tuple[tuple[PysToken, ...] | tuple[PysToken], None] | tuple[None, PysTraceback]:
         self.index = 0
         self.tokens = []
         self.warnings = set()
@@ -240,7 +173,76 @@ class PysLexer(Pys):
 
         self.add_token(TOKENS['NULL'])
 
-        return tuple(self.tokens), self.error
+        return (None if self.tokens is None else tuple(self.tokens)), self.error
+
+    def update_current_character(self):
+        self.current_character = self.file.text[self.index] if 0 <= self.index < len(self.file.text) else None
+
+    def advance(self):
+        if self.error is None:
+            self.index += 1
+            self.update_current_character()
+
+    def reverse(self, amount=1):
+        if self.error is None:
+            self.index -= amount
+            self.update_current_character()
+
+    def not_end_of_file(self):
+        return self.current_character is not None and self.error is None
+
+    def character_in(self, characters):
+        return self.not_end_of_file() and self.current_character in characters
+
+    def character_are(self, string_method, *args, **kwargs):
+        return self.not_end_of_file() and getattr(self.current_character, string_method)(*args, **kwargs)
+
+    def add_token(self, type, start=None, value=None):
+        if self.error is None and self.tokens is not None:
+
+            if start is None:
+                start = self.index
+                end = self.index + 1
+            else:
+                end = self.index
+
+            self.tokens.append(
+                PysToken(
+                    type,
+                    PysPosition(
+                        self.file,
+                        start,
+                        end
+                    ),
+                    value
+                )
+            )
+
+    def warning(self, message):
+        if not (self.flags & SILENT or self.parser_flags & HIGHLIGHT or message in self.warnings):
+            print(message, file=sys.stderr)
+            self.warnings.add(message)
+
+    def throw(self, start, end, message, add_token=True):
+        if self.error is None:
+
+            if self.parser_flags & HIGHLIGHT:
+                if add_token:
+                    self.add_token(TOKENS['NONE'], start)
+
+            else:
+                self.current_character = None
+                self.tokens = None
+                self.error = PysTraceback(
+                    SyntaxError(message),
+                    PysContext(
+                        file=self.file,
+                        flags=self.flags,
+                        parent=self.context_parent,
+                        parent_entry_position=self.context_parent_entry_position
+                    ),
+                    PysPosition(self.file, start, end)
+                )
 
     def make_back_slash(self):
         self.advance()
@@ -620,6 +622,10 @@ class PysLexer(Pys):
             type = TOKENS['DOUBLE-MINUS']
             self.advance()
 
+        elif self.current_character == '>':
+            type = TOKENS['MINUS-GREATER-THAN']
+            self.advance()
+
         self.add_token(type, start)
 
     def make_star(self):
@@ -772,6 +778,10 @@ class PysLexer(Pys):
             type = TOKENS['EQUAL-EXCLAMATION']
             self.advance()
 
+        elif self.current_character == '>':
+            type = TOKENS['EXCLAMATION-GREATER-THAN']
+            self.advance()
+
         self.add_token(type, start)
 
     def make_less_than(self):
@@ -848,5 +858,5 @@ class PysLexer(Pys):
             comment += self.current_character
             self.advance()
 
-        if self.flags & HIGHLIGHT:
+        if self.parser_flags & HIGHLIGHT:
             self.add_token(TOKENS['COMMENT'], start, comment)

@@ -30,13 +30,13 @@ HIGHLIGHT_MAP = MappingProxyType({
     'invalid': '#B51819'
 })
 
-_builtin_types = tuple(
+_builtin_types = frozenset(
     name
     for name, object in pys_builtins.__dict__.items()
     if is_public_attribute(name) and isinstance(object, type)
 )
 
-_builtin_functions = tuple(
+_builtin_functions = frozenset(
     name 
     for name, object in pys_builtins.__dict__.items()
     if is_public_attribute(name) and callable(object)
@@ -45,13 +45,54 @@ _builtin_functions = tuple(
 try:
     # if pygments module already exists
     from pygments.lexer import RegexLexer, include, bygroups
-    from pygments.token import Comment, Keyword, Name, Number, Punctuation, String, Whitespace
+    from pygments.style import Style
+    from pygments.token import Comment, Error, Escape, Keyword, Name, Number, Operator, Punctuation, String, Whitespace
     from pygments.unistring import xid_start, xid_continue
 
-    _keyword_definitions = (KEYWORDS['class'], KEYWORDS['func'], KEYWORDS['function'])
+    _set_keywords = frozenset(KEYWORDS.values())
+    _set_constant_keywords = frozenset(CONSTANT_KEYWORDS)
+    _set_keyword_definitions = frozenset([KEYWORDS['class'], KEYWORDS['func'], KEYWORDS['function']])
+
+    _keywords = '|'.join(_set_keywords)
+    _unicode_name = f'[{xid_start}][{xid_continue}]'
+    _dollar_prefix = r'(?:\$(?:[^\S\r\n]*))?'
     _raw_string_prefixes = r'((?:R|r|BR|RB|Br|rB|Rb|bR|br|rb))'
     _string_prefixes = r'((?:B|b)?)'
-    _unicode_name = f'[{xid_start}][{xid_continue}]'
+    _newlines = r'\r\n|\r|\n'
+
+    class PygmentsPyScriptStyle(Pys, Style):
+
+        """
+        Pygments style for PyScript language.
+        """
+
+        name = 'pyscript'
+        aliases = ['pyslang', 'pyscript-programming-language']
+
+        styles = {
+            Keyword: HIGHLIGHT_MAP['keyword'],
+            Keyword.Constant: HIGHLIGHT_MAP['keyword-constant'],
+            Keyword.Codetag: '#1F52B3',
+            Name: HIGHLIGHT_MAP['identifier'],
+            Name.Variable: HIGHLIGHT_MAP['identifier'],
+            Name.Constant: HIGHLIGHT_MAP['identifier-constant'],
+            Name.Function: HIGHLIGHT_MAP['identifier-function'],
+            Name.Class: HIGHLIGHT_MAP['identifier-type'],
+            Number: HIGHLIGHT_MAP['number'],
+            String: HIGHLIGHT_MAP['string'],
+            String.Affix: '#1F52B3',
+            String.Escape: '#D7BA71',
+            String.Escape.Invalid: HIGHLIGHT_MAP['invalid'],
+            String.Escape.Error: HIGHLIGHT_MAP['invalid'],
+            Escape: '#D7BA71',
+            Escape.Invalid: HIGHLIGHT_MAP['invalid'],
+            Escape.Error: HIGHLIGHT_MAP['invalid'],
+            Operator: HIGHLIGHT_MAP['default'],
+            Punctuation: HIGHLIGHT_MAP['default'],
+            Whitespace: HIGHLIGHT_MAP['default'],
+            Comment: HIGHLIGHT_MAP['comment'],
+            Error: HIGHLIGHT_MAP['invalid']
+        }
 
     class PygmentsPyScriptLexer(Pys, RegexLexer):
 
@@ -59,8 +100,8 @@ try:
         Pygments lexer for PyScript language.
         """
 
-        name = 'PyScript'
-        aliases = ['pyscript']
+        name = 'pyscript'
+        aliases = ['pyslang', 'pyscript-programming-language']
         filenames = ['*.pys']
 
         tokens = {
@@ -69,18 +110,17 @@ try:
                 # Whitespaces
                 (r'\s+', Whitespace),
 
-                # Punctuation
-                (r'[!%&\(\)\*\+,\-\./:;<=>\?@\[\]^{\|}~\\]+', Punctuation),
+                # Punctuation and operators
+                (rf'[\(\),;\[\]{{}}]|\\(?:{_newlines})', Punctuation),
+                (r'\.\.\.', Keyword.Constant),
+                (
+                    r'[!%&\*\+\-\./:<=>\?@^\|~]|&&|\*\*|\+\+|--|//|<<|==|>>|\?\?|\|\||!=|%=|&=|\*=|\+=|-=|/=|:=|<=|>=|'
+                    r'@=|^=|\|=|~=|\*\*=|//=|<<=|>>=|->|=>|!>|~!', Operator
+                ),
 
                 # Keywords
-                (
-                    r'\b(' + '|'.join(filter(lambda k: not is_constant_keywords(k), KEYWORDS)) + r')\b',
-                    Keyword
-                ),
-                (
-                    r'\b(' + '|'.join(filter(lambda k: k not in _keyword_definitions, CONSTANT_KEYWORDS)) + r')\b',
-                    Keyword.Constant
-                ),
+                (rf'\b({"|".join(_set_keywords ^ _set_constant_keywords)})\b', Keyword),
+                (rf'\b({"|".join(_set_constant_keywords ^ _set_keyword_definitions)})\b', Keyword.Constant),
 
                 # Strings
                 (
@@ -148,95 +188,90 @@ try:
                 ),
 
                 # Comments
-                (
-                    r'#',
-                    Comment.Single,
-                    'in-comment'
-                ),
+                (r'#', Comment.Single, 'in-comment'),
 
                 # Class definition
                 (
-                    r'\b(' + KEYWORDS['class'] + r')\b'
-                    r'(\s*)((?:\$(?:[^\S\r\n]*))?\b' + _unicode_name + r'*)\b',
+                    rf'\b({KEYWORDS["class"]})\b(\s*)(?!{_keywords})({_dollar_prefix}\b{_unicode_name}*)\b',
                     bygroups(Keyword.Constant, Whitespace, Name.Class)
                 ),
 
                 # Function definition
                 (
-                    r'\b(' + KEYWORDS['func'] + '|' + KEYWORDS['function'] + r')\b' +
-                    r'(\s*)((?:\$(?:[^\S\r\n]*))?\b' + _unicode_name + r'*)\b',
+                    rf'\b({KEYWORDS["func"]}|{KEYWORDS["function"]})\b(\s*)'
+                    rf'(?!{_keywords})({_dollar_prefix}\b{_unicode_name}*)\b',
                     bygroups(Keyword.Constant, Whitespace, Name.Function)
                 ),
 
-                # Keywords (if that definition is unmatched)
-                (
-                    r'\b(' + '|'.join(_keyword_definitions) + r')\b',
-                    Keyword.Constant
-                ),
+                # Keywords (if that definitions is unmatched)
+                (rf'\b({"|".join(_set_keyword_definitions)})\b', Keyword.Constant),
 
                 # Built-in types and exceptions
                 (
-                    r'(?:\$(?:[^\S\r\n]*))?(?:' + '|'.join(_builtin_types) + r')\b',
-                    Name.Builtin.Class
+                    rf'{_dollar_prefix}(?:{"|".join(_builtin_types)})\b',
+                    Name.Class.Builtin
                 ),
 
                 # Built-in functions
                 (
-                    r'(?:\$(?:[^\S\r\n]*))?' + _unicode_name + r'*(?=\s*\()|\b(?:' +
-                    '|'.join(_builtin_functions) + r')\b',
-                    Name.Builtin.Function
+                    rf'{_dollar_prefix}{_unicode_name}*(?=\s*\()|\b(?:{"|".join(_builtin_functions)})\b',
+                    Name.Function.Builtin
                 ),
 
                 # Constants
-                (r'(?:\$(?:[^\S\r\n]*))?\b(?:[A-Z_]*[A-Z][A-Z0-9_]*)\b', Name.Constant),
+                (rf'{_dollar_prefix}\b(?:[A-Z_]*[A-Z][A-Z0-9_]*)\b', Name.Constant),
 
                 # Variables
-                (r'(?:\$(?:[^\S\r\n]*))?\b' + _unicode_name + r'*\b', Name),
+                (rf'{_dollar_prefix}\b{_unicode_name}*\b', Name.Variable),
+
+                # Invalid tokens
+                (r'\\.', Error),
+                (rf'{_dollar_prefix}.', Error)
             ],
 
-            'todo-keywords': [
-                (r'\b(TODO|NOTE|FIXME|BUG|HACK)\b', Keyword.Constant.Todo)
+            'code-tags': [
+                (r'\b(BUG|FIXME|HACK|NOTE|TODO|XXX)\b', Keyword.Codetag)
             ],
 
             'string-escapes': [
-                (r'\\([nrtbfav\'"\n\r])', String.Escape),
+                (rf'\\([nrtbfav\'"\\]|{_newlines})', String.Escape),
                 (r'\\[0-7]{1,3}}', String.Escape.Octal),
                 (r'\\x[0-9A-Fa-f]{2}', String.Escape.Hex),
                 (r'\\u[0-9A-Fa-f]{4}', String.Escape.Unicode),
                 (r'\\U[0-9A-Fa-f]{8}', String.Escape.Unicode),
                 (r'\\N\{[^}]+\}', String.Escape.UnicodeName),
-                (r'\\.', String.Escape.Invalid)
+                (r'\\.', String.Escape.Error)
             ],
 
             'raw-string-escapes': [
-                (r'\\([\'"\n\r])', String),
+                (rf'\\([\'"]|{_newlines})', String),
                 (r'\\.', String)
             ],
 
             'raw-string-apostrophe-triple': [
                 (r"'''", String.Delimiter, '#pop'),
                 include('raw-string-escapes'),
-                (r'.', String)
+                (rf'{_newlines}|.', String),
             ],
 
             'raw-string-quotation-triple': [
                 (r'"""', String.Delimiter, '#pop'),
                 include('raw-string-escapes'),
-                (r'.', String)
+                (rf'{_newlines}|.', String)
             ],
 
             'string-apostrophe-triple': [
                 (r"'''", String.Delimiter, '#pop'),
                 include('string-escapes'),
-                include('todo-keywords'),
-                (r'.', String)
+                include('code-tags'),
+                (rf'{_newlines}|.', String)
             ],
 
             'string-quotation-triple': [
                 (r'"""', String.Delimiter, '#pop'),
                 include('string-escapes'),
-                include('todo-keywords'),
-                (r'.', String)
+                include('code-tags'),
+                (rf'{_newlines}|.', String)
             ],
 
             'raw-string-apostrophe-single': [
@@ -254,31 +289,40 @@ try:
             'string-apostrophe-single': [
                 (r"'", String.Delimiter, '#pop'),
                 include('string-escapes'),
-                include('todo-keywords'),
+                include('code-tags'),
                 (r'.', String)
             ],
 
             'string-quotation-single': [
                 (r'"', String.Delimiter, '#pop'),
                 include('string-escapes'),
-                include('todo-keywords'),
+                include('code-tags'),
                 (r'.', String)
             ],
 
             'in-comment': [
                 (r'$', Comment.Single, '#pop'),
-                include('todo-keywords'),
+                include('code-tags'),
                 (r'.', Comment.Single),
             ]
 
         }
 
+    del (
+        _set_keywords, _set_constant_keywords, _set_keyword_definitions, _keywords, _unicode_name, _dollar_prefix,
+        _raw_string_prefixes, _string_prefixes, _newlines
+    )
+
 except ImportError as e:
+    _error = e
+
+    class PygmentsPyScriptStyle(Pys):
+        def __new__(cls, *args, **kwargs):
+            raise ImportError(f"cannot import module pygments: {_error}") from _error
 
     class PygmentsPyScriptLexer(Pys):
-
         def __new__(cls, *args, **kwargs):
-            raise ModuleNotFoundError(f"cannot import module pygments: {e}")
+            raise ImportError(f"cannot import module pygments: {_error}") from _error
 
 @typechecked
 class _PysHighlightFormatter(Pys):
@@ -287,14 +331,12 @@ class _PysHighlightFormatter(Pys):
         self,
         content_block: Callable[[PysPosition, str], str],
         open_block: Callable[[PysPosition, str], str],
-        close_block: Callable[[PysPosition, str], str],
-        newline_block: Callable[[PysPosition], str]
+        close_block: Callable[[PysPosition, str], str]
     ) -> None:
 
         self.content_block = content_block
         self.open_block = open_block
         self.close_block = close_block
-        self.newline_block = newline_block
 
         self._type = 'start'
         self._open = False
@@ -302,18 +344,10 @@ class _PysHighlightFormatter(Pys):
     def __call__(self, type: str, position: PysPosition, content: str) -> str:
         result = ''
 
-        if type == 'newline':
+        if type == 'end':
             if self._open:
                 result += self.close_block(position, self._type)
                 self._open = False
-
-            result += self.newline_block(position)
-
-        elif type == 'end':
-            if self._open:
-                result += self.close_block(position, self._type)
-                self._open = False
-
             type = 'start'
 
         elif type == self._type and self._open:
@@ -323,37 +357,32 @@ class _PysHighlightFormatter(Pys):
             if self._open:
                 result += self.close_block(position, self._type)
 
-            result += self.open_block(position, type) + \
-                      self.content_block(position, content)
-
+            result += self.open_block(position, type) + self.content_block(position, content)
             self._open = True
 
         self._type = type
         return result
 
 def _ansi_open_block(position, type):
-    color = HIGHLIGHT_MAP.get(type, 'default')
+    color = HIGHLIGHT_MAP.get(type, HIGHLIGHT_MAP['default'])
     return acolor(int(color[i:i+2], 16) for i in range(1, 6, 2))
 
 HLFMT_HTML = _PysHighlightFormatter(
-    lambda position, content: '<br>'.join(html_escape(content).splitlines()),
-    lambda position, type: f'<span style="color:{HIGHLIGHT_MAP.get(type, "default")}">',
+    lambda position, content: html_escape(content).replace('\n', '<br>'),
+    lambda position, type: f'<span style="color:{HIGHLIGHT_MAP.get(type, HIGHLIGHT_MAP["default"])}">',
     lambda position, type: '</span>',
-    lambda position: '<br>'
 )
 
 HLFMT_ANSI = _PysHighlightFormatter(
     lambda position, content: content,
     _ansi_open_block,
     lambda position, type: '\x1b[0m',
-    lambda position: '\n'
 )
 
 HLFMT_BBCODE = _PysHighlightFormatter(
     lambda position, content: content,
-    lambda position, type: f'[color={HIGHLIGHT_MAP.get(type, "default")}]',
+    lambda position, type: f'[color={HIGHLIGHT_MAP.get(type, HIGHLIGHT_MAP["default"])}]',
     lambda position, type: '[/color]',
-    lambda position: '\n'
 )
 
 @typechecked
@@ -376,15 +405,15 @@ def pys_highlight(
 
     file = PysFileBuffer(source)
 
-    if format is None:
-        format = HLFMT_HTML
-
     if max_bracket_level < 0:
         raise ValueError("pys_highlight(): max_bracket_level must be grather than 0")
 
+    if format is None:
+        format = HLFMT_HTML
+
     lexer = PysLexer(
         file=file,
-        flags=HIGHLIGHT
+        parser_flags=HIGHLIGHT
     )
 
     tokens, _ = lexer.make_tokens()
@@ -422,13 +451,11 @@ def pys_highlight(
                 j = i - 1
                 while j > 0 and tokens[j].type in (TOKENS['NEWLINE'], TOKENS['COMMENT']):
                     j -= 1
-
                 previous_token = tokens[j]
                 if previous_token.match(TOKENS['KEYWORD'], KEYWORDS['class']):
                     type_fmt = 'identifier-type'
-                elif previous_token.matches(TOKENS['KEYWORD'], (KEYWORDS['func'], KEYWORDS['function'])):
+                elif previous_token.match(TOKENS['KEYWORD'], KEYWORDS['func'], KEYWORDS['function']):
                     type_fmt = 'identifier-function'
-
                 else:
                     j = i + 1
                     if (j < len(tokens) and tokens[j].type == TOKENS['LEFT-PARENTHESIS']):

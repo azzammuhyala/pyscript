@@ -6,20 +6,20 @@ import sys
 
 from subprocess import run
 from pygments import highlight
-from pygments.formatters import HtmlFormatter
+from pygments.formatters import HtmlFormatter, TerminalFormatter, TerminalTrueColorFormatter, Terminal256Formatter
 
 def pyscript_tester():
     result = pyscript.pys_exec(source, pyscript.undefined, pyscript.RETURN_RESULT)
-    code, exit = result.process()
+    code, exit = result.end_process()
     if code != 0:
         sys.exit(code)
 
+lexer = pyscript.PygmentsPyScriptLexer()
+
 def pyscript_highlight_tester():
-    lexer = pyscript.PygmentsPyScriptLexer()
-    formatter = HtmlFormatter(full=True)
+    formatter = TerminalTrueColorFormatter(style=pyscript.PygmentsPyScriptStyle, full=True)
     result = highlight(source, lexer, formatter)
-    with open('result.html', 'w') as file:
-        file.write(result)
+    print(result)
 
 def pyscript_doc():
     run(
@@ -30,4 +30,4 @@ def pyscript_doc():
     )
 
 if __name__ == '__main__':
-    pyscript_highlight_tester()
+    pass

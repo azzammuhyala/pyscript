@@ -10,8 +10,8 @@ is_expression = frozenset([
 
 is_statement = frozenset([
     PysStatementsNode, PysAssignNode, PysImportNode, PysIfNode, PysSwitchNode, PysTryNode, PysWithNode, PysForNode,
-    PysWhileNode, PysDoWhileNode, PysClassNode, PysGlobalNode, PysReturnNode, PysThrowNode, PysAssertNode,
-    PysDeleteNode, PysContinueNode, PysBreakNode
+    PysWhileNode, PysDoWhileNode, PysRepeatNode, PysClassNode, PysGlobalNode, PysReturnNode, PysThrowNode,
+    PysAssertNode, PysDeleteNode, PysContinueNode, PysBreakNode
 ]).__contains__
 
 is_unpack_assignment = frozenset([

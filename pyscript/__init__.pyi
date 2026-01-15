@@ -13,15 +13,19 @@ if TYPE_CHECKING:
     from types import BuiltinMethodType, ModuleType
 
 from . import core as core
-from .core.highlight import PygmentsPyScriptLexer as PygmentsPyScriptLexer
+from .core.highlight import (
+    PygmentsPyScriptStyle as PygmentsPyScriptStyle,
+    PygmentsPyScriptLexer as PygmentsPyScriptLexer
+)
 
 DEFAULT: int
+NO_COLOR: int
 DEBUG: int
 SILENT: int
 RETURN_RESULT: int
+DONT_SHOW_BANNER_ON_SHELL: int
 HIGHLIGHT: int
-NO_COLOR: int
-REVERSE_POW_XOR: int
+DICT_TO_JSDICT: int
 
 HLFMT_HTML: _PysHighlightFormatter
 HLFMT_ANSI: _PysHighlightFormatter
@@ -53,13 +57,15 @@ def pys_highlight(
 def pys_exec(
     source: str | bytes | bytearray | Iterable | BuiltinMethodType | IOBase | PysFileBuffer,
     globals: Optional[dict[str, Any] | PysSymbolTable | PysUndefined] = None,
-    flags: int = DEFAULT
+    flags: int = DEFAULT,
+    parser_flags: int = DEFAULT
 ) -> None | PysExecuteResult: ...
 
 def pys_eval(
     source: str | bytes | bytearray | Iterable | BuiltinMethodType | IOBase | PysFileBuffer,
     globals: Optional[dict[str, Any] | PysSymbolTable | PysUndefined] = None,
-    flags: int = DEFAULT
+    flags: int = DEFAULT,
+    parser_flags: int = DEFAULT
 ) -> Any | PysExecuteResult: ...
 
 def pys_require(
@@ -69,7 +75,8 @@ def pys_require(
 
 def pys_shell(
     globals: Optional[dict[str, Any] | PysSymbolTable | PysUndefined] = None,
-    flags: int = DEFAULT
+    flags: int = DEFAULT,
+    parser_flags: int = DEFAULT
 ) -> int | Any: ...
 
 __version__: str

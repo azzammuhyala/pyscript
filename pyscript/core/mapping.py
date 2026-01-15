@@ -1,4 +1,5 @@
 from .constants import TOKENS, KEYWORDS
+from .utils.ansi import BOLD, acolor
 
 from operator import (
     is_not, eq, ne, lt, gt, le, ge, add, sub, mul, truediv, floordiv, pow, matmul, mod, and_, or_, xor, lshift, rshift,
@@ -6,8 +7,11 @@ from operator import (
 )
 from types import MappingProxyType
 
+contains = lambda a, b: a in b
+not_in = lambda a, b : a not in b
+
 BINARY_FUNCTIONS_MAP = MappingProxyType({
-    TOKENS['NOT-IN']: lambda a, b : a not in b,
+    TOKENS['NOT-IN']: not_in,
     TOKENS['IS-NOT']: is_not,
     TOKENS['PLUS']: add,
     TOKENS['MINUS']: sub,
@@ -41,6 +45,8 @@ BINARY_FUNCTIONS_MAP = MappingProxyType({
     TOKENS['EQUAL-CIRCUMFLEX']: ixor,
     TOKENS['EQUAL-DOUBLE-LESS-THAN']: ilshift,
     TOKENS['EQUAL-DOUBLE-GREATER-THAN']: irshift,
+    TOKENS['MINUS-GREATER-THAN']: contains,
+    TOKENS['EXCLAMATION-GREATER-THAN']: not_in
 })
 
 UNARY_FUNCTIONS_MAP = MappingProxyType({
@@ -55,7 +61,9 @@ KEYWORDS_TO_VALUES_MAP = MappingProxyType({
     KEYWORDS['None']: None,
     KEYWORDS['true']: True,
     KEYWORDS['false']: False,
-    KEYWORDS['none']: None
+    KEYWORDS['nil']: None,
+    KEYWORDS['none']: None,
+    KEYWORDS['null']: None
 })
 
 BRACKETS_MAP = MappingProxyType({
@@ -124,9 +132,18 @@ SYMBOLS_TOKEN_MAP = MappingProxyType({
     TOKENS['EQUAL-DOUBLE-SLASH']: '//=',
     TOKENS['EQUAL-DOUBLE-LESS-THAN']: '<<=',
     TOKENS['EQUAL-DOUBLE-GREATER-THAN']: '>>=',
+    TOKENS['MINUS-GREATER-THAN']: '->',
     TOKENS['EQUAL-ARROW']: '=>',
+    TOKENS['EXCLAMATION-GREATER-THAN']: '!>',
     TOKENS['EXCLAMATION-TILDE']: '~!'
 })
+
+ACOLORS = {
+    'reset': acolor('reset'),
+    'magenta': acolor('magenta'),
+    'bold-magenta': acolor('magenta', style=BOLD),
+    'bold-red': acolor('red', style=BOLD)
+}
 
 EMPTY_MAP = MappingProxyType({})
 

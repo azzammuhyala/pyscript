@@ -1,7 +1,7 @@
 from pyscript.core.checks import is_keyword
 from pyscript.core.constants import TOKENS, KEYWORDS
 from pyscript.core.mapping import SYMBOLS_TOKEN_MAP
-from pyscript.core.nodes import PysNode
+from pyscript.core.nodes import PysNode, PysStringNode
 from pyscript.core.utils.string import indent as sindent
 
 def indent(string):
@@ -24,7 +24,26 @@ def visit_IdentifierNode(node):
     return f'${name}' if is_keyword(name) else name
 
 def visit_DictionaryNode(node):
-    return '{' + ', '.join(f'{unparse(key)}: {unparse(value)}' for key, value in node.pairs) + '}'
+    elements = []
+
+    if node.class_type is dict:
+        for key, value in node.pairs:
+            element_string = unparse(key)
+            element_string += ': '
+            element_string += unparse(value)
+            elements.append(element_string)
+    else:
+        for key, value in node.pairs:
+            element_string = (
+                key.value.value 
+                if isinstance(key, PysStringNode) and key.value.value.isindentifier() else
+                f'[{unparse(key)}]'
+            )
+            element_string += ': '
+            element_string += unparse(value)
+            elements.append(element_string)
+
+    return '{' + ', '.join(elements) + '}'
 
 def visit_SetNode(node):
     return '{' + ', '.join(map(unparse, node.elements)) + '}'
@@ -33,7 +52,8 @@ def visit_ListNode(node):
     return '[' + ', '.join(map(unparse, node.elements)) + ']'
 
 def visit_TupleNode(node):
-    return '(' + ', '.join(map(unparse, node.elements)) + ')'
+    string = ', '.join(map(unparse, node.elements))
+    return '(' + (string + ',' if len(node.elements) == 1 else string) + ')'
 
 def visit_AttributeNode(node):
     return f'{unparse(node.target)}.{node.attribute.value}'
@@ -278,19 +298,17 @@ def visit_MatchNode(node):
 def visit_TryNode(node):
     catch_cases = []
 
-    for (name, parameter), body in node.catch_cases:
+    for (targets, parameter), body in node.catch_cases:
         name_string = ''
 
-        if not (name is None and parameter is None):
+        if not (not targets and parameter is None):
             name_string += ' ('
 
-            if name is None:
-                name_string += parameter.value
-            else:
-                name_string += name.name.value
+            if targets:
+                name_string += ', '.join(target.name.value for target in targets)
                 name_string += ' '
-                name_string += parameter.value
 
+            name_string += parameter.value
             name_string += ')'
 
         catch_string = KEYWORDS['catch']
@@ -377,6 +395,13 @@ def visit_ForNode(node):
     string += indent(unparse(node.body))
     string += '\n}'
 
+    if node.else_body:
+        string += '\n'
+        string += KEYWORDS['else']
+        string += ' {\n'
+        string += indent(unparse(node.else_body))
+        string += '\n}'
+
     return string
 
 def visit_WhileNode(node):
@@ -386,6 +411,13 @@ def visit_WhileNode(node):
     string += ') {\n'
     string += indent(unparse(node.body))
     string += '\n}'
+
+    if node.else_body:
+        string += '\n'
+        string += KEYWORDS['else']
+        string += ' {\n'
+        string += indent(unparse(node.else_body))
+        string += '\n}'
 
     return string
 
@@ -398,6 +430,30 @@ def visit_DoWhileNode(node):
     string += ' ('
     string += unparse(node.condition)
     string += ')'
+
+    if node.else_body:
+        string += KEYWORDS['else']
+        string += ' {\n'
+        string += indent(unparse(node.else_body))
+        string += '\n}'
+
+    return string
+
+def visit_RepeatNode(node):
+    string = KEYWORDS['repeat']
+    string += ' {\n'
+    string += indent(unparse(node.body))
+    string += '\n} '
+    string += KEYWORDS['until']
+    string += ' ('
+    string += unparse(node.condition)
+    string += ')'
+
+    if node.else_body:
+        string += KEYWORDS['else']
+        string += ' {\n'
+        string += indent(unparse(node.else_body))
+        string += '\n}'
 
     return string
 

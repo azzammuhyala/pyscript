@@ -1,20 +1,20 @@
 from .analyzer import PysAnalyzer
 from .buffer import PysFileBuffer
 from .cache import undefined, hook, PysUndefined
-from .constants import DEFAULT, SILENT, RETURN_RESULT, HIGHLIGHT, NO_COLOR
+from .constants import DEFAULT, SILENT, RETURN_RESULT, NO_COLOR, DONT_SHOW_BANNER_ON_SHELL
 from .context import PysContext
 from .exceptions import PysTraceback, PysSignal
 from .handlers import handle_call
 from .interpreter import visit
 from .lexer import PysLexer
+from .mapping import ACOLORS
 from .parser import PysParser
 from .position import PysPosition
 from .pysbuiltins import require
 from .results import PysRunTimeResult, PysExecuteResult
 from .symtab import PysSymbolTable, new_symbol_table
-from .utils.ansi import BOLD, acolor
 from .utils.decorators import _TYPECHECK, typechecked
-from .utils.generic import setimuattr, get_frame, get_locals, import_readline
+from .utils.generic import get_frame, get_locals, import_readline
 from .utils.shell import PysCommandLineShell
 from .version import version
 
@@ -40,6 +40,7 @@ def pys_runner(
     mode: Literal['exec', 'eval', 'single'],
     symbol_table: PysSymbolTable,
     flags: Optional[int] = None,
+    parser_flags: int = DEFAULT,
     context_parent: Optional[PysContext] = None,
     context_parent_entry_position: Optional[PysPosition] = None
 ) -> PysExecuteResult:
@@ -53,7 +54,7 @@ def pys_runner(
         parent_entry_position=context_parent_entry_position
     )
 
-    result = PysExecuteResult(context)
+    result = PysExecuteResult(context, parser_flags)
     runtime_runner_result = PysRunTimeResult()
     position = PysPosition(file, -1, -1)
 
@@ -63,7 +64,7 @@ def pys_runner(
 
             lexer = PysLexer(
                 file=file,
-                flags=context.flags & ~HIGHLIGHT,
+                flags=context.flags,
                 context_parent=context_parent,
                 context_parent_entry_position=context_parent_entry_position
             )
@@ -75,16 +76,17 @@ def pys_runner(
             parser = PysParser(
                 tokens=tokens,
                 flags=context.flags,
+                parser_flags=parser_flags,
                 context_parent=context_parent,
                 context_parent_entry_position=context_parent_entry_position
             )
 
-            ast = parser.parse(parser.expr if mode == 'eval' else None)
-            if ast.error:
-                return result.failure(ast.error)
+            node, error = parser.parse(parser.expr if mode == 'eval' else None)
+            if error:
+                return result.failure(error)
 
             analyzer = PysAnalyzer(
-                node=ast.node,
+                node=node,
                 flags=parser.flags,
                 context_parent=context_parent,
                 context_parent_entry_position=context_parent_entry_position
@@ -103,8 +105,8 @@ def pys_runner(
                 )
             )
 
-        setimuattr(context, 'flags', parser.flags)
-        runtime_result = visit(ast.node, context)
+        result.parser_flags = parser.parser_flags
+        runtime_result = visit(node, context)
 
         if runtime_result.error:
             return result.failure(runtime_result.error)
@@ -120,7 +122,8 @@ def pys_runner(
 def pys_exec(
     source,
     globals: Optional[dict[str, Any] | PysSymbolTable | PysUndefined] = None,
-    flags: int = DEFAULT
+    flags: int = DEFAULT,
+    parser_flags: int = DEFAULT
 ) -> None | PysExecuteResult:
 
     """
@@ -135,6 +138,8 @@ def pys_exec(
              If it is undefined, it creates a new default PyScript namespace.
 
     flags: A special flags.
+
+    parser_flags: A special parser flags.
     """
 
     file = PysFileBuffer(source)
@@ -143,7 +148,8 @@ def pys_exec(
         file=file,
         mode='exec',
         symbol_table=_normalize_globals(file, globals),
-        flags=flags
+        flags=flags,
+        parser_flags=parser_flags
     )
 
     if flags & RETURN_RESULT:
@@ -156,7 +162,8 @@ def pys_exec(
 def pys_eval(
     source,
     globals: Optional[dict[str, Any] | PysSymbolTable | PysUndefined] = None,
-    flags: int = DEFAULT
+    flags: int = DEFAULT,
+    parser_flags: int = DEFAULT
 ) -> Any | PysExecuteResult:
 
     """
@@ -171,6 +178,8 @@ def pys_eval(
              If it is undefined, it creates a new default PyScript namespace.
 
     flags: A special flags.
+
+    parser_flags: A special parser flags.
     """
 
     file = PysFileBuffer(source)
@@ -179,7 +188,8 @@ def pys_eval(
         file=file,
         mode='eval',
         symbol_table=_normalize_globals(file, globals),
-        flags=flags
+        flags=flags,
+        parser_flags=parser_flags
     )
 
     if flags & RETURN_RESULT:
@@ -210,7 +220,8 @@ def pys_require(name, flags: int = DEFAULT) -> ModuleType | Any:
 @typechecked
 def pys_shell(
     globals: Optional[dict[str, Any] | PysSymbolTable | PysUndefined] = None,
-    flags: int = DEFAULT
+    flags: int = DEFAULT,
+    parser_flags: int = DEFAULT
 ) -> int | Any:
 
     """
@@ -223,6 +234,8 @@ def pys_shell(
              If it is undefined, it creates a new default PyScript namespace.
 
     flags: A special flags.
+
+    parser_flags: A special parser flags.
     """
 
     if hook.running_shell:
@@ -237,14 +250,15 @@ def pys_shell(
         reset = ''
         bmagenta = ''
     else:
-        reset = acolor('reset')
-        bmagenta = acolor('magenta', style=BOLD)
+        reset = ACOLORS['reset']
+        bmagenta = ACOLORS['bold-magenta']
 
     import_readline()
 
-    print(f'PyScript {version}')
-    print(f'Python {sys.version}')
-    print('Type "help" or "license" for more information; Type "exit" or "/exit" to exit the shell')
+    if not (flags & DONT_SHOW_BANNER_ON_SHELL):
+        print(f'PyScript {version}')
+        print(f'Python {sys.version}')
+        print('Type "help" or "license" for more information; Type "exit" or "/exit" to exit the shell')
 
     try:
         hook.running_shell = True
@@ -263,11 +277,12 @@ def pys_shell(
                     file=PysFileBuffer(text, f'<pyscript-shell-{line}>'),
                     mode='single',
                     symbol_table=symtab,
-                    flags=flags
+                    flags=flags,
+                    parser_flags=parser_flags
                 )
 
-                flags = result.context.flags
-                code, exit = result.process()
+                parser_flags = result.parser_flags
+                code, exit = result.end_process()
                 if exit:
                     return code
                 elif code == 0:

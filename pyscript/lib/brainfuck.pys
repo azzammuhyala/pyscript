@@ -1,14 +1,13 @@
+from '_pyscript>utils>string' import normstr
 from getch import getch
 sys = pyimport('sys')
 
-func default_input() {
+func default_input()
     while (True) {
         result = ord(getch())
-        if (0 <= result <= 255) {
+        if (0 <= result <= 255)
             return result
-        }
     }
-}
 
 func default_output(byte) {
     sys.stdout.write(chr(byte))
@@ -18,11 +17,10 @@ func default_output(byte) {
 class BFInterpreter {
 
     func __init__(self, source, cells=None, input=None, output=None) {
+        source = normstr(source)
         input = input ?? default_input
         output = output ?? default_output
 
-        if (not isinstance(source, str))
-            throw TypeError("BFInterpreter() source must be string")
         if (not isinstance(cells, (int, type(None))))
             throw TypeError("BFInterpreter() cells must be integer")
         if (not callable(input))
@@ -39,39 +37,41 @@ class BFInterpreter {
 
         self.running = False
 
-        self._tokenIndex = -1
-        self._tokens = []
+        self._tokenIndex = 0
+        self._tokens = tokens = []
         self._bracketMap = {}
 
         stack = []
         comment = False
-        tokenIndex = 0
+
+        addtok = tokens.append
+        append = stack.append
+        pop = stack.pop
 
         for (position, character of enumerate(source)) {
+
             if (not comment and character == '#')
                 comment = True
             elif (comment and character == '\n')
                 comment = False
 
             if (not comment and character in '<>+-,.[]') {
+                tokenIndex = len(tokens)
 
-                if (character == '[') {
-                    stack.append(tokenIndex)
-                }
+                if (character == '[')
+                    append(tokenIndex)
 
                 elif (character == ']') {
                     if (not stack)
                         throw SyntaxError("unbalanced brackets")
 
-                    startIndex = stack.pop()
+                    startIndex = pop()
 
                     self._bracketMap[startIndex] = tokenIndex
                     self._bracketMap[tokenIndex] = startIndex
                 }
 
-                self._tokens.append((position, character))
-                tokenIndex++
-
+                addtok((position, character))
             }
         }
 
@@ -80,98 +80,88 @@ class BFInterpreter {
     }
 
     func start(self) {
-        if (self.running) {
-            return
-        }
+        if (self.running) return;
 
-        self._tokenIndex = -1
+        self._tokenIndex = 0
 
         self.running = True
         self.memory = [0]
         self.point = 0
 
-        if (self.cells is not None) {
+        if (self.cells is not None)
             self.memory *= self.cells
-        }
     }
 
     func step(self) {
-        if (not self.running) {
-            return
-        }
+        if (not self.running) return;
 
-        self._tokenIndex++
-
-        if (self._tokenIndex >= len(self._tokens)) {
+        if (self._tokenIndex >= len(tokens := self._tokens)) {
             self.running = False
             return
         }
 
-        position, character = self._tokens[self._tokenIndex]
-        dataPointer = self.memory[self.point]
+        position, character = tokens[tokenIndex := self._tokenIndex]
+        cell = (memory := self.memory)[self.point]
 
-        if (character == '>') {
-            self.point++
-            if (self.cells is None) {
-                if (self.point == len(self.memory)) {
-                    self.memory.append(0)
+        self._tokenIndex += 1
+
+        switch character {
+
+            case '>':
+                self.point += 1
+                if (self.cells is None) {
+                    if (self.point == len(memory))
+                        memory.append(0)
                 }
-            }
-            elif (self.point >= self.cells) {
-                throw IndexError("pointer out of bounds")
-            }
-        }
+                elif (self.point >= self.cells)
+                    throw IndexError("pointer out of bounds")
+                break
 
-        elif (character == '<') {
-            if (self.point == 0) {
-                throw IndexError("pointer out of bounds")
-            }
-            self.point--
-        }
+            case '<':
+                if (self.point == 0)
+                    throw IndexError("pointer out of bounds")
+                self.point -= 1
+                break
 
-        elif (character == '+') {
-            self.memory[self.point] = (dataPointer + 1) % 256
-        }
+            case '+':
+                memory[self.point] = (cell + 1) % 256
+                break
 
-        elif (character == '-') {
-            self.memory[self.point] = (dataPointer - 1) % 256
-        }
+            case '-':
+                memory[self.point] = (cell - 1) % 256
+                break
 
-        elif (character == ',') {
-            input = self.input()
+            case ',':
+                new = self.input()
+                if (not (isinstance(new, int) and 0 <= new <= 255))
+                    throw TypeError("BFInterpreter() input must be returns unsigned 8-bit integer")
+                memory[self.point] = new
+                break
 
-            if (not (isinstance(input, int) and 0 <= input <= 255)) {
-                throw TypeError("BFInterpreter() input must be returns unsigned 8-bit integer")
-            }
+            case '.':
+                self.output(cell)
+                break
 
-            self.memory[self.point] = input
-        }
+            case '[':
+                if (cell == 0)
+                    self._tokenIndex = self._bracketMap[tokenIndex]
+                break
 
-        elif (character == '.') {
-            self.output(dataPointer)
-        }
+            case ']':
+                if (cell != 0)
+                    self._tokenIndex = self._bracketMap[tokenIndex]
+                break
 
-        elif (character == '[' and dataPointer == 0) {
-            self._tokenIndex = self._bracketMap[self._tokenIndex]
-        }
-
-        elif (character == ']' and dataPointer != 0) {
-            self._tokenIndex = self._bracketMap[self._tokenIndex]
         }
 
         return self.point, position, character
     }
 
     func stop(self, cleanUp=True) {
-        if (not self.running) {
-            return
-        }
-
+        if (not self.running) return;
         self.running = False
-
-        if (cleanUp) {
+        if (cleanUp)
             del self.memory, self.point
-        }
     }
 
     func __iter__(self) {
@@ -182,6 +172,7 @@ class BFInterpreter {
     func __next__(self) {
         result = self.step()
         if (result is None) {
+            self.stop()
             throw StopIteration
         }
         return result
@@ -190,7 +181,9 @@ class BFInterpreter {
 
 func bf_exec(source, cells=None, input=None, output=None) {
     interpreter = BFInterpreter(source, cells, input, output)
-    for (_ of interpreter);
+    step = interpreter.step
+    interpreter.start()
+    while step();
     interpreter.stop()
 }
 

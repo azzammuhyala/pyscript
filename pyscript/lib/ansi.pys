@@ -10,5 +10,5 @@ from '_pyscript>utils>ansi' import (
     STRIKETHROUGH,
     DOUBLEUNDERLINE,
     acolor,
-    fansi
+    ahtml
 )

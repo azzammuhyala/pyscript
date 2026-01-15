@@ -16,43 +16,11 @@ class PysCode(PysObject):
     def __init__(self, **kwargs):
         self.__dict__ = kwargs
 
-class PysPythonFunction(PysObject):
-
-    def __init__(self, func):
-        from .handlers import handle_call  # circular import problem solved
-
-        self.__name__ = getattr(func, '__name__', '<function>')
-        self.__qualname__ = getattr(func, '__qualname__', '<function>')
-        self.__doc__ = getattr(func, '__doc__', None)
-        self.__func__ = func
-        self.__code__ = PysCode(
-            position=None,
-            context=None,
-            handle_call=handle_call
-        )
-
-    def __repr__(self):
-        return f'<python function {self.__qualname__} at 0x{id(self):016X}>'
-
-    def __get__(self, instance, owner):
-        return self if instance is None else MethodType(self, instance)
-
-    def __call__(self, *args, **kwargs):
-        func = self.__func__
-        code = self.__code__
-
-        code.handle_call(func, code.context, code.position)
-        return func(self, *args, **kwargs)
-
-class PysBuiltinFunction(PysPythonFunction):
-
-    def __repr__(self):
-        return f'<built-in function {self.__qualname__}>'
-
 class PysFunction(PysObject):
 
-    def __init__(self, name, qualname, parameters, body, position, context):
-        from .interpreter import visit  # circular import problem solved
+    def __init__(self, name, qualname, parameters, body, context, position):
+        # circular import problem solved
+        from .interpreter import visit
 
         context = context.parent if isinstance(context, PysClassContext) else context
 
@@ -61,10 +29,11 @@ class PysFunction(PysObject):
         self.__code__ = PysCode(
             parameters=parameters,
             body=body,
-            position=position,
             context=context,
+            position=position,
+            file=context.file,
+            closure_symbol_table=context.symbol_table,
             visit=visit,
-            call_context=context,
             parameters_length=len(parameters),
             argument_names=tuple(item for item in parameters if not isinstance(item, tuple)),
             keyword_argument_names=tuple(item[0] for item in parameters if isinstance(item, tuple)),
@@ -81,15 +50,14 @@ class PysFunction(PysObject):
     def __call__(self, *args, **kwargs):
         qualname = self.__qualname__
         code = self.__code__
-        code_position = code.position
         code_context = code.context
-        code_call_context = code.call_context
+        code_position = code.position
         code_parameters_length = code.parameters_length
         code_parameter_names = code.parameter_names
         arguments_length = len(args)
 
         result = PysRunTimeResult()
-        symbol_table = PysSymbolTable(code_context.symbol_table)
+        symbol_table = PysSymbolTable(code.closure_symbol_table)
         registered_arguments = set()
 
         add_argument = registered_arguments.add
@@ -114,14 +82,14 @@ class PysFunction(PysObject):
                     result.failure(
                         PysTraceback(
                             TypeError(f"{qualname}() got multiple values for argument {name!r}"),
-                            code_call_context,
+                            code_context,
                             code_position
                         )
                     )
                 )
 
             elif name not in code_parameter_names:
-                closest_argument = get_closest(code_parameter_names, name)
+                closest_argument = get_closest(set(code_parameter_names), name)
 
                 raise PysSignal(
                     result.failure(
@@ -133,7 +101,7 @@ class PysFunction(PysObject):
                                     '' if closest_argument is None else f". Did you mean {closest_argument!r}?"
                                 )
                             ),
-                            code_call_context,
+                            code_context,
                             code_position
                         )
                     )
@@ -159,7 +127,7 @@ class PysFunction(PysObject):
                                 join(missing_arguments, conjunction='and')
                             )
                         ),
-                        code_call_context,
+                        code_context,
                         code_position
                     )
                 )
@@ -181,7 +149,7 @@ class PysFunction(PysObject):
                                 given_arguments
                             )
                         ),
-                        code_call_context,
+                        code_context,
                         code_position
                     )
                 )
@@ -191,11 +159,11 @@ class PysFunction(PysObject):
             code.visit(
                 code.body,
                 PysContext(
-                    file=code_context.file,
+                    file=code.file,
                     name=self.__name__,
                     qualname=qualname,
                     symbol_table=symbol_table,
-                    parent=code_call_context,
+                    parent=code_context,
                     parent_entry_position=code_position
                 )
             )
@@ -205,3 +173,33 @@ class PysFunction(PysObject):
             raise PysSignal(result)
 
         return result.func_return_value
+
+class PysPythonFunction(PysFunction):
+
+    def __init__(self, func):
+        # circular import problem solved
+        from .handlers import handle_call
+
+        self.__func__ = func
+        self.__name__ = getattr(func, '__name__', '<function>')
+        self.__qualname__ = getattr(func, '__qualname__', '<function>')
+        self.__doc__ = getattr(func, '__doc__', None)
+        self.__code__ = PysCode(
+            context=None,
+            position=None,
+            handle_call=handle_call
+        )
+
+    def __repr__(self):
+        return f'<python function {self.__qualname__} at 0x{id(self):016X}>'
+
+    def __call__(self, *args, **kwargs):
+        func = self.__func__
+        code = self.__code__
+        code.handle_call(func, code.context, code.position)
+        return func(self, *args, **kwargs)
+
+class PysBuiltinFunction(PysPythonFunction):
+
+    def __repr__(self):
+        return f'<built-in function {self.__qualname__}>'

@@ -4,11 +4,13 @@ from .constants import TOKENS
 from .cache import PysUndefined, undefined
 from .mapping import BINARY_FUNCTIONS_MAP, EMPTY_MAP
 from .utils.decorators import immutable
-from .utils.generic import setimuattr
+from .utils.generic import setimuattr, dcontains, dgetitem, dsetitem, ddelitem, dget, dkeys
 from .utils.similarity import get_closest
 
 from types import ModuleType
 from typing import Any, Optional
+
+get_binary_function = BINARY_FUNCTIONS_MAP.__getitem__
 
 @immutable
 class PysSymbolTable(Pys):
@@ -21,46 +23,46 @@ class PysSymbolTable(Pys):
         setimuattr(self, 'globals', set())
 
     def get(self, name: str) -> Any | PysUndefined:
-        value = self.symbols.get(name, undefined)
+        if (value := dget(symbols := self.symbols, name, undefined)) is undefined:
+            if parent := self.parent:
+                return parent.get(name)
 
-        if value is undefined:
-            if self.parent:
-                return self.parent.get(name)
-
-            builtins = self.symbols.get('__builtins__', undefined)
+            builtins = dget(symbols, '__builtins__', undefined)
             if builtins is not undefined:
-                return (
-                    builtins if isinstance(builtins, dict) else getattr(builtins, '__dict__', EMPTY_MAP)
-                ).get(name, undefined)
+                return dget(
+                    builtins if isinstance(builtins, dict) else getattr(builtins, '__dict__', EMPTY_MAP),
+                    name,
+                    undefined
+                )
 
         return value
 
     def set(self, name: str, value: Any, *, operand: int = TOKENS['EQUAL']) -> bool:
         if is_equals(operand):
-
-            if name in self.globals and self.parent:
-                success = self.parent.set(name, value, operand=operand)
-                if success:
-                    return True
-
-            self.symbols[name] = value
+            if name in self.globals and (parent := self.parent):
+                return parent.set(name, value, operand=operand)
+            dsetitem(self.symbols, name, value)
             return True
 
-        elif name not in self.symbols:
-            if name in self.globals and self.parent:
-                return self.parent.set(name, value, operand=operand)
-            return False
+        elif not dcontains(symbols := self.symbols, name):
+            return (
+                parent.set(name, value, operand=operand)
+                if name in self.globals and (parent := self.parent) else
+                False
+            )
 
-        self.symbols[name] = BINARY_FUNCTIONS_MAP[operand](self.symbols[name], value)
+        dsetitem(symbols, name, get_binary_function(operand)(dgetitem(symbols, name), value))
         return True
 
     def remove(self, name: str) -> bool:
-        if name not in self.symbols:
-            if name in self.globals and self.parent:
-                return self.parent.remove(name)
-            return False
+        if not dcontains(symbols := self.symbols, name):
+            return (
+                parent.remove(name)
+                if name in self.globals and (parent := self.parent) else 
+                False
+            )
 
-        del self.symbols[name]
+        ddelitem(symbols, name)
         return True
 
 class PysClassSymbolTable(PysSymbolTable):
@@ -71,16 +73,17 @@ class PysClassSymbolTable(PysSymbolTable):
         super().__init__(parent)
 
 def find_closest(symtab: PysSymbolTable, name: str) -> str | None:
-    symbols = set(symtab.symbols.keys())
+    symbols = set(dkeys(symtab.symbols))
+    update = symbols.update
 
     parent = symtab.parent
     while parent:
-        symbols.update(parent.symbols.keys())
+        update(dkeys(parent.symbols))
         parent = parent.parent
 
     builtins = symtab.get('__builtins__')
     if builtins is not undefined:
-        symbols.update((builtins if isinstance(builtins, dict) else getattr(builtins, '__dict__', EMPTY_MAP)).keys())
+        update(dkeys(builtins if isinstance(builtins, dict) else getattr(builtins, '__dict__', EMPTY_MAP)))
 
     return get_closest(symbols, name)
 

@@ -5,10 +5,10 @@ from .checks import is_blacklist_python_builtins, is_private_attribute
 from .constants import NO_COLOR
 from .exceptions import PysSignal
 from .handlers import handle_call
-from .objects import PysBuiltinFunction, PysFunction
+from .mapping import ACOLORS, EMPTY_MAP
+from .objects import PysFunction, PysPythonFunction, PysBuiltinFunction
 from .results import PysRunTimeResult
 from .symtab import new_symbol_table
-from .utils.ansi import BOLD, acolor
 from .utils.generic import get_any, is_object_of as isobjectof, import_readline
 from .utils.module import get_module_name_from_path, get_module_path, set_python_path, remove_python_path
 from .utils.path import getcwd, normpath
@@ -20,10 +20,14 @@ from importlib import import_module
 from inspect import isfunction, signature
 from os.path import dirname
 from types import ModuleType
-from typing import Any, Callable, Iterable, Optional
+from typing import Any
 
 import builtins
 import sys
+
+real_number = (int, float)
+sequence = (list, tuple, set)
+optional_mapping = (dict, type(None))
 
 pyhelp = builtins.help
 pyvars = builtins.vars
@@ -41,11 +45,16 @@ def _supported_method(pyfunc, object, name, *args, **kwargs):
             pass
     return False, None
 
-def _unpack_comprehension_function(function):
+def _unpack_comprehension_function(pyfunc, function):
+    code = pyfunc.__code__
+    check = function
     final = function
 
-    if isinstance(function, PysFunction):
-        length = len(function.__code__.parameter_names)
+    if isinstance(function, PysPythonFunction):
+        check = function.__func__
+
+    if isinstance(check, PysFunction):
+        length = len(check.__code__.parameter_names)
         if length == 0:
             def final(item):
                 return function()
@@ -53,8 +62,8 @@ def _unpack_comprehension_function(function):
             def final(item):
                 return function(*item)
 
-    elif isfunction(function):
-        parameters = signature(function).parameters
+    elif isfunction(check):
+        parameters = signature(check).parameters
         length = len(parameters)
         if length == 0:
             def final(item):
@@ -63,26 +72,27 @@ def _unpack_comprehension_function(function):
             def final(item):
                 return function(*item)
 
+    handle_call(final, code.context, code.position)
     return final
 
 class _Printer(Pys):
 
-    def __init__(self, name, text):
+    def __init__(self, name: str, text: str | Any) -> None:
         self.name = name
         self.text = text
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Type {self.name}() to see the full information text.'
 
-    def __call__(self):
+    def __call__(self) -> None:
         print(self.text)
 
 class _Helper(_Printer):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__('help', None)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Type {self.name}() for interactive help, or {self.name}(object) for help about object.'
 
     def __call__(self, *args, **kwargs):
@@ -230,8 +240,8 @@ def breakpoint(pyfunc):
         reset = ''
         bmagenta = ''
     else:
-        reset = acolor('reset')
-        bmagenta = acolor('magenta', style=BOLD)
+        reset = ACOLORS['reset']
+        bmagenta = ACOLORS['bold-magenta']
 
     shell = PysCommandLineShell(f'{bmagenta}(Pdb) {reset}', f'{bmagenta}...   {reset}')
     scopes = []
@@ -302,7 +312,7 @@ def breakpoint(pyfunc):
                         file=PysFileBuffer(text, '<breakpoint>'),
                         mode='single',
                         symbol_table=symtab
-                    ).process()
+                    ).end_process()
 
             except KeyboardInterrupt:
                 shell.reset()
@@ -385,7 +395,7 @@ def exec(pyfunc, source, globals=None):
              local scope will be used.
     """
 
-    if not isinstance(globals, (type(None), dict)):
+    if not isinstance(globals, optional_mapping):
         raise TypeError("exec(): globals must be dict")
 
     file = PysFileBuffer(source, '<exec>')
@@ -422,7 +432,7 @@ def eval(pyfunc, source, globals=None):
              local scope will be used.
     """
 
-    if not isinstance(globals, (type(None), dict)):
+    if not isinstance(globals, optional_mapping):
         raise TypeError("eval(): globals must be dict")
 
     file = PysFileBuffer(source, '<eval>')
@@ -464,7 +474,7 @@ def ce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
     abs_tol: maximum difference for being considered "close", regardless of the magnitude of the input values.
     """
 
-    if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+    if isinstance(a, real_number) and isinstance(b, real_number):
         return isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
 
     success, result = _supported_method(pyfunc, a, '__ce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
@@ -498,7 +508,7 @@ def nce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
     abs_tol: maximum difference for being considered "close", regardless of the magnitude of the input values.
     """
 
-    if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+    if isinstance(a, real_number) and isinstance(b, real_number):
         return not isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
 
     success, result = _supported_method(pyfunc, a, '__nce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
@@ -524,12 +534,15 @@ def increment(pyfunc, object):
     object++
     ++object
 
-    Increase to the object. If the given type is integer or float, it will increment by 1. Otherwise, it will attempt to
-    call the __increment__ method, which if unsuccessful will throw a TypeError.
+    Increase to the object. If the given type is integer or float, it will increment by 1, if the given type is unpack
+    assignment (list, tuple, or set), it will increment each element. Otherwise, it will attempt to call the
+    __increment__ method, which if unsuccessful will throw a TypeError.
     """
 
-    if isinstance(object, (int, float)):
+    if isinstance(object, real_number):
         return object + 1
+    elif isinstance(object, sequence):
+        return tuple(pyincrement(pyfunc, obj) for obj in object)
 
     success, result = _supported_method(pyfunc, object, '__increment__')
     if not success:
@@ -545,12 +558,15 @@ def decrement(pyfunc, object):
     object--
     --object
 
-    Decrease to the object. If the given type is integer or float, it will decrement by 1. Otherwise, it will attempt to
+    Decrease to the object. If the given type is integer or float, it will decrement by 1, if the given type is unpack
+    assignment (list, tuple, or set), it will decrement each element. Otherwise, it will attempt to
     call the __decrement__ method, which if unsuccessful will throw a TypeError.
     """
 
-    if isinstance(object, (int, float)):
+    if isinstance(object, real_number):
         return object - 1
+    elif isinstance(object, sequence):
+        return tuple(pydecrement(pyfunc, obj) for obj in object)
 
     success, result = _supported_method(pyfunc, object, '__decrement__')
     if not success:
@@ -558,13 +574,37 @@ def decrement(pyfunc, object):
 
     return result
 
-def comprehension(
-    init: Iterable[Any],
-    wrap: Callable[[Any], Any],
-    condition: Optional[Callable[[Any], bool]] = None
-) -> Iterable[Any]:
+pyincrement = increment.__func__
+pydecrement = decrement.__func__
+
+@PysBuiltinFunction
+def unpack(pyfunc, function, args=(), kwargs=EMPTY_MAP):
 
     """
+    unpack(function: Callable, args: Iterable = (), kwargs: Mapping = {}) -> Any
+
+    A replacement function for Python's argument unpack on function calls, which uses the syntax
+    `function(*args, **kwargs)`.
+
+    function: the function to be called.
+    args: regular arguments (iterable object).
+    kwargs: keyword arguments (mapping object).
+    """
+
+    code = pyfunc.__code__
+    handle_call(function, code.context, code.position)
+    return function(*args, **kwargs)
+
+@PysBuiltinFunction
+def comprehension(pyfunc, init, wrap, condition=None):
+
+    """
+    comprehension(
+        init: Iterable[Any],
+        wrap: Callable[[Any], Any],
+        condition: Optional[Callable[[Any], bool]] = None
+    ) -> Iterable[Any]
+
     A replacement function for Python's list comprehension, which uses the syntax
     `[wrap for item in init if condition]`.
 
@@ -579,8 +619,8 @@ def comprehension(
         raise TypeError("comprehension(): condition must be callable")
 
     return map(
-        _unpack_comprehension_function(wrap),
-        init if condition is None else filter(_unpack_comprehension_function(condition), init)
+        _unpack_comprehension_function(pyfunc, wrap),
+        init if condition is None else filter(_unpack_comprehension_function(pyfunc, condition), init)
     )
 
 pys_builtins = ModuleType(
@@ -599,6 +639,8 @@ pys_builtins.__file__ = __file__
 pys_builtins.true = True
 pys_builtins.false = False
 pys_builtins.none = None
+pys_builtins.inf = pys_builtins.infinity = pys_builtins.Infinity = float('inf')
+pys_builtins.nan = pys_builtins.notanumber = pys_builtins.NaN = pys_builtins.NotANumber = float('nan')
 pys_builtins.license = license
 pys_builtins.help = help
 pys_builtins.require = require
@@ -614,5 +656,6 @@ pys_builtins.ce = ce
 pys_builtins.nce = nce
 pys_builtins.increment = increment
 pys_builtins.decrement = decrement
+pys_builtins.unpack = unpack
 pys_builtins.comprehension = comprehension
 pys_builtins.isobjectof = isobjectof

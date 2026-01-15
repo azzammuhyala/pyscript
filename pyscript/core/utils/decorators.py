@@ -28,7 +28,8 @@ class _PysNameSpaceUtilities(Pys):
         raise TypeError("cannot create namespace class instances")
 
     def new_singleton(cls, *args, **kwargs):
-        from ..cache import singletons  # circular import problem solved
+        # circular import problem solved
+        from ..cache import singletons
         if type(singletons.get(cls, None)) is not cls:
             singletons[cls] = cls.__new_singleton__(cls, *args, **kwargs)
         return singletons[cls]
@@ -36,8 +37,8 @@ class _PysNameSpaceUtilities(Pys):
     def readonly_attribute(*args, **kwargs):
         raise AttributeError("readonly attribute")
 
-    def inheritable_class(self, *args, **kwargs):
-        raise TypeError(f"uninherited class for {self.__name__}")
+    def inheritable_class(cls, *args, **kwargs):
+        raise TypeError(f"uninherited class for {cls.__name__}")
 
 def immutable(cls):
     cls.__setattr__ = _PysNameSpaceUtilities.readonly_attribute

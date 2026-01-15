@@ -1,9 +1,28 @@
-from pyscript.core.interpreter import KW__DEBUG__, UNARY_FUNCTIONS_MAP_GETITEM, KEYWORDS_TO_VALUES_MAP_GETITEM
-from pyscript.core.mapping import UNARY_FUNCTIONS_MAP
+from pyscript.core.constants import TOKENS
+from pyscript.core.interpreter import KW__DEBUG__, get_unary_function, get_binary_function, get_value_from_keyword
+from pyscript.core.mapping import REVERSE_TOKENS
 from pyscript.core.nodes import PysNode, PysIdentifierNode
+from pyscript.core.pysbuiltins import pys_builtins
+
+from types import MappingProxyType
+
+is_arith = frozenset([TOKENS['PLUS'], TOKENS['MINUS']]).__contains__
+
+inf = pys_builtins.inf
+nan = pys_builtins.nan
+
+get_identifier = MappingProxyType({
+    'inf': inf,
+    'infinity': inf,
+    'Infinity': inf,
+    'nan': nan,
+    'notanumber': nan,
+    'NaN': nan,
+    'NotANumber': nan,
+}).get
 
 def visit(node):
-    return visitors[node.__class__](node)
+    return get_visitor(node.__class__)(node)
 
 def visit_unknown_node(node):
     raise ValueError(f"invalid node: {type(node).__name__}")
@@ -17,8 +36,13 @@ def visit_StringNode(node):
 def visit_KeywordNode(node):
     if (name := node.name.value) == KW__DEBUG__:
         raise ValueError(f"invalid constant keyword for {KW__DEBUG__}")
-    #      vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv <- always boolean or nonetype
-    return KEYWORDS_TO_VALUES_MAP_GETITEM(name)
+    #      vvvvvvvvvvvvvvvvvvvvvvvvvvvv <- always boolean or none
+    return get_value_from_keyword(name)
+
+def visit_IdentifierNode(node):
+    if (value := get_identifier(name := node.name.value, None)) is None:
+        raise ValueError(f"invalid identifier: {name}")
+    return value
 
 def visit_DictionaryNode(node):
     return {visit(key): visit(value) for key, value in node.pairs}
@@ -33,19 +57,26 @@ def visit_TupleNode(node):
     return tuple(map(visit, node.elements))
 
 def visit_CallNode(node):
-    target = node.target
-    if isinstance(target, PysIdentifierNode) and target.name.value == 'set' and not node.arguments:
+    if isinstance(target := node.target, PysIdentifierNode) and target.name.value == 'set' and not node.arguments:
         return set()
     raise ValueError("invalid call except for 'set()'")
 
 def visit_UnaryOperatorNode(node):
-    operand_token = node.operand
-    #                                     vvvvvvvvvvvvvvvvvvv <- always __pos__, __neg__, and __inv__
-    if (operand := operand_token.type) in UNARY_FUNCTIONS_MAP:
-        return UNARY_FUNCTIONS_MAP_GETITEM(operand)(visit(node.value))
-    raise ValueError(f"invalid unary operator: {operand_token}")
+    if is_arith(operand := node.operand.type):
+        return get_unary_function(operand)(visit(node.value))
+    raise ValueError(f"invalid unary operand: {REVERSE_TOKENS[operand]}")
+
+def visit_BinaryOperatorNode(node):
+    if is_arith(operand := node.operand.type):
+        return get_binary_function(operand)(visit(node.left), visit(node.right))
+    raise ValueError(f"invalid binary operand: {REVERSE_TOKENS[operand]}")
+
+def visit_EllipsisNode(node):
+    return ...
 
 visitors = {
     class_node: globals().get('visit_' + class_node.__name__.removeprefix('Pys'), visit_unknown_node)
     for class_node in PysNode.__subclasses__()
 }
+
+get_visitor = visitors.__getitem__
