@@ -84,6 +84,10 @@ def walk(node):
         yield node
         yield from walk(node.value)
 
+    elif isinstance(node, PysIncrementalNode):
+        yield node
+        yield from walk(node.target)
+
     elif isinstance(node, PysStatementsNode):
         yield node
 

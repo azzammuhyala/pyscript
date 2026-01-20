@@ -129,55 +129,55 @@ class PysParser(Pys):
 
     def statement(self):
         if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['from']):
-            return self.from_expr()
+            return self.from_statement()
 
         elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['import']):
-            return self.import_expr()
+            return self.import_statement()
 
         elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['if']):
-            return self.if_expr()
+            return self.if_statement()
 
         elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['switch']):
-            return self.switch_expr()
+            return self.switch_statement()
 
         elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['try']):
-            return self.try_expr()
+            return self.try_statement()
 
         elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['with']):
-            return self.with_expr()
+            return self.with_statement()
 
         elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['for']):
-            return self.for_expr()
+            return self.for_statement()
 
         elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['while']):
-            return self.while_expr()
+            return self.while_statement()
 
         elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['do']):
-            return self.do_while_expr()
+            return self.do_while_statement()
 
         elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['repeat']):
-            return self.repeat_expr()
+            return self.repeat_statement()
 
         elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['class']):
-            return self.class_expr()
+            return self.class_statement()
 
         elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['return']):
-            return self.return_expr()
+            return self.return_statement()
 
         elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['global']):
-            return self.global_expr()
+            return self.global_statement()
 
         elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['del'], KEYWORDS['delete']):
-            return self.del_expr()
+            return self.del_statement()
 
         elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['raise'], KEYWORDS['throw']):
-            return self.throw_expr()
+            return self.throw_statement()
 
         elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['assert']):
-            return self.assert_expr()
+            return self.assert_statement()
 
         elif self.current_token.type == TOKENS['AT']:
-            return self.decorator_expr()
+            return self.decorator()
 
         elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['continue']):
             result = PysParserResult()
@@ -199,16 +199,16 @@ class PysParser(Pys):
 
         result = PysParserResult()
 
-        assign_expr = result.register(self.assign_expr())
+        assign_expr = result.register(self.assignment_statement())
         if result.error:
             return result.failure(self.new_error("expected an expression or statement"), fatal=False)
 
         return result.success(assign_expr)
 
-    def expr(self):
+    def expression(self):
         result = PysParserResult()
 
-        node = result.register(self.single_expr())
+        node = result.register(self.single_expression())
         if result.error:
             return result
 
@@ -218,9 +218,9 @@ class PysParser(Pys):
             while self.current_token.type == TOKENS['COMMA']:
                 result.register_advancement()
                 self.advance()
-                self.skip_expr(result)
+                self.skip_expression(result)
 
-                element = result.try_register(self.single_expr())
+                element = result.try_register(self.single_expression())
                 if result.error:
                     return result
 
@@ -230,7 +230,7 @@ class PysParser(Pys):
                     self.reverse(result.to_reverse_count)
                     break
 
-            self.skip_expr(result)
+            self.skip_expression(result)
 
             node = PysTupleNode(
                 elements,
@@ -246,7 +246,7 @@ class PysParser(Pys):
     def walrus(self):
         result = PysParserResult()
 
-        node = result.register(self.single_expr())
+        node = result.register(self.single_expression())
         if result.error:
             return result
 
@@ -255,9 +255,9 @@ class PysParser(Pys):
 
             result.register_advancement()
             self.advance()
-            self.skip_expr(result)
+            self.skip_expression(result)
 
-            value = result.register(self.single_expr(), True)
+            value = result.register(self.single_expression(), True)
             if result.error:
                 return result
 
@@ -265,15 +265,15 @@ class PysParser(Pys):
 
         return result.success(node)
 
-    def single_expr(self):
+    def single_expression(self):
         if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['match']):
-            return self.match_expr()
+            return self.match_expression()
 
         elif self.current_token.match(
             TOKENS['KEYWORD'],
-            KEYWORDS['func'], KEYWORDS['function'], KEYWORDS['constructor']
+            KEYWORDS['def'], KEYWORDS['define'], KEYWORDS['func'], KEYWORDS['function'], KEYWORDS['constructor']
         ):
-            return self.func_expr()
+            return self.func_expression()
 
         return self.ternary()
 
@@ -287,7 +287,7 @@ class PysParser(Pys):
         if self.current_token.type == TOKENS['QUESTION']:
             result.register_advancement()
             self.advance()
-            self.skip_expr(result)
+            self.skip_expression(result)
 
             valid = result.register(self.ternary(), True)
             if result.error:
@@ -298,7 +298,7 @@ class PysParser(Pys):
 
             result.register_advancement()
             self.advance()
-            self.skip_expr(result)
+            self.skip_expression(result)
 
             invalid = result.register(self.ternary(), True)
             if result.error:
@@ -314,7 +314,7 @@ class PysParser(Pys):
         elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['if']):
             result.register_advancement()
             self.advance()
-            self.skip_expr(result)
+            self.skip_expression(result)
 
             condition = result.register(self.ternary(), True)
             if result.error:
@@ -325,7 +325,7 @@ class PysParser(Pys):
 
             result.register_advancement()
             self.advance()
-            self.skip_expr(result)
+            self.skip_expression(result)
 
             invalid = result.register(self.ternary(), True)
             if result.error:
@@ -353,7 +353,7 @@ class PysParser(Pys):
 
     def member(self):
         return self.chain_operator(
-            self.comp,
+            self.comparison,
             (TOKENS['KEYWORD'], KEYWORDS['in']),
             (TOKENS['KEYWORD'], KEYWORDS['is']),
             (TOKENS['KEYWORD'], KEYWORDS['not']),
@@ -361,7 +361,7 @@ class PysParser(Pys):
             membership=True
         )
 
-    def comp(self):
+    def comparison(self):
         token = self.current_token
 
         if token.match(TOKENS['KEYWORD'], KEYWORDS['not']) or token.type == TOKENS['EXCLAMATION']:
@@ -369,17 +369,16 @@ class PysParser(Pys):
 
             result.register_advancement()
             self.advance()
-            self.skip_expr(result)
+            self.skip_expression(result)
 
-            node = result.register(self.comp(), True)
+            node = result.register(self.comparison(), True)
             if result.error:
                 return result
 
             return result.success(
                 PysUnaryOperatorNode(
                     token,
-                    node,
-                    operand_position='left'
+                    node
                 )
             )
 
@@ -391,12 +390,12 @@ class PysParser(Pys):
 
     def bitwise(self):
         return self.binary_operator(
-            self.arith,
+            self.arithmetic,
             TOKENS['AMPERSAND'], TOKENS['PIPE'], TOKENS['CIRCUMFLEX'], TOKENS['DOUBLE-LESS-THAN'],
             TOKENS['DOUBLE-GREATER-THAN']
         )
 
-    def arith(self):
+    def arithmetic(self):
         return self.binary_operator(self.term, TOKENS['PLUS'], TOKENS['MINUS'])
 
     def term(self):
@@ -413,7 +412,7 @@ class PysParser(Pys):
 
             result.register_advancement()
             self.advance()
-            self.skip_expr(result)
+            self.skip_expression(result)
 
             node = result.register(self.factor(), True)
             if result.error:
@@ -422,8 +421,7 @@ class PysParser(Pys):
             return result.success(
                 PysUnaryOperatorNode(
                     token,
-                    node,
-                    operand_position='left'
+                    node
                 )
             )
 
@@ -441,7 +439,7 @@ class PysParser(Pys):
 
             result.register_advancement()
             self.advance()
-            self.skip_expr(result)
+            self.skip_expression(result)
 
             right = result.register(self.factor(), True)
             if result.error:
@@ -458,14 +456,14 @@ class PysParser(Pys):
         if token.type in (TOKENS['DOUBLE-PLUS'], TOKENS['DOUBLE-MINUS']):
             result.register_advancement()
             self.advance()
-            self.skip_expr(result)
+            self.skip_expression(result)
 
             node = result.register(self.primary())
             if result.error:
                 return result
 
             return result.success(
-                PysUnaryOperatorNode(
+                PysIncrementalNode(
                     token,
                     node,
                     operand_position='left'
@@ -481,9 +479,9 @@ class PysParser(Pys):
 
             result.register_advancement()
             self.advance()
-            self.skip_expr(result)
+            self.skip_expression(result)
 
-            node = PysUnaryOperatorNode(
+            node = PysIncrementalNode(
                 operand,
                 node,
                 operand_position='right'
@@ -499,11 +497,7 @@ class PysParser(Pys):
         if result.error:
             return result
 
-        while self.current_token.type in (
-            TOKENS['LEFT-PARENTHESIS'],
-            TOKENS['LEFT-SQUARE'],
-            TOKENS['DOT']
-        ):
+        while True:
 
             if self.current_token.type == TOKENS['LEFT-PARENTHESIS']:
                 left_bracket_token = self.current_token
@@ -537,7 +531,7 @@ class PysParser(Pys):
                         return result.failure(self.new_error("expected '=' (follows keyword argument)"))
 
                     if seen_keyword_argument:
-                        value = result.register(self.single_expr(), True)
+                        value = result.register(self.single_expression(), True)
                         if result.error:
                             return result
                         arguments.append((argument_or_keyword.name, value))
@@ -560,7 +554,7 @@ class PysParser(Pys):
                     return result
 
                 self.bracket_level -= 1
-                self.skip_expr(result)
+                self.skip_expression(result)
 
                 node = PysCallNode(
                     node,
@@ -648,7 +642,7 @@ class PysParser(Pys):
                     return result
 
                 self.bracket_level -= 1
-                self.skip_expr(result)
+                self.skip_expression(result)
 
                 if single_slice:
                     slices = slices[0]
@@ -666,7 +660,7 @@ class PysParser(Pys):
             elif self.current_token.type == TOKENS['DOT']:
                 result.register_advancement()
                 self.advance()
-                self.skip_expr(result)
+                self.skip_expression(result)
 
                 attribute = self.current_token
 
@@ -675,9 +669,12 @@ class PysParser(Pys):
 
                 result.register_advancement()
                 self.advance()
-                self.skip_expr(result)
+                self.skip_expression(result)
 
                 node = PysAttributeNode(node, attribute)
+
+            else:
+                break
 
         return result.success(node)
 
@@ -692,21 +689,21 @@ class PysParser(Pys):
         ):
             result.register_advancement()
             self.advance()
-            self.skip_expr(result)
+            self.skip_expression(result)
 
             return result.success(PysKeywordNode(token))
 
         elif token.type == TOKENS['IDENTIFIER']:
             result.register_advancement()
             self.advance()
-            self.skip_expr(result)
+            self.skip_expression(result)
 
             return result.success(PysIdentifierNode(token))
 
         elif token.type == TOKENS['NUMBER']:
             result.register_advancement()
             self.advance()
-            self.skip_expr(result)
+            self.skip_expression(result)
 
             return result.success(PysNumberNode(token))
 
@@ -729,7 +726,7 @@ class PysParser(Pys):
 
                 result.register_advancement()
                 self.advance()
-                self.skip_expr(result)
+                self.skip_expression(result)
 
             return result.success(
                 PysStringNode(
@@ -746,32 +743,32 @@ class PysParser(Pys):
             )
 
         elif token.type == TOKENS['LEFT-PARENTHESIS']:
-            return self.sequence_expr('tuple')
+            return self.sequence_expression('tuple')
 
         elif token.type == TOKENS['LEFT-SQUARE']:
-            return self.sequence_expr('list')
+            return self.sequence_expression('list')
 
         elif token.type == TOKENS['LEFT-CURLY']:
-            dict_expr = result.try_register(self.sequence_expr('dict'))
+            dict_expr = result.try_register(self.sequence_expression('dict'))
             if result.error:
                 return result
 
             if not dict_expr:
                 self.reverse(result.to_reverse_count)
-                return self.sequence_expr('set')
+                return self.sequence_expression('set')
 
             return result.success(dict_expr)
 
         elif token.type == TOKENS['TRIPLE-DOT']:
             result.register_advancement()
             self.advance()
-            self.skip_expr(result)
+            self.skip_expression(result)
 
             return result.success(PysEllipsisNode(token.position))
 
         return result.failure(self.new_error("expected expression"), fatal=False)
 
-    def sequence_expr(self, type, should_sequence=False):
+    def sequence_expression(self, type, should_sequence=False):
         result = PysParserResult()
         start = self.current_token.position.start
         left_bracket, node = SEQUENCES_MAP[type]
@@ -801,7 +798,7 @@ class PysParser(Pys):
                         self.advance()
                         self.skip(result)
 
-                        key = result.register(self.single_expr(), True)
+                        key = result.register(self.single_expression(), True)
                         if result.error:
                             return result
 
@@ -816,12 +813,12 @@ class PysParser(Pys):
                         self.skip(result)
 
                     else:
-                        key = result.register(self.single_expr(), True)
+                        key = result.register(self.single_expression(), True)
                         if result.error:
                             return result
 
                 else:
-                    key = result.register(self.single_expr(), True)
+                    key = result.register(self.single_expression(), True)
                     if result.error:
                         return result
 
@@ -834,7 +831,7 @@ class PysParser(Pys):
                 self.advance()
                 self.skip(result)
 
-                value = result.register(self.single_expr(), True)
+                value = result.register(self.single_expression(), True)
                 if result.error:
                     return result
 
@@ -874,7 +871,7 @@ class PysParser(Pys):
 
         position = PysPosition(self.current_token.position.file, start, end)
         self.bracket_level -= 1
-        self.skip_expr(result)
+        self.skip_expression(result)
 
         if type == 'tuple' and not should_sequence and elements:
             element = elements[0]
@@ -892,10 +889,10 @@ class PysParser(Pys):
 
         return result.success(node(elements, position))
 
-    def assign_expr(self):
+    def assignment_statement(self):
         result = PysParserResult()
 
-        node = result.register(self.expr())
+        node = result.register(self.expression())
         if result.error:
             return result
 
@@ -919,9 +916,9 @@ class PysParser(Pys):
 
             result.register_advancement()
             self.advance()
-            self.skip_expr(result)
+            self.skip_expression(result)
 
-            value = result.register(self.assign_expr(), True)
+            value = result.register(self.assignment_statement(), True)
             if result.error:
                 return result
 
@@ -929,7 +926,7 @@ class PysParser(Pys):
 
         return result.success(node)
 
-    def from_expr(self):
+    def from_statement(self):
         result = PysParserResult()
         position = self.current_token.position
 
@@ -992,12 +989,12 @@ class PysParser(Pys):
 
                 result.register_advancement()
                 self.advance()
-                self.skip_expr(result)
+                self.skip_expression(result)
 
                 if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['as']):
                     result.register_advancement()
                     self.advance()
-                    self.skip_expr(result)
+                    self.skip_expression(result)
 
                     if self.current_token.type != TOKENS['IDENTIFIER']:
                         return result.failure(self.new_error("expected identifier"))
@@ -1006,7 +1003,7 @@ class PysParser(Pys):
 
                     result.register_advancement()
                     self.advance()
-                    self.skip_expr(result)
+                    self.skip_expression(result)
 
                 if not processed:
                     packages.append((package, as_package))
@@ -1014,7 +1011,7 @@ class PysParser(Pys):
                 if self.current_token.type == TOKENS['COMMA']:
                     result.register_advancement()
                     self.advance()
-                    self.skip_expr(result)
+                    self.skip_expression(result)
 
                 elif bracket and not is_right_bracket(self.current_token.type):
                     return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
@@ -1037,7 +1034,7 @@ class PysParser(Pys):
             )
         )
 
-    def import_expr(self):
+    def import_statement(self):
         result = PysParserResult()
         position = self.current_token.position
 
@@ -1081,7 +1078,7 @@ class PysParser(Pys):
             )
         )
 
-    def if_expr(self):
+    def if_statement(self):
         result = PysParserResult()
         position = self.current_token.position
 
@@ -1106,7 +1103,7 @@ class PysParser(Pys):
         else_body = None
         advance_count = self.skip(result)
 
-        while self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['elif'], KEYWORDS['else']):
+        while True:
 
             if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['elif']):
                 result.register_advancement()
@@ -1132,6 +1129,9 @@ class PysParser(Pys):
 
                     advance_count = 0
                     break
+
+            else:
+                break
 
             if conditional_chain:
                 conditional_chain = False
@@ -1159,7 +1159,7 @@ class PysParser(Pys):
             )
         )
 
-    def switch_expr(self):
+    def switch_statement(self):
         result = PysParserResult()
         position = self.current_token.position
 
@@ -1188,14 +1188,14 @@ class PysParser(Pys):
         cases = []
         default_body = None
 
-        while self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['case'], KEYWORDS['default']):
+        while True:
 
             if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['case']):
                 result.register_advancement()
                 self.advance()
                 self.skip(result)
 
-                case = result.register(self.single_expr(), True)
+                case = result.register(self.single_expression(), True)
                 if result.error:
                     return result
 
@@ -1230,6 +1230,9 @@ class PysParser(Pys):
 
                 break
 
+            else:
+                break
+
         self.close_bracket(result, left_bracket_token)
         if result.error:
             return result
@@ -1243,7 +1246,7 @@ class PysParser(Pys):
             )
         )
 
-    def match_expr(self):
+    def match_expression(self):
         result = PysParserResult()
         position = self.current_token.position
 
@@ -1290,13 +1293,13 @@ class PysParser(Pys):
                 self.advance()
                 self.skip(result)
 
-                default = result.register(self.single_expr(), True)
+                default = result.register(self.single_expression(), True)
                 if result.error:
                     return result
 
                 break
 
-            condition = result.register(self.single_expr(), True)
+            condition = result.register(self.single_expression(), True)
             if result.error:
                 return result
 
@@ -1307,7 +1310,7 @@ class PysParser(Pys):
             self.advance()
             self.skip(result)
 
-            value = result.register(self.single_expr(), True)
+            value = result.register(self.single_expression(), True)
             if result.error:
                 return result
 
@@ -1326,7 +1329,7 @@ class PysParser(Pys):
             return result
 
         self.bracket_level -= 1
-        self.skip_expr(result)
+        self.skip_expression(result)
 
         return result.success(
             PysMatchNode(
@@ -1337,7 +1340,7 @@ class PysParser(Pys):
             )
         )
 
-    def try_expr(self):
+    def try_statement(self):
         result = PysParserResult()
         position = self.current_token.position
 
@@ -1389,7 +1392,7 @@ class PysParser(Pys):
 
                     result.register_advancement()
                     self.advance()
-                    self.skip_expr(result)
+                    self.skip_expression(result)
 
                     while (
                         self.current_token.type in (
@@ -1404,7 +1407,7 @@ class PysParser(Pys):
 
                         result.register_advancement()
                         self.advance()
-                        self.skip_expr(result)
+                        self.skip_expression(result)
 
                         if self.current_token.type != TOKENS['IDENTIFIER']:
                             return result.failure(self.new_error("expected identifier"))
@@ -1413,12 +1416,12 @@ class PysParser(Pys):
 
                         result.register_advancement()
                         self.advance()
-                        self.skip_expr(result)
+                        self.skip_expression(result)
 
                     if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['as']):
                         result.register_advancement()
                         self.advance()
-                        self.skip_expr(result)
+                        self.skip_expression(result)
 
                         if self.current_token.type != TOKENS['IDENTIFIER']:
                             return result.failure(self.new_error("expected identifier"))
@@ -1429,7 +1432,7 @@ class PysParser(Pys):
 
                         result.register_advancement()
                         self.advance()
-                        self.skip_expr(result)
+                        self.skip_expression(result)
 
                     else:
                         all_catch_handler = True
@@ -1475,7 +1478,7 @@ class PysParser(Pys):
 
         elif not catch_cases:
             return result.failure(
-                self.new_error(f"expected {KEYWORDS['catch']!r}, {KEYWORDS['except']}, or {KEYWORDS['finally']!r}")
+                self.new_error(f"expected {KEYWORDS['catch']!r}, {KEYWORDS['except']!r}, or {KEYWORDS['finally']!r}")
             )
 
         else:
@@ -1491,7 +1494,7 @@ class PysParser(Pys):
             )
         )
 
-    def with_expr(self):
+    def with_statement(self):
         result = PysParserResult()
         position = self.current_token.position
 
@@ -1516,14 +1519,14 @@ class PysParser(Pys):
         contexts = []
 
         while True:
-            context = result.register(self.single_expr(), True)
+            context = result.register(self.single_expression(), True)
             if result.error:
                 return result
 
             if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['as']):
                 result.register_advancement()
                 self.advance()
-                self.skip_expr(result)
+                self.skip_expression(result)
 
                 if self.current_token.type != TOKENS['IDENTIFIER']:
                     return result.failure(self.new_error("expected identifier"))
@@ -1535,14 +1538,14 @@ class PysParser(Pys):
 
                 result.register_advancement()
                 self.advance()
-                self.skip_expr(result)
+                self.skip_expression(result)
 
             contexts.append((context, alias))
 
             if self.current_token.type == TOKENS['COMMA']:
                 result.register_advancement()
                 self.advance()
-                self.skip_expr(result)
+                self.skip_expression(result)
 
             elif bracket and not is_right_bracket(self.current_token.type):
                 return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
@@ -1571,7 +1574,7 @@ class PysParser(Pys):
             )
         )
 
-    def for_expr(self):
+    def for_statement(self):
         result = PysParserResult()
         position = self.current_token.position
 
@@ -1593,7 +1596,7 @@ class PysParser(Pys):
             self.advance()
             self.skip(result)
 
-        declaration = result.try_register(self.assign_expr())
+        declaration = result.try_register(self.assignment_statement())
         if result.error:
             return result
 
@@ -1602,9 +1605,9 @@ class PysParser(Pys):
 
             result.register_advancement()
             self.advance()
-            self.skip_expr(result)
+            self.skip_expression(result)
 
-            condition = result.try_register(self.single_expr())
+            condition = result.try_register(self.single_expression())
             if result.error:
                 return result
 
@@ -1613,9 +1616,9 @@ class PysParser(Pys):
 
             result.register_advancement()
             self.advance()
-            self.skip_expr(result)
+            self.skip_expression(result)
 
-            update = result.try_register(self.assign_expr())
+            update = result.try_register(self.assignment_statement())
             if result.error:
                 return result
 
@@ -1629,9 +1632,9 @@ class PysParser(Pys):
 
             result.register_advancement()
             self.advance()
-            self.skip_expr(result)
+            self.skip_expression(result)
 
-            iterable = result.register(self.single_expr(), True)
+            iterable = result.register(self.single_expression(), True)
             if result.error:
                 return result
 
@@ -1678,7 +1681,7 @@ class PysParser(Pys):
             )
         )
 
-    def while_expr(self):
+    def while_statement(self):
         result = PysParserResult()
         position = self.current_token.position
 
@@ -1723,7 +1726,7 @@ class PysParser(Pys):
             )
         )
 
-    def do_while_expr(self):
+    def do_while_statement(self):
         result = PysParserResult()
         position = self.current_token.position
 
@@ -1775,7 +1778,7 @@ class PysParser(Pys):
             )
         )
 
-    def repeat_expr(self):
+    def repeat_statement(self):
         result = PysParserResult()
         position = self.current_token.position
 
@@ -1827,7 +1830,7 @@ class PysParser(Pys):
             )
         )
 
-    def class_expr(self, decorators=None):
+    def class_statement(self, decorators=None):
         result = PysParserResult()
         start = self.current_token.position.start
 
@@ -1850,7 +1853,7 @@ class PysParser(Pys):
         self.skip(result)
 
         if self.current_token.type == TOKENS['LEFT-PARENTHESIS']:
-            base = result.register(self.sequence_expr('tuple', should_sequence=True))
+            base = result.register(self.sequence_expression('tuple', should_sequence=True))
             if result.error:
                 return result
 
@@ -1862,7 +1865,7 @@ class PysParser(Pys):
             self.advance()
             self.skip(result)
 
-            base = result.register(self.expr(), True)
+            base = result.register(self.expression(), True)
             if result.error:
                 return result
 
@@ -1894,7 +1897,7 @@ class PysParser(Pys):
             )
         )
 
-    def func_expr(self, decorators=None):
+    def func_expression(self, decorators=None):
         result = PysParserResult()
         position = self.current_token.position
         start = position.start
@@ -1902,10 +1905,15 @@ class PysParser(Pys):
 
         if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['constructor']):
             constructor = True
-        elif not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['func'], KEYWORDS['function']):
+        elif not self.current_token.match(
+            TOKENS['KEYWORD'],
+            KEYWORDS['def'], KEYWORDS['define'], KEYWORDS['func'], KEYWORDS['function']
+        ):
             return result.failure(
                 self.new_error(
-                    f"expected {KEYWORDS['func']!r}, {KEYWORDS['function']!r}, or {KEYWORDS['constructor']}"
+                    f"expected {KEYWORDS['def']!r}, {KEYWORDS['define']!r}, "
+                    f"{KEYWORDS['func']!r}, {KEYWORDS['function']!r}, "
+                    f"or {KEYWORDS['constructor']!r}"
                 )
             )
 
@@ -1958,7 +1966,7 @@ class PysParser(Pys):
                 return result.failure(self.new_error("expected '=' (follows keyword argument)"))
 
             if seen_keyword_argument:
-                value = result.register(self.single_expr(), True)
+                value = result.register(self.single_expression(), True)
                 if result.error:
                     return result
                 parameters.append((key, value))
@@ -1990,11 +1998,14 @@ class PysParser(Pys):
             self.advance()
             self.skip(result)
 
-            body = result.register(self.single_expr(), True)
+            body = result.register(self.single_expression(), True)
             if result.error:
                 return result
 
             body = PysReturnNode(body, position)
+
+        elif self.current_token.type == TOKENS['COLON']:
+            return result.failure(self.new_error("unlike python"))
 
         else:
             body = result.register(self.block_statements(), True)
@@ -2007,7 +2018,7 @@ class PysParser(Pys):
                     )
                 )
 
-        self.skip_expr(result)
+        self.skip_expression(result)
 
         return result.success(
             PysFunctionNode(
@@ -2020,7 +2031,7 @@ class PysParser(Pys):
             )
         )
 
-    def return_expr(self):
+    def return_statement(self):
         result = PysParserResult()
         position = self.current_token.position
 
@@ -2031,7 +2042,7 @@ class PysParser(Pys):
         self.advance()
         self.skip(result)
 
-        value = result.try_register(self.expr())
+        value = result.try_register(self.expression())
         if result.error:
             return result
 
@@ -2045,7 +2056,7 @@ class PysParser(Pys):
             )
         )
 
-    def global_expr(self):
+    def global_statement(self):
         result = PysParserResult()
         position = self.current_token.position
 
@@ -2079,12 +2090,12 @@ class PysParser(Pys):
 
             result.register_advancement()
             self.advance()
-            self.skip_expr(result)
+            self.skip_expression(result)
 
             if self.current_token.type == TOKENS['COMMA']:
                 result.register_advancement()
                 self.advance()
-                self.skip_expr(result)
+                self.skip_expression(result)
 
             elif bracket and not is_right_bracket(self.current_token.type):
                 return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
@@ -2106,7 +2117,7 @@ class PysParser(Pys):
             )
         )
 
-    def del_expr(self):
+    def del_statement(self):
         result = PysParserResult()
         position = self.current_token.position
 
@@ -2117,7 +2128,7 @@ class PysParser(Pys):
         self.advance()
         self.skip(result)
 
-        expr = result.register(self.expr(), True)
+        expr = result.register(self.expression(), True)
         if result.error:
             return result
 
@@ -2136,7 +2147,7 @@ class PysParser(Pys):
             )
         )
 
-    def throw_expr(self):
+    def throw_statement(self):
         result = PysParserResult()
         position = self.current_token.position
 
@@ -2147,7 +2158,7 @@ class PysParser(Pys):
         self.advance()
         self.skip(result)
 
-        target = result.register(self.single_expr(), True)
+        target = result.register(self.single_expression(), True)
         if result.error:
             return result
 
@@ -2158,7 +2169,7 @@ class PysParser(Pys):
             self.advance()
             self.skip(result)
 
-            cause = result.register(self.single_expr(), True)
+            cause = result.register(self.single_expression(), True)
             if result.error:
                 return result
 
@@ -2170,7 +2181,7 @@ class PysParser(Pys):
             )
         )
 
-    def assert_expr(self):
+    def assert_statement(self):
         result = PysParserResult()
 
         if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['assert']):
@@ -2180,7 +2191,7 @@ class PysParser(Pys):
         self.advance()
         self.skip(result)
 
-        condition = result.register(self.single_expr(), True)
+        condition = result.register(self.single_expression(), True)
         if result.error:
             return result
 
@@ -2192,7 +2203,7 @@ class PysParser(Pys):
             self.advance()
             self.skip(result)
 
-            message = result.register(self.single_expr(), True)
+            message = result.register(self.single_expression(), True)
             if result.error:
                 return result
 
@@ -2206,7 +2217,7 @@ class PysParser(Pys):
             )
         )
 
-    def decorator_expr(self):
+    def decorator(self):
         result = PysParserResult()
 
         if self.current_token.type != TOKENS['AT']:
@@ -2226,16 +2237,16 @@ class PysParser(Pys):
 
         if self.current_token.match(
             TOKENS['KEYWORD'],
-            KEYWORDS['func'], KEYWORDS['function'], KEYWORDS['constructor']
+            KEYWORDS['def'], KEYWORDS['define'], KEYWORDS['func'], KEYWORDS['function']
         ):
-            func_expr = result.register(self.func_expr(decorators))
+            func_expr = result.register(self.func_expression(decorators))
             if result.error:
                 return result
 
             return result.success(func_expr)
 
         elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['class']):
-            class_expr = result.register(self.class_expr(decorators))
+            class_expr = result.register(self.class_statement(decorators))
             if result.error:
                 return result
 
@@ -2290,12 +2301,11 @@ class PysParser(Pys):
         elif self.current_token.type == TOKENS['COLON']:
             return result.failure(self.new_error("unlike python"))
 
-        else:
-            body = result.register(self.statement())
-            if result.error:
-                return result.failure(self.new_error("expected statement, expression, '{', or ';'"), fatal=False)
+        body = result.register(self.statement())
+        if result.error:
+            return result.failure(self.new_error("expected statement, expression, '{', or ';'"), fatal=False)
 
-            return result.success(body)
+        return result.success(body)
 
     def chain_operator(self, func, *operators, membership=False):
         result = PysParserResult()
@@ -2314,7 +2324,7 @@ class PysParser(Pys):
             if membership and self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['not']):
                 result.register_advancement()
                 self.advance()
-                self.skip_expr(result)
+                self.skip_expression(result)
 
                 if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['in']):
                     return result.failure(self.new_error(f"expected {KEYWORDS['in']!r}"))
@@ -2329,7 +2339,7 @@ class PysParser(Pys):
 
             result.register_advancement()
             self.advance()
-            self.skip_expr(result)
+            self.skip_expression(result)
 
             if (
                 membership and
@@ -2344,7 +2354,7 @@ class PysParser(Pys):
 
                 result.register_advancement()
                 self.advance()
-                self.skip_expr(result)
+                self.skip_expression(result)
 
             expr = result.register(func(), True)
             if result.error:
@@ -2372,7 +2382,7 @@ class PysParser(Pys):
 
             result.register_advancement()
             self.advance()
-            self.skip_expr(result)
+            self.skip_expression(result)
 
             right = result.register(func(), True)
             if result.error:
@@ -2417,7 +2427,7 @@ class PysParser(Pys):
 
         return count
 
-    def skip_expr(self, result):
+    def skip_expression(self, result):
         return self.skip(result) if self.bracket_level > 0 else 0
 
     def proccess_future(self, name):

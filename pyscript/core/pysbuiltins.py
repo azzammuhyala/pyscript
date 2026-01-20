@@ -17,9 +17,9 @@ from .utils.string import normstr
 
 from math import isclose
 from importlib import import_module
-from inspect import isfunction, signature
+from inspect import signature
 from os.path import dirname
-from types import ModuleType
+from types import BuiltinFunctionType, BuiltinMethodType, FunctionType, MethodType, ModuleType
 from typing import Any
 
 import builtins
@@ -28,6 +28,8 @@ import sys
 real_number = (int, float)
 sequence = (list, tuple, set)
 optional_mapping = (dict, type(None))
+wrapper_function = (MethodType, PysPythonFunction)
+python_function = (BuiltinFunctionType, BuiltinMethodType, FunctionType)
 
 pyhelp = builtins.help
 pyvars = builtins.vars
@@ -49,12 +51,14 @@ def _unpack_comprehension_function(pyfunc, function):
     code = pyfunc.__code__
     check = function
     final = function
+    offset = 0
 
-    if isinstance(function, PysPythonFunction):
+    if isinstance(function, wrapper_function):
         check = function.__func__
+        offset += 1
 
     if isinstance(check, PysFunction):
-        length = len(check.__code__.parameter_names)
+        length = max(len(check.__code__.parameter_names) - offset, 0)
         if length == 0:
             def final(item):
                 return function()
@@ -62,9 +66,9 @@ def _unpack_comprehension_function(pyfunc, function):
             def final(item):
                 return function(*item)
 
-    elif isfunction(check):
+    elif isinstance(check, python_function):
         parameters = signature(check).parameters
-        length = len(parameters)
+        length = max(len(parameters) - offset, 0)
         if length == 0:
             def final(item):
                 return function()
@@ -72,7 +76,7 @@ def _unpack_comprehension_function(pyfunc, function):
             def final(item):
                 return function(*item)
 
-    handle_call(final, code.context, code.position)
+    handle_call(function, code.context, code.position)
     return final
 
 class _Printer(Pys):
@@ -193,8 +197,7 @@ def require(pyfunc, name):
                 modules[module_path] = module
 
             finally:
-                if module_path in loading_modules:
-                    loading_modules.remove(module_path)
+                loading_modules.discard(module_path)
 
     for component in other_components:
         module = getattr(module, component)
@@ -639,6 +642,7 @@ pys_builtins.__file__ = __file__
 pys_builtins.true = True
 pys_builtins.false = False
 pys_builtins.none = None
+pys_builtins.ellipsis = Ellipsis
 pys_builtins.inf = pys_builtins.infinity = pys_builtins.Infinity = float('inf')
 pys_builtins.nan = pys_builtins.notanumber = pys_builtins.NaN = pys_builtins.NotANumber = float('nan')
 pys_builtins.license = license

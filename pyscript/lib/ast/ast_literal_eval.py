@@ -12,13 +12,15 @@ inf = pys_builtins.inf
 nan = pys_builtins.nan
 
 get_identifier = MappingProxyType({
+    'ellipsis': Ellipsis,
+    'Ellipsis': Ellipsis,
     'inf': inf,
     'infinity': inf,
     'Infinity': inf,
     'nan': nan,
     'notanumber': nan,
     'NaN': nan,
-    'NotANumber': nan,
+    'NotANumber': nan
 }).get
 
 def visit(node):

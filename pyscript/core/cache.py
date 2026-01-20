@@ -37,6 +37,7 @@ class PysHook(Pys):
     def __new_singleton__(cls) -> 'PysHook':
         global hook
         hook = super(cls, cls).__new__(cls)
+        hook.argv = []
         hook.running_shell = False
         hook.running_breakpoint = False
         hook.display = print_display
@@ -47,6 +48,16 @@ class PysHook(Pys):
 
     def __repr__(self) -> str:
         return f'<hook object at {id(self):016X}>'
+
+    @property
+    def argv(self) -> list[str]:
+        return singletons['hook.argv']
+
+    @argv.setter
+    def argv(self, value: list[str]) -> None:
+        if not isinstance(value, list) or not all(isinstance(arg, str) for arg in value):
+            raise TypeError("hook.argv: argv must be list of strings")
+        singletons['hook.argv'] = value
 
     @property
     def running_shell(self) -> bool:

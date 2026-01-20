@@ -1,5 +1,5 @@
 from .bases import Pys
-from .checks import is_unpack_assignment, is_incremental
+from .checks import is_unpack_assignment
 from .constants import TOKENS, KEYWORDS, DEFAULT
 from .context import PysContext
 from .exceptions import PysTraceback
@@ -155,12 +155,11 @@ class PysAnalyzer(Pys):
         self.visit(node.right)
 
     def visit_UnaryOperatorNode(self, node):
-        if is_incremental(node.operand.type):
-            operator = 'increase' if node.operand.type == TOKENS['DOUBLE-PLUS'] else 'decrease'
-            self.visit_declaration_AssignNode(node.value, f"cannot {operator} literal", operator)
-            return
-
         self.visit(node.value)
+
+    def visit_IncrementalNode(self, node):
+        operator = 'increase' if node.operand.type == TOKENS['DOUBLE-PLUS'] else 'decrease'
+        self.visit_declaration_AssignNode(node.target, f"cannot {operator} literal", operator)
 
     def visit_StatementsNode(self, node):
         for element in node.body:

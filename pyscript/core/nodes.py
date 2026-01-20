@@ -246,25 +246,38 @@ class PysBinaryOperatorNode(PysNode):
 
 class PysUnaryOperatorNode(PysNode):
 
-    __slots__ = ('operand', 'value', 'operand_position')
+    __slots__ = ('operand', 'value')
 
     @typechecked
-    def __init__(self, operand: PysToken, value: PysNode, operand_position: Literal['left', 'right']) -> None:
+    def __init__(self, operand: PysToken, value: PysNode) -> None:
+        super().__init__(PysPosition(operand.position.file, operand.position.start, value.position.end))
+        setimuattr(self, 'operand',  operand)
+        setimuattr(self, 'value', value)
+
+    def __repr__(self) -> str:
+        return f'UnaryOperator(operand={self.operand!r}, value={self.value!r})'
+
+class PysIncrementalNode(PysNode):
+
+    __slots__ = ('operand', 'target', 'operand_position')
+
+    @typechecked
+    def __init__(self, operand: PysToken, target: PysNode, operand_position: Literal['left', 'right']) -> None:
         super().__init__(
-            PysPosition(operand.position.file, operand.position.start, value.position.end)
+            PysPosition(operand.position.file, operand.position.start, target.position.end)
             if operand_position == 'left' else
-            PysPosition(operand.position.file, value.position.start, operand.position.end)
+            PysPosition(operand.position.file, target.position.start, operand.position.end)
         )
 
         setimuattr(self, 'operand',  operand)
-        setimuattr(self, 'value', value)
+        setimuattr(self, 'target', target)
         setimuattr(self, 'operand_position', operand_position)
 
     def __repr__(self) -> str:
         return (
-            'UnaryOperator('
+            'Incremental('
                 f'operand={self.operand!r}, '
-                f'value={self.value!r}, '
+                f'target={self.target!r}, '
                 f'operand_position={self.operand_position!r}'
             ')'
         )

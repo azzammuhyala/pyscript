@@ -24,6 +24,26 @@ class PysFunction(PysObject):
 
         context = context.parent if isinstance(context, PysClassContext) else context
 
+        argument_names = []
+        keyword_argument_names = []
+        parameter_names = []
+        keyword_arguments = {}
+
+        append_argnames = argument_names.append
+        append_keynames = keyword_argument_names.append
+        append_paramnames = parameter_names.append
+        set_keywordarg = keyword_arguments.__setitem__
+
+        for parameter in parameters:
+            if parameter.__class__ is tuple:
+                arg, value = parameter
+                append_paramnames(arg)
+                append_keynames(arg)
+                set_keywordarg(arg, value)
+            else:
+                append_paramnames(parameter)
+                append_argnames(parameter)
+
         self.__name__ = '<function>' if name is None else name
         self.__qualname__ = ('' if qualname is None else qualname + '.') + self.__name__
         self.__code__ = PysCode(
@@ -35,10 +55,10 @@ class PysFunction(PysObject):
             closure_symbol_table=context.symbol_table,
             visit=visit,
             parameters_length=len(parameters),
-            argument_names=tuple(item for item in parameters if not isinstance(item, tuple)),
-            keyword_argument_names=tuple(item[0] for item in parameters if isinstance(item, tuple)),
-            parameter_names=tuple(item[0] if isinstance(item, tuple) else item for item in parameters),
-            keyword_arguments={item[0]: item[1] for item in parameters if isinstance(item, tuple)}
+            argument_names=tuple(argument_names),
+            keyword_argument_names=tuple(keyword_argument_names),
+            parameter_names=tuple(parameter_names),
+            keyword_arguments=keyword_arguments
         )
 
     def __repr__(self):

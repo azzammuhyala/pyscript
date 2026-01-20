@@ -1,5 +1,5 @@
 from .core.buffer import PysFileBuffer
-from .core.cache import path, undefined
+from .core.cache import path, undefined, hook
 from .core.constants import DEFAULT, DEBUG, DONT_SHOW_BANNER_ON_SHELL, NO_COLOR
 from .core.highlight import (
     HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight, PygmentsPyScriptStyle, PygmentsPyScriptLexer
@@ -27,6 +27,22 @@ from argparse import ArgumentParser
 from os import environ
 
 import sys
+
+def split_argv():
+    need_value_arguments = {'-c', '--command', '-l', '--highlight', '-r', '--py-recursion'}
+    argv = sys.argv
+    i = 1
+
+    while i < len(argv):
+        argument = argv[i]
+        if argument in need_value_arguments:
+            i += 1
+        elif not argument.startswith('-'):
+            break
+        i += 1
+
+    hook.argv = argv[i:]
+    return argv[1:i + 1]
 
 FORMAT_HIGHLIGHT_MAP = {
     'html': HLFMT_HTML,
@@ -102,7 +118,7 @@ def argument_error(argument, message):
     parser.print_usage(sys.stderr)
     parser.exit(2, f"{parser.prog}: error: argument {argument}: {message}\n")
 
-args = parser.parse_args()
+args = parser.parse_args(split_argv())
 
 if args.highlight and args.file is None:
     argument_error("-l/--highlight", "argument 'file' required")

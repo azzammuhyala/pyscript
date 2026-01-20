@@ -99,7 +99,7 @@ class Parser {
             parser_flags=self.flags
         )
 
-        node, error = parser.parse(mode == 'exec' ? None : parser.expr)
+        node, error = parser.parse(mode == 'exec' ? None : parser.expression)
         if (error)
             throw error.exception
 

@@ -72,9 +72,27 @@
             "}"
         ]
     },
+    "Keyword - def": {
+        "prefix": "def",
+        "body": [
+            "def ${1:functionName}(${2:parameter}) {",
+            "\t${0:# code}",
+            "}"
+        ],
+        "description": "same as func"
+    },
     "Keyword - default": {
         "prefix": "default",
         "body": "default:"
+    },
+    "Keyword - define": {
+        "prefix": "define",
+        "body": [
+            "define ${1:functionName}(${2:parameter}) {",
+            "\t${0:# code}",
+            "}"
+        ],
+        "description": "same as func"
     },
     "Keyword - del": {
         "prefix": "del",
@@ -678,6 +696,11 @@
     "Builtin - divmod": {
         "prefix": "divmod",
         "body": "divmod($0)"
+    },
+    "Builtin - ellipsis": {
+        "prefix": "ellipsis",
+        "body": "ellipsis",
+        "description": "same as Ellipsis"
     },
     "Builtin - enumerate": {
         "prefix": "enumerate",

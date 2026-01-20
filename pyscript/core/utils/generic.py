@@ -16,7 +16,6 @@ dsetitem = dict.__setitem__
 ddelitem = dict.__delitem__
 dget = dict.get
 dkeys = dict.keys
-ditems = dict.items
 
 def get_frame(deep=0):
     deep += 1

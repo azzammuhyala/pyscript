@@ -10,7 +10,7 @@ from types import MappingProxyType
 contains = lambda a, b: a in b
 not_in = lambda a, b : a not in b
 
-BINARY_FUNCTIONS_MAP = MappingProxyType({
+BINARY_FUNCTIONS_MAP = {
     TOKENS['NOT-IN']: not_in,
     TOKENS['IS-NOT']: is_not,
     TOKENS['PLUS']: add,
@@ -47,24 +47,13 @@ BINARY_FUNCTIONS_MAP = MappingProxyType({
     TOKENS['EQUAL-DOUBLE-GREATER-THAN']: irshift,
     TOKENS['MINUS-GREATER-THAN']: contains,
     TOKENS['EXCLAMATION-GREATER-THAN']: not_in
-})
+}
 
-UNARY_FUNCTIONS_MAP = MappingProxyType({
+UNARY_FUNCTIONS_MAP = {
     TOKENS['PLUS']: pos,
     TOKENS['MINUS']: neg,
     TOKENS['TILDE']: inv
-})
-
-KEYWORDS_TO_VALUES_MAP = MappingProxyType({
-    KEYWORDS['True']: True,
-    KEYWORDS['False']: False,
-    KEYWORDS['None']: None,
-    KEYWORDS['true']: True,
-    KEYWORDS['false']: False,
-    KEYWORDS['nil']: None,
-    KEYWORDS['none']: None,
-    KEYWORDS['null']: None
-})
+}
 
 BRACKETS_MAP = MappingProxyType({
     TOKENS['LEFT-PARENTHESIS']: TOKENS['RIGHT-PARENTHESIS'],

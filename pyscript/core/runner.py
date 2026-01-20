@@ -81,7 +81,7 @@ def pys_runner(
                 context_parent_entry_position=context_parent_entry_position
             )
 
-            node, error = parser.parse(parser.expr if mode == 'eval' else None)
+            node, error = parser.parse(parser.expression if mode == 'eval' else None)
             if error:
                 return result.failure(error)
 

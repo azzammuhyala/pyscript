@@ -145,14 +145,14 @@ def visit_BinaryOperatorNode(node):
     return f'({unparse(node.left)} {operand} {unparse(node.right)})'
 
 def visit_UnaryOperatorNode(node):
-    if node.operand.match(TOKENS['KEYWORD'], KEYWORDS['not']):
-        operand = '!'
-    else:
-        operand = SYMBOLS_TOKEN_MAP[node.operand.type]
-
+    operand = '!' if node.operand.match(TOKENS['KEYWORD'], KEYWORDS['not']) else SYMBOLS_TOKEN_MAP[node.operand.type]
     value = unparse(node.value)
+    return f'({operand}{value})'
 
-    return '(' + (operand + value if node.operand_position == 'left' else value + operand) + ')'
+def visit_IncrementalNode(node):
+    operand = SYMBOLS_TOKEN_MAP[node.operand.type]
+    target = unparse(node.target)
+    return '(' + (operand + target if node.operand_position == 'left' else target + operand) + ')'
 
 def visit_StatementsNode(node):
     return '\n'.join(map(unparse, node.body))

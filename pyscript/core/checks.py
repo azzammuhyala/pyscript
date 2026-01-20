@@ -5,7 +5,7 @@ from .nodes import *
 is_expression = frozenset([
     PysNumberNode, PysStringNode, PysKeywordNode, PysIdentifierNode, PysDictionaryNode, PysSetNode, PysListNode,
     PysTupleNode, PysAttributeNode, PysSubscriptNode, PysCallNode, PysChainOperatorNode, PysTernaryOperatorNode,
-    PysBinaryOperatorNode, PysUnaryOperatorNode, PysMatchNode, PysFunctionNode, PysEllipsisNode
+    PysBinaryOperatorNode, PysUnaryOperatorNode, PysIncrementalNode, PysMatchNode, PysFunctionNode, PysEllipsisNode
 ]).__contains__
 
 is_statement = frozenset([
@@ -26,10 +26,6 @@ is_python_extensions = frozenset([
 
 is_equals = frozenset([
     TOKENS['EQUAL'], TOKENS['EQUAL-COLON']
-]).__contains__
-
-is_incremental = frozenset([
-    TOKENS['DOUBLE-PLUS'], TOKENS['DOUBLE-MINUS']
 ]).__contains__
 
 is_blacklist_python_builtins = frozenset([

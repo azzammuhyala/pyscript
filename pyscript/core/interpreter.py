@@ -1,10 +1,10 @@
 from .constants import TOKENS, KEYWORDS, DEBUG
 from .cache import undefined
-from .checks import is_unpack_assignment, is_equals, is_incremental, is_public_attribute
+from .checks import is_unpack_assignment, is_equals, is_public_attribute
 from .context import PysClassContext
 from .exceptions import PysTraceback
 from .handlers import handle_call
-from .mapping import UNARY_FUNCTIONS_MAP, KEYWORDS_TO_VALUES_MAP
+from .mapping import UNARY_FUNCTIONS_MAP
 from .nodes import PysNode, PysIdentifierNode, PysAttributeNode, PysSubscriptNode
 from .objects import PysFunction
 from .pysbuiltins import ce, nce, increment, decrement
@@ -24,7 +24,6 @@ KW_OR = KEYWORDS['or']
 
 T_KEYWORD = TOKENS['KEYWORD']
 T_STRING = TOKENS['STRING']
-T_INCREMENT = TOKENS['DOUBLE-PLUS']
 T_AND = TOKENS['DOUBLE-AMPERSAND']
 T_OR = TOKENS['DOUBLE-PIPE']
 T_NOT = TOKENS['EXCLAMATION']
@@ -33,7 +32,20 @@ T_NCE = TOKENS['EXCLAMATION-TILDE']
 T_NULLISH = TOKENS['DOUBLE-QUESTION']
 
 get_unary_function = UNARY_FUNCTIONS_MAP.__getitem__
-get_value_from_keyword = KEYWORDS_TO_VALUES_MAP.__getitem__
+get_incremental_function = {
+    TOKENS['DOUBLE-PLUS']: increment,
+    TOKENS['DOUBLE-MINUS']: decrement
+}.__getitem__
+get_value_from_keyword = {
+    KEYWORDS['True']: True,
+    KEYWORDS['False']: False,
+    KEYWORDS['None']: None,
+    KEYWORDS['true']: True,
+    KEYWORDS['false']: False,
+    KEYWORDS['nil']: None,
+    KEYWORDS['none']: None,
+    KEYWORDS['null']: None
+}.__getitem__
 
 def visit(node, context):
     return get_visitors(node.__class__)(node, context)
@@ -216,7 +228,7 @@ def visit_CallNode(node, context):
 
     for nargument in node.arguments:
 
-        if isinstance(nargument, tuple):
+        if nargument.__class__ is tuple:
             keyword, nvalue = nargument
             setitem(keyword.value, register(visit(nvalue, context)))
             if should_return():
@@ -344,34 +356,47 @@ def visit_UnaryOperatorNode(node, context):
 
     register = result.register
     should_return = result.should_return
-    nposition = node.position
     otype = node.operand.type
-    nvalue = node.value
 
-    value = register(visit(nvalue, context))
+    value = register(visit(node.value, context))
+    if should_return():
+        return result
+
+    with result(context, node.position):
+        return result.success(
+            (not value)
+            if node.operand.match(T_KEYWORD, KW_NOT) or otype == T_NOT else
+            get_unary_function(otype)(value)
+        )
+
+    if should_return():
+        return result
+
+def visit_IncrementalNode(node, context):
+    result = PysRunTimeResult()
+
+    register = result.register
+    should_return = result.should_return
+    nposition = node.position
+    ntarget = node.target
+
+    value = register(visit(ntarget, context))
     if should_return():
         return result
 
     with result(context, nposition):
+        func = get_incremental_function(node.operand.type)
 
-        if node.operand.match(T_KEYWORD, KW_NOT) or otype == T_NOT:
-            return result.success(not value)
+        handle_call(func, context, nposition)
+        increast_value = func(value)
+        if node.operand_position == 'left':
+            value = increast_value
 
-        elif is_incremental(otype):
-            func = increment if otype == T_INCREMENT else decrement
+        register(visit_declaration_AssignNode(ntarget, context, increast_value))
+        if should_return():
+            return result
 
-            handle_call(func, context, nposition)
-            increast_value = func(value)
-            if node.operand_position == 'left':
-                value = increast_value
-
-            register(visit_declaration_AssignNode(nvalue, context, increast_value))
-            if should_return():
-                return result
-
-            return result.success(value)
-
-        return result.success(get_unary_function(otype)(value))
+        return result.success(value)
 
     if should_return():
         return result
@@ -685,13 +710,19 @@ def visit_TryNode(node, context):
 
                 if tparameter:
                     with result(context, tparameter.position):
-                        context.symbol_table.set(tparameter.value, error.exception)
+                        context.symbol_table.set(parameter := tparameter.value, error.exception)
                     if should_return():
                         return
 
                 register(visit(body, context))
                 if result.error:
                     setimuattr(result.error, 'cause', error)
+
+                if tparameter:
+                    with result(context, tparameter.position):
+                        context.symbol_table.remove(parameter)
+                    if should_return():
+                        return
 
                 break
 
@@ -1084,7 +1115,7 @@ def visit_FunctionNode(node, context):
 
     for nparameter in node.parameters:
 
-        if isinstance(nparameter, tuple):
+        if nparameter.__class__ is tuple:
             keyword, nvalue = nparameter
 
             value = register(visit(nvalue, context))

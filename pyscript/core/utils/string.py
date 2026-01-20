@@ -18,9 +18,11 @@ def normstr(obj):
     elif isinstance(obj, Iterable):
         return '\n'.join(map(normstr, obj))
 
-    elif isinstance(obj, BuiltinMethodType) and \
-        isinstance(self := getattr(obj, '__self__', None), TextIOWrapper) and \
-        obj.__name__ == 'readline':
+    elif (
+        isinstance(obj, BuiltinMethodType) and
+        isinstance(self := getattr(obj, '__self__', None), TextIOWrapper) and
+        obj.__name__ == 'readline'
+    ):
 
         if not self.readable():
             raise TypeError("unreadable IO, provides readline function")

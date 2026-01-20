@@ -213,7 +213,16 @@ class DumpNode:
             node,
             [
                 ('operand', node.operand),
-                ('value', node.value),
+                ('value', node.value)
+            ]
+        )
+
+    def visit_IncrementalNode(self, node):
+        return self._node_representation(
+            node,
+            [
+                ('operand', node.operand),
+                ('target', node.target),
                 ('operand_position', node.operand_position)
             ]
         )

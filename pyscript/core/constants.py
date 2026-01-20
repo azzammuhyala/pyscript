@@ -106,7 +106,9 @@ KEYWORDS = MappingProxyType({
     'class': 'class',
     'constructor': 'constructor',
     'continue': 'continue',
+    'def': 'def',
     'default': 'default',
+    'define': 'define',
     'del': 'del',
     'delete': 'delete',
     'do': 'do',
@@ -146,9 +148,9 @@ KEYWORDS = MappingProxyType({
 
 CONSTANT_KEYWORDS = (
     KEYWORDS['__debug__'], KEYWORDS['False'], KEYWORDS['None'], KEYWORDS['True'], KEYWORDS['and'], KEYWORDS['class'],
-    KEYWORDS['constructor'], KEYWORDS['extends'], KEYWORDS['func'], KEYWORDS['function'], KEYWORDS['false'],
-    KEYWORDS['global'], KEYWORDS['in'], KEYWORDS['is'], KEYWORDS['not'], KEYWORDS['nil'], KEYWORDS['none'],
-    KEYWORDS['null'], KEYWORDS['of'], KEYWORDS['or'], KEYWORDS['true']
+    KEYWORDS['constructor'], KEYWORDS['def'], KEYWORDS['define'], KEYWORDS['extends'], KEYWORDS['func'],
+    KEYWORDS['function'], KEYWORDS['false'], KEYWORDS['global'], KEYWORDS['in'], KEYWORDS['is'], KEYWORDS['not'],
+    KEYWORDS['nil'], KEYWORDS['none'], KEYWORDS['null'], KEYWORDS['of'], KEYWORDS['or'], KEYWORDS['true']
 )
 
 # flags

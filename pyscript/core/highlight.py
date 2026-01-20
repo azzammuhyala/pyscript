@@ -51,7 +51,10 @@ try:
 
     _set_keywords = frozenset(KEYWORDS.values())
     _set_constant_keywords = frozenset(CONSTANT_KEYWORDS)
-    _set_keyword_definitions = frozenset([KEYWORDS['class'], KEYWORDS['func'], KEYWORDS['function']])
+    _set_keyword_definitions = frozenset([
+        KEYWORDS['class'],
+        KEYWORDS['def'], KEYWORDS['define'], KEYWORDS['func'], KEYWORDS['function']
+    ])
 
     _keywords = '|'.join(_set_keywords)
     _unicode_name = f'[{xid_start}][{xid_continue}]'
@@ -107,17 +110,6 @@ try:
         tokens = {
 
             'root': [
-                # Whitespaces
-                (r'\s+', Whitespace),
-
-                # Punctuation and operators
-                (rf'[\(\),;\[\]{{}}]|\\(?:{_newlines})', Punctuation),
-                (r'\.\.\.', Keyword.Constant),
-                (
-                    r'[!%&\*\+\-\./:<=>\?@^\|~]|&&|\*\*|\+\+|--|//|<<|==|>>|\?\?|\|\||!=|%=|&=|\*=|\+=|-=|/=|:=|<=|>=|'
-                    r'@=|^=|\|=|~=|\*\*=|//=|<<=|>>=|->|=>|!>|~!', Operator
-                ),
-
                 # Keywords
                 (rf'\b({"|".join(_set_keywords ^ _set_constant_keywords)})\b', Keyword),
                 (rf'\b({"|".join(_set_constant_keywords ^ _set_keyword_definitions)})\b', Keyword.Constant),
@@ -198,7 +190,7 @@ try:
 
                 # Function definition
                 (
-                    rf'\b({KEYWORDS["func"]}|{KEYWORDS["function"]})\b(\s*)'
+                    rf'\b({KEYWORDS["def"]}|{KEYWORDS["define"]}|{KEYWORDS["func"]}|{KEYWORDS["function"]})\b(\s*)'
                     rf'(?!{_keywords})({_dollar_prefix}\b{_unicode_name}*)\b',
                     bygroups(Keyword.Constant, Whitespace, Name.Function)
                 ),
@@ -224,9 +216,20 @@ try:
                 # Variables
                 (rf'{_dollar_prefix}\b{_unicode_name}*\b', Name.Variable),
 
+                # Whitespaces
+                (r'\s+', Whitespace),
+
+                # Punctuation and operators
+                (rf'[\(\),;\[\]{{}}]|\\(?:{_newlines})', Punctuation),
+                (r'\.\.\.', Keyword.Constant),
+                (
+                    r'[!%&\*\+\-\./:<=>\?@^\|~]|&&|\*\*|\+\+|--|//|<<|==|>>|\?\?|\|\||!=|%=|&=|\*=|\+=|-=|/=|:=|<=|>=|'
+                    r'@=|^=|\|=|~=|\*\*=|//=|<<=|>>=|->|=>|!>|~!', Operator
+                ),
+
                 # Invalid tokens
                 (r'\\.', Error),
-                (rf'{_dollar_prefix}.', Error)
+                (rf'{_dollar_prefix[:-1]}.', Error)
             ],
 
             'code-tags': [
