@@ -20,7 +20,7 @@ class PysFunction(PysObject):
 
     def __init__(self, name, qualname, parameters, body, context, position):
         # circular import problem solved
-        from .interpreter import visit
+        from .interpreter import get_visitor
 
         context = context.parent if isinstance(context, PysClassContext) else context
 
@@ -53,7 +53,7 @@ class PysFunction(PysObject):
             position=position,
             file=context.file,
             closure_symbol_table=context.symbol_table,
-            visit=visit,
+            get_visitor=get_visitor,
             parameters_length=len(parameters),
             argument_names=tuple(argument_names),
             keyword_argument_names=tuple(keyword_argument_names),
@@ -70,6 +70,7 @@ class PysFunction(PysObject):
     def __call__(self, *args, **kwargs):
         qualname = self.__qualname__
         code = self.__code__
+        code_body = code.body
         code_context = code.context
         code_position = code.position
         code_parameters_length = code.parameters_length
@@ -176,8 +177,8 @@ class PysFunction(PysObject):
             )
 
         result.register(
-            code.visit(
-                code.body,
+            code.get_visitor(code_body.__class__)(
+                code_body,
                 PysContext(
                     file=code.file,
                     name=self.__name__,

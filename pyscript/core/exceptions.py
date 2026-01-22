@@ -43,9 +43,9 @@ class PysTraceback(Pys):
         position = self.position
 
         if colored := not (context.flags & NO_COLOR):
-            reset = ACOLORS['reset']
-            magenta = ACOLORS['magenta']
-            bmagenta = ACOLORS['bold-magenta']
+            reset = ACOLORS('reset')
+            magenta = ACOLORS('magenta')
+            bmagenta = ACOLORS('bold-magenta')
         else:
             reset = ''
             magenta = ''

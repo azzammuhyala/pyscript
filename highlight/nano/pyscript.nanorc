@@ -1,0 +1,39 @@
+# Syntax Highlighting for PyScript.
+
+syntax "pyscript" "\.pys$"
+header "^#!.*pyscript"
+magic "PyScript code"
+comment "# "
+
+# Class definitions
+color brightgreen "class [[:alnum:]_]+"
+
+# Function definitions
+color yellow "\<(def|define|func|function)\> [[:alnum:]_]+"
+
+# Keywords
+color magenta "\<(as|assert|break|case|catch|continue|default|del|delete|do|elif|else|except|finally|for|from|if)\>"
+color magenta "\<(import|match|raise|repeat|return|switch|throw|try|until|while|with)\>"
+color blue "\<(__debug__|False|None|True|and|class|constructor|def|define|func|function|extends|false|global|in|is)\>"
+color blue "\<(not|nil|none|null|of|or|true)\>"
+
+# Single strings - source: python.nanorc
+color yellow "'([^'\]|\\.)*'|"([^"\]|\\.)*"|'''|""""
+color normal "'''|""""
+
+# Comments - source: python.nanorc
+color green "(^|[[:blank:]])#.*"
+
+# Tripel strings - source: python.nanorc
+color yellow start="'''([^'),]|$)" end="(^|[^(\])'''"
+color yellow start=""""([^"),]|$)" end="(^|[^(\])""""
+
+# String escapes - source: python.nanorc
+color brightyellow "\\($|[\'"abfnrtv]|[0-3]?[0-7]?[0-7]|x[[:xdigit:]]{2})"
+color brightyellow "\\(N\{[[:alpha:]]+\}|u[[:xdigit:]]{4}|U[[:xdigit:]]{8})"
+
+# Code tags
+color brightwhite,blue "\<(BUG|FIXME|HACK|NOTE|TODO|XXX)\>"
+
+# Trailing whitespace - source: python.nanorc
+color ,green "[[:space:]]+$"

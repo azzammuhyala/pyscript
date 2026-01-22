@@ -4,14 +4,12 @@ from pyscript.core.mapping import REVERSE_TOKENS
 from pyscript.core.nodes import PysNode, PysIdentifierNode
 from pyscript.core.pysbuiltins import pys_builtins
 
-from types import MappingProxyType
-
 is_arith = frozenset([TOKENS['PLUS'], TOKENS['MINUS']]).__contains__
 
 inf = pys_builtins.inf
 nan = pys_builtins.nan
 
-get_identifier = MappingProxyType({
+get_identifier = {
     'ellipsis': Ellipsis,
     'Ellipsis': Ellipsis,
     'inf': inf,
@@ -21,7 +19,7 @@ get_identifier = MappingProxyType({
     'notanumber': nan,
     'NaN': nan,
     'NotANumber': nan
-}).get
+}.get
 
 def visit(node):
     return get_visitor(node.__class__)(node)
@@ -76,9 +74,7 @@ def visit_BinaryOperatorNode(node):
 def visit_EllipsisNode(node):
     return ...
 
-visitors = {
+get_visitor = {
     class_node: globals().get('visit_' + class_node.__name__.removeprefix('Pys'), visit_unknown_node)
     for class_node in PysNode.__subclasses__()
-}
-
-get_visitor = visitors.__getitem__
+}.__getitem__

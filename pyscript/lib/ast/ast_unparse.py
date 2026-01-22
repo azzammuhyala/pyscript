@@ -8,7 +8,7 @@ def indent(string):
     return sindent(string, 4)
 
 def unparse(ast_obj):
-    return visitors[ast_obj.__class__](ast_obj)
+    return get_visitor(ast_obj.__class__)(ast_obj)
 
 def visit_NumberNode(node):
     return repr(node.value.value)
@@ -578,7 +578,7 @@ def visit_ContinueNode(node):
 def visit_BreakNode(node):
     return KEYWORDS['break']
 
-visitors = {
+get_visitor = {
     class_node: globals()['visit_' + class_node.__name__.removeprefix('Pys')]
     for class_node in PysNode.__subclasses__()
-}
+}.__getitem__

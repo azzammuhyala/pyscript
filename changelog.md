@@ -1,16 +1,8 @@
 # Change Log
 
-## [1.10.1] - 20/01/2026
-
-### Added
-- alias keyword `def` (same as `func`), and `define` (same as `func`).
-- alias builtin `ellipsis` (same as `Ellipsis`).
-- get command argument with `hook.argv`, `sys.argv`, or `sys.hook.argv`.
-- node incremental.
-- remove parameter names in exception catches outside the block.
+## [1.10.2] - 22/01/2026
 
 ### Fixed
 - Fixed some bugs.
-- Highlighting improvements.
-- `jsdict` improvements.
-- Improved comprehension checking and traceback.
+- Builtins `inf` and `nan` taken from the `math` module.
+- Improved runtime speed and recursion limit (`~196` -> **`~328`**) [python maximum recursion: `1000`]

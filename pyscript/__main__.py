@@ -79,7 +79,7 @@ parser.add_argument(
 parser.add_argument(
     '-d', '--debug',
     action='store_true',
-    help="Set a debug flag, this will remove the assert statement"
+    help="Set a debug flag, this will ignore assert statement"
 )
 
 parser.add_argument(
@@ -121,7 +121,7 @@ def argument_error(argument, message):
 args = parser.parse_args(split_argv())
 
 if args.highlight and args.file is None:
-    argument_error("-l/--highlight", "argument 'file' required")
+    argument_error("-l/--highlight", "argument 'file' is required")
 
 if args.py_recursion is not None:
     try:
@@ -189,14 +189,17 @@ if args.file is not None:
             flags=flags
         )
 
-        if args.inspect:
-            code = pys_shell(
-                globals=result.context.symbol_table,
-                flags=result.context.flags,
-                parser_flags=result.parser_flags
-            )
-        else:
-            code = result.end_process()[0]
+        code, _ = result.end_process()
+
+        if args.inspect and not (sys.stdout.closed or sys.stderr.closed):
+            if sys.stdin.closed:
+                print("Can't run interactive shell: sys.stdin closed", file=sys.stderr)
+            else:
+                code = pys_shell(
+                    globals=result.context.symbol_table,
+                    flags=result.context.flags,
+                    parser_flags=result.parser_flags
+                )
 
 elif args.command is not None:
     file = PysFileBuffer(args.command)

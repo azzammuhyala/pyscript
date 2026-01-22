@@ -32,15 +32,18 @@ class PysCommandLineShell(Pys):
     def input(self) -> str | Literal[0]:
         while True:
 
-            if self._is_nextline():
-                text = input(self.ps2)
-            else:
-                text = input(self.ps1)
-                if text == '/exit':
-                    return 0
-                elif text == '/clear':
-                    clear_console()
-                    continue
+            try:
+                if self._is_nextline():
+                    text = input(self.ps2)
+                else:
+                    text = input(self.ps1)
+                    if text == '/exit':
+                        return 0
+                    elif text == '/clear':
+                        clear_console()
+                        continue
+            except ValueError:
+                return 0
 
             self._next_line = False
             self._in_decorator = False

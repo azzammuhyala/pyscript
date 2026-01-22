@@ -57,7 +57,7 @@ try:
     ])
 
     _keywords = '|'.join(_set_keywords)
-    _unicode_name = f'[{xid_start}][{xid_continue}]'
+    _unicode_name = f'[{xid_start}][{xid_continue}]*'
     _dollar_prefix = r'(?:\$(?:[^\S\r\n]*))?'
     _raw_string_prefixes = r'((?:R|r|BR|RB|Br|rB|Rb|bR|br|rb))'
     _string_prefixes = r'((?:B|b)?)'
@@ -184,14 +184,14 @@ try:
 
                 # Class definition
                 (
-                    rf'\b({KEYWORDS["class"]})\b(\s*)(?!{_keywords})({_dollar_prefix}\b{_unicode_name}*)\b',
+                    rf'\b({KEYWORDS["class"]})\b(\s+)(?!{_keywords})({_dollar_prefix}{_unicode_name})',
                     bygroups(Keyword.Constant, Whitespace, Name.Class)
                 ),
 
                 # Function definition
                 (
-                    rf'\b({KEYWORDS["def"]}|{KEYWORDS["define"]}|{KEYWORDS["func"]}|{KEYWORDS["function"]})\b(\s*)'
-                    rf'(?!{_keywords})({_dollar_prefix}\b{_unicode_name}*)\b',
+                    rf'\b({KEYWORDS["def"]}|{KEYWORDS["define"]}|{KEYWORDS["func"]}|{KEYWORDS["function"]})\b(\s+)'
+                    rf'(?!{_keywords})({_dollar_prefix}{_unicode_name})',
                     bygroups(Keyword.Constant, Whitespace, Name.Function)
                 ),
 
@@ -200,21 +200,27 @@ try:
 
                 # Built-in types and exceptions
                 (
-                    rf'{_dollar_prefix}(?:{"|".join(_builtin_types)})\b',
+                    rf'{_dollar_prefix}(?:{"|".join(_builtin_types)})',
                     Name.Class.Builtin
                 ),
 
                 # Built-in functions
                 (
-                    rf'{_dollar_prefix}{_unicode_name}*(?=\s*\()|\b(?:{"|".join(_builtin_functions)})\b',
+                    rf'{_dollar_prefix}(?:{"|".join(_builtin_functions)})',
                     Name.Function.Builtin
                 ),
 
+                # Function calls
+                (
+                    rf'{_dollar_prefix}{_unicode_name}(?=\s*\()',
+                    Name.Function
+                ),
+
                 # Constants
-                (rf'{_dollar_prefix}\b(?:[A-Z_]*[A-Z][A-Z0-9_]*)\b', Name.Constant),
+                (rf'{_dollar_prefix}(?:[A-Z_]*[A-Z][A-Z0-9_]*)', Name.Constant),
 
                 # Variables
-                (rf'{_dollar_prefix}\b{_unicode_name}*\b', Name.Variable),
+                (rf'{_dollar_prefix}{_unicode_name}', Name.Variable),
 
                 # Whitespaces
                 (r'\s+', Whitespace),
@@ -229,7 +235,7 @@ try:
 
                 # Invalid tokens
                 (r'\\.', Error),
-                (rf'{_dollar_prefix[:-1]}.', Error)
+                (r'\$(?:[^\S\r\n]*)(.?)', Error)
             ],
 
             'code-tags': [

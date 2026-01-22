@@ -132,8 +132,8 @@ ACOLORS = {
     'magenta': acolor('magenta'),
     'bold-magenta': acolor('magenta', style=BOLD),
     'bold-red': acolor('red', style=BOLD)
-}
+}.__getitem__
 
-EMPTY_MAP = MappingProxyType({})
+EMPTY_MAP = {}
 
 REVERSE_TOKENS = MappingProxyType({type: name for name, type in TOKENS.items()})

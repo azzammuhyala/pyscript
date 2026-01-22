@@ -5,7 +5,7 @@ from .constants import DEFAULT, SILENT, RETURN_RESULT, NO_COLOR, DONT_SHOW_BANNE
 from .context import PysContext
 from .exceptions import PysTraceback, PysSignal
 from .handlers import handle_call
-from .interpreter import visit
+from .interpreter import get_visitor
 from .lexer import PysLexer
 from .mapping import ACOLORS
 from .parser import PysParser
@@ -106,7 +106,7 @@ def pys_runner(
             )
 
         result.parser_flags = parser.parser_flags
-        runtime_result = visit(node, context)
+        runtime_result = get_visitor(node.__class__)(node, context)
 
         if runtime_result.error:
             return result.failure(runtime_result.error)
@@ -250,8 +250,8 @@ def pys_shell(
         reset = ''
         bmagenta = ''
     else:
-        reset = ACOLORS['reset']
-        bmagenta = ACOLORS['bold-magenta']
+        reset = ACOLORS('reset')
+        bmagenta = ACOLORS('bold-magenta')
 
     import_readline()
 

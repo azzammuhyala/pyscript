@@ -15,7 +15,7 @@ from .utils.path import getcwd, normpath
 from .utils.shell import PysCommandLineShell
 from .utils.string import normstr
 
-from math import isclose
+from math import inf, nan, isclose
 from importlib import import_module
 from inspect import signature
 from os.path import dirname
@@ -195,7 +195,6 @@ def require(pyfunc, name):
                     raise PysSignal(PysRunTimeResult().failure(result.error))
 
                 modules[module_path] = module
-
             finally:
                 loading_modules.discard(module_path)
 
@@ -243,8 +242,8 @@ def breakpoint(pyfunc):
         reset = ''
         bmagenta = ''
     else:
-        reset = ACOLORS['reset']
-        bmagenta = ACOLORS['bold-magenta']
+        reset = ACOLORS('reset')
+        bmagenta = ACOLORS('bold-magenta')
 
     shell = PysCommandLineShell(f'{bmagenta}(Pdb) {reset}', f'{bmagenta}...   {reset}')
     scopes = []
@@ -311,11 +310,14 @@ def breakpoint(pyfunc):
                             symtab = parent
 
                 else:
-                    pys_runner(
+                    exit_code, exit = pys_runner(
                         file=PysFileBuffer(text, '<breakpoint>'),
                         mode='single',
                         symbol_table=symtab
                     ).end_process()
+
+                    if exit:
+                        raise SystemExit(exit_code)
 
             except KeyboardInterrupt:
                 shell.reset()
@@ -337,7 +339,8 @@ def globals(pyfunc):
     this does not apply to local scopes (creating a new dictionary).
     """
 
-    symbol_table = pyfunc.__code__.context.symbol_table.parent
+    original = pyfunc.__code__.context.symbol_table
+    symbol_table = original.parent
 
     if symbol_table:
         result = {}
@@ -348,7 +351,7 @@ def globals(pyfunc):
 
         return result
 
-    return pyfunc.__code__.context.symbol_table.symbols
+    return original.symbols
 
 @PysBuiltinFunction
 def locals(pyfunc):
@@ -643,8 +646,8 @@ pys_builtins.true = True
 pys_builtins.false = False
 pys_builtins.none = None
 pys_builtins.ellipsis = Ellipsis
-pys_builtins.inf = pys_builtins.infinity = pys_builtins.Infinity = float('inf')
-pys_builtins.nan = pys_builtins.notanumber = pys_builtins.NaN = pys_builtins.NotANumber = float('nan')
+pys_builtins.inf = pys_builtins.infinity = pys_builtins.Infinity = inf
+pys_builtins.nan = pys_builtins.notanumber = pys_builtins.NaN = pys_builtins.NotANumber = nan
 pys_builtins.license = license
 pys_builtins.help = help
 pys_builtins.require = require

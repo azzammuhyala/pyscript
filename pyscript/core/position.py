@@ -30,8 +30,8 @@ def format_arrow(position, colored=True):
         return ''
 
     if colored:
-        reset = ACOLORS['reset']
-        bred =  ACOLORS['bold-red']
+        reset = ACOLORS('reset')
+        bred =  ACOLORS('bold-red')
     else:
         reset = ''
         bred = ''
