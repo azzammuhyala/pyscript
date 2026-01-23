@@ -1,12 +1,12 @@
 from .core.buffer import PysFileBuffer
-from .core.cache import path, undefined, hook
+from .core.cache import undefined, hook
 from .core.constants import DEFAULT, DEBUG, DONT_SHOW_BANNER_ON_SHELL, NO_COLOR
 from .core.highlight import (
     HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight, PygmentsPyScriptStyle, PygmentsPyScriptLexer
 )
 from .core.runner import _normalize_globals, pys_runner, pys_shell
-from .core.utils.module import get_module_name_from_path
-from .core.utils.path import normpath
+from .core.utils.module import get_module_name_from_path, remove_python_path
+from .core.utils.path import normpath, getcwd
 from .core.version import __version__
 
 try:
@@ -109,6 +109,12 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    '-P',
+    action='store_true',
+    help="Don't prepend a potentially unsafe path to sys.path (python sys)"
+)
+
+parser.add_argument(
     '-q',
     action='store_true',
     help="Don't print version and copyright messages on interactive startup"
@@ -136,6 +142,9 @@ if args.debug:
     flags |= DEBUG
 if args.no_color or environ.get('NO_COLOR') is not None:
     flags |= NO_COLOR
+if args.P:
+    for cwd in {'', '.', getcwd()}:
+        remove_python_path(cwd)
 if args.q:
     flags |= DONT_SHOW_BANNER_ON_SHELL
 
@@ -148,15 +157,15 @@ if args.file is not None:
     except FileNotFoundError:
         parser.error(f"can't open file {path!r}: No such file or directory")
     except PermissionError:
-        parser.error(f"can't open file {path!r}: Permission denied.")
+        parser.error(f"can't open file {path!r}: Permission denied")
     except IsADirectoryError:
-        parser.error(f"can't open file {path!r}: Path is not a file.")
+        parser.error(f"can't open file {path!r}: Path is not a file")
     except NotADirectoryError:
-        parser.error(f"can't open file {path!r}: Attempting to access directory from file.")
+        parser.error(f"can't open file {path!r}: Attempting to access directory from file")
     except (OSError, IOError):
-        parser.error(f"can't open file {path!r}: Attempting to access a system directory or file.")
+        parser.error(f"can't open file {path!r}: Attempting to access a system directory or file")
     except UnicodeDecodeError:
-        parser.error(f"can't read file {path!r}: Bad file.")
+        parser.error(f"can't read file {path!r}: Bad file")
     except BaseException as e:
         parser.error(f"file {path!r}: Unexpected error: {e}")
 

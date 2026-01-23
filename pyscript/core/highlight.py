@@ -184,14 +184,14 @@ try:
 
                 # Class definition
                 (
-                    rf'\b({KEYWORDS["class"]})\b(\s+)(?!{_keywords})({_dollar_prefix}{_unicode_name})',
+                    rf'\b({KEYWORDS["class"]})\b(\s+)\b(?!{_keywords})({_dollar_prefix}{_unicode_name})\b',
                     bygroups(Keyword.Constant, Whitespace, Name.Class)
                 ),
 
                 # Function definition
                 (
-                    rf'\b({KEYWORDS["def"]}|{KEYWORDS["define"]}|{KEYWORDS["func"]}|{KEYWORDS["function"]})\b(\s+)'
-                    rf'(?!{_keywords})({_dollar_prefix}{_unicode_name})',
+                    rf'\b({KEYWORDS["def"]}|{KEYWORDS["define"]}|{KEYWORDS["func"]}|{KEYWORDS["function"]})\b(\s+)\b'
+                    rf'(?!{_keywords})({_dollar_prefix}{_unicode_name})\b',
                     bygroups(Keyword.Constant, Whitespace, Name.Function)
                 ),
 
@@ -200,27 +200,27 @@ try:
 
                 # Built-in types and exceptions
                 (
-                    rf'{_dollar_prefix}(?:{"|".join(_builtin_types)})',
+                    rf'{_dollar_prefix}\b(?:{"|".join(_builtin_types)})\b',
                     Name.Class.Builtin
                 ),
 
                 # Built-in functions
                 (
-                    rf'{_dollar_prefix}(?:{"|".join(_builtin_functions)})',
+                    rf'{_dollar_prefix}\b(?:{"|".join(_builtin_functions)})\b',
                     Name.Function.Builtin
                 ),
 
                 # Function calls
                 (
-                    rf'{_dollar_prefix}{_unicode_name}(?=\s*\()',
+                    rf'{_dollar_prefix}\b{_unicode_name}\b(?=\s*\()',
                     Name.Function
                 ),
 
                 # Constants
-                (rf'{_dollar_prefix}(?:[A-Z_]*[A-Z][A-Z0-9_]*)', Name.Constant),
+                (rf'{_dollar_prefix}\b(?:[A-Z_]*[A-Z][A-Z0-9_]*)\b', Name.Constant),
 
                 # Variables
-                (rf'{_dollar_prefix}{_unicode_name}', Name.Variable),
+                (rf'{_dollar_prefix}\b{_unicode_name}\b', Name.Variable),
 
                 # Whitespaces
                 (r'\s+', Whitespace),
@@ -463,7 +463,10 @@ def pys_highlight(
                 previous_token = tokens[j]
                 if previous_token.match(TOKENS['KEYWORD'], KEYWORDS['class']):
                     type_fmt = 'identifier-type'
-                elif previous_token.match(TOKENS['KEYWORD'], KEYWORDS['func'], KEYWORDS['function']):
+                elif previous_token.match(
+                    TOKENS['KEYWORD'],
+                    KEYWORDS['def'], KEYWORDS['define'], KEYWORDS['func'], KEYWORDS['function']
+                ):
                     type_fmt = 'identifier-function'
                 else:
                     j = i + 1

@@ -6,10 +6,10 @@ magic "PyScript code"
 comment "# "
 
 # Class definitions
-color brightgreen "class [[:alnum:]_]+"
+color brightgreen "\<class\>\s+[[:alnum:]_]+"
 
 # Function definitions
-color yellow "\<(def|define|func|function)\> [[:alnum:]_]+"
+color yellow "\<(def|define|func|function)\>\s+[[:alnum:]_]+"
 
 # Keywords
 color magenta "\<(as|assert|break|case|catch|continue|default|del|delete|do|elif|else|except|finally|for|from|if)\>"
@@ -24,7 +24,7 @@ color normal "'''|""""
 # Comments - source: python.nanorc
 color green "(^|[[:blank:]])#.*"
 
-# Tripel strings - source: python.nanorc
+# Triple strings - source: python.nanorc
 color yellow start="'''([^'),]|$)" end="(^|[^(\])'''"
 color yellow start=""""([^"),]|$)" end="(^|[^(\])""""
 

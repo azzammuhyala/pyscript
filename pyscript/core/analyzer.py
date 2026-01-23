@@ -103,7 +103,7 @@ class PysAnalyzer(Pys):
 
         for element in node.arguments:
 
-            if isinstance(element, tuple):
+            if element.__class__ is tuple:
                 token, value = element
                 name = token.value
                 if name in keyword_names:
@@ -374,7 +374,8 @@ class PysAnalyzer(Pys):
         parameter_names = set()
 
         for element in node.parameters:
-            token = (element[0] if isinstance(element, tuple) else element)
+            is_keyword = element.__class__ is tuple
+            token = element[0] if is_keyword else element
             name = token.value
 
             if name in parameter_names:
@@ -382,7 +383,7 @@ class PysAnalyzer(Pys):
 
             parameter_names.add(name)
 
-            if isinstance(element, tuple):
+            if is_keyword:
                 self.visit(element[1])
                 if self.error:
                     return
