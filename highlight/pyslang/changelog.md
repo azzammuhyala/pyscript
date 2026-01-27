@@ -1,6 +1,9 @@
 # Change Log
 
-## [1.2.4] - 23/01/2026
+## [1.2.5] - 27/01/2026
 
-## Fixed
+### Added
+- Keyword `typeof` (added in PyScript 1.10.4).
+
+### Fixed
 - Fixed some bugs.

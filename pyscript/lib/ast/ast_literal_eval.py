@@ -1,6 +1,6 @@
 from pyscript.core.constants import TOKENS
-from pyscript.core.interpreter import KW__DEBUG__, get_unary_function, get_binary_function, get_value_from_keyword
-from pyscript.core.mapping import REVERSE_TOKENS
+from pyscript.core.interpreter import get_value_from_keyword
+from pyscript.core.mapping import BINARY_FUNCTIONS_MAP, UNARY_FUNCTIONS_MAP, REVERSE_TOKENS
 from pyscript.core.nodes import PysNode, PysIdentifierNode
 from pyscript.core.pysbuiltins import pys_builtins
 
@@ -34,8 +34,8 @@ def visit_StringNode(node):
     return node.value.value
 
 def visit_KeywordNode(node):
-    if (name := node.name.value) == KW__DEBUG__:
-        raise ValueError(f"invalid constant keyword for {KW__DEBUG__}")
+    if (name := node.name.value) == '__debug__':
+        raise ValueError("invalid constant keyword for __debug__")
     #      vvvvvvvvvvvvvvvvvvvvvvvvvvvv <- always boolean or none
     return get_value_from_keyword(name)
 
@@ -63,12 +63,12 @@ def visit_CallNode(node):
 
 def visit_UnaryOperatorNode(node):
     if is_arith(operand := node.operand.type):
-        return get_unary_function(operand)(visit(node.value))
+        return UNARY_FUNCTIONS_MAP(operand)(visit(node.value))
     raise ValueError(f"invalid unary operand: {REVERSE_TOKENS[operand]}")
 
 def visit_BinaryOperatorNode(node):
     if is_arith(operand := node.operand.type):
-        return get_binary_function(operand)(visit(node.left), visit(node.right))
+        return BINARY_FUNCTIONS_MAP(operand)(visit(node.left), visit(node.right))
     raise ValueError(f"invalid binary operand: {REVERSE_TOKENS[operand]}")
 
 def visit_EllipsisNode(node):

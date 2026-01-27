@@ -14,6 +14,8 @@ class PysResult(Pys):
 
 class PysParserResult(PysResult):
 
+    __slots__ = ('last_registered_advance_count', 'advance_count', 'to_reverse_count', 'fatal', 'node', 'error')
+
     def __init__(self):
         self.last_registered_advance_count = 0
         self.advance_count = 0
@@ -143,6 +145,8 @@ class PysRunTimeResult(PysResult):
         return True
 
 class PysExecuteResult(PysResult):
+
+    __slots__ = ('context', 'parser_flags', 'value', 'error')
 
     def __init__(self, context: PysContext, parser_flags: int = DEFAULT) -> None:
         self.context = context

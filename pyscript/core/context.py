@@ -56,7 +56,7 @@ class PysClassContext(PysContext):
         super().__init__(
             file=parent.file,
             name=name,
-            qualname=('' if qualname is None else qualname + '.') + name,
+            qualname=name if qualname is None else f'{qualname}.{name}',
             symbol_table=symbol_table,
             parent=parent,
             parent_entry_position=parent_entry_position

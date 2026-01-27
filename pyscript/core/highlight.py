@@ -49,12 +49,9 @@ try:
     from pygments.token import Comment, Error, Escape, Keyword, Name, Number, Operator, Punctuation, String, Whitespace
     from pygments.unistring import xid_start, xid_continue
 
-    _set_keywords = frozenset(KEYWORDS.values())
+    _set_keywords = frozenset(KEYWORDS)
     _set_constant_keywords = frozenset(CONSTANT_KEYWORDS)
-    _set_keyword_definitions = frozenset([
-        KEYWORDS['class'],
-        KEYWORDS['def'], KEYWORDS['define'], KEYWORDS['func'], KEYWORDS['function']
-    ])
+    _set_keyword_definitions = frozenset(['class', 'def', 'define', 'func', 'function'])
 
     _keywords = '|'.join(_set_keywords)
     _unicode_name = f'[{xid_start}][{xid_continue}]*'
@@ -184,14 +181,13 @@ try:
 
                 # Class definition
                 (
-                    rf'\b({KEYWORDS["class"]})\b(\s+)\b(?!{_keywords})({_dollar_prefix}{_unicode_name})\b',
+                    rf'\b(class)\b(\s+)(?!{_keywords})({_dollar_prefix}{_unicode_name})\b',
                     bygroups(Keyword.Constant, Whitespace, Name.Class)
                 ),
 
                 # Function definition
                 (
-                    rf'\b({KEYWORDS["def"]}|{KEYWORDS["define"]}|{KEYWORDS["func"]}|{KEYWORDS["function"]})\b(\s+)\b'
-                    rf'(?!{_keywords})({_dollar_prefix}{_unicode_name})\b',
+                    rf'\b(def|define|func|function)\b(\s+)(?!{_keywords})({_dollar_prefix}{_unicode_name})\b',
                     bygroups(Keyword.Constant, Whitespace, Name.Function)
                 ),
 
@@ -405,11 +401,11 @@ def pys_highlight(
 
     Parameters
     ----------
-    source: A PyScript source code (tolerant of syntax errors).
+    - source : A PyScript source code (tolerant of syntax errors).
 
-    format: A function to format the code form.
+    - format : A function to format the code form.
 
-    max_bracket_level: Maximum difference level of parentheses (with circular indexing).
+    - max_bracket_level : Maximum difference level of parentheses (with circular indexing).
     """
 
     file = PysFileBuffer(source)
@@ -461,12 +457,9 @@ def pys_highlight(
                 while j > 0 and tokens[j].type in (TOKENS['NEWLINE'], TOKENS['COMMENT']):
                     j -= 1
                 previous_token = tokens[j]
-                if previous_token.match(TOKENS['KEYWORD'], KEYWORDS['class']):
+                if previous_token.match(TOKENS['KEYWORD'], 'class'):
                     type_fmt = 'identifier-type'
-                elif previous_token.match(
-                    TOKENS['KEYWORD'],
-                    KEYWORDS['def'], KEYWORDS['define'], KEYWORDS['func'], KEYWORDS['function']
-                ):
+                elif previous_token.match(TOKENS['KEYWORD'], 'def', 'define', 'func', 'function'):
                     type_fmt = 'identifier-function'
                 else:
                     j = i + 1

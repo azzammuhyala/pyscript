@@ -10,8 +10,6 @@ from .utils.similarity import get_closest
 from types import ModuleType
 from typing import Any, Optional
 
-get_binary_function = BINARY_FUNCTIONS_MAP.__getitem__
-
 @immutable
 class PysSymbolTable(Pys):
 
@@ -51,7 +49,7 @@ class PysSymbolTable(Pys):
                 False
             )
 
-        dsetitem(symbols, name, get_binary_function(operand)(dgetitem(symbols, name), value))
+        dsetitem(symbols, name, BINARY_FUNCTIONS_MAP(operand)(dgetitem(symbols, name), value))
         return True
 
     def remove(self, name: str) -> bool:
@@ -100,6 +98,6 @@ def new_symbol_table(*, symbols=None, file=None, name=None, doc=None):
 
     if symtab.get('__builtins__') is undefined:
         from .pysbuiltins import pys_builtins
-        symtab.set('__builtins__', pys_builtins)
+        symtab.set('__builtins__', pys_builtins.__dict__)
 
     return symtab, module

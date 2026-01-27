@@ -1,6 +1,6 @@
 from .bases import Pys
 from .checks import is_unpack_assignment
-from .constants import TOKENS, KEYWORDS, DEFAULT
+from .constants import TOKENS, DEFAULT
 from .context import PysContext
 from .exceptions import PysTraceback
 from .nodes import PysNode, PysKeywordNode, PysIdentifierNode, PysAttributeNode, PysSubscriptNode
@@ -363,7 +363,7 @@ class PysAnalyzer(Pys):
 
     def visit_FunctionNode(self, node):
         if node.constructor and self.in_class == 0:
-            self.throw(f"{KEYWORDS['constructor']} function outside of class", node.name.position)
+            self.throw("constructor function outside of class", node.name.position)
             return
 
         for decorator in node.decorators:
@@ -410,7 +410,7 @@ class PysAnalyzer(Pys):
 
     def visit_GlobalNode(self, node):
         if self.in_function == 0:
-            self.throw(f"{KEYWORDS['global']} outside of function", node.position)
+            self.throw("global outside of function", node.position)
 
         for identifier in node.identifiers:
             if identifier.value in self.parameters:
@@ -419,7 +419,7 @@ class PysAnalyzer(Pys):
 
     def visit_ReturnNode(self, node):
         if self.in_function == 0:
-            self.throw(f"{KEYWORDS['return']} outside of function", node.position)
+            self.throw("return outside of function", node.position)
             return
 
         if node.value:
@@ -460,20 +460,20 @@ class PysAnalyzer(Pys):
                     return
 
             elif type is PysKeywordNode:
-                self.throw(f"cannot {KEYWORDS['delete']} {target.name.value}", target.position)
+                self.throw(f"cannot delete {target.name.value}", target.position)
                 return
 
             elif type is not PysIdentifierNode:
-                self.throw(f"cannot {KEYWORDS['delete']} literal", target.position)
+                self.throw("cannot delete literal", target.position)
                 return
 
     def visit_ContinueNode(self, node):
         if self.in_loop == 0:
-            self.throw(f"{KEYWORDS['continue']} outside of loop", node.position)
+            self.throw("continue outside of loop", node.position)
 
     def visit_BreakNode(self, node):
         if self.in_loop == 0 and self.in_switch == 0:
-            self.throw(f"{KEYWORDS['break']} outside of loop or switch case", node.position)
+            self.throw("break outside of loop or switch case", node.position)
 
     def visit_slice_SubscriptNode(self, nslice):
         type = nslice.__class__

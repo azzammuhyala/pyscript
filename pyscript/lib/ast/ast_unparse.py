@@ -1,5 +1,5 @@
 from pyscript.core.checks import is_keyword
-from pyscript.core.constants import TOKENS, KEYWORDS
+from pyscript.core.constants import TOKENS
 from pyscript.core.mapping import SYMBOLS_TOKEN_MAP
 from pyscript.core.nodes import PysNode, PysStringNode
 from pyscript.core.utils.string import indent as sindent
@@ -116,18 +116,18 @@ def visit_CallNode(node):
 def visit_ChainOperatorNode(node):
     string = unparse(node.expressions[0])
 
-    for i, operand in enumerate(node.operations):
+    for i, operand in enumerate(node.operations, start=1):
         string += ' '
 
-        if operand.match(TOKENS['KEYWORD'], KEYWORDS['in']):
-            string += KEYWORDS['in']
-        elif operand.match(TOKENS['KEYWORD'], KEYWORDS['is']):
-            string += KEYWORDS['is']
+        if operand.match(TOKENS['KEYWORD'], 'in'):
+            string += 'in'
+        elif operand.match(TOKENS['KEYWORD'], 'is'):
+            string += 'is'
         else:
             string += SYMBOLS_TOKEN_MAP[operand.type]
 
         string += ' '
-        string += unparse(node.expressions[i + 1])
+        string += unparse(node.expressions[i])
 
     return f'({string})'
 
@@ -135,9 +135,9 @@ def visit_TernaryOperatorNode(node):
     return f'({unparse(node.condition)} ? {unparse(node.valid)} : {unparse(node.invalid)})'
 
 def visit_BinaryOperatorNode(node):
-    if node.operand.match(TOKENS['KEYWORD'], KEYWORDS['and']):
+    if node.operand.match(TOKENS['KEYWORD'], 'and'):
         operand = '&&'
-    elif node.operand.match(TOKENS['KEYWORD'], KEYWORDS['or']):
+    elif node.operand.match(TOKENS['KEYWORD'], 'or'):
         operand = '||'
     else:
         operand = SYMBOLS_TOKEN_MAP[node.operand.type]
@@ -145,9 +145,14 @@ def visit_BinaryOperatorNode(node):
     return f'({unparse(node.left)} {operand} {unparse(node.right)})'
 
 def visit_UnaryOperatorNode(node):
-    operand = '!' if node.operand.match(TOKENS['KEYWORD'], KEYWORDS['not']) else SYMBOLS_TOKEN_MAP[node.operand.type]
-    value = unparse(node.value)
-    return f'({operand}{value})'
+    if node.operand.match(TOKENS['KEYWORD'], 'not'):
+        operand = '!'
+    elif node.operand.match(TOKENS['KEYWORD'], 'typeof'):
+        operand = 'typeof '
+    else:
+        operand = SYMBOLS_TOKEN_MAP[node.operand.type]
+
+    return f'({operand}{unparse(node.value)})'
 
 def visit_IncrementalNode(node):
     operand = SYMBOLS_TOKEN_MAP[node.operand.type]
@@ -167,18 +172,13 @@ def visit_ImportNode(node):
     name_string = name.value if name.type == TOKENS['IDENTIFIER'] else repr(name.value)
 
     if as_name:
-        name_string += ' '
-        name_string += KEYWORDS['as']
-        name_string += ' '
+        name_string += ' as '
         name_string += as_name.value
 
     if node.packages == 'all':
-        string += KEYWORDS['from']
-        string += ' '
+        string += 'from '
         string += name_string
-        string += ' '
-        string += KEYWORDS['import']
-        string += ' *'
+        string += ' import *'
 
     elif node.packages:
         packages = []
@@ -189,7 +189,7 @@ def visit_ImportNode(node):
             if as_package:
                 package_string += package.value
                 package_string += ' '
-                package_string += KEYWORDS['as']
+                package_string += 'as'
                 package_string += ' '
                 package_string += as_package.value
             else:
@@ -197,17 +197,13 @@ def visit_ImportNode(node):
 
             packages.append(package_string)
 
-        string += KEYWORDS['from']
-        string += ' '
+        string += 'from '
         string += name_string
-        string += ' '
-        string += KEYWORDS['import']
-        string += ' '
+        string += ' import '
         string += ', '.join(packages)
 
     else:
-        string += KEYWORDS['import']
-        string += ' '
+        string += 'import '
         string += name_string
 
     return string
@@ -216,7 +212,7 @@ def visit_IfNode(node):
     cases = []
 
     for i, (condition, body) in enumerate(node.cases_body):
-        case_string = KEYWORDS['if'] if i == 0 else KEYWORDS['elif']
+        case_string = 'if' if i == 0 else 'elif'
         case_string += ' ('
         case_string += unparse(condition)
         case_string += ') {\n'
@@ -229,7 +225,7 @@ def visit_IfNode(node):
 
     if node.else_body:
         string += '\n'
-        string += KEYWORDS['else']
+        string += 'else'
         string += ' {\n'
         string += indent(unparse(node.else_body))
         string += '\n}'
@@ -240,7 +236,7 @@ def visit_SwitchNode(node):
     cases = []
 
     for condition, body in node.case_cases:
-        case_string = KEYWORDS['case']
+        case_string = 'case'
         case_string += ' '
         case_string += unparse(condition)
         case_string += ':\n'
@@ -249,13 +245,13 @@ def visit_SwitchNode(node):
         cases.append(case_string)
 
     if node.default_body:
-        default_string = KEYWORDS['default']
+        default_string = 'default'
         default_string += ':\n'
         default_string += indent(unparse(node.default_body))
 
         cases.append(default_string)
 
-    string = KEYWORDS['switch']
+    string = 'switch'
     string += ' ('
     string += unparse(node.target)
     string += ') {\n'
@@ -265,7 +261,7 @@ def visit_SwitchNode(node):
     return string
 
 def visit_MatchNode(node):
-    string = KEYWORDS['match']
+    string = 'match'
     string += ' '
 
     if node.target:
@@ -283,7 +279,7 @@ def visit_MatchNode(node):
         cases.append(case_string)
 
     if node.default:
-        default_string = KEYWORDS['default']
+        default_string = 'default'
         default_string += ': '
         default_string += unparse(node.default)
 
@@ -311,7 +307,7 @@ def visit_TryNode(node):
             name_string += parameter.value
             name_string += ')'
 
-        catch_string = KEYWORDS['catch']
+        catch_string = 'catch'
         catch_string += name_string
         catch_string += ' {\n'
         catch_string += indent(unparse(body))
@@ -319,7 +315,7 @@ def visit_TryNode(node):
 
         catch_cases.append(catch_string)
 
-    string = KEYWORDS['try']
+    string = 'try'
     string += ' {\n'
     string += indent(unparse(node.body))
     string += '\n}'
@@ -330,13 +326,13 @@ def visit_TryNode(node):
         string += '\n'
 
     if node.else_body:
-        string += KEYWORDS['else']
+        string += 'else'
         string += ' {\n'
         string += indent(unparse(node.else_body))
         string += '\n}'
 
     if node.finally_body:
-        string += KEYWORDS['finally']
+        string += 'finally'
         string += ' {\n'
         string += indent(unparse(node.finally_body))
         string += '\n}'
@@ -351,13 +347,13 @@ def visit_WithNode(node):
 
         if alias:
             context_string += ' '
-            context_string += KEYWORDS['as']
+            context_string += 'as'
             context_string += ' '
             context_string += alias.value
 
         contexts.append(context_string)
 
-    string = KEYWORDS['with']
+    string = 'with'
     string += ' ('
     string += ', '.join(contexts)
     string += ') {\n'
@@ -367,7 +363,7 @@ def visit_WithNode(node):
     return string
 
 def visit_ForNode(node):
-    string = KEYWORDS['for']
+    string = 'for'
     string += ' ('
 
     if len(node.header) == 2:
@@ -375,7 +371,7 @@ def visit_ForNode(node):
 
         string += unparse(declaration)
         string += ' '
-        string += KEYWORDS['of']
+        string += 'of'
         string += ' '
         string += unparse(iteration)
 
@@ -397,7 +393,7 @@ def visit_ForNode(node):
 
     if node.else_body:
         string += '\n'
-        string += KEYWORDS['else']
+        string += 'else'
         string += ' {\n'
         string += indent(unparse(node.else_body))
         string += '\n}'
@@ -405,7 +401,7 @@ def visit_ForNode(node):
     return string
 
 def visit_WhileNode(node):
-    string = KEYWORDS['while']
+    string = 'while'
     string += ' ('
     string += unparse(node.condition)
     string += ') {\n'
@@ -414,7 +410,7 @@ def visit_WhileNode(node):
 
     if node.else_body:
         string += '\n'
-        string += KEYWORDS['else']
+        string += 'else'
         string += ' {\n'
         string += indent(unparse(node.else_body))
         string += '\n}'
@@ -422,17 +418,17 @@ def visit_WhileNode(node):
     return string
 
 def visit_DoWhileNode(node):
-    string = KEYWORDS['do']
+    string = 'do'
     string += ' {\n'
     string += indent(unparse(node.body))
     string += '\n} '
-    string += KEYWORDS['while']
+    string += 'while'
     string += ' ('
     string += unparse(node.condition)
     string += ')'
 
     if node.else_body:
-        string += KEYWORDS['else']
+        string += 'else'
         string += ' {\n'
         string += indent(unparse(node.else_body))
         string += '\n}'
@@ -440,17 +436,17 @@ def visit_DoWhileNode(node):
     return string
 
 def visit_RepeatNode(node):
-    string = KEYWORDS['repeat']
+    string = 'repeat'
     string += ' {\n'
     string += indent(unparse(node.body))
     string += '\n} '
-    string += KEYWORDS['until']
+    string += 'until'
     string += ' ('
     string += unparse(node.condition)
     string += ')'
 
     if node.else_body:
-        string += KEYWORDS['else']
+        string += 'else'
         string += ' {\n'
         string += indent(unparse(node.else_body))
         string += '\n}'
@@ -473,7 +469,7 @@ def visit_ClassNode(node):
         string += '\n'.join(decorators)
         string += '\n'
 
-    string += KEYWORDS['class']
+    string += 'class'
     string += ' '
     string += node.name.value
 
@@ -509,9 +505,9 @@ def visit_FunctionNode(node):
         string += '\n'
 
     if node.constructor:
-        string += KEYWORDS['constructor']
+        string += 'constructor'
     else:
-        string += KEYWORDS['func']
+        string += 'func'
         if node.name:
             string += ' '
             string += node.name.value
@@ -525,13 +521,13 @@ def visit_FunctionNode(node):
     return string
 
 def visit_GlobalNode(node):
-    string = KEYWORDS['global']
+    string = 'global'
     string += ' '
     string += ', '.join(name.value for name in node.identifiers)
     return string
 
 def visit_ReturnNode(node):
-    string = KEYWORDS['return']
+    string = 'return'
 
     if node.value:
         string += ' '
@@ -540,20 +536,20 @@ def visit_ReturnNode(node):
     return string
 
 def visit_ThrowNode(node):
-    string = KEYWORDS['throw']
+    string = 'throw'
     string += ' '
     string += unparse(node.target)
 
     if node.cause:
         string += ' '
-        string += KEYWORDS['from']
+        string += 'from'
         string += ' '
         string += unparse(node.cause)
 
     return string
 
 def visit_AssertNode(node):
-    string = KEYWORDS['assert']
+    string = 'assert'
     string += ' '
     string += unparse(node.condition)
 
@@ -564,7 +560,7 @@ def visit_AssertNode(node):
     return string
 
 def visit_DeleteNode(node):
-    string = KEYWORDS['del']
+    string = 'del'
     string += ' '
     string += ', '.join(map(unparse, node.targets))
     return string
@@ -573,10 +569,10 @@ def visit_EllipsisNode(node):
     return '...'
 
 def visit_ContinueNode(node):
-    return KEYWORDS['continue']
+    return 'continue'
 
 def visit_BreakNode(node):
-    return KEYWORDS['break']
+    return 'break'
 
 get_visitor = {
     class_node: globals()['visit_' + class_node.__name__.removeprefix('Pys')]

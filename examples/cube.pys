@@ -1,0 +1,89 @@
+import pygame
+import math
+
+pygame.init()
+
+pygame.display.set_caption("3D Cube")
+
+screen = pygame.display.set_mode((600, 600))
+clock = pygame.time.Clock()
+running = True
+
+cube_points = [
+    [-1, -1, -1],
+    [1, -1, -1],
+    [1, 1, -1],
+    [-1, 1, -1],
+    [-1, -1, 1],
+    [1, -1, 1],
+    [1, 1, 1],
+    [-1, 1, 1]
+]
+
+edges = [
+    (0, 1), (1, 2), (2, 3), (3, 0),
+    (4, 5), (5, 6), (6, 7), (7, 4),
+    (0, 4), (1, 5), (2, 6), (3, 7)
+]
+
+(angle_x, angle_y) = (0, 0)
+
+func rotate_x(point, angle) {
+    (x, y, z) = point
+    cos_theta = math.cos(angle)
+    sin_theta = math.sin(angle)
+    y2 = y * cos_theta - z * sin_theta
+    z2 = y * sin_theta + z * cos_theta
+    return (x, y2, z2)
+}
+
+func rotate_y(point, angle) {
+    (x, y, z) = point
+    cos_theta = math.cos(angle)
+    sin_theta = math.sin(angle)
+    x2 = x * cos_theta + z * sin_theta
+    z2 = -x * sin_theta + z * cos_theta
+    return (x2, y, z2)
+}
+
+func project(point) {
+    (x, y, z) = point
+    z += 5
+    f = 500 / z
+    x_proj = int(x * f) + 300
+    y_proj = int(y * f) + 300
+    return (x_proj, y_proj)
+}
+
+while (running) {
+    dt = clock.tick(60)
+
+    for (event of pygame.event.get()) {
+        if (event.type == pygame.QUIT) {
+            running = False
+        }
+    }
+
+    screen.fill((0, 0, 0))
+
+    angle_x += 0.001 * dt
+    angle_y += 0.001 * dt
+
+    projected_points = []
+    for (point of cube_points) {
+        rotated = rotate_x(point, angle_x)
+        rotated = rotate_y(rotated, angle_y)
+        projected = project(rotated)
+        projected_points.append(projected)
+    }
+
+    for (edge of edges) {
+        start = projected_points[edge[0]]
+        end = projected_points[edge[1]]
+        pygame.draw.line(screen, (255, 255, 255), start, end, 2)
+    }
+
+    pygame.display.flip()
+}
+
+pygame.quit()

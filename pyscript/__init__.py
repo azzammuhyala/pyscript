@@ -15,7 +15,7 @@ from .core.cache import undefined, hook
 from .core.highlight import (
     HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight, PygmentsPyScriptStyle, PygmentsPyScriptLexer
 )
-from .core.runner import pys_exec, pys_eval, pys_require, pys_shell
+from .core.runner import pys_runner, pys_exec, pys_eval, pys_require, pys_shell
 from .core.version import version, version_info, __version__, __date__
 
 __all__ = (
@@ -36,6 +36,7 @@ __all__ = (
     'version',
     'version_info',
     'pys_highlight',
+    'pys_runner',
     'pys_exec',
     'pys_eval',
     'pys_require',

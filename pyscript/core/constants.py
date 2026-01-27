@@ -92,65 +92,16 @@ TOKENS = MappingProxyType({
 })
 
 # keywords
-KEYWORDS = MappingProxyType({
-    '__debug__': '__debug__',
-    'False': 'False',
-    'None': 'None',
-    'True': 'True',
-    'and': 'and',
-    'as': 'as',
-    'assert': 'assert',
-    'break': 'break',
-    'case': 'case',
-    'catch': 'catch',
-    'class': 'class',
-    'constructor': 'constructor',
-    'continue': 'continue',
-    'def': 'def',
-    'default': 'default',
-    'define': 'define',
-    'del': 'del',
-    'delete': 'delete',
-    'do': 'do',
-    'elif': 'elif',
-    'else': 'else',
-    'except': 'except',
-    'extends': 'extends',
-    'false': 'false',
-    'finally': 'finally',
-    'for': 'for',
-    'from': 'from',
-    'func': 'func',
-    'function': 'function',
-    'global': 'global',
-    'if': 'if',
-    'import': 'import',
-    'in': 'in',
-    'is': 'is',
-    'match': 'match',
-    'nil': 'nil',
-    'none': 'none',
-    'null': 'null',
-    'not': 'not',
-    'true': 'true',
-    'of': 'of',
-    'or': 'or',
-    'raise': 'raise',
-    'repeat': 'repeat',
-    'return': 'return',
-    'switch': 'switch',
-    'throw': 'throw',
-    'try': 'try',
-    'until': 'until',
-    'while': 'while',
-    'with': 'with'
-})
+KEYWORDS = (
+    '__debug__', 'False', 'None', 'True', 'and', 'as', 'assert', 'break', 'case', 'catch', 'class', 'constructor',
+    'continue', 'def', 'default', 'define', 'del', 'delete', 'do', 'elif', 'else', 'except', 'extends', 'false',
+    'finally', 'for', 'from', 'func', 'function', 'global', 'if', 'import', 'in', 'is', 'match', 'nil', 'none', 'null',
+    'not', 'true', 'typeof', 'of', 'or', 'raise', 'repeat', 'return', 'switch', 'throw', 'try', 'until', 'while', 'with'
+)
 
 CONSTANT_KEYWORDS = (
-    KEYWORDS['__debug__'], KEYWORDS['False'], KEYWORDS['None'], KEYWORDS['True'], KEYWORDS['and'], KEYWORDS['class'],
-    KEYWORDS['constructor'], KEYWORDS['def'], KEYWORDS['define'], KEYWORDS['extends'], KEYWORDS['func'],
-    KEYWORDS['function'], KEYWORDS['false'], KEYWORDS['global'], KEYWORDS['in'], KEYWORDS['is'], KEYWORDS['not'],
-    KEYWORDS['nil'], KEYWORDS['none'], KEYWORDS['null'], KEYWORDS['of'], KEYWORDS['or'], KEYWORDS['true']
+    '__debug__', 'False', 'None', 'True', 'and', 'class', 'constructor', 'def', 'define', 'extends', 'func', 'function',
+    'false', 'global', 'in', 'is', 'not', 'nil', 'none', 'null', 'of', 'or', 'true', 'typeof'
 )
 
 # flags

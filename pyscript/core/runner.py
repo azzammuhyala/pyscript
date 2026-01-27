@@ -45,6 +45,33 @@ def pys_runner(
     context_parent_entry_position: Optional[PysPosition] = None
 ) -> PysExecuteResult:
 
+    """
+    The core of execution PyScript code.
+
+    Parameters
+    ----------
+    - file : Buffer object from PysFileBuffer (`pyscript.core.buffer.PysFileBuffer`).
+
+    - mode : Complication and execution mode. 'exec' to compile a whole code block, 'eval' to compile a single \
+             expression. 'single' is typically used for interactive shells (prints the result value, compile within a \
+             whole code block or expression).
+
+    - symbol_table : Symbol table scope (`pyscript.core.symtab.PysSymbolTable`).
+
+    - flags : A special flag.
+
+    - parser_flags : A special parser flag.
+
+    - context_parent : The parent context object, useful for linking tracebacks (context_parent_entry_position is \
+                       required).
+
+    - context_parent_entry_position : The last parent position object, useful for specifying the row and column \
+                                      sections in the traceback (context_parent is required).
+    """
+
+    if (context_parent is None) != (context_parent_entry_position is None):
+        raise TypeError("context_parent and context_parent_entry_position both must be filled in")
+
     context = PysContext(
         file=file,
         name='<program>',
@@ -131,15 +158,15 @@ def pys_exec(
 
     Parameters
     ----------
-    source: A valid PyScript source code.
+    - source : A valid PyScript source code.
 
-    globals: A namespace dictionary or symbol table that can be accessed. \
-             If it is None, it uses the current global namespace at the Python level. \
-             If it is undefined, it creates a new default PyScript namespace.
+    - globals : A namespace dictionary or symbol table that can be accessed. \
+                If it is None, it uses the current global namespace at the Python level. \
+                If it is undefined, it creates a new default PyScript namespace.
 
-    flags: A special flags.
+    - flags : A special flags.
 
-    parser_flags: A special parser flags.
+    - parser_flags : A special parser flags.
     """
 
     file = PysFileBuffer(source)
@@ -171,15 +198,15 @@ def pys_eval(
 
     Parameters
     ----------
-    source: A valid PyScript (Expression) source code.
+    - source : A valid PyScript (Expression) source code.
 
-    globals: A namespace dictionary or symbol table that can be accessed. \
-             If it is None, it uses the current global namespace at the Python level. \
-             If it is undefined, it creates a new default PyScript namespace.
+    - globals : A namespace dictionary or symbol table that can be accessed. \
+                If it is None, it uses the current global namespace at the Python level. \
+                If it is undefined, it creates a new default PyScript namespace.
 
-    flags: A special flags.
+    - flags : A special flags.
 
-    parser_flags: A special parser flags.
+    - parser_flags : A special parser flags.
     """
 
     file = PysFileBuffer(source)
@@ -208,9 +235,9 @@ def pys_require(name, flags: int = DEFAULT) -> ModuleType | Any:
 
     Parameters
     ----------
-    name: A name or path of the module to be imported.
+    - name : A name or path of the module to be imported.
 
-    flags: A special flags.
+    - flags : A special flags.
     """
 
     file = PysFileBuffer('', get_frame(2 if _TYPECHECK else 1).f_code.co_filename)
@@ -229,13 +256,13 @@ def pys_shell(
 
     Parameters
     ----------
-    globals: A namespace dictionary or symbol table that can be accessed. \
-             If it is None, it uses the current global namespace at the Python level. \
-             If it is undefined, it creates a new default PyScript namespace.
+    - globals : A namespace dictionary or symbol table that can be accessed. \
+                If it is None, it uses the current global namespace at the Python level. \
+                If it is undefined, it creates a new default PyScript namespace.
 
-    flags: A special flags.
+    - flags : A special flags.
 
-    parser_flags: A special parser flags.
+    - parser_flags : A special parser flags.
     """
 
     if hook.running_shell:

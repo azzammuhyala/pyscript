@@ -1,26 +1,19 @@
-from .constants import TOKENS, KEYWORDS, DEBUG
+from .constants import TOKENS, DEBUG
 from .cache import undefined
 from .checks import is_unpack_assignment, is_equals, is_public_attribute
 from .context import PysClassContext
 from .exceptions import PysTraceback
 from .handlers import handle_call
-from .mapping import UNARY_FUNCTIONS_MAP
+from .mapping import BINARY_FUNCTIONS_MAP, UNARY_FUNCTIONS_MAP
 from .nodes import PysNode, PysIdentifierNode, PysAttributeNode, PysSubscriptNode
 from .objects import PysFunction
 from .pysbuiltins import ce, nce, increment, decrement
 from .results import PysRunTimeResult
-from .symtab import get_binary_function, PysClassSymbolTable, find_closest
+from .symtab import PysClassSymbolTable, find_closest
 from .utils.generic import getattribute, setimuattr, is_object_of, get_error_args
 from .utils.similarity import get_closest
 
 from collections.abc import Iterable
-
-KW__DEBUG__ = KEYWORDS['__debug__']
-KW_AND = KEYWORDS['and']
-KW_IN = KEYWORDS['in']
-KW_IS = KEYWORDS['is']
-KW_NOT = KEYWORDS['not']
-KW_OR = KEYWORDS['or']
 
 T_KEYWORD = TOKENS['KEYWORD']
 T_STRING = TOKENS['STRING']
@@ -31,20 +24,20 @@ T_CE = TOKENS['EQUAL-TILDE']
 T_NCE = TOKENS['EXCLAMATION-TILDE']
 T_NULLISH = TOKENS['DOUBLE-QUESTION']
 
-get_unary_function = UNARY_FUNCTIONS_MAP.__getitem__
 get_incremental_function = {
     TOKENS['DOUBLE-PLUS']: increment,
     TOKENS['DOUBLE-MINUS']: decrement
 }.__getitem__
+
 get_value_from_keyword = {
-    KEYWORDS['True']: True,
-    KEYWORDS['False']: False,
-    KEYWORDS['None']: None,
-    KEYWORDS['true']: True,
-    KEYWORDS['false']: False,
-    KEYWORDS['nil']: None,
-    KEYWORDS['none']: None,
-    KEYWORDS['null']: None
+    'True': True,
+    'False': False,
+    'None': None,
+    'true': True,
+    'false': False,
+    'nil': None,
+    'none': None,
+    'null': None
 }.__getitem__
 
 def visit_NumberNode(node, context):
@@ -57,7 +50,7 @@ def visit_KeywordNode(node, context):
     name = node.name.value
     return PysRunTimeResult().success(
         (True if context.flags & DEBUG else False)
-        if name == KW__DEBUG__ else
+        if name == '__debug__' else
         get_value_from_keyword(name)
     )
 
@@ -270,9 +263,9 @@ def visit_ChainOperatorNode(node, context):
             if should_return():
                 return result
 
-            if omatch(T_KEYWORD, KW_IN):
+            if omatch(T_KEYWORD, 'in'):
                 value = left in right
-            elif omatch(T_KEYWORD, KW_IS):
+            elif omatch(T_KEYWORD, 'is'):
                 value = left is right
             elif otype == T_CE:
                 handle_call(ce, context, nposition)
@@ -281,7 +274,7 @@ def visit_ChainOperatorNode(node, context):
                 handle_call(nce, context, nposition)
                 value = nce(left, right)
             else:
-                value = get_binary_function(otype)(left, right)
+                value = BINARY_FUNCTIONS_MAP(otype)(left, right)
 
             if not value:
                 break
@@ -332,10 +325,10 @@ def visit_BinaryOperatorNode(node, context):
     with result(context, node.position):
         should_return_right = True
 
-        if omatch(T_KEYWORD, KW_AND) or otype == T_AND:
+        if omatch(T_KEYWORD, 'and') or otype == T_AND:
             if not left:
                 return result.success(left)
-        elif omatch(T_KEYWORD, KW_OR) or otype == T_OR:
+        elif omatch(T_KEYWORD, 'or') or otype == T_OR:
             if left:
                 return result.success(left)
         elif otype == T_NULLISH:
@@ -351,7 +344,7 @@ def visit_BinaryOperatorNode(node, context):
         return result.success(
             right
             if should_return_right else
-            get_binary_function(otype)(left, right)
+            BINARY_FUNCTIONS_MAP(otype)(left, right)
         )
 
     if should_return():
@@ -362,6 +355,7 @@ def visit_UnaryOperatorNode(node, context):
 
     register = result.register
     should_return = result.should_return
+    omatch = node.operand.match
     otype = node.operand.type
     nvalue = node.value
 
@@ -370,11 +364,11 @@ def visit_UnaryOperatorNode(node, context):
         return result
 
     with result(context, node.position):
-        return result.success(
-            (not value)
-            if node.operand.match(T_KEYWORD, KW_NOT) or otype == T_NOT else
-            get_unary_function(otype)(value)
-        )
+        if omatch(T_KEYWORD, 'not') or otype == T_NOT:
+            return result.success(not value)
+        elif omatch(T_KEYWORD, 'typeof'):
+            return result.success(type(value).__name__)
+        return result.success(UNARY_FUNCTIONS_MAP(otype)(value))
 
     if should_return():
         return result
@@ -1475,8 +1469,8 @@ def visit_declaration_AssignNode(node, context, value, operand=TOKENS['EQUAL']):
                 target,
                 attribute,
                 value
-                    if is_equals(operand) else
-                get_binary_function(operand)(getattr(target, attribute), value)
+                if is_equals(operand) else
+                BINARY_FUNCTIONS_MAP(operand)(getattr(target, attribute), value)
             )
 
         if should_return():
@@ -1493,7 +1487,7 @@ def visit_declaration_AssignNode(node, context, value, operand=TOKENS['EQUAL']):
             return result
 
         with result(context, node.position):
-            target[slice] = value if is_equals(operand) else get_binary_function(operand)(target[slice], value)
+            target[slice] = value if is_equals(operand) else BINARY_FUNCTIONS_MAP(operand)(target[slice], value)
 
         if should_return():
             return result

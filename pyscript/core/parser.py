@@ -1,6 +1,6 @@
 from .bases import Pys
 from .checks import is_left_bracket, is_right_bracket
-from .constants import TOKENS, KEYWORDS, DEFAULT, DICT_TO_JSDICT
+from .constants import TOKENS, DEFAULT, DICT_TO_JSDICT
 from .context import PysContext
 from .exceptions import PysTraceback
 from .mapping import BRACKETS_MAP
@@ -128,58 +128,58 @@ class PysParser(Pys):
         )
 
     def statement(self):
-        if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['from']):
+        if self.current_token.match(TOKENS['KEYWORD'], 'from'):
             return self.from_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['import']):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'import'):
             return self.import_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['if']):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'if'):
             return self.if_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['switch']):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'switch'):
             return self.switch_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['try']):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'try'):
             return self.try_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['with']):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'with'):
             return self.with_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['for']):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'for'):
             return self.for_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['while']):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'while'):
             return self.while_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['do']):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'do'):
             return self.do_while_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['repeat']):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'repeat'):
             return self.repeat_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['class']):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'class'):
             return self.class_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['return']):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'return'):
             return self.return_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['global']):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'global'):
             return self.global_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['del'], KEYWORDS['delete']):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'del', 'delete'):
             return self.del_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['raise'], KEYWORDS['throw']):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'raise', 'throw'):
             return self.throw_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['assert']):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'assert'):
             return self.assert_statement()
 
         elif self.current_token.type == TOKENS['AT']:
             return self.decorator()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['continue']):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'continue'):
             result = PysParserResult()
             position = self.current_token.position
 
@@ -188,7 +188,7 @@ class PysParser(Pys):
 
             return result.success(PysContinueNode(position))
 
-        elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['break']):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'break'):
             result = PysParserResult()
             position = self.current_token.position
 
@@ -266,14 +266,30 @@ class PysParser(Pys):
         return result.success(node)
 
     def single_expression(self):
-        if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['match']):
+        if self.current_token.match(TOKENS['KEYWORD'], 'match'):
             return self.match_expression()
 
-        elif self.current_token.match(
-            TOKENS['KEYWORD'],
-            KEYWORDS['def'], KEYWORDS['define'], KEYWORDS['func'], KEYWORDS['function'], KEYWORDS['constructor']
-        ):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'def', 'define', 'func', 'function', 'constructor'):
             return self.func_expression()
+
+        elif self.current_token.match(TOKENS['KEYWORD'], 'typeof'):
+            operand = self.current_token
+            result = PysParserResult()
+
+            result.register_advancement()
+            self.advance()
+            self.skip_expression(result)
+
+            node = result.register(self.single_expression(), True)
+            if result.error:
+                return result
+
+            return result.success(
+                PysUnaryOperatorNode(
+                    operand,
+                    node
+                )
+            )
 
         return self.ternary()
 
@@ -311,7 +327,7 @@ class PysParser(Pys):
                 style='general'
             )
 
-        elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['if']):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'if'):
             result.register_advancement()
             self.advance()
             self.skip_expression(result)
@@ -320,8 +336,8 @@ class PysParser(Pys):
             if result.error:
                 return result
 
-            if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['else']):
-                return result.failure(self.new_error(f"expected {KEYWORDS['else']!r}"))
+            if not self.current_token.match(TOKENS['KEYWORD'], 'else'):
+                return result.failure(self.new_error("expected 'else'"))
 
             result.register_advancement()
             self.advance()
@@ -346,17 +362,17 @@ class PysParser(Pys):
     def logic(self):
         return self.binary_operator(
             self.member,
-            (TOKENS['KEYWORD'], KEYWORDS['and']),
-            (TOKENS['KEYWORD'], KEYWORDS['or']),
+            (TOKENS['KEYWORD'], 'and'),
+            (TOKENS['KEYWORD'], 'or'),
             TOKENS['DOUBLE-AMPERSAND'], TOKENS['DOUBLE-PIPE']
         )
 
     def member(self):
         return self.chain_operator(
             self.comparison,
-            (TOKENS['KEYWORD'], KEYWORDS['in']),
-            (TOKENS['KEYWORD'], KEYWORDS['is']),
-            (TOKENS['KEYWORD'], KEYWORDS['not']),
+            (TOKENS['KEYWORD'], 'in'),
+            (TOKENS['KEYWORD'], 'is'),
+            (TOKENS['KEYWORD'], 'not'),
             TOKENS['MINUS-GREATER-THAN'], TOKENS['EXCLAMATION-GREATER-THAN'],
             membership=True
         )
@@ -364,7 +380,7 @@ class PysParser(Pys):
     def comparison(self):
         token = self.current_token
 
-        if token.match(TOKENS['KEYWORD'], KEYWORDS['not']) or token.type == TOKENS['EXCLAMATION']:
+        if token.match(TOKENS['KEYWORD'], 'not') or token.type == TOKENS['EXCLAMATION']:
             result = PysParserResult()
 
             result.register_advancement()
@@ -682,11 +698,7 @@ class PysParser(Pys):
         result = PysParserResult()
         token = self.current_token
 
-        if token.match(
-            TOKENS['KEYWORD'],
-            KEYWORDS['__debug__'], KEYWORDS['True'], KEYWORDS['False'], KEYWORDS['None'], KEYWORDS['true'],
-            KEYWORDS['false'], KEYWORDS['nil'], KEYWORDS['none'], KEYWORDS['null']
-        ):
+        if token.match(TOKENS['KEYWORD'], '__debug__', 'True', 'False', 'None', 'true', 'false', 'nil', 'none', 'null'):
             result.register_advancement()
             self.advance()
             self.skip_expression(result)
@@ -930,8 +942,8 @@ class PysParser(Pys):
         result = PysParserResult()
         position = self.current_token.position
 
-        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['from']):
-            return result.failure(self.new_error(f"expected {KEYWORDS['from']!r}"))
+        if not self.current_token.match(TOKENS['KEYWORD'], 'from'):
+            return result.failure(self.new_error("expected 'from'"))
 
         result.register_advancement()
         self.advance()
@@ -946,8 +958,8 @@ class PysParser(Pys):
         self.advance()
         self.skip(result)
 
-        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['import']):
-            return result.failure(self.new_error(f"expected {KEYWORDS['import']!r}"))
+        if not self.current_token.match(TOKENS['KEYWORD'], 'import'):
+            return result.failure(self.new_error("expected 'import'"))
 
         result.register_advancement()
         self.advance()
@@ -991,7 +1003,7 @@ class PysParser(Pys):
                 self.advance()
                 self.skip_expression(result)
 
-                if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['as']):
+                if self.current_token.match(TOKENS['KEYWORD'], 'as'):
                     result.register_advancement()
                     self.advance()
                     self.skip_expression(result)
@@ -1038,8 +1050,8 @@ class PysParser(Pys):
         result = PysParserResult()
         position = self.current_token.position
 
-        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['import']):
-            return result.failure(self.new_error(f"expected {KEYWORDS['import']!r}"))
+        if not self.current_token.match(TOKENS['KEYWORD'], 'import'):
+            return result.failure(self.new_error("expected 'import'"))
 
         result.register_advancement()
         self.advance()
@@ -1055,7 +1067,7 @@ class PysParser(Pys):
         self.advance()
         advance_count = self.skip(result)
 
-        if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['as']):
+        if self.current_token.match(TOKENS['KEYWORD'], 'as'):
             result.register_advancement()
             self.advance()
             self.skip(result)
@@ -1082,8 +1094,8 @@ class PysParser(Pys):
         result = PysParserResult()
         position = self.current_token.position
 
-        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['if']):
-            return result.failure(self.new_error(f"expected {KEYWORDS['if']!r}"))
+        if not self.current_token.match(TOKENS['KEYWORD'], 'if'):
+            return result.failure(self.new_error("expected 'if'"))
 
         result.register_advancement()
         self.advance()
@@ -1105,18 +1117,18 @@ class PysParser(Pys):
 
         while True:
 
-            if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['elif']):
+            if self.current_token.match(TOKENS['KEYWORD'], 'elif'):
                 result.register_advancement()
                 self.advance()
                 self.skip(result)
                 conditional_chain = True
 
-            elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['else']):
+            elif self.current_token.match(TOKENS['KEYWORD'], 'else'):
                 result.register_advancement()
                 self.advance()
                 self.skip(result)
 
-                if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['if']):
+                if self.current_token.match(TOKENS['KEYWORD'], 'if'):
                     result.register_advancement()
                     self.advance()
                     self.skip(result)
@@ -1163,8 +1175,8 @@ class PysParser(Pys):
         result = PysParserResult()
         position = self.current_token.position
 
-        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['switch']):
-            return result.failure(self.new_error(f"expected {KEYWORDS['switch']!r}"))
+        if not self.current_token.match(TOKENS['KEYWORD'], 'switch'):
+            return result.failure(self.new_error("expected 'switch'"))
 
         result.register_advancement()
         self.advance()
@@ -1190,7 +1202,7 @@ class PysParser(Pys):
 
         while True:
 
-            if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['case']):
+            if self.current_token.match(TOKENS['KEYWORD'], 'case'):
                 result.register_advancement()
                 self.advance()
                 self.skip(result)
@@ -1213,7 +1225,7 @@ class PysParser(Pys):
 
                 cases.append((case, body))
 
-            elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['default']):
+            elif self.current_token.match(TOKENS['KEYWORD'], 'default'):
                 result.register_advancement()
                 self.advance()
                 self.skip(result)
@@ -1250,8 +1262,8 @@ class PysParser(Pys):
         result = PysParserResult()
         position = self.current_token.position
 
-        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['match']):
-            return result.failure(self.new_error(f"expected {KEYWORDS['match']!r}"))
+        if not self.current_token.match(TOKENS['KEYWORD'], 'match'):
+            return result.failure(self.new_error("expected 'match'"))
 
         result.register_advancement()
         self.advance()
@@ -1281,7 +1293,7 @@ class PysParser(Pys):
 
         while not is_right_bracket(self.current_token.type):
 
-            if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['default']):
+            if self.current_token.match(TOKENS['KEYWORD'], 'default'):
                 result.register_advancement()
                 self.advance()
                 self.skip(result)
@@ -1344,8 +1356,8 @@ class PysParser(Pys):
         result = PysParserResult()
         position = self.current_token.position
 
-        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['try']):
-            return result.failure(self.new_error(f"expected {KEYWORDS['try']!r}"))
+        if not self.current_token.match(TOKENS['KEYWORD'], 'try'):
+            return result.failure(self.new_error("expected 'try'"))
 
         result.register_advancement()
         self.advance()
@@ -1360,10 +1372,10 @@ class PysParser(Pys):
         finally_body = None
         advance_count = self.skip(result)
 
-        if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['catch'], KEYWORDS['except']):
+        if self.current_token.match(TOKENS['KEYWORD'], 'catch', 'except'):
             all_catch_handler = False
 
-            while self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['catch'], KEYWORDS['except']):
+            while self.current_token.match(TOKENS['KEYWORD'], 'catch', 'except'):
                 if all_catch_handler:
                     return result.failure(self.new_error("only one catch-all except clause allowed"))
 
@@ -1402,7 +1414,7 @@ class PysParser(Pys):
                             TOKENS['DOUBLE-AMPERSAND'],
                             TOKENS['DOUBLE-PIPE']
                         ) or
-                        self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['and'], KEYWORDS['or'])
+                        self.current_token.match(TOKENS['KEYWORD'], 'and', 'or')
                     ):
 
                         result.register_advancement()
@@ -1418,7 +1430,7 @@ class PysParser(Pys):
                         self.advance()
                         self.skip_expression(result)
 
-                    if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['as']):
+                    if self.current_token.match(TOKENS['KEYWORD'], 'as'):
                         result.register_advancement()
                         self.advance()
                         self.skip_expression(result)
@@ -1456,7 +1468,7 @@ class PysParser(Pys):
                 catch_cases.append(((tuple(targets), parameter), catch_body))
                 advance_count = self.skip(result)
 
-            if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['else']):
+            if self.current_token.match(TOKENS['KEYWORD'], 'else'):
                 result.register_advancement()
                 self.advance()
                 self.skip(result)
@@ -1467,7 +1479,7 @@ class PysParser(Pys):
 
                 advance_count = self.skip(result)
 
-        if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['finally']):
+        if self.current_token.match(TOKENS['KEYWORD'], 'finally'):
             result.register_advancement()
             self.advance()
             self.skip(result)
@@ -1478,7 +1490,7 @@ class PysParser(Pys):
 
         elif not catch_cases:
             return result.failure(
-                self.new_error(f"expected {KEYWORDS['catch']!r}, {KEYWORDS['except']!r}, or {KEYWORDS['finally']!r}")
+                self.new_error("expected 'catch', 'except', or 'finally'")
             )
 
         else:
@@ -1498,8 +1510,8 @@ class PysParser(Pys):
         result = PysParserResult()
         position = self.current_token.position
 
-        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['with']):
-            return result.failure(self.new_error(f"expected {KEYWORDS['with']!r}"))
+        if not self.current_token.match(TOKENS['KEYWORD'], 'with'):
+            return result.failure(self.new_error("expected 'with'"))
 
         result.register_advancement()
         self.advance()
@@ -1523,7 +1535,7 @@ class PysParser(Pys):
             if result.error:
                 return result
 
-            if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['as']):
+            if self.current_token.match(TOKENS['KEYWORD'], 'as'):
                 result.register_advancement()
                 self.advance()
                 self.skip_expression(result)
@@ -1578,8 +1590,8 @@ class PysParser(Pys):
         result = PysParserResult()
         position = self.current_token.position
 
-        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['for']):
-            return result.failure(self.new_error(f"expected {KEYWORDS['for']!r}"))
+        if not self.current_token.match(TOKENS['KEYWORD'], 'for'):
+            return result.failure(self.new_error("expected 'for'"))
 
         result.register_advancement()
         self.advance()
@@ -1622,10 +1634,10 @@ class PysParser(Pys):
             if result.error:
                 return result
 
-        elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['of']):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'of'):
             if declaration is None:
                 return result.failure(
-                    self.new_error(f"expected assign expression. Did you mean ';' instead of {KEYWORDS['of']!r}?")
+                    self.new_error("expected assign expression. Did you mean ';' instead of 'of'?")
                 )
 
             iteration = True
@@ -1642,7 +1654,7 @@ class PysParser(Pys):
             return result.failure(self.new_error("expected assign expression or ';'"))
 
         else:
-            return result.failure(self.new_error(f"expected {KEYWORDS['of']!r} or ';'"))
+            return result.failure(self.new_error("expected 'of' or ';'"))
 
         if bracket:
             self.close_bracket(result, left_bracket_token)
@@ -1660,7 +1672,7 @@ class PysParser(Pys):
         else_body = None
         advance_count = self.skip(result)
 
-        if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['else']):
+        if self.current_token.match(TOKENS['KEYWORD'], 'else'):
             result.register_advancement()
             self.advance()
             self.skip(result)
@@ -1685,8 +1697,8 @@ class PysParser(Pys):
         result = PysParserResult()
         position = self.current_token.position
 
-        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['while']):
-            return result.failure(self.new_error(f"expected {KEYWORDS['while']!r}"))
+        if not self.current_token.match(TOKENS['KEYWORD'], 'while'):
+            return result.failure(self.new_error("expected 'while'"))
 
         result.register_advancement()
         self.advance()
@@ -1705,7 +1717,7 @@ class PysParser(Pys):
         else_body = None
         advance_count = self.skip(result)
 
-        if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['else']):
+        if self.current_token.match(TOKENS['KEYWORD'], 'else'):
             result.register_advancement()
             self.advance()
             self.skip(result)
@@ -1730,8 +1742,8 @@ class PysParser(Pys):
         result = PysParserResult()
         position = self.current_token.position
 
-        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['do']):
-            return result.failure(self.new_error(f"expected {KEYWORDS['do']!r}"))
+        if not self.current_token.match(TOKENS['KEYWORD'], 'do'):
+            return result.failure(self.new_error("expected 'do'"))
 
         result.register_advancement()
         self.advance()
@@ -1743,8 +1755,8 @@ class PysParser(Pys):
 
         self.skip(result)
 
-        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['while']):
-            return result.failure(self.new_error(f"expected {KEYWORDS['while']!r}"))
+        if not self.current_token.match(TOKENS['KEYWORD'], 'while'):
+            return result.failure(self.new_error("expected 'while'"))
 
         result.register_advancement()
         self.advance()
@@ -1757,7 +1769,7 @@ class PysParser(Pys):
         else_body = None
         advance_count = self.skip(result)
 
-        if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['else']):
+        if self.current_token.match(TOKENS['KEYWORD'], 'else'):
             result.register_advancement()
             self.advance()
             self.skip(result)
@@ -1782,8 +1794,8 @@ class PysParser(Pys):
         result = PysParserResult()
         position = self.current_token.position
 
-        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['repeat']):
-            return result.failure(self.new_error(f"expected {KEYWORDS['repeat']!r}"))
+        if not self.current_token.match(TOKENS['KEYWORD'], 'repeat'):
+            return result.failure(self.new_error("expected 'repeat'"))
 
         result.register_advancement()
         self.advance()
@@ -1795,8 +1807,8 @@ class PysParser(Pys):
 
         self.skip(result)
 
-        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['until']):
-            return result.failure(self.new_error(f"expected {KEYWORDS['until']!r}"))
+        if not self.current_token.match(TOKENS['KEYWORD'], 'until'):
+            return result.failure(self.new_error("expected 'until'"))
 
         result.register_advancement()
         self.advance()
@@ -1809,7 +1821,7 @@ class PysParser(Pys):
         else_body = None
         advance_count = self.skip(result)
 
-        if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['else']):
+        if self.current_token.match(TOKENS['KEYWORD'], 'else'):
             result.register_advancement()
             self.advance()
             self.skip(result)
@@ -1834,8 +1846,8 @@ class PysParser(Pys):
         result = PysParserResult()
         start = self.current_token.position.start
 
-        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['class']):
-            return result.failure(self.new_error(f"expected {KEYWORDS['class']!r}"))
+        if not self.current_token.match(TOKENS['KEYWORD'], 'class'):
+            return result.failure(self.new_error("expected 'class'"))
 
         result.register_advancement()
         self.advance()
@@ -1860,7 +1872,7 @@ class PysParser(Pys):
             end = base.position.end
             bases = list(base.elements)
 
-        elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['extends']):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'extends'):
             result.register_advancement()
             self.advance()
             self.skip(result)
@@ -1903,19 +1915,10 @@ class PysParser(Pys):
         start = position.start
         constructor = False
 
-        if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['constructor']):
+        if self.current_token.match(TOKENS['KEYWORD'], 'constructor'):
             constructor = True
-        elif not self.current_token.match(
-            TOKENS['KEYWORD'],
-            KEYWORDS['def'], KEYWORDS['define'], KEYWORDS['func'], KEYWORDS['function']
-        ):
-            return result.failure(
-                self.new_error(
-                    f"expected {KEYWORDS['def']!r}, {KEYWORDS['define']!r}, "
-                    f"{KEYWORDS['func']!r}, {KEYWORDS['function']!r}, "
-                    f"or {KEYWORDS['constructor']!r}"
-                )
-            )
+        elif not self.current_token.match(TOKENS['KEYWORD'], 'def', 'define', 'func', 'function'):
+            return result.failure(self.new_error("expected 'def', 'define', 'func', 'function', or 'constructor'"))
 
         result.register_advancement()
         self.advance()
@@ -2035,8 +2038,8 @@ class PysParser(Pys):
         result = PysParserResult()
         position = self.current_token.position
 
-        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['return']):
-            return result.failure(self.new_error(f"expected {KEYWORDS['return']!r}"))
+        if not self.current_token.match(TOKENS['KEYWORD'], 'return'):
+            return result.failure(self.new_error("expected 'return'"))
 
         result.register_advancement()
         self.advance()
@@ -2060,8 +2063,8 @@ class PysParser(Pys):
         result = PysParserResult()
         position = self.current_token.position
 
-        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['global']):
-            return result.failure(self.new_error(f"expected {KEYWORDS['global']!r}"))
+        if not self.current_token.match(TOKENS['KEYWORD'], 'global'):
+            return result.failure(self.new_error("expected 'global'"))
 
         result.register_advancement()
         self.advance()
@@ -2121,8 +2124,8 @@ class PysParser(Pys):
         result = PysParserResult()
         position = self.current_token.position
 
-        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['del'], KEYWORDS['delete']):
-            return result.failure(self.new_error(f"expected {KEYWORDS['del']!r} or {KEYWORDS['delete']!r}"))
+        if not self.current_token.match(TOKENS['KEYWORD'], 'del', 'delete'):
+            return result.failure(self.new_error("expected 'del' or 'delete'"))
 
         result.register_advancement()
         self.advance()
@@ -2151,8 +2154,8 @@ class PysParser(Pys):
         result = PysParserResult()
         position = self.current_token.position
 
-        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['raise'], KEYWORDS['throw']):
-            return result.failure(self.new_error(f"expected {KEYWORDS['raise']!r} or {KEYWORDS['throw']!r}"))
+        if not self.current_token.match(TOKENS['KEYWORD'], 'raise', 'throw'):
+            return result.failure(self.new_error("expected 'raise' or 'throw'"))
 
         result.register_advancement()
         self.advance()
@@ -2164,7 +2167,7 @@ class PysParser(Pys):
 
         cause = None
 
-        if self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['from']):
+        if self.current_token.match(TOKENS['KEYWORD'], 'from'):
             result.register_advancement()
             self.advance()
             self.skip(result)
@@ -2184,8 +2187,8 @@ class PysParser(Pys):
     def assert_statement(self):
         result = PysParserResult()
 
-        if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['assert']):
-            return result.failure(self.new_error(f"expected {KEYWORDS['assert']!r}"))
+        if not self.current_token.match(TOKENS['KEYWORD'], 'assert'):
+            return result.failure(self.new_error("expected 'assert'"))
 
         result.register_advancement()
         self.advance()
@@ -2235,17 +2238,14 @@ class PysParser(Pys):
 
             self.skip(result, TOKENS['NEWLINE'], TOKENS['SEMICOLON'])
 
-        if self.current_token.match(
-            TOKENS['KEYWORD'],
-            KEYWORDS['def'], KEYWORDS['define'], KEYWORDS['func'], KEYWORDS['function']
-        ):
+        if self.current_token.match(TOKENS['KEYWORD'], 'def', 'define', 'func', 'function'):
             func_expr = result.register(self.func_expression(decorators))
             if result.error:
                 return result
 
             return result.success(func_expr)
 
-        elif self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['class']):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'class'):
             class_expr = result.register(self.class_statement(decorators))
             if result.error:
                 return result
@@ -2321,18 +2321,18 @@ class PysParser(Pys):
             operations.append(self.current_token)
             expressions.append(expr)
 
-            if membership and self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['not']):
+            if membership and self.current_token.match(TOKENS['KEYWORD'], 'not'):
                 result.register_advancement()
                 self.advance()
                 self.skip_expression(result)
 
-                if not self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['in']):
-                    return result.failure(self.new_error(f"expected {KEYWORDS['in']!r}"))
+                if not self.current_token.match(TOKENS['KEYWORD'], 'in'):
+                    return result.failure(self.new_error("expected 'in'"))
 
                 operations[-1] = PysToken(
                     TOKENS['NOT-IN'],
                     self.current_token.position,
-                    f"{KEYWORDS['not']} {KEYWORDS['in']}"
+                    'not in'
                 )
 
             last_token = self.current_token
@@ -2343,13 +2343,13 @@ class PysParser(Pys):
 
             if (
                 membership and
-                last_token.match(TOKENS['KEYWORD'], KEYWORDS['is']) and
-                self.current_token.match(TOKENS['KEYWORD'], KEYWORDS['not'])
+                last_token.match(TOKENS['KEYWORD'], 'is') and
+                self.current_token.match(TOKENS['KEYWORD'], 'not')
             ):
                 operations[-1] = PysToken(
                     TOKENS['IS-NOT'],
                     self.current_token.position,
-                    f"{KEYWORDS['is']} {KEYWORDS['not']}"
+                    'is not'
                 )
 
                 result.register_advancement()

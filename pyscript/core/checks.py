@@ -18,7 +18,7 @@ is_unpack_assignment = frozenset([
     PysSetNode, PysListNode, PysTupleNode
 ]).__contains__
 
-is_keyword = frozenset(KEYWORDS.values()).__contains__
+is_keyword = frozenset(KEYWORDS).__contains__
 
 is_python_extensions = frozenset([
     '.py', '.ipy', '.pyc', '.pyd', '.pyi', '.pyo', '.pyp', '.pyw', '.pyz', '.rpy', '.xpy', '.pyproj'

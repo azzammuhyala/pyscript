@@ -1,4 +1,4 @@
-from .constants import TOKENS, KEYWORDS
+from .constants import TOKENS
 from .utils.ansi import BOLD, acolor
 
 from operator import (
@@ -9,6 +9,8 @@ from types import MappingProxyType
 
 contains = lambda a, b: a in b
 not_in = lambda a, b : a not in b
+
+EMPTY_MAP = {}
 
 BINARY_FUNCTIONS_MAP = {
     TOKENS['NOT-IN']: not_in,
@@ -47,13 +49,22 @@ BINARY_FUNCTIONS_MAP = {
     TOKENS['EQUAL-DOUBLE-GREATER-THAN']: irshift,
     TOKENS['MINUS-GREATER-THAN']: contains,
     TOKENS['EXCLAMATION-GREATER-THAN']: not_in
-}
+}.__getitem__
 
 UNARY_FUNCTIONS_MAP = {
     TOKENS['PLUS']: pos,
     TOKENS['MINUS']: neg,
     TOKENS['TILDE']: inv
-}
+}.__getitem__
+
+ACOLORS = {
+    'reset': acolor('reset'),
+    'magenta': acolor('magenta'),
+    'bold-magenta': acolor('magenta', style=BOLD),
+    'bold-red': acolor('red', style=BOLD)
+}.__getitem__
+
+REVERSE_TOKENS = MappingProxyType({type: name for name, type in TOKENS.items()})
 
 BRACKETS_MAP = MappingProxyType({
     TOKENS['LEFT-PARENTHESIS']: TOKENS['RIGHT-PARENTHESIS'],
@@ -62,8 +73,8 @@ BRACKETS_MAP = MappingProxyType({
 })
 
 SYMBOLS_TOKEN_MAP = MappingProxyType({
-    TOKENS['NOT-IN']: KEYWORDS['not'] + ' ' + KEYWORDS['in'],
-    TOKENS['IS-NOT']: KEYWORDS['is'] + ' ' + KEYWORDS['not'],
+    TOKENS['NOT-IN']: 'not in',
+    TOKENS['IS-NOT']: 'is not',
     TOKENS['NULL']: '\0',
     TOKENS['NEWLINE']: '\n',
     TOKENS['EXCLAMATION']: '!',
@@ -126,14 +137,3 @@ SYMBOLS_TOKEN_MAP = MappingProxyType({
     TOKENS['EXCLAMATION-GREATER-THAN']: '!>',
     TOKENS['EXCLAMATION-TILDE']: '~!'
 })
-
-ACOLORS = {
-    'reset': acolor('reset'),
-    'magenta': acolor('magenta'),
-    'bold-magenta': acolor('magenta', style=BOLD),
-    'bold-red': acolor('red', style=BOLD)
-}.__getitem__
-
-EMPTY_MAP = {}
-
-REVERSE_TOKENS = MappingProxyType({type: name for name, type in TOKENS.items()})

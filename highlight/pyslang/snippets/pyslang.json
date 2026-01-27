@@ -239,6 +239,10 @@
         "body": "true",
         "description": "same as True"
     },
+    "Keyword - typeof": {
+        "prefix": "typeof",
+        "body": "typeof ${0:target}"
+    },
     "Keyword - of": {
         "prefix": "of",
         "body": "of"

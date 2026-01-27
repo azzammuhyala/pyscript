@@ -248,9 +248,11 @@ def breakpoint(pyfunc):
     shell = PysCommandLineShell(f'{bmagenta}(Pdb) {reset}', f'{bmagenta}...   {reset}')
     scopes = []
 
-    import_readline()
+    def show_line():
+        print(f"> {context.file.name}({position.start_line}){context.name}")
 
-    print(f"> {context.file.name}({position.start_line}){context.name}")
+    import_readline()
+    show_line()
 
     try:
         hook.running_breakpoint = True
@@ -283,7 +285,7 @@ def breakpoint(pyfunc):
                     )
 
                 elif command in ('l', 'line'):
-                    print(f"> {context.file.name}({position.start_line}){context.name}")
+                    show_line()
 
                 elif command in ('q', 'quit', 'exit'):
                     code = get_any(args, 0, '0')

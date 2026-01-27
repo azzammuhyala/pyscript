@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Any, Callable, Iterable, Literal, Optional
 if TYPE_CHECKING:
     from .core.buffer import PysFileBuffer
     from .core.cache import PysUndefined, PysHook
+    from .core.context import PysContext
     from .core.highlight import _PysHighlightFormatter
     from .core.position import PysPosition
     from .core.results import PysExecuteResult
@@ -53,6 +54,16 @@ def pys_highlight(
     ] = None,
     max_bracket_level: int = 3
 ) -> str: ...
+
+def pys_runner(
+    file: PysFileBuffer,
+    mode: Literal['exec', 'eval', 'single'],
+    symbol_table: PysSymbolTable,
+    flags: Optional[int] = None,
+    parser_flags: int = DEFAULT,
+    context_parent: Optional[PysContext] = None,
+    context_parent_entry_position: Optional[PysPosition] = None
+) -> PysExecuteResult: ...
 
 def pys_exec(
     source: str | bytes | bytearray | Iterable | BuiltinMethodType | IOBase | PysFileBuffer,

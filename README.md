@@ -48,5 +48,6 @@ Familiar? There it is!
 
 ## Behind it
 This language created from based up on a
-[YouTube tutorial](https://www.youtube.com/playlist?list=PLZQftyCk7_SdoVexSmwy_tBgs7P0b97yD) (check more on GitHub [here](https://github.com/davidcallanan/py-myopl-code)). At least, it takes
-about 6 months to learn it, and also need to learn general things that exist in other programming languages.
+[YouTube tutorial](https://www.youtube.com/playlist?list=PLZQftyCk7_SdoVexSmwy_tBgs7P0b97yD) (check more on GitHub
+[here](https://github.com/davidcallanan/py-myopl-code)). At least, it takes about 6 months to learn it, and also need to
+learn general things that exist in other programming languages.

@@ -44,8 +44,8 @@ class PysFunction(PysObject):
                 append_paramnames(parameter)
                 append_argnames(parameter)
 
-        self.__name__ = '<function>' if name is None else name
-        self.__qualname__ = ('' if qualname is None else qualname + '.') + self.__name__
+        self.__name__ = name = '<function>' if name is None else name
+        self.__qualname__ = name if qualname is None else f'{qualname}.{name}'
         self.__code__ = PysCode(
             parameters=parameters,
             body=body,

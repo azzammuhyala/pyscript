@@ -58,12 +58,10 @@ class PysTraceback(Pys):
             context_name = context.name
 
             frames.append(
-                f'  File {magenta}"{position.file.name}"{reset}'
-                '{}{}{}'.format(
-                    '' if is_positionless else f', line {magenta}{position.start_line}{reset}',
-                    '' if context_name is None else f', in {magenta}{context_name}{reset}',
-                    '' if is_positionless else f'\n{indent(format_arrow(position, colored), 4)}'
-                )
+                f'  File {magenta}"{position.file.name}"{reset}' +
+                ('' if is_positionless else f', line {magenta}{position.start_line}{reset}') + 
+                ('' if context_name is None else f', in {magenta}{context_name}{reset}') +
+                ('' if is_positionless else f'\n{indent(format_arrow(position, colored), 4)}')
             )
 
             position = context.parent_entry_position

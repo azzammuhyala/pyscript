@@ -1,0 +1,11 @@
+{
+    "iconDefinitions": {
+        "pyscript": {
+            "iconPath": "./PyScript.png"
+        }
+    },
+
+    "fileExtensions": {
+        "pys": "pyscript"
+    }
+}

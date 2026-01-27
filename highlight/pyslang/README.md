@@ -3,4 +3,4 @@ This is syntax highlighting for the PyScript language! See more [here](https://g
 
 [Click here](https://github.com/azzammuhyala/pyscript/tree/main/highlight/pyslang) for extension source.
 
-_Extension for PyScript 1.10.1+_
+_Extension for PyScript 1.10.4+_
