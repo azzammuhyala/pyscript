@@ -1,7 +1,10 @@
-from ..bases import Pys
-from .generic import clear_console
+from .bases import Pys
+from .mapping import BRACKETS_MAP
+from .utils.generic import clear_console
 
 from typing import Literal
+
+import sys
 
 class PysCommandLineShell(Pys):
 
@@ -9,32 +12,35 @@ class PysCommandLineShell(Pys):
         self.ps1 = ps1
         self.ps2 = ps2
 
-        self._brackets_level = 0
-        self._in_string = False
-        self._in_decorator = False
-        self._is_triple_string = False
-        self._next_line = False
-        self._string_prefix = ''
-        self._full_text = ''
+        self._brackets_stack = []
+        self.reset()
 
     def _is_nextline(self):
-        return self._brackets_level > 0 or self._in_decorator or self._is_triple_string or self._next_line
+        return not self._must_break and (
+            len(self._brackets_stack) > 0 or
+            self._next_line or
+            self._is_triple_string or
+            self._in_decorator
+        )
 
     def reset(self) -> None:
-        self._brackets_level = 0
+        self._brackets_stack.clear()
         self._in_string = False
         self._in_decorator = False
-        self._string_prefix = ''
         self._is_triple_string = False
         self._next_line = False
+        self._must_break = False
+        self._string_prefix = ''
         self._full_text = ''
 
-    def input(self) -> str | Literal[0]:
+    def prompt(self) -> str | Literal[0]:
         while True:
 
             try:
+
                 if self._is_nextline():
                     text = input(self.ps2)
+
                 else:
                     text = input(self.ps1)
                     if text == '/exit':
@@ -42,8 +48,13 @@ class PysCommandLineShell(Pys):
                     elif text == '/clear':
                         clear_console()
                         continue
-            except ValueError:
+
+            except (OSError, ValueError):
                 return 0
+
+            except (MemoryError, UnicodeDecodeError):
+                print("InputError", file=sys.stderr)
+                continue
 
             self._next_line = False
             self._in_decorator = False
@@ -93,10 +104,14 @@ class PysCommandLineShell(Pys):
                         continue
 
                     elif character in '([{':
-                        self._brackets_level += 1
+                        self._brackets_stack.append(ord(character))
 
                     elif character in ')]}':
-                        self._brackets_level -= 1
+                        self._must_break = (
+                            BRACKETS_MAP[self._brackets_stack.pop()] != ord(character)
+                            if self._brackets_stack else
+                            True
+                        )
 
                     if not character.isspace():
                         is_space = False
@@ -107,8 +122,7 @@ class PysCommandLineShell(Pys):
                 self._in_decorator = False
 
             if self._in_string and not (self._next_line or self._is_triple_string):
-                self._in_string = False
-                self._brackets_level = 0
+                self._must_break = True
 
             if self._is_nextline():
                 self._full_text += text + '\n'

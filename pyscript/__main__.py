@@ -4,16 +4,24 @@ from .core.constants import DEFAULT, DEBUG, DONT_SHOW_BANNER_ON_SHELL, NO_COLOR
 from .core.highlight import (
     HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight, PygmentsPyScriptStyle, PygmentsPyScriptLexer
 )
-from .core.runner import _normalize_globals, pys_runner, pys_shell
+from .core.runner import _normalize_namespace, pys_runner, pys_shell
 from .core.utils.module import get_module_name_from_path, remove_python_path
 from .core.utils.path import normpath, getcwd
 from .core.version import __version__
 
 try:
     from pygments import highlight
-    from pygments.formatters import TerminalFormatter, TerminalTrueColorFormatter, Terminal256Formatter
+    from pygments.formatters import (
+        BBCodeFormatter,
+        HtmlFormatter,
+        LatexFormatter,
+        TerminalFormatter, TerminalTrueColorFormatter, Terminal256Formatter
+    )
 
     FORMAT_PYGMENTS_MAP = {
+        'pm-bbcode': BBCodeFormatter,
+        'pm-html': HtmlFormatter,
+        'pm-latex': LatexFormatter,
         'pm-terminal': TerminalFormatter,
         'pm-true-terminal': TerminalTrueColorFormatter,
         'pm-256-terminal': Terminal256Formatter
@@ -23,26 +31,10 @@ try:
 except ImportError:
     PYGMENTS = False
 
-from argparse import ArgumentParser
+from argparse import OPTIONAL, REMAINDER, ArgumentParser
 from os import environ
 
 import sys
-
-def split_argv():
-    need_value_arguments = {'-c', '--command', '-l', '--highlight', '-r', '--py-recursion'}
-    argv = sys.argv
-    i = 1
-
-    while i < len(argv):
-        argument = argv[i]
-        if argument in need_value_arguments:
-            i += 1
-        elif not argument.startswith('-'):
-            break
-        i += 1
-
-    hook.argv = argv[i:]
-    return argv[1:i + 1]
 
 FORMAT_HIGHLIGHT_MAP = {
     'html': HLFMT_HTML,
@@ -53,14 +45,6 @@ FORMAT_HIGHLIGHT_MAP = {
 parser = ArgumentParser(
     prog=f'{get_module_name_from_path(sys.executable)} -m pyscript',
     description=f'PyScript Launcher for Python Version {".".join(map(str, sys.version_info))}'
-)
-
-parser.add_argument(
-    'file',
-    type=str,
-    nargs='?',
-    default=None,
-    help="File path to be executed"
 )
 
 parser.add_argument(
@@ -77,9 +61,9 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    '-d', '--debug',
+    '-d', '-O', '--debug',
     action='store_true',
-    help="Set a debug flag, this will ignore assert statement"
+    help="Set a debug flag, this will ignore assert statement. Check the flag is active with the __debug__ keyword"
 )
 
 parser.add_argument(
@@ -111,7 +95,7 @@ parser.add_argument(
 parser.add_argument(
     '-P',
     action='store_true',
-    help="Don't prepend a potentially unsafe path to sys.path (python sys)"
+    help="Don't prepend a potentially unsafe path to sys.path (python sys.path)"
 )
 
 parser.add_argument(
@@ -120,11 +104,25 @@ parser.add_argument(
     help="Don't print version and copyright messages on interactive startup"
 )
 
+parser.add_argument(
+    'file',
+    type=str,
+    nargs=OPTIONAL,
+    default=None,
+    help="File path to be executed"
+)
+
+parser.add_argument(
+    'argv',
+    nargs=REMAINDER,
+    help="Remaining arguments stored in hook.argv (sys.argv or sys.hook.argv)"
+)
+
 def argument_error(argument, message):
     parser.print_usage(sys.stderr)
     parser.exit(2, f"{parser.prog}: error: argument {argument}: {message}\n")
 
-args = parser.parse_args(split_argv())
+args = parser.parse_args()
 
 if args.highlight and args.file is None:
     argument_error("-l/--highlight", "argument 'file' is required")
@@ -148,7 +146,10 @@ if args.P:
 if args.q:
     flags |= DONT_SHOW_BANNER_ON_SHELL
 
+hook.argv.extend(args.argv)
+
 if args.file is not None:
+    hook.argv[0] = args.file
     path = normpath(args.file)
 
     try:
@@ -180,11 +181,10 @@ if args.file is not None:
                 )
             else:
                 print(
-                    flush=True,
-                    end=highlight(
+                    highlight(
                         code=file.text,
                         lexer=PygmentsPyScriptLexer(),
-                        formatter=FORMAT_PYGMENTS_MAP[args.highlight](style=PygmentsPyScriptStyle)
+                        formatter=FORMAT_PYGMENTS_MAP[args.highlight](style=PygmentsPyScriptStyle, full=True)
                     )
                 )
         except BaseException as e:
@@ -194,7 +194,7 @@ if args.file is not None:
         result = pys_runner(
             file=file,
             mode='exec',
-            symbol_table=_normalize_globals(file, undefined),
+            symbol_table=_normalize_namespace(file, undefined),
             flags=flags
         )
 
@@ -211,11 +211,13 @@ if args.file is not None:
                 )
 
 elif args.command is not None:
-    file = PysFileBuffer(args.command)
+    hook.argv[0] = '-c'
+
+    file = PysFileBuffer(args.command, '<arg-command>')
     code = pys_runner(
         file=file,
         mode='exec',
-        symbol_table=_normalize_globals(file, undefined),
+        symbol_table=_normalize_namespace(file, undefined),
         flags=flags
     ).end_process()[0]
 

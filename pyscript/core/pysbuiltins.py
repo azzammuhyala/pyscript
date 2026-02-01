@@ -2,17 +2,17 @@ from .bases import Pys
 from .buffer import PysFileBuffer
 from .cache import loading_modules, modules, path, hook
 from .checks import is_blacklist_python_builtins, is_private_attribute
-from .constants import NO_COLOR
+from .constants import OTHER_PATH, NO_COLOR
 from .exceptions import PysSignal
 from .handlers import handle_call
 from .mapping import ACOLORS, EMPTY_MAP
 from .objects import PysFunction, PysPythonFunction, PysBuiltinFunction
 from .results import PysRunTimeResult
+from .shell import PysCommandLineShell
 from .symtab import new_symbol_table
 from .utils.generic import get_any, is_object_of as isobjectof, import_readline
 from .utils.module import get_module_name_from_path, get_module_path, set_python_path, remove_python_path
 from .utils.path import getcwd, normpath
-from .utils.shell import PysCommandLineShell
 from .utils.string import normstr
 
 from math import inf, nan, isclose
@@ -105,19 +105,24 @@ class _Helper(_Printer):
                 "Welcome to the PyScript programming language! "
                 "This is the help utility directly to the Python help.\n\n"
                 "To get help on a specific object, type 'help(object)'.\n"
-                "To get the list of built-in functions, types, exceptions, and other objects, "
-                "type 'help(\"builtins\")'."
+                "To get the list of builtin functions, types, exceptions, and other objects, type 'help(\"builtins\")'."
             )
         else:
             return pyhelp(*args, **kwargs)
 
-license = _Printer(
-    'license',
-
-    "MIT License - PyScript created by AzzamMuhyala.\n"
-    "This language was written as a project and learning how language is works.\n"
-    "For more information see on https://github.com/azzammuhyala/pyscript."
-)
+try:
+    with (
+        open(normpath(OTHER_PATH, 'copyright', absolute=False)) as copyright, 
+        open(normpath(OTHER_PATH, 'credits', absolute=False)) as credits, 
+        open(normpath(OTHER_PATH, 'license', absolute=False)) as license
+    ):
+        copyright = _Printer('copyright', copyright.read())
+        credits = _Printer('credits', credits.read())
+        license = _Printer('license', license.read())
+except:
+    copyright = _Printer('copyright', '')
+    credits = _Printer('credits', '')
+    license = _Printer('license', '')
 
 help = _Helper()
 
@@ -143,6 +148,8 @@ def require(pyfunc, name):
             break
     else:
         module_path = get_module_path(normpath(dirname(filename) or getcwd(), name, absolute=False))
+        if module_path == filename:
+            module_path = None
 
     if module_path is None:
         if name == '_pyscript':
@@ -153,17 +160,15 @@ def require(pyfunc, name):
             module_path = name
 
     if module_path is not None:
-
-        if module_path in loading_modules:
-            raise ImportError(
-                f"cannot import module name {name!r} "
-                f"from partially initialized module {filename!r}, "
-                "mostly during circular import"
-            )
-
         module = modules.get(module_path, None)
 
         if module is None:
+
+            if module_path in loading_modules:
+                raise ImportError(
+                    f"cannot import module name {name!r} from partially initialized module {filename!r}, "
+                    "mostly during circular import"
+                )
 
             try:
                 loading_modules.add(module_path)
@@ -183,6 +188,9 @@ def require(pyfunc, name):
 
                 from .runner import pys_runner
 
+                # minimize circular imports (python standard)
+                modules[module_path] = module
+
                 result = pys_runner(
                     file=file,
                     mode='exec',
@@ -194,7 +202,9 @@ def require(pyfunc, name):
                 if result.error:
                     raise PysSignal(PysRunTimeResult().failure(result.error))
 
-                modules[module_path] = module
+                # can also get circular imports
+                # modules[module_path] = module
+
             finally:
                 loading_modules.discard(module_path)
 
@@ -260,7 +270,7 @@ def breakpoint(pyfunc):
         while True:
 
             try:
-                text = shell.input()
+                text = shell.prompt()
 
                 split = ['exit'] if text == 0 else text.split()
                 if split:
@@ -650,6 +660,8 @@ pys_builtins.none = None
 pys_builtins.ellipsis = Ellipsis
 pys_builtins.inf = pys_builtins.infinity = pys_builtins.Infinity = inf
 pys_builtins.nan = pys_builtins.notanumber = pys_builtins.NaN = pys_builtins.NotANumber = nan
+pys_builtins.copyright = copyright
+pys_builtins.credits = credits
 pys_builtins.license = license
 pys_builtins.help = help
 pys_builtins.require = require

@@ -199,11 +199,11 @@ class PysParser(Pys):
 
         result = PysParserResult()
 
-        assign_expr = result.register(self.assignment_statement())
+        assignment_expression = result.register(self.assignment_statement())
         if result.error:
             return result.failure(self.new_error("expected an expression or statement"), fatal=False)
 
-        return result.success(assign_expr)
+        return result.success(assignment_expression)
 
     def expression(self):
         result = PysParserResult()
@@ -216,6 +216,7 @@ class PysParser(Pys):
             elements = [node]
 
             while self.current_token.type == TOKENS['COMMA']:
+                end = self.current_token.position.end
                 result.register_advancement()
                 self.advance()
                 self.skip_expression(result)
@@ -225,6 +226,7 @@ class PysParser(Pys):
                     return result
 
                 if element:
+                    end = element.position.end
                     elements.append(element)
                 else:
                     self.reverse(result.to_reverse_count)
@@ -237,7 +239,7 @@ class PysParser(Pys):
                 PysPosition(
                     self.current_token.position.file,
                     node.position.start,
-                    elements[-1].position.end
+                    end
                 )
             )
 
@@ -761,15 +763,15 @@ class PysParser(Pys):
             return self.sequence_expression('list')
 
         elif token.type == TOKENS['LEFT-CURLY']:
-            dict_expr = result.try_register(self.sequence_expression('dict'))
+            dict_expression = result.try_register(self.sequence_expression('dict'))
             if result.error:
                 return result
 
-            if not dict_expr:
+            if not dict_expression:
                 self.reverse(result.to_reverse_count)
                 return self.sequence_expression('set')
 
-            return result.success(dict_expr)
+            return result.success(dict_expression)
 
         elif token.type == TOKENS['TRIPLE-DOT']:
             result.register_advancement()
@@ -810,7 +812,7 @@ class PysParser(Pys):
                         self.advance()
                         self.skip(result)
 
-                        key = result.register(self.single_expression(), True)
+                        key = result.register(self.walrus(), True)
                         if result.error:
                             return result
 
@@ -830,7 +832,7 @@ class PysParser(Pys):
                             return result
 
                 else:
-                    key = result.register(self.single_expression(), True)
+                    key = result.register(self.walrus(), True)
                     if result.error:
                         return result
 
@@ -843,7 +845,7 @@ class PysParser(Pys):
                 self.advance()
                 self.skip(result)
 
-                value = result.register(self.single_expression(), True)
+                value = result.register(self.walrus(), True)
                 if result.error:
                     return result
 
@@ -1207,7 +1209,7 @@ class PysParser(Pys):
                 self.advance()
                 self.skip(result)
 
-                case = result.register(self.single_expression(), True)
+                case = result.register(self.walrus(), True)
                 if result.error:
                     return result
 
@@ -1489,9 +1491,7 @@ class PysParser(Pys):
                 return result
 
         elif not catch_cases:
-            return result.failure(
-                self.new_error("expected 'catch', 'except', or 'finally'")
-            )
+            return result.failure(self.new_error("expected 'catch', 'except', or 'finally'"))
 
         else:
             self.reverse(advance_count)
@@ -1636,9 +1636,7 @@ class PysParser(Pys):
 
         elif self.current_token.match(TOKENS['KEYWORD'], 'of'):
             if declaration is None:
-                return result.failure(
-                    self.new_error("expected assign expression. Did you mean ';' instead of 'of'?")
-                )
+                return result.failure(self.new_error("expected assign expression. Did you mean ';' instead of 'of'?"))
 
             iteration = True
 
@@ -2239,18 +2237,18 @@ class PysParser(Pys):
             self.skip(result, TOKENS['NEWLINE'], TOKENS['SEMICOLON'])
 
         if self.current_token.match(TOKENS['KEYWORD'], 'def', 'define', 'func', 'function'):
-            func_expr = result.register(self.func_expression(decorators))
+            func_expression = result.register(self.func_expression(decorators))
             if result.error:
                 return result
 
-            return result.success(func_expr)
+            return result.success(func_expression)
 
         elif self.current_token.match(TOKENS['KEYWORD'], 'class'):
-            class_expr = result.register(self.class_statement(decorators))
+            class_expression = result.register(self.class_statement(decorators))
             if result.error:
                 return result
 
-            return result.success(class_expr)
+            return result.success(class_expression)
 
         return result.failure(self.new_error("expected function or class declaration after decorator"))
 
@@ -2303,7 +2301,10 @@ class PysParser(Pys):
 
         body = result.register(self.statement())
         if result.error:
-            return result.failure(self.new_error("expected statement, expression, '{', or ';'"), fatal=False)
+            return result.failure(
+                self.new_error("expected statement, expression, '{', or ';'"),
+                fatal=False
+            )
 
         return result.success(body)
 
@@ -2396,7 +2397,7 @@ class PysParser(Pys):
         if self.current_token.type != BRACKETS_MAP[left_bracket_token.type]:
 
             if is_right_bracket(self.current_token.type):
-                return result.failure(
+                result.failure(
                     self.new_error(
                         f"closing parenthesis {chr(self.current_token.type)!r} "
                         f"does not match opening parenthesis {chr(left_bracket_token.type)!r}"
@@ -2404,14 +2405,17 @@ class PysParser(Pys):
                 )
 
             elif self.current_token.type == TOKENS['NULL']:
-                return result.failure(
+                result.failure(
                     self.new_error(
                         f"{chr(left_bracket_token.type)!r} was never closed",
                         left_bracket_token.position
                     )
                 )
 
-            return result.failure(self.new_error("invalid syntax"))
+            else:
+                result.failure(self.new_error("invalid syntax"))
+
+            return
 
         result.register_advancement()
         self.advance()

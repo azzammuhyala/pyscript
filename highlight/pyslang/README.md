@@ -1,6 +1,6 @@
 # PyScript - Syntax Highlighting
-This is syntax highlighting for the PyScript language! See more [here](https://github.com/azzammuhyala/pyscript).
+_Extension for PyScript 1.11.0+_
 
-[Click here](https://github.com/azzammuhyala/pyscript/tree/main/highlight/pyslang) for extension source.
-
-_Extension for PyScript 1.10.4+_
+This is a syntax highlighting for PyScript programming language! See more about PyScript
+[here](https://github.com/azzammuhyala/pyscript). For extension source code, you can see
+[here](https://github.com/azzammuhyala/pyscript/tree/main/highlight/pyslang).

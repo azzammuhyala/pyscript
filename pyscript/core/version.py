@@ -6,8 +6,8 @@ from types import MappingProxyType
 
 version_match = re_compile(r'^(\d+)\.(\d+)\.(\d+)((?:a|b|rc)(\d+)|\.(dev|post)(\d+))?$').match
 
-__version__ = '1.10.4'
-__date__ = '27 January 2026, 11:50 UTC+7'
+__version__ = '1.11.0'
+__date__ = '1 February 2026, 20:00 UTC+7'
 
 version = f'{__version__} ({__date__})'
 

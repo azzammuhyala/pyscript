@@ -105,7 +105,7 @@ class BFInterpreter {
 
         self._tokenIndex += 1
 
-        switch character {
+        switch (character) {
 
             case '>':
                 self.point += 1

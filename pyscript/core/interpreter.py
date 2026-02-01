@@ -463,7 +463,7 @@ def visit_ImportNode(node, context):
             handle_call(require, context, name_position)
             try:
                 module = require(name_module)
-            except ImportError:
+            except ModuleNotFoundError:
                 use_python_package = True
 
         if use_python_package:
@@ -666,6 +666,7 @@ def visit_TryNode(node, context):
     result = PysRunTimeResult()
 
     register = result.register
+    failure = result.failure
     should_return = result.should_return
     body = node.body
     else_body = node.else_body
@@ -676,7 +677,8 @@ def visit_TryNode(node, context):
 
     if error:
         exception = error.exception
-        result.failure(None)
+
+        failure(None)
 
         for (targets, tparameter), body in node.catch_cases:
             handle_exception = True
@@ -693,7 +695,7 @@ def visit_TryNode(node, context):
                         break
 
                     if not (isinstance(error_class, type) and issubclass(error_class, BaseException)):
-                        result.failure(
+                        failure(
                             PysTraceback(
                                 TypeError("catching classes that do not inherit from BaseException is not allowed"),
                                 context,
@@ -715,7 +717,7 @@ def visit_TryNode(node, context):
 
                 if tparameter:
                     with result(context, position := tparameter.position):
-                        context.symbol_table.set(parameter := tparameter.value, error.exception)
+                        (symbol_table := context.symbol_table).set(parameter := tparameter.value, error.exception)
                     if should_return():
                         return
 
@@ -725,14 +727,14 @@ def visit_TryNode(node, context):
 
                 if tparameter:
                     with result(context, position):
-                        context.symbol_table.remove(parameter)
+                        symbol_table.remove(parameter)
                     if should_return():
                         return
 
                 break
 
         else:
-            result.failure(error)
+            failure(error)
 
     elif else_body:
         register(get_visitor(else_body.__class__)(else_body, context))
@@ -756,6 +758,7 @@ def visit_WithNode(node, context):
     exits = []
 
     register = result.register
+    failure = result.failure
     should_return = result.should_return
     append = exits.append
     set_symbol = context.symbol_table.set
@@ -763,7 +766,7 @@ def visit_WithNode(node, context):
     for ncontext, nalias in node.contexts:
         context_value = register(get_visitor(ncontext.__class__)(ncontext, context))
         if should_return():
-            return result
+            break
 
         ncontext_position = ncontext.position
 
@@ -784,37 +787,39 @@ def visit_WithNode(node, context):
                 elif missed_exit:
                     message += " (missed __exit__ method)"
 
-                return result.failure(
+                result.failure(
                     PysTraceback(
                         TypeError(message),
                         context,
                         ncontext_position
                     )
                 )
+                break
 
             handle_call(enter, context, ncontext_position)
             enter_value = enter()
             append((exit, ncontext_position))
 
         if should_return():
-            return result
+            break
 
         if nalias:
             with result(context, nalias.position):
                 set_symbol(nalias.value, enter_value)
             if should_return():
-                return result
+                break
 
-    body = node.body
+    if not should_return():
+        body = node.body
+        register(get_visitor(body.__class__)(body, context))
 
-    register(get_visitor(body.__class__)(body, context))
     error = result.error
 
-    for exit, ncontext_position in exits:
+    for exit, ncontext_position in reversed(exits):
         with result(context, ncontext_position):
             handle_call(exit, context, ncontext_position)
             if exit(*get_error_args(error)):
-                result.failure(None)
+                failure(None)
                 error = None
 
     if should_return():
@@ -832,7 +837,7 @@ def visit_ForNode(node, context):
     nheader = node.header
     nheader_length = len(nheader)
     body = node.body
-    body_cls = body.__class__
+    body_class = body.__class__
     else_body = node.else_body
 
     if nheader_length == 2:
@@ -875,10 +880,10 @@ def visit_ForNode(node, context):
                 return result
 
         if ncondition:
-            ncondition_cls = ncondition.__class__
+            ncondition_class = ncondition.__class__
             ncondition_position = ncondition.position
             def condition():
-                value = register(get_visitor(ncondition_cls)(ncondition, context))
+                value = register(get_visitor(ncondition_class)(ncondition, context))
                 if should_return():
                     return False
                 with result(context, ncondition_position):
@@ -889,9 +894,9 @@ def visit_ForNode(node, context):
                 return True
 
         if nupdate:
-            nupdate_cls = nupdate.__class__
+            nupdate_class = nupdate.__class__
             def update():
-                register(get_visitor(nupdate_cls)(nupdate, context))
+                register(get_visitor(nupdate_class)(nupdate, context))
 
         else:
             def update():
@@ -905,7 +910,7 @@ def visit_ForNode(node, context):
         if not done:
             break
 
-        register(get_visitor(body_cls)(body, context))
+        register(get_visitor(body_class)(body, context))
         if should_return() and not result.should_continue and not result.should_break:
             return result
 
@@ -935,14 +940,14 @@ def visit_WhileNode(node, context):
     register = result.register
     should_return = result.should_return
     ncondition = node.condition
-    ncondition_cls = ncondition.__class__
+    ncondition_class = ncondition.__class__
     ncondition_position = ncondition.position
     body = node.body
-    body_cls = body.__class__
+    body_class = body.__class__
     else_body = node.else_body
 
     while True:
-        condition = register(get_visitor(ncondition_cls)(ncondition, context))
+        condition = register(get_visitor(ncondition_class)(ncondition, context))
         if should_return():
             return result
 
@@ -953,7 +958,7 @@ def visit_WhileNode(node, context):
         if should_return():
             return result
 
-        register(get_visitor(body_cls)(body, context))
+        register(get_visitor(body_class)(body, context))
         if should_return() and not result.should_continue and not result.should_break:
             return result
 
@@ -979,14 +984,14 @@ def visit_DoWhileNode(node, context):
     register = result.register
     should_return = result.should_return
     ncondition = node.condition
-    ncondition_cls = ncondition.__class__
+    ncondition_class = ncondition.__class__
     ncondition_position = ncondition.position
     body = node.body
-    body_cls = body.__class__
+    body_class = body.__class__
     else_body = node.else_body
 
     while True:
-        register(get_visitor(body_cls)(body, context))
+        register(get_visitor(body_class)(body, context))
         if should_return() and not result.should_continue and not result.should_break:
             return result
 
@@ -996,7 +1001,7 @@ def visit_DoWhileNode(node, context):
         elif result.should_break:
             break
 
-        condition = register(get_visitor(ncondition_cls)(ncondition, context))
+        condition = register(get_visitor(ncondition_class)(ncondition, context))
         if should_return():
             return result
 
@@ -1023,14 +1028,14 @@ def visit_RepeatNode(node, context):
     register = result.register
     should_return = result.should_return
     ncondition = node.condition
-    ncondition_cls = ncondition.__class__
+    ncondition_class = ncondition.__class__
     ncondition_position = ncondition.position
     body = node.body
-    body_cls = body.__class__
+    body_class = body.__class__
     else_body = node.else_body
 
     while True:
-        register(get_visitor(body_cls)(body, context))
+        register(get_visitor(body_class)(body, context))
         if should_return() and not result.should_continue and not result.should_break:
             return result
 
@@ -1040,7 +1045,7 @@ def visit_RepeatNode(node, context):
         elif result.should_break:
             break
 
-        condition = register(get_visitor(ncondition_cls)(ncondition, context))
+        condition = register(get_visitor(ncondition_class)(ncondition, context))
         if should_return():
             return result
 

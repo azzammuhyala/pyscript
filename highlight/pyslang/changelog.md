@@ -1,9 +1,10 @@
 # Change Log
 
-## [1.2.5] - 27/01/2026
+## [1.3.0] - 01/02/2026
 
 ### Added
-- Keyword `typeof` (added in PyScript 1.10.4).
+- Builtin functions `copyright()` and `credits()` (added in PyScript 1.11.0).
+- Additional captures patterns on number literal.
 
 ### Fixed
 - Fixed some bugs.

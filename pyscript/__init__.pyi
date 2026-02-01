@@ -43,8 +43,8 @@ def pys_highlight(
         Callable[
             [
                 str | Literal[
-                    'start', 'invalid', 'identifier', 'identifier-constant', 'identifier-function', 'identifier-type',
-                    'keyword', 'keyword-constant', 'number', 'string', 'comment', 'newline', 'default', 'end'
+                    'start', 'default', 'newline', 'keyword', 'keyword-constant', 'identifier', 'identifier-constant',
+                    'identifier-function', 'identifier-type', 'number', 'string', 'comment', 'invalid', 'end'
                 ],
                 PysPosition,
                 str

@@ -3,13 +3,16 @@
     "publisher": "AzzamMuhyala",
     "displayName": "PyScript - PysLang",
     "description": "Simple syntax highlights for PyScript (Programming Language)",
-    "version": "1.2.5",
+    "version": "1.3.0",
     "icon": "./icons/PyScript.png",
     "engines": {
         "vscode": "^1.0.0"
     },
     "categories": [
         "Programming Languages"
+    ],
+    "keywords": [
+        "pyscript", "pyslang", "pys", "programming", "language", "programming language", "snippets", "highlight"
     ],
     "repository": {
         "type": "git",

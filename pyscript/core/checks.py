@@ -19,6 +19,7 @@ is_unpack_assignment = frozenset([
 ]).__contains__
 
 is_keyword = frozenset(KEYWORDS).__contains__
+is_constant_keywords = frozenset(CONSTANT_KEYWORDS).__contains__
 
 is_python_extensions = frozenset([
     '.py', '.ipy', '.pyc', '.pyd', '.pyi', '.pyo', '.pyp', '.pyw', '.pyz', '.rpy', '.xpy', '.pyproj'
@@ -36,8 +37,6 @@ is_blacklist_python_builtins = frozenset([
 is_left_bracket = frozenset(BRACKETS_MAP.keys()).__contains__
 is_right_bracket = frozenset(BRACKETS_MAP.values()).__contains__
 is_bracket = frozenset(BRACKETS_MAP.keys() | BRACKETS_MAP.values()).__contains__
-
-is_constant_keywords = frozenset(CONSTANT_KEYWORDS).__contains__
 
 is_private_attribute = lambda name : name.startswith('_') if isinstance(name, str) else name
 is_public_attribute = lambda name : not name.startswith('_') if isinstance(name, str) else name

@@ -37,7 +37,7 @@ class PysHook(Pys):
     def __new_singleton__(cls) -> 'PysHook':
         global hook
         hook = super(cls, cls).__new__(cls)
-        hook.argv = []
+        hook.argv = ['']
         hook.running_shell = False
         hook.running_breakpoint = False
         hook.display = print_display

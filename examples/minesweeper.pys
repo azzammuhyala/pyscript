@@ -1,8 +1,9 @@
 # check for PyScript version (must be 1.8.1+)!
 import sys
 
-if sys.version_info < (1, 8, 1)
+if (sys.version_info < (1, 8, 1)) {
     throw RuntimeError("this minesweeper only works on PyScript 1.8.1+")
+}
 
 import random  # randomizing bomb placement
 import ansi    # coloring on the terminal
@@ -41,10 +42,11 @@ ANSI_CELL_COLORS[11] = ansi.acolor(CELL_COLORS[10], style=ansi.BACKGROUND | ansi
 sys.setrecursionlimit(RECURSION_LIMIT)
 
 # clear up screen
-if (os.name == 'nt')
+if (os.name == 'nt') {
     func clear() => os.system('cls')
-else
+} else {
     func clear() => os.system('clear')
+}
 
 class MineSweeper {
 
@@ -328,7 +330,7 @@ class MineSweeper {
 
     # gets the position and set it as a flag on user input
     func getPositionByUser(self) {
-        while true {
+        while (true) {
             result = input('Choose location (col row): ').strip()
 
             if (result == 'c') {
@@ -431,9 +433,11 @@ class MineSweeper {
 
 # wrap function
 
-func playMineSweeper(cellSize=CELL_SIZE, bombsCount=BOMBS_COUNT)
+func playMineSweeper(cellSize=CELL_SIZE, bombsCount=BOMBS_COUNT) {
     MineSweeper(cellSize, bombsCount).main()
+}
 
 # run the game
-if (__name__ == '__main__')
+if (__name__ == '__main__') {
     playMineSweeper()
+}

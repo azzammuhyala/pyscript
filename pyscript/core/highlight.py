@@ -1,6 +1,6 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
-from .checks import is_left_bracket, is_right_bracket, is_bracket, is_constant_keywords, is_public_attribute
+from .checks import is_constant_keywords, is_left_bracket, is_bracket, is_public_attribute
 from .constants import TOKENS, KEYWORDS, CONSTANT_KEYWORDS, HIGHLIGHT
 from .lexer import PysLexer
 from .mapping import BRACKETS_MAP
@@ -8,6 +8,7 @@ from .position import PysPosition
 from .pysbuiltins import pys_builtins
 from .utils.ansi import acolor
 from .utils.decorators import typechecked
+from .utils.string import normstr
 
 from html import escape as html_escape
 from types import MappingProxyType
@@ -49,16 +50,15 @@ try:
     from pygments.token import Comment, Error, Escape, Keyword, Name, Number, Operator, Punctuation, String, Whitespace
     from pygments.unistring import xid_start, xid_continue
 
-    _set_keywords = frozenset(KEYWORDS)
     _set_constant_keywords = frozenset(CONSTANT_KEYWORDS)
-    _set_keyword_definitions = frozenset(['class', 'def', 'define', 'func', 'function'])
-
-    _keywords = '|'.join(_set_keywords)
     _unicode_name = f'[{xid_start}][{xid_continue}]*'
-    _dollar_prefix = r'(?:\$(?:[^\S\r\n]*))?'
-    _raw_string_prefixes = r'((?:R|r|BR|RB|Br|rB|Rb|bR|br|rb))'
-    _string_prefixes = r'((?:B|b)?)'
     _newlines = r'\r\n|\r|\n'
+    _integer = r'[0-9](?:_?[0-9])*'
+    _scientific = f'(?:[eE][+-]?{_integer})'
+    _imaginary = r'[jJiI]?'
+    _dollar = r'(?:\$(?:[^\S\r\n]*))?'
+    _raw_string_prefixes = r'((?:R|r|BR|RB|Br|rB|Rb|bR|br|rb))'
+    _string_or_bytes_prefixes = r'((?:B|b)?)'
 
     class PygmentsPyScriptStyle(Pys, Style):
 
@@ -79,6 +79,7 @@ try:
             Name.Function: HIGHLIGHT_MAP['identifier-function'],
             Name.Class: HIGHLIGHT_MAP['identifier-type'],
             Number: HIGHLIGHT_MAP['number'],
+            Number.Affix: '#1F52B3',
             String: HIGHLIGHT_MAP['string'],
             String.Affix: '#1F52B3',
             String.Escape: '#D7BA71',
@@ -107,10 +108,6 @@ try:
         tokens = {
 
             'root': [
-                # Keywords
-                (rf'\b({"|".join(_set_keywords ^ _set_constant_keywords)})\b', Keyword),
-                (rf'\b({"|".join(_set_constant_keywords ^ _set_keyword_definitions)})\b', Keyword.Constant),
-
                 # Strings
                 (
                     _raw_string_prefixes + r"(''')", 
@@ -123,12 +120,12 @@ try:
                     'raw-string-quotation-triple'
                 ),
                 (
-                    _string_prefixes + r"(''')", 
+                    _string_or_bytes_prefixes + r"(''')", 
                     bygroups(String.Affix, String.Delimiter), 
                     'string-apostrophe-triple'
                 ),
                 (
-                    _string_prefixes + r'(""")', 
+                    _string_or_bytes_prefixes + r'(""")', 
                     bygroups(String.Affix, String.Delimiter), 
                     'string-quotation-triple'
                 ),
@@ -143,37 +140,40 @@ try:
                     'raw-string-quotation-single'
                 ),
                 (
-                    _string_prefixes + r"(')", 
+                    _string_or_bytes_prefixes + r"(')", 
                     bygroups(String.Affix, String.Delimiter), 
                     'string-apostrophe-single'
                 ),
                 (
-                    _string_prefixes + r'(")', 
+                    _string_or_bytes_prefixes + r'(")', 
                     bygroups(String.Affix, String.Delimiter), 
                     'string-quotation-single'
                 ),
 
                 # Numbers
                 (
-                    r'0[bB][01](_?[01])*[jJiI]?',
-                    Number.Bin
+                    rf'(0[bB])([01](?:_?[01])*)({_imaginary})',
+                    bygroups(Number.Affix, Number.Bin, Number.Affix)
                 ),
                 (
-                    r'0[oO][0-7](_?[0-7])*[jJiI]?',
-                    Number.Oct
+                    rf'(0[oO])([0-7](?:_?[0-7])*)({_imaginary})',
+                    bygroups(Number.Affix, Number.Oct, Number.Affix)
                 ),
                 (
-                    r'0[xX][0-9a-fA-F](_?[0-9a-fA-F])*[jJiI]?',
-                    Number.Hex
+                    rf'(0[xX])([0-9a-fA-F](?:_?[0-9a-fA-F])*)({_imaginary})',
+                    bygroups(Number.Affix, Number.Hex, Number.Affix)
                 ),
                 (
-                    r'((?:[0-9](_?[0-9])*)?\.[0-9](_?[0-9])*|[0-9](_?[0-9])*\.)([eE][+-]?[0-9](_?[0-9])*)?[jJiI]?|[0-9]'
-                    r'(_?[0-9])*([eE][+-]?[0-9](_?[0-9])*)[jJiI]?',
-                    Number.Float
+                    rf'((?:(?:{_integer})?\.{_integer}|{_integer}\.){_scientific}?)({_imaginary})',
+                    bygroups(Number.Float, Number.Affix)
                 ),
                 (
-                    r'[0-9](_?[0-9])*[jJiI]?',
-                    Number.Integer
+                    rf'({_integer}{_scientific})({_imaginary})',
+                    bygroups(Number.Float, Number.Affix)
+                ),
+                (
+                    rf'({_integer})({_imaginary})',
+                    bygroups(Number.Integer, Number.Affix)
                 ),
 
                 # Comments
@@ -181,57 +181,49 @@ try:
 
                 # Class definition
                 (
-                    rf'\b(class)\b(\s+)(?!{_keywords})({_dollar_prefix}{_unicode_name})\b',
+                    rf'\b(class)\b(\s+)({_dollar}{_unicode_name})\b',
                     bygroups(Keyword.Constant, Whitespace, Name.Class)
                 ),
 
                 # Function definition
                 (
-                    rf'\b(def|define|func|function)\b(\s+)(?!{_keywords})({_dollar_prefix}{_unicode_name})\b',
+                    rf'\b(def|define|func|function)\b(\s+)({_dollar}{_unicode_name})\b',
                     bygroups(Keyword.Constant, Whitespace, Name.Function)
                 ),
 
-                # Keywords (if that definitions is unmatched)
-                (rf'\b({"|".join(_set_keyword_definitions)})\b', Keyword.Constant),
+                # Keywords
+                (rf'\b({"|".join(frozenset(KEYWORDS) ^ _set_constant_keywords)})\b', Keyword),
+                (rf'\b({"|".join(_set_constant_keywords)})\b', Keyword.Constant),
 
                 # Built-in types and exceptions
-                (
-                    rf'{_dollar_prefix}\b(?:{"|".join(_builtin_types)})\b',
-                    Name.Class.Builtin
-                ),
+                (rf'{_dollar}\b(?:{"|".join(_builtin_types)})\b', Name.Class.Builtin),
 
                 # Built-in functions
-                (
-                    rf'{_dollar_prefix}\b(?:{"|".join(_builtin_functions)})\b',
-                    Name.Function.Builtin
-                ),
+                (rf'{_dollar}\b(?:{"|".join(_builtin_functions)})\b', Name.Function.Builtin),
 
                 # Function calls
-                (
-                    rf'{_dollar_prefix}\b{_unicode_name}\b(?=\s*\()',
-                    Name.Function
-                ),
+                (rf'{_dollar}\b{_unicode_name}\b(?=\s*\()', Name.Function),
 
                 # Constants
-                (rf'{_dollar_prefix}\b(?:[A-Z_]*[A-Z][A-Z0-9_]*)\b', Name.Constant),
+                (rf'{_dollar}\b(?:[A-Z_]*[A-Z][A-Z0-9_]*)\b', Name.Constant),
 
                 # Variables
-                (rf'{_dollar_prefix}\b{_unicode_name}\b', Name.Variable),
-
-                # Whitespaces
-                (r'\s+', Whitespace),
+                (rf'{_dollar}\b{_unicode_name}\b', Name.Variable),
 
                 # Punctuation and operators
                 (rf'[\(\),;\[\]{{}}]|\\(?:{_newlines})', Punctuation),
                 (r'\.\.\.', Keyword.Constant),
                 (
-                    r'[!%&\*\+\-\./:<=>\?@^\|~]|&&|\*\*|\+\+|--|//|<<|==|>>|\?\?|\|\||!=|%=|&=|\*=|\+=|-=|/=|:=|<=|>=|'
-                    r'@=|^=|\|=|~=|\*\*=|//=|<<=|>>=|->|=>|!>|~!', Operator
+                    r'&&|\*\*|\+\+|--|//|<<|==|>>|\?\?|\|\||!=|%=|&=|\*=|\+=|-=|/=|:=|<=|>=|@=|^=|\|=|~=|\*\*=|//=|<<=|'
+                    r'>>=|->|=>|!>|~!|[!%&\*\+\-\./:<=>\?@^\|~]', Operator
                 ),
+
+                # Whitespaces
+                (r'\s+', Whitespace),
 
                 # Invalid tokens
                 (r'\\.', Error),
-                (r'\$(?:[^\S\r\n]*)(.?)', Error)
+                (r'\$(?:[^\S\r\n]*).?', Error)
             ],
 
             'code-tags': [
@@ -314,8 +306,8 @@ try:
         }
 
     del (
-        _set_keywords, _set_constant_keywords, _set_keyword_definitions, _keywords, _unicode_name, _dollar_prefix,
-        _raw_string_prefixes, _string_prefixes, _newlines
+        _set_constant_keywords, _unicode_name, _newlines, _integer, _scientific, _imaginary, _dollar,
+        _raw_string_prefixes, _string_or_bytes_prefixes, 
     )
 
 except ImportError as e:
@@ -373,19 +365,19 @@ def _ansi_open_block(position, type):
     return acolor(int(color[i:i+2], 16) for i in range(1, 6, 2))
 
 HLFMT_HTML = _PysHighlightFormatter(
-    lambda position, content: html_escape(content).replace('\n', '<br>'),
+    lambda position, content: normstr(html_escape(content)).replace('\n', '<br>'),
     lambda position, type: f'<span style="color:{HIGHLIGHT_MAP.get(type, HIGHLIGHT_MAP["default"])}">',
     lambda position, type: '</span>',
 )
 
 HLFMT_ANSI = _PysHighlightFormatter(
-    lambda position, content: content,
+    lambda position, content: normstr(content),
     _ansi_open_block,
     lambda position, type: '\x1b[0m',
 )
 
 HLFMT_BBCODE = _PysHighlightFormatter(
-    lambda position, content: content,
+    lambda position, content: normstr(content),
     lambda position, type: f'[color={HIGHLIGHT_MAP.get(type, HIGHLIGHT_MAP["default"])}]',
     lambda position, type: '[/color]',
 )
@@ -405,7 +397,7 @@ def pys_highlight(
 
     - format : A function to format the code form.
 
-    - max_bracket_level : Maximum difference level of parentheses (with circular indexing).
+    - max_bracket_level : Maximum difference level of brackets (with circular indexing).
     """
 
     file = PysFileBuffer(source)
@@ -426,20 +418,11 @@ def pys_highlight(
     text = file.text
     result = ''
     last_index_position = 0
-    bracket_level = 0
-    brackets_level = {
-        TOKENS['RIGHT-PARENTHESIS']: 0,
-        TOKENS['RIGHT-SQUARE']: 0,
-        TOKENS['RIGHT-CURLY']: 0
-    }
+    brackets_stack = []
 
     for i, token in enumerate(tokens):
         ttype = token.type
         tvalue = token.value
-
-        if is_right_bracket(ttype):
-            brackets_level[ttype] -= 1
-            bracket_level -= 1
 
         if ttype == TOKENS['NULL']:
             type_fmt = 'end'
@@ -481,14 +464,13 @@ def pys_highlight(
             type_fmt = 'comment'
 
         elif is_bracket(ttype):
-            type_fmt = (
-                'invalid'
-                if
-                    brackets_level[BRACKETS_MAP.get(ttype, ttype)] < 0 or
-                    bracket_level < 0
-                else
-                f'brackets-{bracket_level % max_bracket_level}'
-            )
+            type_fmt = f'brackets-{len(brackets_stack) % max_bracket_level}'
+            if is_left_bracket(ttype):
+                brackets_stack.append(ttype)
+            elif not (brackets_stack and BRACKETS_MAP[brackets_stack.pop()] == ttype):
+                type_fmt = 'invalid'
+            else:
+                type_fmt = f'brackets-{len(brackets_stack) % max_bracket_level}'
 
         elif ttype == TOKENS['NONE']:
             type_fmt = 'invalid'
@@ -496,17 +478,11 @@ def pys_highlight(
         else:
             type_fmt = 'default'
 
-        space = text[last_index_position:token.position.start]
-        if space:
+        if space := text[last_index_position:token.position.start]:
             result += format('default', PysPosition(file, last_index_position, token.position.start), space)
-
         result += format(type_fmt, token.position, text[token.position.start:token.position.end])
 
-        if is_left_bracket(ttype):
-            brackets_level[BRACKETS_MAP[ttype]] += 1
-            bracket_level += 1
-
-        elif ttype == TOKENS['NULL']:
+        if ttype == TOKENS['NULL']:
             break
 
         last_index_position = token.position.end

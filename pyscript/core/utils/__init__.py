@@ -6,7 +6,6 @@ from . import (
     jsdict,
     module,
     path,
-    shell,
     similarity,
     string
 )
@@ -19,7 +18,6 @@ __all__ = (
     'jsdict',
     'module',
     'path',
-    'shell',
     'similarity',
     'string'
 )

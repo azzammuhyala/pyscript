@@ -18,11 +18,8 @@ class PysToken(Pys):
         setimuattr(self, 'value', value)
 
     def __repr__(self) -> str:
-        value = self.value
-        return 'Token({}{})'.format(
-            REVERSE_TOKENS.get(self.type, '<UNKNOWN>'),
-            '' if value is None else f', value={value!r}'
-        )
+        value = '' if self.value is None else f', {self.value!r}'
+        return f'Token({REVERSE_TOKENS.get(self.type, "<UNKNOWN>")}{value})'
 
     def match(self, type: int, *values: Any) -> bool:
         return self.type == type and self.value in values

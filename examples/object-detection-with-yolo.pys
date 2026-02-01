@@ -10,14 +10,14 @@ print("Loading for YOLO model...")
 model = YOLO(MODEL_WEIGHTS)
 
 cap = cv2.VideoCapture(VIDEO_SOURCE)
-if not cap.isOpened() {
-    print("Error: Could not open the video")
+if (not cap.isOpened()) {
+    print('Error: Could not open the video capture')
     sys.exit(1)
 }
 
-while true {
+while (true) {
     success, frame = cap.read()
-    if not success
+    if (not success)
         break
 
     results = model.predict(
@@ -27,16 +27,17 @@ while true {
         verbose=false
     )
 
-    for r of results {
+    for (r of results) {
         annotated = r.plot()
-        cv2.imshow("Object Detection", annotated)
+        cv2.imshow('Object Detection', annotated)
     }
 
     key = cv2.waitKey(1) & 0xFF
-    if key == ord('q') or key == 27
+    if (key == ord('q') or key == 27)
         break
 }
 
 cap.release()
 cv2.destroyAllWindows()
-print("close")
+
+print('App closed')

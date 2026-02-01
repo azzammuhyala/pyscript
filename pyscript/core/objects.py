@@ -111,17 +111,12 @@ class PysFunction(PysObject):
 
             elif name not in code_parameter_names:
                 closest_argument = get_closest(set(code_parameter_names), name)
+                hint_message = "" if closest_argument is None else f". Did you mean {closest_argument!r}?"
 
                 raise PysSignal(
                     result.failure(
                         PysTraceback(
-                            TypeError(
-                                "{}() got an unexpected keyword argument {!r}{}".format(
-                                    qualname,
-                                    name,
-                                    '' if closest_argument is None else f". Did you mean {closest_argument!r}?"
-                                )
-                            ),
+                            TypeError(f"{qualname}() got an unexpected keyword argument {name!r}{hint_message}"),
                             code_context,
                             code_position
                         )
@@ -141,12 +136,8 @@ class PysFunction(PysObject):
                 result.failure(
                     PysTraceback(
                         TypeError(
-                            "{}() missing {} required positional argument{}: {}".format(
-                                qualname,
-                                total_missing,
-                                '' if total_missing == 1 else 's',
-                                join(missing_arguments, conjunction='and')
-                            )
+                            f"{qualname}() missing {total_missing} required positional argument"
+                            f"{'' if total_missing == 1 else 's'}: {join(missing_arguments, conjunction='and')}"
                         ),
                         code_context,
                         code_position
@@ -163,12 +154,8 @@ class PysFunction(PysObject):
                         TypeError(
                             f"{qualname}() takes no arguments ({given_arguments} given)"
                             if code_parameters_length == 0 else
-                            "{}() takes {} positional argument{} but {} were given".format(
-                                qualname,
-                                code_parameters_length,
-                                '' if code_parameters_length == 1 else 's',
-                                given_arguments
-                            )
+                            f"{qualname}() takes {code_parameters_length} positional argument"
+                            f"{'' if code_parameters_length == 1 else 's'} but {given_arguments} were given"
                         ),
                         code_context,
                         code_position

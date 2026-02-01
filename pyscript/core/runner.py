@@ -12,10 +12,10 @@ from .parser import PysParser
 from .position import PysPosition
 from .pysbuiltins import require
 from .results import PysRunTimeResult, PysExecuteResult
+from .shell import PysCommandLineShell
 from .symtab import PysSymbolTable, new_symbol_table
 from .utils.decorators import _TYPECHECK, typechecked
 from .utils.generic import get_frame, get_locals, import_readline
-from .utils.shell import PysCommandLineShell
 from .version import version
 
 from types import ModuleType
@@ -23,15 +23,15 @@ from typing import Any, Literal, Optional
 
 import sys
 
-def _normalize_globals(file, globals):
-    if globals is None:
+def _normalize_namespace(file, namespace):
+    if namespace is None:
         symtab, _ = new_symbol_table(symbols=get_locals(3 if _TYPECHECK else 2))
-    elif globals is undefined:
+    elif namespace is undefined:
         symtab, _ = new_symbol_table(file=file.name, name='__main__')
-    elif isinstance(globals, dict):
-        symtab, _ = new_symbol_table(symbols=globals)
+    elif isinstance(namespace, dict):
+        symtab, _ = new_symbol_table(symbols=namespace)
     else:
-        symtab = globals
+        symtab = namespace
     return symtab
 
 @typechecked
@@ -52,8 +52,8 @@ def pys_runner(
     ----------
     - file : Buffer object from PysFileBuffer (`pyscript.core.buffer.PysFileBuffer`).
 
-    - mode : Complication and execution mode. 'exec' to compile a whole code block, 'eval' to compile a single \
-             expression. 'single' is typically used for interactive shells (prints the result value, compile within a \
+    - mode : Complication and execution mode. 'exec' to compile a whole code block, 'eval' to compile a single
+             expression. 'single' is typically used for interactive shells (prints the result value, compile within a
              whole code block or expression).
 
     - symbol_table : Symbol table scope (`pyscript.core.symtab.PysSymbolTable`).
@@ -62,10 +62,10 @@ def pys_runner(
 
     - parser_flags : A special parser flag.
 
-    - context_parent : The parent context object, useful for linking tracebacks (context_parent_entry_position is \
+    - context_parent : The parent context object, useful for linking tracebacks (context_parent_entry_position is
                        required).
 
-    - context_parent_entry_position : The last parent position object, useful for specifying the row and column \
+    - context_parent_entry_position : The last parent position object, useful for specifying the row and column
                                       sections in the traceback (context_parent is required).
     """
 
@@ -160,8 +160,8 @@ def pys_exec(
     ----------
     - source : A valid PyScript source code.
 
-    - globals : A namespace dictionary or symbol table that can be accessed. \
-                If it is None, it uses the current global namespace at the Python level. \
+    - globals : A namespace dictionary or symbol table that can be accessed.
+                If it is None, it uses the current global namespace at the Python level.
                 If it is undefined, it creates a new default PyScript namespace.
 
     - flags : A special flags.
@@ -174,7 +174,7 @@ def pys_exec(
     result = pys_runner(
         file=file,
         mode='exec',
-        symbol_table=_normalize_globals(file, globals),
+        symbol_table=_normalize_namespace(file, globals),
         flags=flags,
         parser_flags=parser_flags
     )
@@ -200,8 +200,8 @@ def pys_eval(
     ----------
     - source : A valid PyScript (Expression) source code.
 
-    - globals : A namespace dictionary or symbol table that can be accessed. \
-                If it is None, it uses the current global namespace at the Python level. \
+    - globals : A namespace dictionary or symbol table that can be accessed.
+                If it is None, it uses the current global namespace at the Python level.
                 If it is undefined, it creates a new default PyScript namespace.
 
     - flags : A special flags.
@@ -214,7 +214,7 @@ def pys_eval(
     result = pys_runner(
         file=file,
         mode='eval',
-        symbol_table=_normalize_globals(file, globals),
+        symbol_table=_normalize_namespace(file, globals),
         flags=flags,
         parser_flags=parser_flags
     )
@@ -256,8 +256,8 @@ def pys_shell(
 
     Parameters
     ----------
-    - globals : A namespace dictionary or symbol table that can be accessed. \
-                If it is None, it uses the current global namespace at the Python level. \
+    - globals : A namespace dictionary or symbol table that can be accessed.
+                If it is None, it uses the current global namespace at the Python level.
                 If it is undefined, it creates a new default PyScript namespace.
 
     - flags : A special flags.
@@ -269,7 +269,7 @@ def pys_shell(
         raise RuntimeError("another shell is still running")
 
     file = PysFileBuffer('', '<pyscript-shell>')
-    symtab = _normalize_globals(file, globals)
+    symtab = _normalize_namespace(file, globals)
     shell = PysCommandLineShell()
     line = 0
 
@@ -285,7 +285,8 @@ def pys_shell(
     if not (flags & DONT_SHOW_BANNER_ON_SHELL):
         print(f'PyScript {version}')
         print(f'Python {sys.version}')
-        print('Type "help" or "license" for more information; Type "exit" or "/exit" to exit the shell')
+        print('Type "help", "copyright", "credits" or "license" for more information.')
+        print('Type "quit", "exit" or "/exit" to exit the shell.')
 
     try:
         hook.running_shell = True
@@ -296,7 +297,7 @@ def pys_shell(
                 shell.ps1 = f'{bmagenta}{hook.ps1}{reset}'
                 shell.ps2 = f'{bmagenta}{hook.ps2}{reset}'
 
-                text = shell.input()
+                text = shell.prompt()
                 if text == 0:
                     return 0
 

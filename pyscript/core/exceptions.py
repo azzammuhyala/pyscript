@@ -37,7 +37,7 @@ class PysTraceback(Pys):
     def string_traceback(self) -> str:
         # circular import problem solved
         from .mapping import ACOLORS
-        from .position import format_arrow
+        from .position import format_error_arrow
 
         context = self.context
         position = self.position
@@ -61,7 +61,7 @@ class PysTraceback(Pys):
                 f'  File {magenta}"{position.file.name}"{reset}' +
                 ('' if is_positionless else f', line {magenta}{position.start_line}{reset}') + 
                 ('' if context_name is None else f', in {magenta}{context_name}{reset}') +
-                ('' if is_positionless else f'\n{indent(format_arrow(position, colored), 4)}')
+                ('' if is_positionless else f'\n{indent(format_error_arrow(position, colored), 4)}')
             )
 
             position = context.parent_entry_position

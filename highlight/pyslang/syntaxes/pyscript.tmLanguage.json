@@ -4,7 +4,6 @@
     "scopeName": "source.pyscript",
 
     "patterns": [
-        {"include": "#keywords"},
         {"include": "#strings"},
         {"include": "#numbers"},
         {"include": "#comments"},
@@ -13,28 +12,6 @@
     ],
 
     "repository": {
-
-        "keywords": {
-            "patterns": [
-                {
-                    "name": "keyword.control",
-                    "match": "\\b(as|assert|break|case|catch|continue|default|del|delete|do|elif|else|except|finally|for|from|if|import|match|raise|repeat|return|switch|throw|try|until|while|with)\\b"
-                },
-                {
-                    "name": "constant.language",
-                    "match": "\\b(__debug__|False|None|True|and|constructor|extends|false|global|in|is|not|nil|none|null|of|or|true|typeof)\\b"
-                }
-            ]
-        },
-
-        "code-tags": {
-            "patterns": [
-                {
-                    "name": "keyword.codetag.notation",
-                    "match": "\\b(BUG|FIXME|HACK|NOTE|TODO|XXX)\\b"
-                }
-            ]
-        },
 
         "strings": {
             "patterns": [
@@ -105,6 +82,152 @@
             ]
         },
 
+        "numbers": {
+            "patterns": [
+                {
+                    "name": "constant.numeric.bin",
+                    "match": "(0[bB])[01](?:_?[01])*([jJiI]?)",
+                    "captures": {
+                        "1": {"name": "storage.type.number"},
+                        "2": {"name": "storage.type.imaginary.number"}
+                    }
+                },
+                {
+                    "name": "constant.numeric.oct",
+                    "match": "(0[oO])[0-7](?:_?[0-7])*([jJiI]?)",
+                    "captures": {
+                        "1": {"name": "storage.type.number"},
+                        "2": {"name": "storage.type.imaginary.number"}
+                    }
+                },
+                {
+                    "name": "constant.numeric.hex",
+                    "match": "(0[xX])[0-9a-fA-F](?:_?[0-9a-fA-F])*([jJiI]?)",
+                    "captures": {
+                        "1": {"name": "storage.type.number"},
+                        "2": {"name": "storage.type.imaginary.number"}
+                    }
+                },
+                {
+                    "name": "constant.numeric.float",
+                    "match": "(?:(?:[0-9](?:_?[0-9])*)?\\.[0-9](?:_?[0-9])*|[0-9](?:_?[0-9])*\\.)(?:[eE][+-]?[0-9](?:_?[0-9])*)?([jJiI]?)",
+                    "captures": {
+                        "1": {"name": "storage.type.imaginary.number"}
+                    }
+                },
+                {
+                    "name": "constant.numeric.float",
+                    "match": "[0-9](?:_?[0-9])*(?:[eE][+-]?[0-9](?:_?[0-9])*)([jJiI]?)",
+                    "captures": {
+                        "1": {"name": "storage.type.imaginary.number"}
+                    }
+                },
+                {
+                    "name": "constant.numeric.integer",
+                    "match": "[0-9](?:_?[0-9])*([jJiI]?)",
+                    "captures": {
+                        "1": {"name": "storage.type.imaginary.number"}
+                    }
+                }
+            ]
+        },
+
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.line",
+                    "begin": "#",
+                    "end": "$",
+                    "patterns": [
+                        {"include": "#code-tags"}
+                    ]
+                }
+            ]
+        },
+
+        "identifiers": {
+            "patterns": [
+                {
+                    "name": "meta.class.definition",
+                    "match": "\\b(class)\\b\\s+((?:\\$(?:[^\\S\\r\\n]*))?[a-zA-Z_][a-zA-Z0-9_]*)\\b",
+                    "captures": {
+                        "1": {"name": "constant.language"},
+                        "2": {"name": "entity.name.type.class"}
+                    }
+                },
+                {
+                    "name": "meta.function.definition",
+                    "match": "\\b(def|define|func|function)\\b\\s+((?:\\$(?:[^\\S\\r\\n]*))?[a-zA-Z_][a-zA-Z0-9_]*)\\b",
+                    "captures": {
+                        "1": {"name": "constant.language"},
+                        "2": {"name": "entity.name.function"}
+                    }
+                },
+                {
+                    "name": "keyword.control",
+                    "match": "\\b(as|assert|break|case|catch|continue|default|del|delete|do|elif|else|except|finally|for|from|if|import|match|raise|repeat|return|switch|throw|try|until|while|with)\\b"
+                },
+                {
+                    "name": "constant.language",
+                    "match": "\\b(__debug__|False|None|True|and|class|constructor|def|define|extends|false|func|function|global|in|is|not|nil|none|null|of|or|true|typeof)\\b"
+                },
+                {
+                    "name": "entity.name.type",
+                    "match": "(?:\\$(?:[^\\S\\r\\n]*))?\\b(?:ArithmeticError|AssertionError|AttributeError|BaseException|BaseExceptionGroup|BlockingIOError|BrokenPipeError|BufferError|BytesWarning|ChildProcessError|ConnectionAbortedError|ConnectionError|ConnectionRefusedError|ConnectionResetError|DeprecationWarning|EOFError|EncodingWarning|EnvironmentError|Exception|ExceptionGroup|FileExistsError|FileNotFoundError|FloatingPointError|FutureWarning|GeneratorExit|IOError|ImportError|ImportWarning|IndexError|InterruptedError|IsADirectoryError|KeyError|KeyboardInterrupt|LookupError|MemoryError|ModuleNotFoundError|NameError|NotADirectoryError|NotImplementedError|OSError|OverflowError|PendingDeprecationWarning|PermissionError|ProcessLookupError|PythonFinalizationError|RecursionError|ReferenceError|ResourceWarning|RuntimeError|RuntimeWarning|StopAsyncIteration|StopIteration|SyntaxError|SyntaxWarning|SystemError|SystemExit|TimeoutError|TypeError|UnboundLocalError|UnicodeDecodeError|UnicodeEncodeError|UnicodeError|UnicodeTranslateError|UnicodeWarning|UserWarning|ValueError|Warning|WindowsError|ZeroDivisionError|bool|bytearray|bytes|classmethod|complex|dict|enumerate|filter|float|frozenset|int|list|map|memoryview|object|property|range|reversed|set|slice|staticmethod|str|super|tuple|type|zip)\\b"
+                },
+                {
+                    "name": "entity.name.function",
+                    "match": "(?:\\$(?:[^\\S\\r\\n]*))?\\b(?:abs|aiter|all|anext|any|ascii|bin|breakpoint|callable|chr|copyright|credits|delattr|divmod|exit|format|getattr|hasattr|hash|hex|id|input|isinstance|issubclass|iter|len|max|min|next|oct|open|ord|pow|print|quit|repr|round|setattr|sorted|sum|license|help|pyimport|require|globals|locals|vars|dir|exec|eval|ce|nce|increment|decrement|unpack|comprehension|isobjectof)\\b"
+                },
+                {
+                    "name": "entity.name.function",
+                    "match": "(?:\\$(?:[^\\S\\r\\n]*))?\\b[a-zA-Z_][a-zA-Z0-9_]*\\b(?=\\s*\\()"
+                },
+                {
+                    "name": "variable.other.constant",
+                    "match": "(?:\\$(?:[^\\S\\r\\n]*))?\\b(?:[A-Z_]*[A-Z][A-Z0-9_]*)\\b"
+                },
+                {
+                    "name": "variable.other",
+                    "match": "(?:\\$(?:[^\\S\\r\\n]*))?\\b[a-zA-Z_][a-zA-Z0-9_]*\\b"
+                },
+                {
+                    "name": "invalid.illegal.variable",
+                    "match": "\\$(?:[^\\S\\r\\n]*).?"
+                }
+            ]
+        },
+
+        "punctuations": {
+            "patterns": [
+                {
+                    "name": "punctuation",
+                    "match": "[\\(\\),;\\[\\]{}]|\\\\(?:\\n\\r|\\n|\\r)"
+                },
+                {
+                    "name": "constant.other.ellipsis",
+                    "match": "\\.\\.\\."
+                },
+                {
+                    "name": "keyword.operator",
+                    "match": "&&|\\*\\*|\\+\\+|--|//|<<|==|>>|\\?\\?|\\|\\||!=|%=|&=|\\*=|\\+=|-=|/=|:=|<=|>=|@=|^=|\\|=|~=|\\*\\*=|//=|<<=|>>=|->|=>|!>|~!|[!%&\\*\\+\\-\\./:<=>\\?@^\\|~]"
+                },
+                {
+                    "name": "invalid.illegal.line-continuation",
+                    "match": "\\\\."
+                }
+            ]
+        },
+
+        "code-tags": {
+            "patterns": [
+                {
+                    "name": "keyword.codetag.notation",
+                    "match": "\\b(BUG|FIXME|HACK|NOTE|TODO|XXX)\\b"
+                }
+            ]
+        },
+
         "string-escapes": {
             "patterns": [
                 {
@@ -143,114 +266,6 @@
                 {
                     "name": "constant.character.escape",
                     "match": "\\\\([\\'\"]|\\n\\r|\\n|\\r)"
-                }
-            ]
-        },
-
-        "numbers": {
-            "patterns": [
-                {
-                    "name": "constant.numeric.binary",
-                    "match": "0[bB][01](_?[01])*[jJiI]?"
-                },
-                {
-                    "name": "constant.numeric.octal",
-                    "match": "0[oO][0-7](_?[0-7])*[jJiI]?"
-                },
-                {
-                    "name": "constant.numeric.hex",
-                    "match": "0[xX][0-9a-fA-F](_?[0-9a-fA-F])*[jJiI]?"
-                },
-                {
-                    "name": "constant.numeric.float",
-                    "match": "((?:[0-9](_?[0-9])*)?\\.[0-9](_?[0-9])*|[0-9](_?[0-9])*\\.)([eE][+-]?[0-9](_?[0-9])*)?[jJiI]?|[0-9](_?[0-9])*([eE][+-]?[0-9](_?[0-9])*)[jJiI]?"
-                },
-                {
-                    "name": "constant.numeric.integer",
-                    "match": "[0-9](_?[0-9])*[jJiI]?"
-                }
-            ]
-        },
-
-        "comments": {
-            "patterns": [
-                {
-                    "name": "comment.line",
-                    "begin": "#",
-                    "end": "$",
-                    "patterns": [
-                        {"include": "#code-tags"}
-                    ]
-                }
-            ]
-        },
-
-        "identifiers": {
-            "patterns": [
-                {
-                    "name": "meta.class.definition",
-                    "match": "\\b(class)\\b\\s+(?!__debug__|False|None|True|and|as|assert|break|case|catch|class|constructor|continue|def|default|define|del|delete|do|elif|else|except|extends|false|finally|for|from|func|function|global|if|import|in|is|match|nil|none|null|not|true|typeof|of|or|raise|repeat|return|switch|throw|try|until|while|with)((?:\\$(?:[^\\S\\r\\n]*))?[a-zA-Z_][a-zA-Z0-9_]*)\\b",
-                    "captures": {
-                        "1": {"name": "constant.language"},
-                        "2": {"name": "entity.name.type.class"}
-                    }
-                },
-                {
-                    "name": "meta.function.definition",
-                    "match": "\\b(def|define|func|function)\\b\\s+(?!__debug__|False|None|True|and|as|assert|break|case|catch|class|constructor|continue|def|default|define|del|delete|do|elif|else|except|extends|false|finally|for|from|func|function|global|if|import|in|is|match|nil|none|null|not|true|typeof|of|or|raise|repeat|return|switch|throw|try|until|while|with)((?:\\$(?:[^\\S\\r\\n]*))?[a-zA-Z_][a-zA-Z0-9_]*)\\b",
-                    "captures": {
-                        "1": {"name": "constant.language"},
-                        "2": {"name": "entity.name.function"}
-                    }
-                },
-                {
-                    "name": "constant.language",
-                    "match": "\\b(class|def|define|func|function)\\b"
-                },
-                {
-                    "name": "entity.name.type",
-                    "match": "(?:\\$(?:[^\\S\\r\\n]*))?\\b(?:ArithmeticError|AssertionError|AttributeError|BaseException|BaseExceptionGroup|BlockingIOError|BrokenPipeError|BufferError|BytesWarning|ChildProcessError|ConnectionAbortedError|ConnectionError|ConnectionRefusedError|ConnectionResetError|DeprecationWarning|EOFError|EncodingWarning|EnvironmentError|Exception|ExceptionGroup|FileExistsError|FileNotFoundError|FloatingPointError|FutureWarning|GeneratorExit|IOError|ImportError|ImportWarning|IndexError|InterruptedError|IsADirectoryError|KeyError|KeyboardInterrupt|LookupError|MemoryError|ModuleNotFoundError|NameError|NotADirectoryError|NotImplementedError|OSError|OverflowError|PendingDeprecationWarning|PermissionError|ProcessLookupError|PythonFinalizationError|RecursionError|ReferenceError|ResourceWarning|RuntimeError|RuntimeWarning|StopAsyncIteration|StopIteration|SyntaxError|SyntaxWarning|SystemError|SystemExit|TimeoutError|TypeError|UnboundLocalError|UnicodeDecodeError|UnicodeEncodeError|UnicodeError|UnicodeTranslateError|UnicodeWarning|UserWarning|ValueError|Warning|WindowsError|ZeroDivisionError|bool|bytearray|bytes|classmethod|complex|dict|enumerate|filter|float|frozenset|int|list|map|memoryview|object|property|range|reversed|set|slice|staticmethod|str|super|tuple|type|zip)\\b"
-                },
-                {
-                    "name": "entity.name.function",
-                    "match": "(?:\\$(?:[^\\S\\r\\n]*))?\\b(?:abs|aiter|all|anext|any|ascii|bin|breakpoint|callable|chr|delattr|divmod|exit|format|getattr|hasattr|hash|hex|id|input|isinstance|issubclass|iter|len|max|min|next|oct|open|ord|pow|print|quit|repr|round|setattr|sorted|sum|license|help|pyimport|require|globals|locals|vars|dir|exec|eval|ce|nce|increment|decrement|unpack|comprehension|isobjectof)\\b"
-                },
-                {
-                    "name": "entity.name.function",
-                    "match": "(?:\\$(?:[^\\S\\r\\n]*))?\\b[a-zA-Z_][a-zA-Z0-9_]*\\b(?=\\s*\\()"
-                },
-                {
-                    "name": "variable.other.constant",
-                    "match": "(?:\\$(?:[^\\S\\r\\n]*))?\\b(?:[A-Z_]*[A-Z][A-Z0-9_]*)\\b"
-                },
-                {
-                    "name": "variable.other",
-                    "match": "(?:\\$(?:[^\\S\\r\\n]*))?\\b[a-zA-Z_][a-zA-Z0-9_]*\\b"
-                },
-                {
-                    "name": "invalid.illegal.variable",
-                    "match": "\\$(?:[^\\S\\r\\n]*)(.?)"
-                }
-            ]
-        },
-
-        "punctuations": {
-            "patterns": [
-                {
-                    "name": "punctuation",
-                    "match": "[\\(\\),;\\[\\]{}]|\\\\(?:\\n\\r|\\n|\\r)"
-                },
-                {
-                    "name": "constant.other.ellipsis",
-                    "match": "\\.\\.\\."
-                },
-                {
-                    "name": "keyword.operator",
-                    "match": "[!%&\\*\\+\\-\\./:<=>\\?@^\\|~]|&&|\\*\\*|\\+\\+|--|//|<<|==|>>|\\?\\?|\\|\\||!=|%=|&=|\\*=|\\+=|-=|/=|:=|<=|>=|@=|^=|\\|=|~=|\\*\\*=|//=|<<=|>>=|->|=>|!>|~!"
-                },
-                {
-                    "name": "invalid.illegal.line-continuation",
-                    "match": "\\\\."
                 }
             ]
         }

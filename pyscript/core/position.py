@@ -25,7 +25,7 @@ class PysPosition(Pys):
     def __repr__(self) -> str:
         return f'<Position({self.start!r}, {self.end!r}) from {self.file.name!r}>'
 
-def format_arrow(position, colored=True):
+def format_error_arrow(position, colored=True):
     if position.is_positionless:
         return ''
 
@@ -77,17 +77,19 @@ def format_arrow(position, colored=True):
 
     for i, (line, line_code_length, start, end) in enumerate(lines):
         line = line[minimum_indent:]
-        er = end - minimum_indent
+        end_index = end - minimum_indent
 
         if i == 0:
-            sr = start - minimum_indent
+            start_index = start - minimum_indent
             arrow = '^' * (end - start)
-            line = f'{line[:sr]}{bred}{line[sr:er]}{reset}{line[er:]}\n{" " * sr}{bred}{arrow}{reset}'
+            line = f'{line[:start_index]}{bred}{line[start_index:end_index]}{reset}{line[end_index:]}\n' \
+                   f'{" " * start_index}{bred}{arrow}{reset}'
 
         else:
             indent = len(line) - line_code_length
             arrow = '^' * (end - start - (minimum_indent + indent))
-            line = f'{line[:indent]}{bred}{line[indent:er]}{reset}{line[er:]}\n{" " * indent}{bred}{arrow}{reset}'
+            line = f'{line[:indent]}{bred}{line[indent:end_index]}{reset}{line[end_index:]}\n' \
+                   f'{" " * indent}{bred}{arrow}{reset}'
 
         if arrow:
             result.append(line)

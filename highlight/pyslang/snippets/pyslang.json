@@ -2,7 +2,7 @@
     "Keyword - __debug__": {
         "prefix": "__debug__",
         "body": "__debug__",
-        "description": "flag DEBUG or -d activated"
+        "description": "flag DEBUG, -d, or -O activated"
     },
     "Keyword - False": {
         "prefix": "False",
@@ -680,6 +680,14 @@
     "Builtin - comprehension": {
         "prefix": "comprehension",
         "body": "comprehension($0)"
+    },
+    "Builtin - copyright": {
+        "prefix": "copyright",
+        "body": "copyright()"
+    },
+    "Builtin - credits": {
+        "prefix": "credits",
+        "body": "credits()"
     },
     "Builtin - decrement": {
         "prefix": "decrement",

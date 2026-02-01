@@ -4,7 +4,7 @@ from .checks import is_keyword
 from .constants import TOKENS, DEFAULT, SILENT, HIGHLIGHT, NO_COLOR
 from .context import PysContext
 from .exceptions import PysTraceback
-from .position import PysPosition, format_arrow
+from .position import PysPosition, format_error_arrow
 from .token import PysToken
 from .utils.decorators import typechecked
 from .utils.string import indent
@@ -55,7 +55,7 @@ class PysLexer(Pys):
 
         self.update_current_character()
 
-        while self.not_end_of_file():
+        while self.read_more():
 
             if self.current_character == '\n':
                 self.add_token(TOKENS['NEWLINE'])
@@ -188,14 +188,14 @@ class PysLexer(Pys):
             self.index -= amount
             self.update_current_character()
 
-    def not_end_of_file(self):
+    def read_more(self):
         return self.current_character is not None and self.error is None
 
     def character_in(self, characters):
-        return self.not_end_of_file() and self.current_character in characters
+        return self.read_more() and self.current_character in characters
 
     def character_are(self, string_method, *args, **kwargs):
-        return self.not_end_of_file() and getattr(self.current_character, string_method)(*args, **kwargs)
+        return self.read_more() and getattr(self.current_character, string_method)(*args, **kwargs)
 
     def add_token(self, type, start=None, value=None):
         if self.error is None and self.tokens is not None:
@@ -423,7 +423,7 @@ class PysLexer(Pys):
             self.advance()
             start_string = self.index
 
-        while self.not_end_of_file() and not end():
+        while self.read_more() and not end():
 
             if self.current_character == '\\':
                 start_escape = self.index - start_string
@@ -498,7 +498,7 @@ class PysLexer(Pys):
 
                         self.advance()
 
-                        while self.not_end_of_file() and self.current_character != '}':
+                        while self.read_more() and self.current_character != '}':
                             escape += self.current_character
                             self.advance()
 
@@ -520,7 +520,7 @@ class PysLexer(Pys):
                             )
 
                     else:
-                        if not self.not_end_of_file():
+                        if not self.read_more():
                             string += '\\'
                             break
 
@@ -533,7 +533,7 @@ class PysLexer(Pys):
                             f"SyntaxWarning: \"\\{character}\" "
                             "is an invalid escape sequence. Such sequences will not work in the future. Did you mean "
                             f"\"\\\\{character}\"? A raw string is also an option.\n" +
-                            indent(format_arrow(position, not (self.flags & NO_COLOR)), 2)
+                            indent(format_error_arrow(position, not (self.flags & NO_COLOR)), 2)
                         )
                         self.advance()
 
@@ -572,7 +572,7 @@ class PysLexer(Pys):
             identifier = True
             self.advance()
 
-            while self.not_end_of_file() and self.current_character != '\n' and self.character_are('isspace'):
+            while self.read_more() and self.current_character != '\n' and self.character_are('isspace'):
                 self.advance()
 
             if not self.character_are('isidentifier'):
@@ -582,7 +582,7 @@ class PysLexer(Pys):
 
         name = ''
 
-        while self.not_end_of_file() and (name + self.current_character).isidentifier():
+        while self.read_more() and (name + self.current_character).isidentifier():
             name += self.current_character
             self.advance()
 
@@ -854,7 +854,7 @@ class PysLexer(Pys):
 
         self.advance()
 
-        while self.not_end_of_file() and self.current_character != '\n':
+        while self.read_more() and self.current_character != '\n':
             comment += self.current_character
             self.advance()
 

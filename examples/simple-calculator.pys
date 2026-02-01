@@ -2,25 +2,42 @@ a = float(input("Enter a first number : "))
 b = float(input("Enter a second number: "))
 op = input("Enter an operation (+, -, *, /): ")
 
+# functions
+func add(a, b) {
+    return a + b
+}
+
+func sub(a, b) {
+    return a - b
+}
+
+func mul(a, b) {
+    return a * b
+}
+
+func floordiv(a, b) {
+    return b != 0 ? a / b : "Cannot be divided by 0!"
+}
+
 switch (op.strip())
 {
     case '+':
-        result = a + b
+        result = add(a, b)
         print("Result of {} + {} = {}".format(a, b, result))
         break
 
     case '-':
-        result = a - b
+        result = sub(a, b)
         print("Result of {} - {} = {}".format(a, b, result))
         break
 
     case '*':
-        result = a * b
+        result = mul(a, b)
         print("Result of {} * {} = {}".format(a, b, result))
         break
 
     case '/':
-        result = b != 0 ? a / b : "Cannot be divided by 0!"
+        result = floordiv(a, b)
         print("Result of {} / {} = {}".format(a, b, result))
         break
 

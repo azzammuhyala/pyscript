@@ -4,9 +4,9 @@ with open('test.pys', 'r') as file:
 import pyscript
 import sys
 
-from subprocess import run
-from pygments import highlight
-from pygments.formatters import HtmlFormatter, TerminalFormatter, TerminalTrueColorFormatter, Terminal256Formatter
+import subprocess
+import pygments
+import pygments.formatters as formatters
 
 def pyscript_tester():
     result = pyscript.pys_exec(source, pyscript.undefined, pyscript.RETURN_RESULT)
@@ -14,15 +14,15 @@ def pyscript_tester():
     if code != 0:
         sys.exit(code)
 
-lexer = pyscript.PygmentsPyScriptLexer()
-
 def pyscript_highlight_tester():
-    formatter = TerminalTrueColorFormatter(style=pyscript.PygmentsPyScriptStyle, full=True)
-    result = highlight(source, lexer, formatter)
-    print(result)
+    lexer = pyscript.PygmentsPyScriptLexer()
+    formatter = formatters.TerminalTrueColorFormatter(style=pyscript.PygmentsPyScriptStyle, full=True)
+    result = pygments.highlight(source, lexer, formatter)
+    sys.stdout.write(result)
+    sys.stdout.flush()
 
 def pyscript_doc():
-    run(
+    subprocess.run(
         args='clip',
         text=True,
         input=f'<pre>{pyscript.pys_highlight(source.strip())}</pre>',
