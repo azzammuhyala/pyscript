@@ -7,6 +7,7 @@ CORE_PATH = join(PYSCRIPT_PATH, 'core')
 LIBRARIES_PATH = join(PYSCRIPT_PATH, 'lib')
 SITE_PACKAGES_PATH = join(PYSCRIPT_PATH, 'site-packages')
 OTHER_PATH = join(CORE_PATH, 'other')
+ICON_PATH = join(OTHER_PATH, 'PyScript.ico')
 
 # environment variables
 ENV_PYSCRIPT_NO_EXCEPTHOOK = 'PYSCRIPT_NO_EXCEPTHOOK'

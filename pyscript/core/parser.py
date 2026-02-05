@@ -205,10 +205,11 @@ class PysParser(Pys):
 
         return result.success(assignment_expression)
 
-    def expression(self):
+    def expression(self, func=None):
+        func = func or self.single_expression
         result = PysParserResult()
 
-        node = result.register(self.single_expression())
+        node = result.register(func())
         if result.error:
             return result
 
@@ -221,7 +222,7 @@ class PysParser(Pys):
                 self.advance()
                 self.skip_expression(result)
 
-                element = result.try_register(self.single_expression())
+                element = result.try_register(func())
                 if result.error:
                     return result
 
@@ -903,10 +904,10 @@ class PysParser(Pys):
 
         return result.success(node(elements, position))
 
-    def assignment_statement(self):
+    def assignment_statement(self, func=None):
         result = PysParserResult()
 
-        node = result.register(self.expression())
+        node = result.register(self.expression(func))
         if result.error:
             return result
 
@@ -932,7 +933,7 @@ class PysParser(Pys):
             self.advance()
             self.skip_expression(result)
 
-            value = result.register(self.assignment_statement(), True)
+            value = result.register(self.assignment_statement(func), True)
             if result.error:
                 return result
 
@@ -1608,12 +1609,12 @@ class PysParser(Pys):
             self.advance()
             self.skip(result)
 
-        declaration = result.try_register(self.assignment_statement())
+        declaration = result.try_register(self.assignment_statement(self.primary))
         if result.error:
             return result
 
         if self.current_token.type == TOKENS['SEMICOLON']:
-            iteration = False
+            foreach = False
 
             result.register_advancement()
             self.advance()
@@ -1634,17 +1635,21 @@ class PysParser(Pys):
             if result.error:
                 return result
 
-        elif self.current_token.match(TOKENS['KEYWORD'], 'of'):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'in', 'of'):
             if declaration is None:
-                return result.failure(self.new_error("expected assign expression. Did you mean ';' instead of 'of'?"))
+                return result.failure(
+                    self.new_error(
+                        f"expected assign expression. Did you mean ';' instead of {self.current_token.value!r}?"
+                    )
+                )
 
-            iteration = True
+            foreach = True
 
             result.register_advancement()
             self.advance()
             self.skip_expression(result)
 
-            iterable = result.register(self.single_expression(), True)
+            iteration = result.register(self.single_expression(), True)
             if result.error:
                 return result
 
@@ -1652,7 +1657,7 @@ class PysParser(Pys):
             return result.failure(self.new_error("expected assign expression or ';'"))
 
         else:
-            return result.failure(self.new_error("expected 'of' or ';'"))
+            return result.failure(self.new_error("expected 'in', 'of', or ';'"))
 
         if bracket:
             self.close_bracket(result, left_bracket_token)
@@ -1684,7 +1689,7 @@ class PysParser(Pys):
 
         return result.success(
             PysForNode(
-                (declaration, iterable) if iteration else (declaration, condition, update),
+                (declaration, iteration) if foreach else (declaration, condition, update),
                 body,
                 else_body,
                 position

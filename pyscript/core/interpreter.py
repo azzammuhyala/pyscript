@@ -677,7 +677,6 @@ def visit_TryNode(node, context):
 
     if error:
         exception = error.exception
-
         failure(None)
 
         for (targets, tparameter), body in node.catch_cases:
@@ -719,7 +718,7 @@ def visit_TryNode(node, context):
                     with result(context, position := tparameter.position):
                         (symbol_table := context.symbol_table).set(parameter := tparameter.value, error.exception)
                     if should_return():
-                        return
+                        break
 
                 register(get_visitor(body.__class__)(body, context))
                 if result.error:
@@ -729,7 +728,7 @@ def visit_TryNode(node, context):
                     with result(context, position):
                         symbol_table.remove(parameter)
                     if should_return():
-                        return
+                        break
 
                 break
 
@@ -862,7 +861,7 @@ def visit_ForNode(node, context):
                 register(visit_declaration_AssignNode(ndeclaration, context, next()))
 
             if should_return():
-                if is_object_of(result.error.exception, StopIteration):
+                if result.error and is_object_of(result.error.exception, StopIteration):
                     result.failure(None)
                 return False
 
@@ -911,14 +910,13 @@ def visit_ForNode(node, context):
             break
 
         register(get_visitor(body_class)(body, context))
-        if should_return() and not result.should_continue and not result.should_break:
-            return result
-
-        if result.should_continue:
-            result.should_continue = False
-
-        elif result.should_break:
-            break
+        if should_return():
+            if result.should_continue:
+                result.should_continue = False
+            elif result.should_break:
+                break
+            else:
+                return result
 
         update()
         if should_return():
@@ -959,14 +957,13 @@ def visit_WhileNode(node, context):
             return result
 
         register(get_visitor(body_class)(body, context))
-        if should_return() and not result.should_continue and not result.should_break:
-            return result
-
-        if result.should_continue:
-            result.should_continue = False
-
-        elif result.should_break:
-            break
+        if should_return():
+            if result.should_continue:
+                result.should_continue = False
+            elif result.should_break:
+                break
+            else:
+                return result
 
     if result.should_break:
         result.should_break = False
@@ -992,14 +989,13 @@ def visit_DoWhileNode(node, context):
 
     while True:
         register(get_visitor(body_class)(body, context))
-        if should_return() and not result.should_continue and not result.should_break:
-            return result
-
-        if result.should_continue:
-            result.should_continue = False
-
-        elif result.should_break:
-            break
+        if should_return():
+            if result.should_continue:
+                result.should_continue = False
+            elif result.should_break:
+                break
+            else:
+                return result
 
         condition = register(get_visitor(ncondition_class)(ncondition, context))
         if should_return():
@@ -1036,14 +1032,13 @@ def visit_RepeatNode(node, context):
 
     while True:
         register(get_visitor(body_class)(body, context))
-        if should_return() and not result.should_continue and not result.should_break:
-            return result
-
-        if result.should_continue:
-            result.should_continue = False
-
-        elif result.should_break:
-            break
+        if should_return():
+            if result.should_continue:
+                result.should_continue = False
+            elif result.should_break:
+                break
+            else:
+                return result
 
         condition = register(get_visitor(ncondition_class)(ncondition, context))
         if should_return():

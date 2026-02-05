@@ -20,7 +20,7 @@ class PysNode(Pys):
         super().__init_subclass__(**kwargs)
         inheritable(cls)
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> Literal['Node()']:
         return 'Node()'
 
 class PysNumberNode(PysNode):

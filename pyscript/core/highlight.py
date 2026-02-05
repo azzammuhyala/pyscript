@@ -18,12 +18,14 @@ HIGHLIGHT_MAP = MappingProxyType({
     'default': '#D4D4D4',
     'keyword': '#C586C0',
     'keyword-constant': '#307CD6',
+    'keyword-other': '#1F52B3',
     'identifier': '#8CDCFE',
     'identifier-constant': '#2EA3FF',
     'identifier-function': '#DCDCAA',
     'identifier-type': '#4EC9B0',
     'number': '#B5CEA8',
     'string': '#CE9178',
+    'escape': '#D7BA71',
     'brackets-0': '#FFD705',
     'brackets-1': '#D45DBA',
     'brackets-2': '#1A9FFF',
@@ -31,13 +33,13 @@ HIGHLIGHT_MAP = MappingProxyType({
     'invalid': '#B51819'
 })
 
-_builtin_types = frozenset(
+BUILTIN_TYPES = frozenset(
     name
     for name, object in pys_builtins.__dict__.items()
     if is_public_attribute(name) and isinstance(object, type)
 )
 
-_builtin_functions = frozenset(
+BUILTIN_FUNCTIONS = frozenset(
     name 
     for name, object in pys_builtins.__dict__.items()
     if is_public_attribute(name) and callable(object)
@@ -67,31 +69,62 @@ try:
         """
 
         name = 'pyscript'
-        aliases = ['pyslang', 'pyscript-programming-language']
+        aliases = ['pyscript', 'pyslang', 'pyscript-programming-language']
 
         styles = {
             Keyword: HIGHLIGHT_MAP['keyword'],
             Keyword.Constant: HIGHLIGHT_MAP['keyword-constant'],
-            Keyword.Codetag: '#1F52B3',
+            Keyword.Codetag: HIGHLIGHT_MAP['keyword-other'],
             Name: HIGHLIGHT_MAP['identifier'],
             Name.Variable: HIGHLIGHT_MAP['identifier'],
             Name.Constant: HIGHLIGHT_MAP['identifier-constant'],
             Name.Function: HIGHLIGHT_MAP['identifier-function'],
             Name.Class: HIGHLIGHT_MAP['identifier-type'],
+            Name.Function.Builtin: HIGHLIGHT_MAP['identifier-function'],
+            Name.Class.Builtin: HIGHLIGHT_MAP['identifier-type'],
             Number: HIGHLIGHT_MAP['number'],
-            Number.Affix: '#1F52B3',
+            Number.Affix: HIGHLIGHT_MAP['keyword-other'],
+            Number.Bin: HIGHLIGHT_MAP['number'],
+            Number.Binary: HIGHLIGHT_MAP['number'],
+            Number.Oct: HIGHLIGHT_MAP['number'],
+            Number.Octal: HIGHLIGHT_MAP['number'],
+            Number.Hex: HIGHLIGHT_MAP['number'],
+            Number.Hexa: HIGHLIGHT_MAP['number'],
+            Number.HexaDecimal: HIGHLIGHT_MAP['number'],
+            Number.Float: HIGHLIGHT_MAP['number'],
+            Number.Integer: HIGHLIGHT_MAP['number'],
             String: HIGHLIGHT_MAP['string'],
-            String.Affix: '#1F52B3',
-            String.Escape: '#D7BA71',
+            String.Affix: HIGHLIGHT_MAP['keyword-other'],
+            String.Delimiter: HIGHLIGHT_MAP['string'],
+            String.Escape: HIGHLIGHT_MAP['escape'],
+            String.Escape.Octal: HIGHLIGHT_MAP['escape'],
+            String.Escape.Oct: HIGHLIGHT_MAP['escape'],
+            String.Escape.Hex: HIGHLIGHT_MAP['escape'],
+            String.Escape.Hexa: HIGHLIGHT_MAP['escape'],
+            String.Escape.HexaDecimal: HIGHLIGHT_MAP['escape'],
+            String.Escape.Uni: HIGHLIGHT_MAP['escape'],
+            String.Escape.Unicode: HIGHLIGHT_MAP['escape'],
+            String.Escape.UniName: HIGHLIGHT_MAP['escape'],
+            String.Escape.UnicodeName: HIGHLIGHT_MAP['escape'],
             String.Escape.Invalid: HIGHLIGHT_MAP['invalid'],
             String.Escape.Error: HIGHLIGHT_MAP['invalid'],
-            Escape: '#D7BA71',
+            Escape: HIGHLIGHT_MAP['escape'],
+            Escape.Octal: HIGHLIGHT_MAP['escape'],
+            Escape.Oct: HIGHLIGHT_MAP['escape'],
+            Escape.Hex: HIGHLIGHT_MAP['escape'],
+            Escape.Hexa: HIGHLIGHT_MAP['escape'],
+            Escape.HexaDecimal: HIGHLIGHT_MAP['escape'],
+            Escape.Uni: HIGHLIGHT_MAP['escape'],
+            Escape.Unicode: HIGHLIGHT_MAP['escape'],
+            Escape.UniName: HIGHLIGHT_MAP['escape'],
+            Escape.UnicodeName: HIGHLIGHT_MAP['escape'],
             Escape.Invalid: HIGHLIGHT_MAP['invalid'],
             Escape.Error: HIGHLIGHT_MAP['invalid'],
             Operator: HIGHLIGHT_MAP['default'],
             Punctuation: HIGHLIGHT_MAP['default'],
             Whitespace: HIGHLIGHT_MAP['default'],
             Comment: HIGHLIGHT_MAP['comment'],
+            Comment.Single: HIGHLIGHT_MAP['comment'],
             Error: HIGHLIGHT_MAP['invalid']
         }
 
@@ -102,7 +135,8 @@ try:
         """
 
         name = 'pyscript'
-        aliases = ['pyslang', 'pyscript-programming-language']
+        url = 'https://azzammuhyala.github.io/pyscript'
+        aliases = ['pyscript', 'pyslang', 'pyscript-programming-language']
         filenames = ['*.pys']
 
         tokens = {
@@ -196,10 +230,10 @@ try:
                 (rf'\b({"|".join(_set_constant_keywords)})\b', Keyword.Constant),
 
                 # Built-in types and exceptions
-                (rf'{_dollar}\b(?:{"|".join(_builtin_types)})\b', Name.Class.Builtin),
+                (rf'{_dollar}\b(?:{"|".join(BUILTIN_TYPES)})\b', Name.Class.Builtin),
 
                 # Built-in functions
-                (rf'{_dollar}\b(?:{"|".join(_builtin_functions)})\b', Name.Function.Builtin),
+                (rf'{_dollar}\b(?:{"|".join(BUILTIN_FUNCTIONS)})\b', Name.Function.Builtin),
 
                 # Function calls
                 (rf'{_dollar}\b{_unicode_name}\b(?=\s*\()', Name.Function),
@@ -232,11 +266,11 @@ try:
 
             'string-escapes': [
                 (rf'\\([nrtbfav\'"\\]|{_newlines})', String.Escape),
-                (r'\\[0-7]{1,3}}', String.Escape.Octal),
+                (r'\\[0-7]{1,3}}', String.Escape.Oct),
                 (r'\\x[0-9A-Fa-f]{2}', String.Escape.Hex),
-                (r'\\u[0-9A-Fa-f]{4}', String.Escape.Unicode),
-                (r'\\U[0-9A-Fa-f]{8}', String.Escape.Unicode),
-                (r'\\N\{[^}]+\}', String.Escape.UnicodeName),
+                (r'\\u[0-9A-Fa-f]{4}', String.Escape.Uni),
+                (r'\\U[0-9A-Fa-f]{8}', String.Escape.Uni),
+                (r'\\N\{[^}]+\}', String.Escape.UniName),
                 (r'\\.', String.Escape.Error)
             ],
 
@@ -382,6 +416,8 @@ HLFMT_BBCODE = _PysHighlightFormatter(
     lambda position, type: '[/color]',
 )
 
+del _ansi_open_block
+
 @typechecked
 def pys_highlight(
     source,
@@ -431,9 +467,9 @@ def pys_highlight(
             type_fmt = 'keyword-constant' if is_constant_keywords(tvalue) else 'keyword'
 
         elif ttype == TOKENS['IDENTIFIER']:
-            if tvalue in _builtin_types:
+            if tvalue in BUILTIN_TYPES:
                 type_fmt = 'identifier-type'
-            elif tvalue in _builtin_functions:
+            elif tvalue in BUILTIN_FUNCTIONS:
                 type_fmt = 'identifier-function'
             else:
                 j = i - 1

@@ -1,6 +1,8 @@
 from .core.buffer import PysFileBuffer
 from .core.cache import undefined, hook
 from .core.constants import DEFAULT, DEBUG, DONT_SHOW_BANNER_ON_SHELL, NO_COLOR
+from .core.editor.gui import PysGUIEditor
+from .core.editor.terminal import PysTerminalEditor
 from .core.highlight import (
     HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight, PygmentsPyScriptStyle, PygmentsPyScriptLexer
 )
@@ -67,6 +69,13 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    '-e', '--editor',
+    choices=('terminal', 'gui'),
+    default=None,
+    help="Open the editor panel from a 'file'",
+)
+
+parser.add_argument(
     '-i', '--inspect',
     action='store_true',
     help="Inspect interactively after running a 'file'",
@@ -124,14 +133,17 @@ def argument_error(argument, message):
 
 args = parser.parse_args()
 
-if args.highlight and args.file is None:
-    argument_error("-l/--highlight", "argument 'file' is required")
+if args.file is None:
+    if args.editor:
+        argument_error('-e/--editor', "argument 'file' is required")
+    elif args.highlight:
+        argument_error('-l/--highlight', "argument 'file' is required")
 
 if args.py_recursion is not None:
     try:
         sys.setrecursionlimit(args.py_recursion)
     except BaseException as e:
-        argument_error("-r/--py-recursion", e)
+        argument_error('-r/--py-recursion', e)
 
 code = 0
 flags = DEFAULT
@@ -146,7 +158,7 @@ if args.P:
 if args.q:
     flags |= DONT_SHOW_BANNER_ON_SHELL
 
-hook.argv.extend(args.argv)
+hook.argv[1:] = args.argv
 
 if args.file is not None:
     hook.argv[0] = args.file
@@ -156,7 +168,10 @@ if args.file is not None:
         with open(path, 'r', encoding='utf-8') as file:
             file = PysFileBuffer(file, path)
     except FileNotFoundError:
-        parser.error(f"can't open file {path!r}: No such file or directory")
+        if args.editor:
+            file = PysFileBuffer('', path)
+        else:
+            parser.error(f"can't open file {path!r}: No such file or directory")
     except PermissionError:
         parser.error(f"can't open file {path!r}: Permission denied")
     except IsADirectoryError:
@@ -170,7 +185,17 @@ if args.file is not None:
     except BaseException as e:
         parser.error(f"file {path!r}: Unexpected error: {e}")
 
-    if args.highlight:
+    if args.editor:
+        try:
+            if args.editor == 'terminal':
+                editor = PysTerminalEditor
+            elif args.editor == 'gui':
+                editor = PysGUIEditor
+            editor(file).run()
+        except BaseException as e:
+            argument_error('-e/--editor', e)
+
+    elif args.highlight:
         try:
             if args.highlight in FORMAT_HIGHLIGHT_MAP:
                 print(
@@ -188,7 +213,7 @@ if args.file is not None:
                     )
                 )
         except BaseException as e:
-            parser.error(f"file {path!r}: Highlight error: {e}")
+            argument_error('-l/--highlight', e)
 
     else:
         result = pys_runner(

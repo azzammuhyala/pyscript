@@ -202,8 +202,12 @@ def require(pyfunc, name):
                 if result.error:
                     raise PysSignal(PysRunTimeResult().failure(result.error))
 
-                # can also get circular imports
+                # this can also get circular imports
                 # modules[module_path] = module
+
+            except:
+                modules.pop(module_path, None)
+                raise
 
             finally:
                 loading_modules.discard(module_path)

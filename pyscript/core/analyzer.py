@@ -31,7 +31,7 @@ class PysAnalyzer(Pys):
         self.in_function = 0
         self.in_class = 0
         self.in_switch = 0
-        self.parameters = set()
+        self.function_parameters = set()
         self.error = None
 
         self.visit(self.node)
@@ -257,13 +257,13 @@ class PysAnalyzer(Pys):
 
     def visit_ForNode(self, node):
         if len(node.header) == 2:
-            declaration, iterable = node.header
+            declaration, iteration = node.header
 
             self.visit_declaration_AssignNode(declaration, "cannot assign to expression")
             if self.error:
                 return
 
-            self.visit(iterable)
+            self.visit(iteration)
             if self.error:
                 return
 
@@ -388,21 +388,21 @@ class PysAnalyzer(Pys):
                 if self.error:
                     return
 
-        in_loop, in_class, in_switch, parameters = self.in_loop, self.in_class, self.in_switch, self.parameters
+        in_loop, in_class, in_switch, parameters = self.in_loop, self.in_class, self.in_switch, self.function_parameters
 
         self.in_loop = 0
         self.in_class = 0
         self.in_switch = 0
 
         self.in_function += 1
-        self.parameters = parameter_names
+        self.function_parameters = parameter_names
 
         self.visit(node.body)
         if self.error:
             return
 
         self.in_function -= 1
-        self.parameters = parameters
+        self.function_parameters = parameters
 
         self.in_loop = in_loop
         self.in_class = in_class
@@ -413,7 +413,7 @@ class PysAnalyzer(Pys):
             self.throw("global outside of function", node.position)
 
         for identifier in node.identifiers:
-            if identifier.value in self.parameters:
+            if identifier.value in self.function_parameters:
                 self.throw(f"name {identifier.value!r} is parameter and global", identifier.position)
                 return
 
