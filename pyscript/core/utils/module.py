@@ -1,11 +1,8 @@
-from .path import normpath, base, extension
+from .path import extension
 
 from os.path import isdir, isfile, join
 
 import sys
-
-def get_module_name_from_path(path):
-    return base(normpath(path, absolute=False))
 
 def get_module_path(path):
     # circular import problem solved

@@ -1,5 +1,5 @@
 from .bases import Pys
-from .checks import is_left_bracket, is_right_bracket
+from .checks import is_list, is_left_bracket, is_right_bracket
 from .constants import TOKENS, DEFAULT, DICT_TO_JSDICT
 from .context import PysContext
 from .exceptions import PysTraceback
@@ -1120,7 +1120,7 @@ class PysParser(Pys):
 
         while True:
 
-            if self.current_token.match(TOKENS['KEYWORD'], 'elif'):
+            if self.current_token.match(TOKENS['KEYWORD'], 'elif', 'elseif'):
                 result.register_advancement()
                 self.advance()
                 self.skip(result)
@@ -1861,13 +1861,15 @@ class PysParser(Pys):
 
         end = self.current_token.position.end
         name = self.current_token
-        bases = []
+        has_bases = False
 
         result.register_advancement()
         self.advance()
         self.skip(result)
 
         if self.current_token.type == TOKENS['LEFT-PARENTHESIS']:
+            has_bases = True
+
             base = result.register(self.sequence_expression('tuple', should_sequence=True))
             if result.error:
                 return result
@@ -1876,6 +1878,8 @@ class PysParser(Pys):
             bases = list(base.elements)
 
         elif self.current_token.match(TOKENS['KEYWORD'], 'extends'):
+            has_bases = True
+
             result.register_advancement()
             self.advance()
             self.skip(result)
@@ -1885,18 +1889,23 @@ class PysParser(Pys):
                 return result
 
             end = base.position.end
+            bases = list(base.elements) if is_list(base.__class__) else [base]
 
-            if isinstance(base, PysTupleNode):
-                if not base.elements:
-                    return result.failure(self.new_error("empty base not allowed", bases.position))
-                bases = list(base.elements)
+        else:
+            bases = []
 
-            else:
-                bases.append(base)
+        if self.current_token.type == TOKENS['COLON']:
+            return result.failure(self.new_error("unlike python"))
 
         body = result.register(self.block_statements(), True)
         if result.error:
-            return result
+            return result.failure(
+                self.new_error(
+                    "expected statement, expression, '{', or ';'"
+                    if has_bases else
+                    "expected statement, expression, 'extends', '(', '{', or ';'"
+                )
+            )
 
         return result.success(
             PysClassNode(
@@ -2138,17 +2147,9 @@ class PysParser(Pys):
         if result.error:
             return result
 
-        if isinstance(expr, PysTupleNode):
-            targets = list(expr.elements)
-            if not targets:
-                return result.failure(self.new_error("empty target not allowed", expr.position))
-
-        else:
-            targets = [expr]
-
         return result.success(
             PysDeleteNode(
-                targets,
+                list(expr.elements) if is_list(expr.__class__) else [expr],
                 position
             )
         )

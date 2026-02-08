@@ -7,7 +7,7 @@ executable = '{} -m pyscript'.format(_pysys.executable)
 getcontext = _pyscript.objects.PysPythonFunction(func(pyfunc) => pyfunc.__code__.context)
 exit = _pysys.exit
 flags = getcontext().flags
-gil = _pyscript.handlers._GIL
+gil = _pyscript.handlers.GIL
 hook = _pyscript.cache.hook
 argv = hook.argv
 path = _pyscript.cache.path

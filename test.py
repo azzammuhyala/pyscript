@@ -1,4 +1,4 @@
-with open('test.pys', 'r') as file:
+with open('./test.pys', 'r') as file:
     source = file.read()
 
 import pyscript

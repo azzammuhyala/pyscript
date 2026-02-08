@@ -7,8 +7,8 @@ from .utils.decorators import inheritable, singleton
 from typing import Any, Callable, Literal
 
 loading_modules = set()
-modules = {}
 path = [SITE_PACKAGES_PATH, LIBRARIES_PATH]
+modules = {}
 singletons = {}
 
 @singleton

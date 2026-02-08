@@ -1,6 +1,6 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
-from .cache import loading_modules, modules, path, hook
+from .cache import loading_modules, path, modules, hook
 from .checks import is_blacklist_python_builtins, is_private_attribute
 from .constants import OTHER_PATH, NO_COLOR
 from .exceptions import PysSignal
@@ -11,14 +11,14 @@ from .results import PysRunTimeResult
 from .shell import PysCommandLineShell
 from .symtab import new_symbol_table
 from .utils.generic import get_any, is_object_of as isobjectof, import_readline
-from .utils.module import get_module_name_from_path, get_module_path, set_python_path, remove_python_path
-from .utils.path import getcwd, normpath
+from .utils.module import get_module_path, set_python_path, remove_python_path
+from .utils.path import getcwd, normpath, get_name_from_path
 from .utils.string import normstr
 
 from math import inf, nan, isclose
 from importlib import import_module
 from inspect import signature
-from os.path import dirname
+from os.path import dirname, isdir
 from types import BuiltinFunctionType, BuiltinMethodType, FunctionType, MethodType, ModuleType
 from typing import Any
 
@@ -28,7 +28,8 @@ import sys
 real_number = (int, float)
 sequence = (list, tuple, set)
 optional_mapping = (dict, type(None))
-wrapper_function = (MethodType, PysPythonFunction)
+static_wrapper_function = (staticmethod,)
+wrapper_function = (MethodType, PysPythonFunction, classmethod)
 python_function = (BuiltinFunctionType, BuiltinMethodType, FunctionType)
 
 pyhelp = builtins.help
@@ -56,9 +57,11 @@ def _unpack_comprehension_function(pyfunc, function):
     if isinstance(function, wrapper_function):
         check = function.__func__
         offset += 1
+    elif isinstance(function, static_wrapper_function):
+        check = function.__func__
 
     if isinstance(check, PysFunction):
-        length = max(len(check.__code__.parameter_names) - offset, 0)
+        length = max(check.__code__.parameters_length - offset, 0)
         if length == 0:
             def final(item):
                 return function()
@@ -164,7 +167,9 @@ def require(pyfunc, name):
 
         if module is None:
 
-            if module_path in loading_modules:
+            if isdir(module_path):
+                raise ModuleNotFoundError(f"No module named {name!r}: Invalid module")
+            elif module_path in loading_modules:
                 raise ImportError(
                     f"cannot import module name {name!r} from partially initialized module {filename!r}, "
                     "mostly during circular import"
@@ -178,15 +183,14 @@ def require(pyfunc, name):
                         file = PysFileBuffer(file, module_path)
                 except FileNotFoundError as e:
                     raise ModuleNotFoundError(f"No module named {name!r}") from e
+                except (IsADirectoryError, NotADirectoryError) as e:
+                    raise ModuleNotFoundError(f"No module named {name!r}: Invalid module") from e
                 except BaseException as e:
                     raise ImportError(f"Cannot import module named {name!r}: {e}") from e
 
-                symtab, module = new_symbol_table(
-                    file=file.name,
-                    name=get_module_name_from_path(name)
-                )
-
                 from .runner import pys_runner
+
+                symtab, module = new_symbol_table(file=file.name, name=get_name_from_path(name))
 
                 # minimize circular imports (python standard)
                 modules[module_path] = module
@@ -275,6 +279,9 @@ def breakpoint(pyfunc):
 
             try:
                 text = shell.prompt()
+                if text == 1:
+                    print("*** Unable to clean up namespace", file=sys.stderr)
+                    continue
 
                 split = ['exit'] if text == 0 else text.split()
                 if split:

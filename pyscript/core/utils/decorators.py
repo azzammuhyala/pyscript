@@ -7,18 +7,22 @@ from types import MethodType
 def typechecked(func, *args, **kwargs):
     return func
 
-_TYPECHECK = False
+TYPECHECK_STACK = 0
 
 if environ.get(ENV_PYSCRIPT_NO_TYPECHECK) is None:
     try:
         from beartype import beartype as typechecked
-        _TYPECHECK = True
+        TYPECHECK_STACK = 1
     except ImportError:
-        try:
-            from typeguard import typechecked
-            _TYPECHECK = True
-        except ImportError:
-            pass
+        pass
+        # pyscript.pys_exec('print("hello")') => TypeError: 'NoneType' object is not callable
+        # i think this is a bug?
+
+        # try:
+        #     from typeguard import typechecked
+        #     TYPECHECK_STACK = 1
+        # except ImportError:
+        #     pass
 
 class _PysNameSpaceUtilities(Pys):
 

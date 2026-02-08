@@ -373,21 +373,21 @@ class _PysHighlightFormatter(Pys):
         self._open = False
 
     def __call__(self, type: str, position: PysPosition, content: str) -> str:
-        result = ''
-
         if type == 'end':
             if self._open:
-                result += self.close_block(position, self._type)
+                result = self.close_block(position, self._type)
                 self._open = False
+            else:
+                result = ''
             type = 'start'
 
         elif type == self._type and self._open:
-            result += self.content_block(position, content)
+            result = self.content_block(position, content)
 
         else:
+            result = ''
             if self._open:
                 result += self.close_block(position, self._type)
-
             result += self.open_block(position, type) + self.content_block(position, content)
             self._open = True
 
@@ -450,10 +450,10 @@ def pys_highlight(
     )
 
     tokens, _ = lexer.make_tokens()
-
     text = file.text
+
     result = ''
-    last_index_position = 0
+    last_index = 0
     brackets_stack = []
 
     for i, token in enumerate(tokens):
@@ -461,66 +461,66 @@ def pys_highlight(
         tvalue = token.value
 
         if ttype == TOKENS['NULL']:
-            type_fmt = 'end'
+            type_format = 'end'
 
         elif ttype == TOKENS['KEYWORD']:
-            type_fmt = 'keyword-constant' if is_constant_keywords(tvalue) else 'keyword'
+            type_format = 'keyword-constant' if is_constant_keywords(tvalue) else 'keyword'
 
         elif ttype == TOKENS['IDENTIFIER']:
             if tvalue in BUILTIN_TYPES:
-                type_fmt = 'identifier-type'
+                type_format = 'identifier-type'
             elif tvalue in BUILTIN_FUNCTIONS:
-                type_fmt = 'identifier-function'
+                type_format = 'identifier-function'
             else:
                 j = i - 1
                 while j > 0 and tokens[j].type in (TOKENS['NEWLINE'], TOKENS['COMMENT']):
                     j -= 1
                 previous_token = tokens[j]
                 if previous_token.match(TOKENS['KEYWORD'], 'class'):
-                    type_fmt = 'identifier-type'
+                    type_format = 'identifier-type'
                 elif previous_token.match(TOKENS['KEYWORD'], 'def', 'define', 'func', 'function'):
-                    type_fmt = 'identifier-function'
+                    type_format = 'identifier-function'
                 else:
                     j = i + 1
                     if (j < len(tokens) and tokens[j].type == TOKENS['LEFT-PARENTHESIS']):
-                        type_fmt = 'identifier-function'
+                        type_format = 'identifier-function'
                     else:
-                        type_fmt = 'identifier-constant' if tvalue.isupper() else 'identifier'
+                        type_format = 'identifier-constant' if tvalue.isupper() else 'identifier'
 
         elif ttype == TOKENS['NUMBER']:
-            type_fmt = 'number'
+            type_format = 'number'
 
         elif ttype == TOKENS['STRING']:
-            type_fmt = 'string'
+            type_format = 'string'
 
         elif ttype == TOKENS['NEWLINE']:
-            type_fmt = 'newline'
+            type_format = 'newline'
 
         elif ttype == TOKENS['COMMENT']:
-            type_fmt = 'comment'
+            type_format = 'comment'
 
         elif is_bracket(ttype):
-            type_fmt = f'brackets-{len(brackets_stack) % max_bracket_level}'
+            type_format = f'brackets-{len(brackets_stack) % max_bracket_level}'
             if is_left_bracket(ttype):
                 brackets_stack.append(ttype)
             elif not (brackets_stack and BRACKETS_MAP[brackets_stack.pop()] == ttype):
-                type_fmt = 'invalid'
+                type_format = 'invalid'
             else:
-                type_fmt = f'brackets-{len(brackets_stack) % max_bracket_level}'
+                type_format = f'brackets-{len(brackets_stack) % max_bracket_level}'
 
         elif ttype == TOKENS['NONE']:
-            type_fmt = 'invalid'
+            type_format = 'invalid'
 
         else:
-            type_fmt = 'default'
+            type_format = 'default'
 
-        if space := text[last_index_position:token.position.start]:
-            result += format('default', PysPosition(file, last_index_position, token.position.start), space)
-        result += format(type_fmt, token.position, text[token.position.start:token.position.end])
+        if space := text[last_index:token.position.start]:
+            result += format('default', PysPosition(file, last_index, token.position.start), space)
+        result += format(type_format, token.position, text[token.position.start:token.position.end])
 
         if ttype == TOKENS['NULL']:
             break
 
-        last_index_position = token.position.end
+        last_index = token.position.end
 
     return result

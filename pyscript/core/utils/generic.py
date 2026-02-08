@@ -3,9 +3,11 @@ from ..constants import ENV_PYSCRIPT_NO_READLINE
 from collections.abc import Sequence
 from inspect import currentframe
 from os import environ, system
-from types import UnionType
+from types import MappingProxyType, UnionType
 
 import sys
+
+mapping = (MappingProxyType, dict)
 
 getattribute = object.__getattribute__
 setimuattr = object.__setattr__
@@ -32,7 +34,7 @@ def get_locals(deep=0):
     return {}
 
 def get_any(object, key, default=None):
-    if isinstance(object, dict):
+    if isinstance(object, mapping):
         return object.get(key, default)
     elif isinstance(object, Sequence):
         return object[key] if 0 <= key < len(object) else default

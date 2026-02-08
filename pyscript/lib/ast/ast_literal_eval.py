@@ -4,7 +4,7 @@ from pyscript.core.mapping import BINARY_FUNCTIONS_MAP, UNARY_FUNCTIONS_MAP, REV
 from pyscript.core.nodes import PysNode, PysIdentifierNode
 from pyscript.core.pysbuiltins import pys_builtins
 
-is_arith = frozenset([TOKENS['PLUS'], TOKENS['MINUS']]).__contains__
+is_arithmetic = frozenset([TOKENS['PLUS'], TOKENS['MINUS']]).__contains__
 
 inf = pys_builtins.inf
 nan = pys_builtins.nan
@@ -40,7 +40,7 @@ def visit_KeywordNode(node):
     return get_value_from_keyword(name)
 
 def visit_IdentifierNode(node):
-    if (value := get_identifier(name := node.name.value, None)) is None:
+    if (value := get_identifier(name := node.name.value)) is None:
         raise ValueError(f"invalid identifier: {name}")
     return value
 
@@ -59,17 +59,17 @@ def visit_TupleNode(node):
 def visit_CallNode(node):
     if isinstance(target := node.target, PysIdentifierNode) and target.name.value == 'set' and not node.arguments:
         return set()
-    raise ValueError("invalid call except for 'set()'")
+    raise ValueError("invalid call node except for 'set()'")
 
 def visit_UnaryOperatorNode(node):
-    if is_arith(operand := node.operand.type):
+    if is_arithmetic(operand := node.operand.type):
         return UNARY_FUNCTIONS_MAP(operand)(visit(node.value))
-    raise ValueError(f"invalid unary operand: {REVERSE_TOKENS[operand]}")
+    raise ValueError(f"invalid unary operand node: {REVERSE_TOKENS[operand]}")
 
 def visit_BinaryOperatorNode(node):
-    if is_arith(operand := node.operand.type):
+    if is_arithmetic(operand := node.operand.type):
         return BINARY_FUNCTIONS_MAP(operand)(visit(node.left), visit(node.right))
-    raise ValueError(f"invalid binary operand: {REVERSE_TOKENS[operand]}")
+    raise ValueError(f"invalid binary operand node: {REVERSE_TOKENS[operand]}")
 
 def visit_EllipsisNode(node):
     return ...

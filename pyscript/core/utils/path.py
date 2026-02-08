@@ -24,3 +24,6 @@ def extension(path):
 def normpath(*paths, absolute=True):
     path = osnormpath(sep.join(map(normstr, paths)))
     return abspath(path) if absolute else path
+
+def get_name_from_path(path):
+    return base(normpath(path, absolute=False))

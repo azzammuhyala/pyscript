@@ -3,7 +3,7 @@
     "publisher": "AzzamMuhyala",
     "displayName": "PyScript - PysLang",
     "description": "Simple syntax highlights for PyScript (Programming Language)",
-    "version": "1.3.0",
+    "version": "1.3.1",
     "icon": "./icons/PyScript.png",
     "engines": {
         "vscode": "^1.0.0"

@@ -127,6 +127,15 @@
             "}"
         ]
     },
+    "Keyword - elseif": {
+        "prefix": "elseif",
+        "body": [
+            "elseif (${1:condition}) {",
+            "\t${0:# code}",
+            "}"
+        ],
+        "description": "same as elif"
+    },
     "Keyword - except": {
         "prefix": "except",
         "body": [
@@ -837,7 +846,7 @@
     },
     "Builtin - memoryview": {
         "prefix": "memoryview",
-        "body": "memoryview($0)"
+        "body": "memoryview"
     },
     "Builtin - min": {
         "prefix": "min",
@@ -968,6 +977,7 @@
         "prefix": "zip",
         "body": "zip($0)"
     },
+
     "Suggesstion - forloop": {
         "prefix": "fl",
         "body": [

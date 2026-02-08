@@ -28,7 +28,7 @@ class PysEditor(Pys):
             setimuattr(self.file, 'text', text)
         self.modified = False
 
-    def run(self):
+    def run(self) -> None:
         if self.used:
             raise RuntimeError("one application object can only be used once")
         self.used = True

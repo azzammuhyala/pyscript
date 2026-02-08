@@ -165,7 +165,7 @@
                 },
                 {
                     "name": "keyword.control",
-                    "match": "\\b(as|assert|break|case|catch|continue|default|del|delete|do|elif|else|except|finally|for|from|if|import|match|raise|repeat|return|switch|throw|try|until|while|with)\\b"
+                    "match": "\\b(as|assert|break|case|catch|continue|default|del|delete|do|elif|else|elseif|except|finally|for|from|if|import|match|raise|repeat|return|switch|throw|try|until|while|with)\\b"
                 },
                 {
                     "name": "constant.language",

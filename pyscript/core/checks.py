@@ -14,7 +14,7 @@ is_statement = frozenset([
     PysAssertNode, PysDeleteNode, PysContinueNode, PysBreakNode
 ]).__contains__
 
-is_unpack_assignment = frozenset([
+is_list = frozenset([
     PysSetNode, PysListNode, PysTupleNode
 ]).__contains__
 

@@ -1,6 +1,6 @@
 from .constants import TOKENS, DEBUG
 from .cache import undefined
-from .checks import is_unpack_assignment, is_equals, is_public_attribute
+from .checks import is_list, is_equals, is_public_attribute
 from .context import PysClassContext
 from .exceptions import PysTraceback
 from .handlers import handle_call
@@ -255,17 +255,17 @@ def visit_ChainOperatorNode(node, context):
     with result(context, nposition):
 
         for i, toperand in enumerate(node.operations, start=1):
-            omatch = toperand.match
             otype = toperand.type
+            ovalue = toperand.value
             nexpression = get_expression(i)
 
             right = register(get_visitor(nexpression.__class__)(nexpression, context))
             if should_return():
                 return result
 
-            if omatch(T_KEYWORD, 'in'):
+            if otype == T_KEYWORD and ovalue == 'in':
                 value = left in right
-            elif omatch(T_KEYWORD, 'is'):
+            elif otype == T_KEYWORD and ovalue == 'is':
                 value = left is right
             elif otype == T_CE:
                 handle_call(ce, context, nposition)
@@ -313,8 +313,8 @@ def visit_BinaryOperatorNode(node, context):
 
     register = result.register
     should_return = result.should_return
-    omatch = node.operand.match
     otype = node.operand.type
+    ovalue = node.operand.value
     nleft = node.left
     nright = node.right
 
@@ -325,10 +325,10 @@ def visit_BinaryOperatorNode(node, context):
     with result(context, node.position):
         should_return_right = True
 
-        if omatch(T_KEYWORD, 'and') or otype == T_AND:
+        if (otype == T_KEYWORD and ovalue == 'and') or otype == T_AND:
             if not left:
                 return result.success(left)
-        elif omatch(T_KEYWORD, 'or') or otype == T_OR:
+        elif (otype == T_KEYWORD and ovalue == 'or') or otype == T_OR:
             if left:
                 return result.success(left)
         elif otype == T_NULLISH:
@@ -355,8 +355,8 @@ def visit_UnaryOperatorNode(node, context):
 
     register = result.register
     should_return = result.should_return
-    omatch = node.operand.match
     otype = node.operand.type
+    ovalue = node.operand.value
     nvalue = node.value
 
     value = register(get_visitor(nvalue.__class__)(nvalue, context))
@@ -364,9 +364,9 @@ def visit_UnaryOperatorNode(node, context):
         return result
 
     with result(context, node.position):
-        if omatch(T_KEYWORD, 'not') or otype == T_NOT:
+        if (otype == T_KEYWORD and ovalue == 'not') or otype == T_NOT:
             return result.success(not value)
-        elif omatch(T_KEYWORD, 'typeof'):
+        elif (otype == T_KEYWORD and ovalue == 'typeof'):
             return result.success(type(value).__name__)
         return result.success(UNARY_FUNCTIONS_MAP(otype)(value))
 
@@ -1492,7 +1492,7 @@ def visit_declaration_AssignNode(node, context, value, operand=TOKENS['EQUAL']):
         if should_return():
             return result
 
-    elif is_unpack_assignment(ntype):
+    elif is_list(ntype):
         position = node.position
 
         if not isinstance(value, Iterable):

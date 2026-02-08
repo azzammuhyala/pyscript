@@ -1,8 +1,20 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
+from .constants import ENV_PYSCRIPT_MAXIMUM_TRACEBACK_LINE
 from .mapping import ACOLORS
 from .utils.decorators import typechecked, immutable
 from .utils.generic import setimuattr
+
+from os import environ
+
+MAXIMUM_TRACEBACK_LINE = environ.get(ENV_PYSCRIPT_MAXIMUM_TRACEBACK_LINE)
+if MAXIMUM_TRACEBACK_LINE is None:
+    MAXIMUM_TRACEBACK_LINE = 5
+else:
+    try:
+        MAXIMUM_TRACEBACK_LINE = max(3, int(MAXIMUM_TRACEBACK_LINE))
+    except:
+        MAXIMUM_TRACEBACK_LINE = 5
 
 @immutable
 class PysPosition(Pys):
@@ -56,26 +68,29 @@ def format_error_arrow(position, colored=True):
     result = []
     lines = []
     count = line_end - line_start + 1
+    reach_maximum_line = count > MAXIMUM_TRACEBACK_LINE
+    range_line = {0, count - 1}
 
     for i in range(count):
         line = text[start:end].lstrip('\n')
 
-        lines.append(
-            (
-                line, len(line.lstrip()),
-                column_start - 1 if i == 0 else 0,
-                column_end - 1 if i == count - 1 else len(line)
+        if not reach_maximum_line or i in range_line:
+            lines.append(
+                (
+                    line, len(line.lstrip()),
+                    column_start - 1 if i == 0 else 0,
+                    column_end - 1 if i == count - 1 else len(line)
+                )
             )
-        )
 
         start = end
         end = text.find('\n', start + 1)
         if end == -1:
             end = len(text)
 
-    minimum_indent = min(len(line) - line_code_length for line, line_code_length, _, _ in lines)
+    minimum_indent = min(len(line) - code_length for line, code_length, _, _ in lines)
 
-    for i, (line, line_code_length, start, end) in enumerate(lines):
+    for i, (line, code_length, start, end) in enumerate(lines):
         line = line[minimum_indent:]
         end_index = end - minimum_indent
 
@@ -86,10 +101,13 @@ def format_error_arrow(position, colored=True):
                    f'{" " * start_index}{bred}{arrow}{reset}'
 
         else:
-            indent = len(line) - line_code_length
+            indent = len(line) - code_length
             arrow = '^' * (end - start - (minimum_indent + indent))
             line = f'{line[:indent]}{bred}{line[indent:end_index]}{reset}{line[end_index:]}\n' \
                    f'{" " * indent}{bred}{arrow}{reset}'
+
+            if reach_maximum_line and i == 1:
+                result.append(f'{" " * indent}...<{count - 2} lines>...')
 
         if arrow:
             result.append(line)

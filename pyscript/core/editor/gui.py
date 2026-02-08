@@ -1,12 +1,10 @@
 from .bases import PysEditor
 from ..buffer import PysFileBuffer
+from ..constants import ICON_PATH
+from ..highlight import PygmentsPyScriptStyle, PygmentsPyScriptLexer
+from ..version import __version__
 
 try:
-
-    from ..constants import ICON_PATH
-    from ..highlight import PygmentsPyScriptStyle, PygmentsPyScriptLexer
-    from ..version import __version__
-
     from tkinter import END, Tk, Scrollbar, Text, messagebox
     from tkinter.font import Font
 
@@ -62,6 +60,10 @@ try:
 
             self.setup_tags()
             self.update()
+
+        def run(self) -> None:
+            PysEditor.run(self)
+            Tk.mainloop(self)
 
         def setup_tags(self):
             tag_configure = self.text.tag_configure
@@ -124,10 +126,6 @@ try:
             self.wrapped = not self.wrapped
             self.text.configure(wrap='char' if self.wrapped else 'none')
             return 'break'
-
-        def run(self):
-            PysEditor.run(self)
-            Tk.mainloop(self)
 
 except ImportError as e:
     _error = e

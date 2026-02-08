@@ -12,8 +12,8 @@ color brightgreen "\<class\>\s+[[:alnum:]_]+"
 color yellow "\<(def|define|func|function)\>\s+[[:alnum:]_]+"
 
 # Keywords
-color magenta "\<(as|assert|break|case|catch|continue|default|del|delete|do|elif|else|except|finally|for|from|if)\>"
-color magenta "\<(import|match|raise|repeat|return|switch|throw|try|until|while|with)\>"
+color magenta "\<(as|assert|break|case|catch|continue|default|del|delete|do|elif|else|elseif|except|finally|for)\>"
+color magenta "\<(from|if|import|match|raise|repeat|return|switch|throw|try|until|while|with)\>"
 color blue "\<(__debug__|False|None|True|and|class|constructor|def|define|func|function|extends|false|global|in|is)\>"
 color blue "\<(not|nil|none|null|of|or|true|typeof)\>"
 

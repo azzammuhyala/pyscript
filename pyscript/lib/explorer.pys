@@ -169,7 +169,6 @@ func clear(path) {
         if (os.path.isfile(path)) {
             with (open(path, 'w') as file) {
                 file.write('')
-                file.flush()
             }
         }
         elif (os.path.isdir(path)) {

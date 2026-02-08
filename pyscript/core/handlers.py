@@ -6,6 +6,7 @@ from types import MethodType
 
 if environ.get(ENV_PYSCRIPT_NO_GIL) is None:
     from threading import RLock
+
     lock = RLock()
 
     def handle_call(object, context, position):
@@ -28,7 +29,7 @@ if environ.get(ENV_PYSCRIPT_NO_GIL) is None:
                 if method is not None:
                     handle_call(method, context, position)
 
-    _GIL = True
+    GIL = True
 else:
 
     def handle_call(object, context, position):
@@ -49,4 +50,4 @@ else:
             if method is not None:
                 handle_call(method, context, position)
 
-    _GIL = False
+    GIL = False

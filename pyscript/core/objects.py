@@ -47,7 +47,7 @@ class PysFunction(PysObject):
         self.__name__ = name = '<function>' if name is None else name
         self.__qualname__ = name if qualname is None else f'{qualname}.{name}'
         self.__code__ = PysCode(
-            parameters=parameters,
+            parameters=tuple(parameters),
             body=body,
             context=context,
             position=position,
@@ -58,7 +58,7 @@ class PysFunction(PysObject):
             argument_names=tuple(argument_names),
             keyword_argument_names=tuple(keyword_argument_names),
             parameter_names=tuple(parameter_names),
-            keyword_arguments=keyword_arguments
+            combine_keyword_arguments=keyword_arguments.__or__
         )
 
     def __repr__(self):
@@ -88,7 +88,7 @@ class PysFunction(PysObject):
             set_symbol(name, arg)
             add_argument(name)
 
-        combined_keyword_arguments = code.keyword_arguments | kwargs
+        combined_keyword_arguments = code.combine_keyword_arguments(kwargs)
         pop_keyword_arguments = combined_keyword_arguments.pop
 
         for name, arg in zip(code.keyword_argument_names, args[len(registered_arguments):]):
@@ -177,10 +177,10 @@ class PysFunction(PysObject):
             )
         )
 
-        if result.should_return() and not result.func_should_return:
+        if result.should_return():
+            if result.func_should_return:
+                return result.func_return_value
             raise PysSignal(result)
-
-        return result.func_return_value
 
 class PysPythonFunction(PysFunction):
 

@@ -14,6 +14,7 @@ ENV_PYSCRIPT_NO_EXCEPTHOOK = 'PYSCRIPT_NO_EXCEPTHOOK'
 ENV_PYSCRIPT_NO_GIL = 'PYSCRIPT_NO_GIL'
 ENV_PYSCRIPT_NO_READLINE = 'PYSCRIPT_NO_READLINE'
 ENV_PYSCRIPT_NO_TYPECHECK = 'PYSCRIPT_NO_TYPECHECK'
+ENV_PYSCRIPT_MAXIMUM_TRACEBACK_LINE = 'PYSCRIPT_MAXIMUM_TRACEBACK_LINE'
 
 # tokens offset
 DOUBLE = 2**8
@@ -96,9 +97,10 @@ TOKENS = MappingProxyType({
 # keywords
 KEYWORDS = (
     '__debug__', 'False', 'None', 'True', 'and', 'as', 'assert', 'break', 'case', 'catch', 'class', 'constructor',
-    'continue', 'def', 'default', 'define', 'del', 'delete', 'do', 'elif', 'else', 'except', 'extends', 'false',
-    'finally', 'for', 'from', 'func', 'function', 'global', 'if', 'import', 'in', 'is', 'match', 'nil', 'none', 'null',
-    'not', 'true', 'typeof', 'of', 'or', 'raise', 'repeat', 'return', 'switch', 'throw', 'try', 'until', 'while', 'with'
+    'continue', 'def', 'default', 'define', 'del', 'delete', 'do', 'elif', 'else', 'elseif', 'except', 'extends',
+    'false', 'finally', 'for', 'from', 'func', 'function', 'global', 'if', 'import', 'in', 'is', 'match', 'nil', 'none',
+    'null', 'not', 'true', 'typeof', 'of', 'or', 'raise', 'repeat', 'return', 'switch', 'throw', 'try', 'until',
+    'while', 'with'
 )
 
 CONSTANT_KEYWORDS = (

@@ -5,7 +5,7 @@ from types import BuiltinMethodType
 
 def normstr(obj):
     if isinstance(obj, str):
-        return obj.replace('\r\n', '\n').replace('\r', '\n')
+        return obj.replace('\r\n', '\n').replace('\r', '\n').replace('\v', '\n')
 
     elif isinstance(obj, (bytes, bytearray)):
         return normstr(obj.decode(detect_encoding(obj), 'surrogatepass'))

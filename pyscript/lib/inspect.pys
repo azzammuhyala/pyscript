@@ -10,9 +10,8 @@ getcontext = sys.getcontext
 getsymtab = _pyscript.objects.PysPythonFunction(func(pyfunc) => pyfunc.__code__.context.symbol_table)
 
 func getcode(fn) {
-    if (!isfunction(fn)) throw TypeError("getcode(): fn must be PysPythonFunction or PysFunction")
-    code = getattr(fn, '__code__', None)
-    if (!iscode(code)) throw TypeError("getcode(): fn has no valid __code__ attribute")
+    if (!isfunction(fn)) throw TypeError("getcode(): fn must be derived from PysFunction")
+    if (!iscode(code := getattr(fn, '__code__', None))) throw TypeError("getcode(): fn has no valid __code__ attribute")
     return code
 }
 

@@ -1,10 +1,9 @@
 # Change Log
 
-## [1.3.0] - 01/02/2026
+## [1.3.1] - 08/02/2026
 
 ### Added
-- Builtin functions `copyright()` and `credits()` (added in PyScript 1.11.0).
-- Additional captures patterns on number literal.
+- Keyword `elseif` (added in PyScript 1.11.2).
 
 ### Fixed
-- Fixed some bugs.
+- **Fixed some bugs**.

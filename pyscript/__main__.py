@@ -7,17 +7,15 @@ from .core.highlight import (
     HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight, PygmentsPyScriptStyle, PygmentsPyScriptLexer
 )
 from .core.runner import _normalize_namespace, pys_runner, pys_shell
-from .core.utils.module import get_module_name_from_path, remove_python_path
-from .core.utils.path import normpath, getcwd
+from .core.utils.module import remove_python_path
+from .core.utils.path import getcwd, normpath, get_name_from_path
 from .core.version import __version__
 
 try:
     from pygments import highlight
     from pygments.formatters import (
-        BBCodeFormatter,
-        HtmlFormatter,
-        LatexFormatter,
-        TerminalFormatter, TerminalTrueColorFormatter, Terminal256Formatter
+        BBCodeFormatter, HtmlFormatter, LatexFormatter, TerminalFormatter, TerminalTrueColorFormatter,
+        Terminal256Formatter
     )
 
     FORMAT_PYGMENTS_MAP = {
@@ -45,7 +43,7 @@ FORMAT_HIGHLIGHT_MAP = {
 }
 
 parser = ArgumentParser(
-    prog=f'{get_module_name_from_path(sys.executable)} -m pyscript',
+    prog=f'{get_name_from_path(sys.executable)} -m pyscript',
     description=f'PyScript Launcher for Python Version {".".join(map(str, sys.version_info))}'
 )
 
@@ -70,7 +68,7 @@ parser.add_argument(
 
 parser.add_argument(
     '-e', '--editor',
-    choices=('terminal', 'gui'),
+    choices=('gui', 'terminal'),
     default=None,
     help="Open the editor panel from a 'file'",
 )
@@ -187,10 +185,10 @@ if args.file is not None:
 
     if args.editor:
         try:
-            if args.editor == 'terminal':
-                editor = PysTerminalEditor
-            elif args.editor == 'gui':
+            if args.editor == 'gui':
                 editor = PysGUIEditor
+            elif args.editor == 'terminal':
+                editor = PysTerminalEditor
             editor(file).run()
         except BaseException as e:
             argument_error('-e/--editor', e)
@@ -228,6 +226,7 @@ if args.file is not None:
         if args.inspect and not (sys.stdout.closed or sys.stderr.closed):
             if sys.stdin.closed:
                 print("Can't run interactive shell: sys.stdin closed", file=sys.stderr)
+                code = 1
             else:
                 code = pys_shell(
                     globals=result.context.symbol_table,

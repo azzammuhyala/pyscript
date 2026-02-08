@@ -1,11 +1,9 @@
 from .bases import PysEditor
 from ..buffer import PysFileBuffer
+from ..highlight import PygmentsPyScriptStyle, PygmentsPyScriptLexer
+from ..version import __version__
 
 try:
-
-    from ..highlight import PygmentsPyScriptStyle, PygmentsPyScriptLexer
-    from ..version import __version__
-
     from prompt_toolkit.application import Application
     from prompt_toolkit.filters import Condition
     from prompt_toolkit.formatted_text import ANSI
@@ -65,6 +63,10 @@ try:
             def _(event):
                 self.wrapped = not self.wrapped
 
+            @self.key_bindings.add('c-z', filter=on_edit, eager=True)
+            def _(event):
+                self.current_buffer.undo()
+
             @self.key_bindings.add('c-s', filter=on_edit, eager=True)
             def _(event):
                 self.save(self.text.text)
@@ -119,20 +121,24 @@ try:
                 style=style_from_pygments_cls(PygmentsPyScriptStyle),
                 key_bindings=self.key_bindings,
                 full_screen=True,
-                mouse_support=True
+                mouse_support=True,
+                paste_mode=True
             )
+
+        def run(self) -> None:
+            PysEditor.run(self)
+            Application.run(self)
 
         def on_change(self, buffer):
             self.modified = True
 
         def create_title(self):
-            title = f'  PyScript {__version__} - {self.basename}{"*" if self.modified else ""}  '
-            space = max(0, self.output.get_size().columns - len(title))
-            return ANSI(f'\x1b[7m{title}{" " * space}\x1b[0m')
-
-        def run(self):
-            PysEditor.run(self)
-            Application.run(self)
+            columns = self.output.get_size().columns
+            file = f'{self.basename}{"*" if self.modified else ""}'
+            title = f'  PyScript {__version__} - {file}  '
+            if len(title) > columns:
+                title = file
+            return ANSI(f'\x1b[7m{title}{" " * max(0, columns - len(title))}\x1b[0m')
 
 except ImportError as e:
     _error = e

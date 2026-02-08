@@ -1,3 +1,4 @@
 include README.md
 
 recursive-include pyscript *
+recursive-exclude backup *

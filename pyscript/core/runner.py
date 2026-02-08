@@ -14,7 +14,7 @@ from .pysbuiltins import require
 from .results import PysRunTimeResult, PysExecuteResult
 from .shell import PysCommandLineShell
 from .symtab import PysSymbolTable, new_symbol_table
-from .utils.decorators import _TYPECHECK, typechecked
+from .utils.decorators import TYPECHECK_STACK, typechecked
 from .utils.generic import get_frame, get_locals, import_readline
 from .version import version
 
@@ -25,7 +25,7 @@ import sys
 
 def _normalize_namespace(file, namespace):
     if namespace is None:
-        symtab, _ = new_symbol_table(symbols=get_locals(3 if _TYPECHECK else 2))
+        symtab, _ = new_symbol_table(symbols=get_locals(2 + TYPECHECK_STACK))
     elif namespace is undefined:
         symtab, _ = new_symbol_table(file=file.name, name='__main__')
     elif isinstance(namespace, dict):
@@ -240,7 +240,7 @@ def pys_require(name, flags: int = DEFAULT) -> ModuleType | Any:
     - flags : A special flags.
     """
 
-    file = PysFileBuffer('', get_frame(2 if _TYPECHECK else 1).f_code.co_filename)
+    file = PysFileBuffer('', get_frame(1 + TYPECHECK_STACK).f_code.co_filename)
     handle_call(require, PysContext(file=file, flags=flags), PysPosition(file, -1, -1))
     return require(name)
 
@@ -286,7 +286,10 @@ def pys_shell(
         print(f'PyScript {version}')
         print(f'Python {sys.version}')
         print('Type "help", "copyright", "credits" or "license" for more information.')
-        print('Type "quit", "exit" or "/exit" to exit the shell.')
+        print(
+            'Type "quit", "exit" or "/exit" to exit the shell; "/clear" to clear the terminal; '
+            '"/clean" to clean up the namespace'
+        )
 
     try:
         hook.running_shell = True
@@ -300,6 +303,9 @@ def pys_shell(
                 text = shell.prompt()
                 if text == 0:
                     return 0
+                elif text == 1:
+                    symtab = _normalize_namespace(file, globals)
+                    continue
 
                 result = pys_runner(
                     file=PysFileBuffer(text, f'<pyscript-shell-{line}>'),

@@ -1,5 +1,5 @@
 from .bases import Pys
-from .checks import is_unpack_assignment
+from .checks import is_list
 from .constants import TOKENS, DEFAULT
 from .context import PysContext
 from .exceptions import PysTraceback
@@ -516,7 +516,7 @@ class PysAnalyzer(Pys):
 
             self.visit_slice_SubscriptNode(node.slice)
 
-        elif is_unpack_assignment(type):
+        elif is_list(type):
             for element in node.elements:
                 self.visit_declaration_AssignNode(element, message, operator_name)
                 if self.error:

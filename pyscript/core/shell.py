@@ -33,7 +33,7 @@ class PysCommandLineShell(Pys):
         self._string_prefix = ''
         self._full_text = ''
 
-    def prompt(self) -> str | Literal[0]:
+    def prompt(self) -> str | Literal[0, 1]:
         while True:
 
             try:
@@ -45,6 +45,8 @@ class PysCommandLineShell(Pys):
                     text = input(self.ps1)
                     if text == '/exit':
                         return 0
+                    elif text == '/clean':
+                        return 1
                     elif text == '/clear':
                         clear_console()
                         continue

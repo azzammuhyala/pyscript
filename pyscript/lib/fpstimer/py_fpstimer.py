@@ -49,5 +49,6 @@ class FPSTimer:
     getTime = get_time
     getRawTime = get_rawtime
     getFPS = get_fps
+    getFramesPerSecond = get_fps
 
 FPSTimer()

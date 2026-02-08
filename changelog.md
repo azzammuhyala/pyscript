@@ -1,11 +1,18 @@
 # Change Log
 
-## [1.11.1] - 05/02/2026
+## [1.11.2] - 08/02/2026
 
 ### Added
-- Supports additional operator `in` for iteration in `for` statements (same as `of`).
-- Loaded modules will be removed in `modules` / `sys.modules` when an exception occurs during import.
-- PyScript Editor code and also new arguments (`-e`, `--editor`) for it.
+- Abbreviate traceback lines with `...<{LINE} lines>...`. To set the maximum limit set the enviroment named
+  `PYSCRIPT_MAXIMUM_TRACEBACK_LINE`
+- New alias keyword `elseif` (same as `elif`).
+- New shell command `/clean`.
+- _etc._
 
 ### Fixed
 - **Fixed some bugs**.
+- Function `untokenize` in `tokenize` library.
+- _etc._
+
+### Deleted
+- Remove type check support with `typeguard`.
