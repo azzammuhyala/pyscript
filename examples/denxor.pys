@@ -1,0 +1,20 @@
+from itertools import cycle
+from operator import xor
+
+func denxor(key, data) => bytes(comprehension(zip(cycle(key), data), xor))
+
+# Example usage:
+key = b'secretkey'
+data = b'some data to encrypt'
+
+encrypted = denxor(key, data)
+decrypted = denxor(key, encrypted)
+
+assert decrypted == data
+
+print('Key :', key)
+print('Data:', data)
+print('=================================')
+print('Encrypted    :', encrypted)
+print('Hex-Encrypted:', encrypted.hex())
+print('Decrypted    :', decrypted)
