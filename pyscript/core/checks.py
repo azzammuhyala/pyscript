@@ -9,7 +9,7 @@ is_expression = frozenset([
 ]).__contains__
 
 is_statement = frozenset([
-    PysStatementsNode, PysAssignNode, PysImportNode, PysIfNode, PysSwitchNode, PysTryNode, PysWithNode, PysForNode,
+    PysStatementsNode, PysAssignmentNode, PysImportNode, PysIfNode, PysSwitchNode, PysTryNode, PysWithNode, PysForNode,
     PysWhileNode, PysDoWhileNode, PysRepeatNode, PysClassNode, PysGlobalNode, PysReturnNode, PysThrowNode,
     PysAssertNode, PysDeleteNode, PysContinueNode, PysBreakNode
 ]).__contains__

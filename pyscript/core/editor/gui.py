@@ -127,6 +127,8 @@ try:
             self.text.configure(wrap='char' if self.wrapped else 'none')
             return 'break'
 
+    GUI_SUPPORT = True
+
 except ImportError as e:
     _error = e
 
@@ -134,6 +136,7 @@ except ImportError as e:
         def __new__(cls, *args, **kwargs):
             raise ImportError(
                 "cannot import module tkinter. Did you forgot install separate tkinter module or "
-                "not check the option for tkinter during python installation?: " +
-                str(_error)
+                f"not check the option for tkinter during python installation?: {_error}"
             ) from _error
+
+    GUI_SUPPORT = False

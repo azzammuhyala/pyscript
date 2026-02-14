@@ -3,7 +3,7 @@ from getch import getch
 sys = pyimport('sys')
 
 func default_input()
-    while (True) {
+    while (true) {
         result = ord(getch())
         if (0 <= result <= 255)
             return result
@@ -16,18 +16,18 @@ func default_output(byte) {
 
 class BFInterpreter {
 
-    func __init__(self, source, cells=None, fin=None, fout=None) {
+    func __init__(self, source, cells=none, fin=none, fout=none) {
         source = normstr(source)
         fin = fin ?? default_input
         fout = fout ?? default_output
 
-        if (not isinstance(cells, (int, type(None))))
+        if (!isinstance(cells, (int, type(none))))
             throw TypeError("BFInterpreter() cells must be integer or none")
-        if (not callable(fin))
+        if (!callable(fin))
             throw TypeError("BFInterpreter() fin must be callable")
-        if (not callable(fout))
+        if (!callable(fout))
             throw TypeError("BFInterpreter() fout must be callable")
-        if (not (cells is None) and cells <= 0)
+        if (!(cells is none) && cells <= 0)
             throw ValueError("BFInterpreter() cells must be greater than 0")
 
         self.source = source
@@ -35,14 +35,14 @@ class BFInterpreter {
         self.fin = fin
         self.fout = fout
 
-        self.running = False
+        self.running = false
 
         self._tokenCursor = 0
         self._tokens = tokens = []
         self._bracketMap = {}
 
         stack = []
-        comment = False
+        comment = false
 
         addtok = tokens.append
         addstack = stack.append
@@ -51,19 +51,19 @@ class BFInterpreter {
 
         for (position, character of enumerate(source)) {
 
-            if (not comment and character == '#')
-                comment = True
-            elif (comment and character == '\n')
-                comment = False
+            if (!comment && character == '#')
+                comment = true
+            elif (comment && character == '\n')
+                comment = false
 
-            if (not comment and character in '<>+-,.[]') {
+            if (!comment && character -> '<>+-,.[]') {
                 tokenIndex = len(tokens)
 
                 if (character == '[')
                     addstack(tokenIndex)
 
                 elif (character == ']') {
-                    if (not stack)
+                    if (!stack)
                         throw SyntaxError("unbalanced brackets")
 
                     startIndex = popstack()
@@ -82,22 +82,19 @@ class BFInterpreter {
 
     func start(self) {
         if (self.running) return;
-
         self._tokenCursor = 0
-
-        self.running = True
+        self.running = true
         self.memory = [0]
         self.point = 0
-
-        if (self.cells is not None)
+        if (self.cells is not none)
             self.memory *= self.cells
     }
 
     func step(self) {
-        if (not self.running) return;
+        if (!self.running) return;
 
         if (self._tokenCursor >= len(tokens := self._tokens)) {
-            self.running = False
+            self.running = false
             return
         }
 
@@ -110,7 +107,7 @@ class BFInterpreter {
 
             case '>':
                 self.point += 1
-                if (self.cells is None) {
+                if (self.cells is none) {
                     if (self.point == len(memory))
                         memory.append(0)
                 }
@@ -134,7 +131,7 @@ class BFInterpreter {
 
             case ',':
                 new = self.fin()
-                if (not (isinstance(new, int) and 0 <= new <= 255))
+                if (!(isinstance(new, int) && 0 <= new <= 255))
                     throw TypeError("BFInterpreter() fin must be returns unsigned 8-bit integer")
                 memory[self.point] = new
                 break
@@ -158,13 +155,10 @@ class BFInterpreter {
         return self.point, position, character
     }
 
-    func stop(self, cleanUp=True) {
-        if (not self.running) return;
-
-        self.running = False
-
-        if (cleanUp)
-            del self.memory, self.point
+    func stop(self, cleanUp=true) {
+        if (!self.running) return;
+        self.running = false
+        if (cleanUp) del self.memory, self.point
     }
 
     func __iter__(self) {
@@ -174,7 +168,7 @@ class BFInterpreter {
 
     func __next__(self) {
         result = self.step()
-        if (result is None) {
+        if (result is none) {
             self.stop()
             throw StopIteration
         }
@@ -182,7 +176,7 @@ class BFInterpreter {
     }
 }
 
-func bf_exec(source, cells=None, fin=None, fout=None) {
+func bf_exec(source, cells=none, fin=none, fout=none) {
     interpreter = BFInterpreter(source, cells, fin, fout)
     step = interpreter.step
     interpreter.start()

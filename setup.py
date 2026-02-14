@@ -1,11 +1,12 @@
 from setuptools import find_packages, setup
+# from pyscript import __version__
 
 with open('./README.md', 'r', encoding='utf-8') as file:
     long_description = file.read()
 
 setup(
     name='pyscript-programming-language',
-    version='1.11.2',
+    version='1.11.3',
     description='PyScript Programming Language',
     long_description=long_description,
     long_description_content_type='text/markdown',

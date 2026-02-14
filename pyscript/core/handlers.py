@@ -4,6 +4,8 @@ from .objects import PysFunction
 from os import environ
 from types import MethodType
 
+wrapper_function = (MethodType, classmethod, staticmethod)
+
 if environ.get(ENV_PYSCRIPT_NO_GIL) is None:
     from threading import RLock
 
@@ -11,21 +13,24 @@ if environ.get(ENV_PYSCRIPT_NO_GIL) is None:
 
     def handle_call(object, context, position):
         with lock:
+            ins = isinstance
 
-            if isinstance(object, PysFunction):
+            if ins(object, PysFunction):
                 code = object.__code__
                 code.context = context
                 code.position = position
 
-            elif isinstance(object, MethodType):
+            elif ins(object, wrapper_function):
                 handle_call(object.__func__, context, position)
 
-            elif isinstance(object, type):
-                method = getattr(object, '__new__', None)
+            elif ins(object, type):
+                gt = getattr
+
+                method = gt(object, '__new__', None)
                 if method is not None:
                     handle_call(method, context, position)
 
-                method = getattr(object, '__init__', None)
+                method = gt(object, '__init__', None)
                 if method is not None:
                     handle_call(method, context, position)
 
@@ -33,20 +38,24 @@ if environ.get(ENV_PYSCRIPT_NO_GIL) is None:
 else:
 
     def handle_call(object, context, position):
-        if isinstance(object, PysFunction):
+        ins = isinstance
+
+        if ins(object, PysFunction):
             code = object.__code__
             code.context = context
             code.position = position
 
-        elif isinstance(object, MethodType):
+        elif ins(object, wrapper_function):
             handle_call(object.__func__, context, position)
 
-        elif isinstance(object, type):
-            method = getattr(object, '__new__', None)
+        elif ins(object, type):
+            gt = getattr
+
+            method = gt(object, '__new__', None)
             if method is not None:
                 handle_call(method, context, position)
 
-            method = getattr(object, '__init__', None)
+            method = gt(object, '__init__', None)
             if method is not None:
                 handle_call(method, context, position)
 

@@ -94,7 +94,7 @@ def walk(node):
         for statement in node.body:
             yield from walk(statement)
 
-    elif isinstance(node, PysAssignNode):
+    elif isinstance(node, PysAssignmentNode):
         yield node
         yield from walk(node.target)
         yield from walk(node.value)

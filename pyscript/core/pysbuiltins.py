@@ -10,7 +10,7 @@ from .objects import PysFunction, PysPythonFunction, PysBuiltinFunction
 from .results import PysRunTimeResult
 from .shell import PysCommandLineShell
 from .symtab import new_symbol_table
-from .utils.generic import get_any, is_object_of as isobjectof, import_readline
+from .utils.generic import dkeys, get_sequence, is_object_of as isobjectof, import_readline
 from .utils.module import get_module_path, set_python_path, remove_python_path
 from .utils.path import getcwd, normpath, get_name_from_path
 from .utils.string import normstr
@@ -267,7 +267,7 @@ def breakpoint(pyfunc):
     scopes = []
 
     def show_line():
-        print(f"> {context.file.name}({position.start_line}){context.name}")
+        print(f'> {context.file.name}({position.start_line}){context.name}')
 
     import_readline()
     show_line()
@@ -309,11 +309,11 @@ def breakpoint(pyfunc):
                     show_line()
 
                 elif command in ('q', 'quit', 'exit'):
-                    code = get_any(args, 0, '0')
+                    code = get_sequence(args, 0, '0')
                     raise SystemExit(int(code) if code.isdigit() else code)
 
                 elif command in ('u', 'up'):
-                    count = get_any(args, 0, '')
+                    count = get_sequence(args, 0, '')
                     for _ in range(int(count) if count.isdigit() else 1):
                         if scopes:
                             symtab = scopes.pop()
@@ -322,7 +322,7 @@ def breakpoint(pyfunc):
                             break
 
                 elif command in ('d', 'down'):
-                    count = get_any(args, 0, '')
+                    count = get_sequence(args, 0, '')
                     parent = symtab.parent
                     for _ in range(int(count) if count.isdigit() else 1):
                         if parent is None:
@@ -409,7 +409,7 @@ def dir(pyfunc, *args):
             classes.
     """
 
-    return pydir(*args) if args else list(pyfunc.__code__.context.symbol_table.symbols.keys())
+    return pydir(*args) if args else list(dkeys(pyfunc.__code__.context.symbol_table.symbols))
 
 @PysBuiltinFunction
 def exec(pyfunc, source, globals=None):

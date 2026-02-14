@@ -6,7 +6,7 @@ PYSCRIPT_PATH = sep.join(__file__.split(sep)[:-2])
 CORE_PATH = join(PYSCRIPT_PATH, 'core')
 LIBRARIES_PATH = join(PYSCRIPT_PATH, 'lib')
 SITE_PACKAGES_PATH = join(PYSCRIPT_PATH, 'site-packages')
-OTHER_PATH = join(CORE_PATH, 'other')
+OTHER_PATH = join(PYSCRIPT_PATH, 'other')
 ICON_PATH = join(OTHER_PATH, 'PyScript.ico')
 
 # environment variables

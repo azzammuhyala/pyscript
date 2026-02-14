@@ -159,7 +159,7 @@ class PysAnalyzer(Pys):
 
     def visit_IncrementalNode(self, node):
         operator = 'increase' if node.operand.type == TOKENS['DOUBLE-PLUS'] else 'decrease'
-        self.visit_declaration_AssignNode(node.target, f"cannot {operator} literal", operator)
+        self.visit_declaration_AssignmentNode(node.target, f"cannot {operator} literal", operator)
 
     def visit_StatementsNode(self, node):
         for element in node.body:
@@ -167,9 +167,11 @@ class PysAnalyzer(Pys):
             if self.error:
                 return
 
-    def visit_AssignNode(self, node):
-        self.visit_declaration_AssignNode(node.target,
-                                          "cannot assign to expression here. Maybe you meant '==' instead of '='?")
+    def visit_AssignmentNode(self, node):
+        self.visit_declaration_AssignmentNode(
+            node.target,
+            "cannot assign to expression here. Maybe you meant '==' instead of '='?"
+        )
         if self.error:
             return
 
@@ -259,7 +261,7 @@ class PysAnalyzer(Pys):
         if len(node.header) == 2:
             declaration, iteration = node.header
 
-            self.visit_declaration_AssignNode(declaration, "cannot assign to expression")
+            self.visit_declaration_AssignmentNode(declaration, "cannot assign to expression")
             if self.error:
                 return
 
@@ -503,7 +505,7 @@ class PysAnalyzer(Pys):
         else:
             self.visit(nslice)
 
-    def visit_declaration_AssignNode(self, node, message, operator_name='assign'):
+    def visit_declaration_AssignmentNode(self, node, message, operator_name='assign'):
         type = node.__class__
 
         if type is PysAttributeNode:
@@ -518,7 +520,7 @@ class PysAnalyzer(Pys):
 
         elif is_list(type):
             for element in node.elements:
-                self.visit_declaration_AssignNode(element, message, operator_name)
+                self.visit_declaration_AssignmentNode(element, message, operator_name)
                 if self.error:
                     return
 

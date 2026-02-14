@@ -1,23 +1,24 @@
 from ..constants import ENV_PYSCRIPT_NO_READLINE
 
-from collections.abc import Sequence
 from inspect import currentframe
 from os import environ, system
-from types import MappingProxyType, UnionType
+from types import UnionType
 
 import sys
-
-mapping = (MappingProxyType, dict)
 
 getattribute = object.__getattribute__
 setimuattr = object.__setattr__
 delimuattr = object.__delattr__
+dinit = dict.__init__
+drepr = dict.__repr__
+dor = dict.__or__
 dcontains = dict.__contains__
 dgetitem = dict.__getitem__
 dsetitem = dict.__setitem__
 ddelitem = dict.__delitem__
 dget = dict.get
 dkeys = dict.keys
+ditems = dict.items
 
 def get_frame(deep=0):
     deep += 1
@@ -33,12 +34,8 @@ def get_locals(deep=0):
         return locals if isinstance(locals, dict) else dict(locals)
     return {}
 
-def get_any(object, key, default=None):
-    if isinstance(object, mapping):
-        return object.get(key, default)
-    elif isinstance(object, Sequence):
-        return object[key] if 0 <= key < len(object) else default
-    raise TypeError("unknown object")
+def get_sequence(object, key, default=None):
+    return object[key] if 0 <= key < len(object) else default
 
 def is_object_of(obj: object | type, class_or_tuple: type | UnionType | tuple[type | UnionType, ...]) -> bool:
 

@@ -2,8 +2,8 @@ import os
 import sys
 import explorer
 
-from '_pyscript>utils>module' import get_module_name_from_path, get_module_path
-from '_pyscript>utils>path' import normpath
+from '_pyscript>utils>module' import get_module_path
+from '_pyscript>utils>path' import normpath, get_name_from_path
 
 func removeduppaths() {
     known_paths = set()
@@ -27,7 +27,7 @@ func getsitepackages() {
     for (package of os.listdir(sys.site_packages_path)) {
         path = get_module_path(normpath(sys.site_packages_path, package, absolute=False))
         if (path is not None)
-            packages.append(get_module_name_from_path(package))
+            packages.append(get_name_from_path(package))
     }
 
     return packages

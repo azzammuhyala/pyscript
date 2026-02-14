@@ -235,7 +235,7 @@ class DumpNode:
             ]
         )
 
-    def visit_AssignNode(self, node):
+    def visit_AssignmentNode(self, node):
         return self._node_representation(
             node,
             [

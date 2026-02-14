@@ -107,9 +107,8 @@ def format_error_arrow(position, colored=True):
                    f'{" " * indent}{bred}{arrow}{reset}'
 
             if reach_maximum_line and i == 1:
-                result.append(f'{" " * indent}...<{count - 2} lines>...')
+                result.append(f'...<{count - 2} lines>...')
 
-        if arrow:
-            result.append(line)
+        result.append(line)
 
     return '\n'.join(result).replace('\t', ' ')

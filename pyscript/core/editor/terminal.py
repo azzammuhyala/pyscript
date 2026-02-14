@@ -140,9 +140,13 @@ try:
                 title = file
             return ANSI(f'\x1b[7m{title}{" " * max(0, columns - len(title))}\x1b[0m')
 
+    TERMINAL_SUPPORT = True
+
 except ImportError as e:
     _error = e
 
     class PysTerminalEditor(PysEditor):
         def __new__(cls, *args, **kwargs):
             raise ImportError(f"cannot import module prompt_toolkit: {_error}") from _error
+
+    TERMINAL_SUPPORT = False

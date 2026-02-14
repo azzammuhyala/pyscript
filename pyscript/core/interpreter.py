@@ -10,7 +10,7 @@ from .objects import PysFunction
 from .pysbuiltins import ce, nce, increment, decrement
 from .results import PysRunTimeResult
 from .symtab import PysClassSymbolTable, find_closest
-from .utils.generic import getattribute, setimuattr, is_object_of, get_error_args
+from .utils.generic import getattribute, setimuattr, dkeys, is_object_of, get_error_args
 from .utils.similarity import get_closest
 
 from collections.abc import Iterable
@@ -386,14 +386,13 @@ def visit_IncrementalNode(node, context):
         return result
 
     with result(context, nposition):
-        func = get_incremental_function(node.operand.type)
+        handle_call(function := get_incremental_function(node.operand.type), context, nposition)
+        increast_value = function(value)
 
-        handle_call(func, context, nposition)
-        increast_value = func(value)
         if node.operand_position == 'left':
             value = increast_value
 
-        register(visit_declaration_AssignNode(ntarget, context, increast_value))
+        register(visit_declaration_AssignmentNode(ntarget, context, increast_value))
         if should_return():
             return result
 
@@ -424,7 +423,7 @@ def visit_StatementsNode(node, context):
 
     return result.success(None)
 
-def visit_AssignNode(node, context):
+def visit_AssignmentNode(node, context):
     result = PysRunTimeResult()
 
     register = result.register
@@ -435,7 +434,7 @@ def visit_AssignNode(node, context):
     if should_return():
         return result
 
-    register(visit_declaration_AssignNode(node.target, context, value, node.operand.type))
+    register(visit_declaration_AssignmentNode(node.target, context, value, node.operand.type))
     if should_return():
         return result
 
@@ -849,8 +848,7 @@ def visit_ForNode(node, context):
 
         with result(context, niteration_position):
             handle_call(getattr(iteration, '__iter__', None), context, niteration_position)
-            iteration = iter(iteration)
-            next = iteration.__next__
+            next = iter(iteration).__next__
 
         if should_return():
             return result
@@ -858,7 +856,7 @@ def visit_ForNode(node, context):
         def condition():
             with result(context, niteration_position):
                 handle_call(next, context, niteration_position)
-                register(visit_declaration_AssignNode(ndeclaration, context, next()))
+                register(visit_declaration_AssignmentNode(ndeclaration, context, next()))
 
             if should_return():
                 if result.error and is_object_of(result.error.exception, StopIteration):
@@ -1144,7 +1142,7 @@ def visit_FunctionNode(node, context):
         else:
             append(nparameter.value)
 
-    func = PysFunction(
+    function = PysFunction(
         name=name,
         qualname=context.qualname,
         parameters=parameters,
@@ -1162,18 +1160,18 @@ def visit_FunctionNode(node, context):
 
         with result(context, dposition):
             handle_call(decorator, context, dposition)
-            func = decorator(func)
+            function = decorator(function)
 
         if should_return():
             return result
 
     if name:
         with result(context, nposition):
-            context.symbol_table.set(name, func)
+            context.symbol_table.set(name, function)
         if should_return():
             return result
 
-    return result.success(func)
+    return result.success(function)
 
 def visit_GlobalNode(node, context):
     context.symbol_table.globals.update(name.value for name in node.identifiers)
@@ -1306,7 +1304,7 @@ def visit_DeleteNode(node, context):
             with result(context, target_position):
 
                 if not symbol_table.remove(name):
-                    closest_symbol = get_closest(symbol_table.symbols.keys(), name)
+                    closest_symbol = get_closest(dkeys(symbol_table.symbols), name)
 
                     return result.failure(
                         PysTraceback(
@@ -1417,7 +1415,7 @@ def visit_slice_SubscriptNode(node, context):
 
         return result.success(value)
 
-def visit_declaration_AssignNode(node, context, value, operand=TOKENS['EQUAL']):
+def visit_declaration_AssignmentNode(node, context, value, operand=TOKENS['EQUAL']):
     result = PysRunTimeResult()
 
     register = result.register
@@ -1431,7 +1429,7 @@ def visit_declaration_AssignNode(node, context, value, operand=TOKENS['EQUAL']):
         with result(context, node.position):
 
             if not symbol_table.set(name, value, operand=operand):
-                closest_symbol = get_closest(symbol_table.symbols.keys(), name)
+                closest_symbol = get_closest(dkeys(symbol_table.symbols), name)
 
                 result.failure(
                     PysTraceback(
@@ -1510,7 +1508,7 @@ def visit_declaration_AssignNode(node, context, value, operand=TOKENS['EQUAL']):
         with result(context, position):
 
             for element, element_value in zip(elements, value):
-                register(visit_declaration_AssignNode(element, context, element_value, operand))
+                register(visit_declaration_AssignmentNode(element, context, element_value, operand))
                 if should_return():
                     return result
 

@@ -62,32 +62,32 @@ class PysCommandLineShell(Pys):
             self._in_decorator = False
 
             is_space = True
-            i = 0
+            index = 0
 
-            while i < len(text):
-                character = text[i]
+            while index < len(text):
+                character = text[index]
 
                 if character == '\\':
-                    i += 1
-                    character = text[i:i+1]
+                    index += 1
+                    character = text[index:index+1]
 
                     if character == '':
                         self._next_line = True
                         break
 
                 elif character in '\'"':
-                    bind_3 = text[i:i+3]
+                    bind_3 = text[index:index+3]
 
                     if self._is_triple_string:
                         if len(bind_3) == 3 and self._string_prefix * 3 == bind_3:
                             self._in_string = False
                             self._is_triple_string = False
-                            i += 2
+                            index += 2
 
                     else:
                         if not self._in_string and bind_3 in ("'''", '"""'):
                             self._is_triple_string = True
-                            i += 2
+                            index += 2
 
                         if self._in_string and self._string_prefix == character:
                             self._in_string = False
@@ -102,7 +102,7 @@ class PysCommandLineShell(Pys):
 
                     elif is_space and character == '@':
                         self._in_decorator = True
-                        i += 1
+                        index += 1
                         continue
 
                     elif character in '([{':
@@ -115,10 +115,10 @@ class PysCommandLineShell(Pys):
                             True
                         )
 
-                    if not character.isspace():
+                    if is_space and not character.isspace():
                         is_space = False
 
-                i += 1
+                index += 1
 
             if self._in_decorator and is_space:
                 self._in_decorator = False

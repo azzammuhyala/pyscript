@@ -283,12 +283,12 @@ def pys_shell(
     import_readline()
 
     if not (flags & DONT_SHOW_BANNER_ON_SHELL):
-        print(f'PyScript {version}')
-        print(f'Python {sys.version}')
-        print('Type "help", "copyright", "credits" or "license" for more information.')
         print(
-            'Type "quit", "exit" or "/exit" to exit the shell; "/clear" to clear the terminal; '
-            '"/clean" to clean up the namespace'
+            f'PyScript {version}\n'
+            f'Python {sys.version}\n'
+            'Type "help", "copyright", "credits" or "license" for more information.\n'
+            'Type "quit", "exit" or "/exit" to exit the shell; "/clear" to clear the terminal; "/clean" to clean up '
+            'the namespace'
         )
 
     try:

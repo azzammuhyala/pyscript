@@ -43,7 +43,7 @@ class PysParser(Pys):
     @typechecked
     def parse(
         self,
-        func: Optional[Callable[[], PysParserResult]] = None
+        function: Optional[Callable[[], PysParserResult]] = None
     ) -> tuple[PysNode, None] | tuple[None, PysTraceback]:
 
         self.token_index = 0
@@ -51,7 +51,7 @@ class PysParser(Pys):
 
         self.update_current_token()
 
-        result = (func or self.statements)()
+        result = (function or self.statements)()
 
         if not result.error:
             if is_right_bracket(self.current_token.type):
@@ -205,11 +205,11 @@ class PysParser(Pys):
 
         return result.success(assignment_expression)
 
-    def expression(self, func=None):
-        func = func or self.single_expression
+    def expression(self, function=None):
+        function = function or self.single_expression
         result = PysParserResult()
 
-        node = result.register(func())
+        node = result.register(function())
         if result.error:
             return result
 
@@ -222,7 +222,7 @@ class PysParser(Pys):
                 self.advance()
                 self.skip_expression(result)
 
-                element = result.try_register(func())
+                element = result.try_register(function())
                 if result.error:
                     return result
 
@@ -264,7 +264,7 @@ class PysParser(Pys):
             if result.error:
                 return result
 
-            node = PysAssignNode(node, operand, value)
+            node = PysAssignmentNode(node, operand, value)
 
         return result.success(node)
 
@@ -937,7 +937,7 @@ class PysParser(Pys):
             if result.error:
                 return result
 
-            node = PysAssignNode(node, operand, value)
+            node = PysAssignmentNode(node, operand, value)
 
         return result.success(node)
 
@@ -2143,13 +2143,13 @@ class PysParser(Pys):
         self.advance()
         self.skip(result)
 
-        expr = result.register(self.expression(), True)
+        targets = result.register(self.expression(), True)
         if result.error:
             return result
 
         return result.success(
             PysDeleteNode(
-                list(expr.elements) if is_list(expr.__class__) else [expr],
+                list(targets.elements) if is_list(targets.__class__) else [targets],
                 position
             )
         )
@@ -2320,13 +2320,13 @@ class PysParser(Pys):
         operations = []
         expressions = []
 
-        expr = result.register(func())
+        expression = result.register(func())
         if result.error:
             return result
 
         while self.current_token.type in operators or (self.current_token.type, self.current_token.value) in operators:
             operations.append(self.current_token)
-            expressions.append(expr)
+            expressions.append(expression)
 
             if membership and self.current_token.match(TOKENS['KEYWORD'], 'not'):
                 result.register_advancement()
@@ -2363,18 +2363,18 @@ class PysParser(Pys):
                 self.advance()
                 self.skip_expression(result)
 
-            expr = result.register(func(), True)
+            expression = result.register(func(), True)
             if result.error:
                 return result
 
         if operations:
-            expressions.append(expr)
+            expressions.append(expression)
 
         return result.success(
             PysChainOperatorNode(
                 operations,
                 expressions
-            ) if operations else expr
+            ) if operations else expression
         )
 
     def binary_operator(self, func, *operators):

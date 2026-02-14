@@ -1,8 +1,8 @@
 from .core.buffer import PysFileBuffer
 from .core.cache import undefined, hook
 from .core.constants import DEFAULT, DEBUG, DONT_SHOW_BANNER_ON_SHELL, NO_COLOR
-from .core.editor.gui import PysGUIEditor
-from .core.editor.terminal import PysTerminalEditor
+from .core.editor.gui import PysGUIEditor, GUI_SUPPORT
+from .core.editor.terminal import PysTerminalEditor, TERMINAL_SUPPORT
 from .core.highlight import (
     HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight, PygmentsPyScriptStyle, PygmentsPyScriptLexer
 )
@@ -42,15 +42,16 @@ FORMAT_HIGHLIGHT_MAP = {
     'bbcode': HLFMT_BBCODE
 }
 
+EDITOR_MAP = {}
+
+if GUI_SUPPORT:
+    EDITOR_MAP['gui'] = PysGUIEditor
+if TERMINAL_SUPPORT:
+    EDITOR_MAP['terminal'] = PysTerminalEditor
+
 parser = ArgumentParser(
     prog=f'{get_name_from_path(sys.executable)} -m pyscript',
     description=f'PyScript Launcher for Python Version {".".join(map(str, sys.version_info))}'
-)
-
-parser.add_argument(
-    '-v', '--version',
-    action='version',
-    version=f"PyScript {__version__}",
 )
 
 parser.add_argument(
@@ -66,17 +67,18 @@ parser.add_argument(
     help="Set a debug flag, this will ignore assert statement. Check the flag is active with the __debug__ keyword"
 )
 
-parser.add_argument(
-    '-e', '--editor',
-    choices=('gui', 'terminal'),
-    default=None,
-    help="Open the editor panel from a 'file'",
-)
+if EDITOR_MAP:
+    parser.add_argument(
+        '-e', '--editor',
+        choices=tuple(EDITOR_MAP.keys()),
+        default=None,
+        help="Open the editor panel from a 'file'",
+    )
 
 parser.add_argument(
     '-i', '--inspect',
     action='store_true',
-    help="Inspect interactively after running a 'file'",
+    help="Inspect interactively after running a code",
 )
 
 parser.add_argument(
@@ -100,15 +102,27 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    '-P',
+    '-t', '--terminal',
     action='store_true',
-    help="Don't prepend a potentially unsafe path to sys.path (python sys.path)"
+    help="Configure terminal encoding to UTF-8 and enable ANSI escape code processing on Windows"
 )
 
 parser.add_argument(
     '-q',
     action='store_true',
     help="Don't print version and copyright messages on interactive startup"
+)
+
+parser.add_argument(
+    '-v', '-V', '--version',
+    action='version',
+    version=f"PyScript {__version__}",
+)
+
+parser.add_argument(
+    '-P',
+    action='store_true',
+    help="Don't prepend a potentially unsafe path to sys.path (python sys.path)"
 )
 
 parser.add_argument(
@@ -131,8 +145,26 @@ def argument_error(argument, message):
 
 args = parser.parse_args()
 
+if args.terminal:
+
+    for fd in (sys.stdout, sys.stderr, sys.stdin):
+        try:
+            fd.reconfigure(encoding='utf-8')
+        except:
+            continue
+
+    if sys.platform == 'win32':
+        try:
+            import ctypes
+            kernel32 = ctypes.windll.kernel32
+            kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7) # stdout
+            kernel32.SetConsoleMode(kernel32.GetStdHandle(-12), 7) # stderr
+            kernel32.SetConsoleMode(kernel32.GetStdHandle(-10), 7) # stdin
+        except:
+            pass
+
 if args.file is None:
-    if args.editor:
+    if EDITOR_MAP and args.editor:
         argument_error('-e/--editor', "argument 'file' is required")
     elif args.highlight:
         argument_error('-l/--highlight', "argument 'file' is required")
@@ -156,6 +188,7 @@ if args.P:
 if args.q:
     flags |= DONT_SHOW_BANNER_ON_SHELL
 
+hook.argv = ['']
 hook.argv[1:] = args.argv
 
 if args.file is not None:
@@ -166,7 +199,7 @@ if args.file is not None:
         with open(path, 'r', encoding='utf-8') as file:
             file = PysFileBuffer(file, path)
     except FileNotFoundError:
-        if args.editor:
+        if EDITOR_MAP and args.editor:
             file = PysFileBuffer('', path)
         else:
             parser.error(f"can't open file {path!r}: No such file or directory")
@@ -183,13 +216,9 @@ if args.file is not None:
     except BaseException as e:
         parser.error(f"file {path!r}: Unexpected error: {e}")
 
-    if args.editor:
+    if EDITOR_MAP and args.editor:
         try:
-            if args.editor == 'gui':
-                editor = PysGUIEditor
-            elif args.editor == 'terminal':
-                editor = PysTerminalEditor
-            editor(file).run()
+            EDITOR_MAP[args.editor](file).run()
         except BaseException as e:
             argument_error('-e/--editor', e)
 
@@ -230,7 +259,7 @@ if args.file is not None:
             else:
                 code = pys_shell(
                     globals=result.context.symbol_table,
-                    flags=result.context.flags,
+                    flags=result.context.flags | DONT_SHOW_BANNER_ON_SHELL,
                     parser_flags=result.parser_flags
                 )
 
@@ -238,12 +267,25 @@ elif args.command is not None:
     hook.argv[0] = '-c'
 
     file = PysFileBuffer(args.command, '<arg-command>')
-    code = pys_runner(
+    result = pys_runner(
         file=file,
         mode='exec',
         symbol_table=_normalize_namespace(file, undefined),
         flags=flags
-    ).end_process()[0]
+    )
+
+    code, _ = result.end_process()
+
+    if args.inspect and not (sys.stdout.closed or sys.stderr.closed):
+        if sys.stdin.closed:
+            print("Can't run interactive shell: sys.stdin closed", file=sys.stderr)
+            code = 1
+        else:
+            code = pys_shell(
+                globals=result.context.symbol_table,
+                flags=result.context.flags | DONT_SHOW_BANNER_ON_SHELL,
+                parser_flags=result.parser_flags
+            )
 
 else:
     code = pys_shell(

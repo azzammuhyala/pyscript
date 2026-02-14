@@ -1,7 +1,7 @@
 from pyscript.core.checks import is_keyword, is_left_bracket, is_right_bracket
 from pyscript.core.constants import TOKENS
 from pyscript.core.mapping import SYMBOLS_TOKEN_MAP
-from pyscript.core.utils.generic import get_any
+from pyscript.core.utils.generic import get_sequence
 
 def untokenize(iterable):
     iterable = tuple(iterable)
@@ -20,7 +20,7 @@ def untokenize(iterable):
         elif type == TOKENS['NEWLINE']:
             stack = (
                 brackets_stack - 1
-                if brackets_stack > 0 and is_right_bracket(get_any(iterable, i + 1, token).type) else
+                if brackets_stack > 0 and is_right_bracket(get_sequence(iterable, i + 1, token).type) else
                 brackets_stack
             )
             parts.append(f'\n{"    " * stack}')

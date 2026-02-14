@@ -294,7 +294,7 @@ class PysStatementsNode(PysNode):
     def __repr__(self) -> str:
         return f'Statements(body={self.body!r})'
 
-class PysAssignNode(PysNode):
+class PysAssignmentNode(PysNode):
 
     __slots__ = ('target', 'operand', 'value')
 
@@ -306,7 +306,7 @@ class PysAssignNode(PysNode):
         setimuattr(self, 'value', value)
 
     def __repr__(self) -> str:
-        return f'Assign(target={self.target!r}, operand={self.operand!r}, value={self.value!r})'
+        return f'Assignment(target={self.target!r}, operand={self.operand!r}, value={self.value!r})'
 
 class PysImportNode(PysNode):
 

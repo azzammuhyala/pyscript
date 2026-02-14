@@ -58,8 +58,8 @@ class PysLexer(Pys):
         while self.read_more():
 
             if self.current_character == '\n':
-                self.add_token(TOKENS['NEWLINE'])
                 self.advance()
+                self.add_token(TOKENS['NEWLINE'])
 
             elif self.current_character == '\\':
                 self.make_back_slash()
@@ -128,49 +128,50 @@ class PysLexer(Pys):
                 self.make_comment()
 
             elif self.current_character == '(':
-                self.add_token(TOKENS['LEFT-PARENTHESIS'])
                 self.advance()
+                self.add_token(TOKENS['LEFT-PARENTHESIS'])
 
             elif self.current_character == ')':
-                self.add_token(TOKENS['RIGHT-PARENTHESIS'])
                 self.advance()
+                self.add_token(TOKENS['RIGHT-PARENTHESIS'])
 
             elif self.current_character == '[':
-                self.add_token(TOKENS['LEFT-SQUARE'])
                 self.advance()
+                self.add_token(TOKENS['LEFT-SQUARE'])
 
             elif self.current_character == ']':
-                self.add_token(TOKENS['RIGHT-SQUARE'])
                 self.advance()
+                self.add_token(TOKENS['RIGHT-SQUARE'])
 
             elif self.current_character == '{':
-                self.add_token(TOKENS['LEFT-CURLY'])
                 self.advance()
+                self.add_token(TOKENS['LEFT-CURLY'])
 
             elif self.current_character == '}':
-                self.add_token(TOKENS['RIGHT-CURLY'])
                 self.advance()
+                self.add_token(TOKENS['RIGHT-CURLY'])
 
             elif self.current_character == ',':
-                self.add_token(TOKENS['COMMA'])
                 self.advance()
+                self.add_token(TOKENS['COMMA'])
 
             elif self.current_character == ';':
-                self.add_token(TOKENS['SEMICOLON'])
                 self.advance()
+                self.add_token(TOKENS['SEMICOLON'])
 
             else:
-                char = self.current_character
-                unicode = ord(char)
+                character = self.current_character
+                unicode = ord(character)
 
                 self.advance()
                 self.throw(
                     self.index - 1, self.index,
-                    f"invalid character '{char}' (U+{unicode:04X})"
-                    if char.isprintable() else
+                    f"invalid character '{character}' (U+{unicode:04X})"
+                    if character.isprintable() else
                     f"invalid non-printable character U+{unicode:04X}"
                 )
 
+        self.advance()
         self.add_token(TOKENS['NULL'])
 
         return (None if self.tokens is None else tuple(self.tokens)), self.error
@@ -201,8 +202,8 @@ class PysLexer(Pys):
         if self.error is None and self.tokens is not None:
 
             if start is None:
-                start = self.index
-                end = self.index + 1
+                start = self.index - 1
+                end = self.index
             else:
                 end = self.index
 

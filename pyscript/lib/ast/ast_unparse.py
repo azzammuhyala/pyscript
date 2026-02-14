@@ -164,7 +164,7 @@ def visit_IncrementalNode(node):
 def visit_StatementsNode(node):
     return '\n'.join(map(unparse, node.body))
 
-def visit_AssignNode(node):
+def visit_AssignmentNode(node):
     return f'{unparse(node.target)} {SYMBOLS_TOKEN_MAP[node.operand.type]} {unparse(node.value)}'
 
 def visit_ImportNode(node):
