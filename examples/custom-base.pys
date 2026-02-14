@@ -1,29 +1,26 @@
 func base(n, base_characters, sign_character='-') {
-    if (n == 0) {
+    if n == 0
         return base_characters[0]
-    }
 
     base = len(base_characters)
     result = []
 
-    if (n < 0) {
-        singed = true
+    if n < 0 {
+        signed = true
         n = abs(n)
     }
-    else {
-        singed = false
-    }
+    else
+        signed = false
 
-    while (n > 0) {
+    while n > 0 {
         result.append(base_characters[n % base])
         n //= base
     }
 
-    if (singed) {
+    if signed
         result.append(sign_character)
-    }
 
-    return list(reversed(result))
+    return ''.join(reversed(result))
 }
 
-print(''.join(base(3276872, 'abcdefghijklmnopqrstuvwxyz')))
+print(base(3276872, 'abcdefghijklmnopqrstuvwxyz'))

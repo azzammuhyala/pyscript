@@ -6,18 +6,18 @@ VIDEO_SOURCE = 0
 MODEL_WEIGHTS = 'yolo11l.pt'
 CONFIDENCE_THRESHOLD = 0.1
 
-print("Loading for YOLO model...")
-model = YOLO(MODEL_WEIGHTS)
-
-cap = cv2.VideoCapture(VIDEO_SOURCE)
-if (not cap.isOpened()) {
-    print('Error: Could not open the video capture')
+capture = cv2.VideoCapture(VIDEO_SOURCE)
+if (!capture.isOpened()) {
+    print('Error: Could not open the video capture', file=sys.stderr)
     sys.exit(1)
 }
 
+print('Loading for YOLO model...')
+model = YOLO(MODEL_WEIGHTS)
+
 while (true) {
-    success, frame = cap.read()
-    if (not success)
+    success, frame = capture.read()
+    if (!success)
         break
 
     results = model.predict(
@@ -27,17 +27,17 @@ while (true) {
         verbose=false
     )
 
-    for (r of results) {
+    for (r in results) {
         annotated = r.plot()
         cv2.imshow('Object Detection', annotated)
     }
 
     key = cv2.waitKey(1) & 0xFF
-    if (key == ord('q') or key == 27)
+    if (key == ord('q') || key == 27)
         break
 }
 
-cap.release()
+capture.release()
 cv2.destroyAllWindows()
 
 print('App closed')

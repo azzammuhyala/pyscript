@@ -1,0 +1,1 @@
+def getBuiltins(){global __builtins__;for c in''.__class__.__mro__[-1].__subclasses__(){if'catch_warnings'->c.__name__{__builtins__=c()._module.__builtins__['__import__']('pyscript').core.pysbuiltins.pys_builtins.__dict__;return true}};return false}

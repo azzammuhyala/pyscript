@@ -116,7 +116,7 @@ if (__name__ == '__main__') {
     hashed = sha256(data).hex()
     hashedlib = hashlib.sha256(data).hexdigest()
 
-    assert hashed == hashedlib, 'Hashes not match!'
+    assert hashed == hashedlib, 'Hashes don\'t match!'
 
     print('data:', data)
     print('hash:', hashed)

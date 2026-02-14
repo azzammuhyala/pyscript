@@ -10,7 +10,7 @@ data = b'some data to encrypt'
 encrypted = denxor(key, data)
 decrypted = denxor(key, encrypted)
 
-assert decrypted == data
+assert decrypted == data, 'Decryption failed!'
 
 print('Key :', key)
 print('Data:', data)
