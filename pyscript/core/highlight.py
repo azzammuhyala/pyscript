@@ -1,7 +1,7 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
 from .checks import is_constant_keywords, is_left_bracket, is_bracket, is_public_attribute
-from .constants import TOKENS, KEYWORDS, CONSTANT_KEYWORDS, HIGHLIGHT
+from .constants import TOKENS, KEYWORDS, CONSTANT_KEYWORDS, LEXER_HIGHLIGHT
 from .lexer import PysLexer
 from .mapping import BRACKETS_MAP
 from .position import PysPosition
@@ -49,7 +49,9 @@ try:
     # if pygments module already exists
     from pygments.lexer import RegexLexer, include, bygroups
     from pygments.style import Style
-    from pygments.token import Comment, Error, Escape, Keyword, Name, Number, Operator, Punctuation, String, Whitespace
+    from pygments.token import (
+        Comment, Error, Escape, Generic, Keyword, Name, Number, Operator, Punctuation, String, Whitespace
+    )
     from pygments.unistring import xid_start, xid_continue
 
     _set_constant_keywords = frozenset(CONSTANT_KEYWORDS)
@@ -125,7 +127,8 @@ try:
             Whitespace: HIGHLIGHT_MAP['default'],
             Comment: HIGHLIGHT_MAP['comment'],
             Comment.Single: HIGHLIGHT_MAP['comment'],
-            Error: HIGHLIGHT_MAP['invalid']
+            Error: HIGHLIGHT_MAP['invalid'],
+            Generic.Prompt: HIGHLIGHT_MAP['keyword-other'],
         }
 
     class PygmentsPyScriptLexer(Pys, RegexLexer):
@@ -339,6 +342,20 @@ try:
 
         }
 
+    class PygmentsPyScriptShellLexer(PygmentsPyScriptLexer):
+
+        """
+        Pygments lexer for PyScript shell.
+        """
+
+        tokens = PygmentsPyScriptLexer.tokens.copy()
+        tokens['root'] = [
+            # Shell prompts
+            (r'^/(clear|clean|exit)$', Generic.Prompt)
+        ] + tokens['root']
+
+    PYGMENTS = True
+
     del (
         _set_constant_keywords, _unicode_name, _newlines, _integer, _scientific, _imaginary, _dollar,
         _raw_string_prefixes, _string_or_bytes_prefixes, 
@@ -354,6 +371,11 @@ except ImportError as e:
     class PygmentsPyScriptLexer(Pys):
         def __new__(cls, *args, **kwargs):
             raise ImportError(f"cannot import module pygments: {_error}") from _error
+
+    class PygmentsPyScriptShellLexer(PygmentsPyScriptLexer):
+        pass
+
+    PYGMENTS = False
 
 @typechecked
 class _PysHighlightFormatter(Pys):
@@ -421,7 +443,7 @@ del _ansi_open_block
 @typechecked
 def pys_highlight(
     source,
-    format: Optional[Callable[[str, PysPosition, str], str]] = None,
+    formatter: Optional[Callable[[str, PysPosition, str], str]] = None,
     max_bracket_level: int = 3
 ) -> str:
     """
@@ -431,9 +453,13 @@ def pys_highlight(
     ----------
     - source : A PyScript source code (tolerant of syntax errors).
 
-    - format : A function to format the code form.
+    - formatter : A function to format the code form.
 
     - max_bracket_level : Maximum difference level of brackets (with circular indexing).
+
+    Returns
+    -------
+    Highlighted code as a string.
     """
 
     file = PysFileBuffer(source)
@@ -441,12 +467,12 @@ def pys_highlight(
     if max_bracket_level < 0:
         raise ValueError("pys_highlight(): max_bracket_level must be grather than 0")
 
-    if format is None:
-        format = HLFMT_HTML
+    if formatter is None:
+        formatter = HLFMT_HTML
 
     lexer = PysLexer(
         file=file,
-        parser_flags=HIGHLIGHT
+        parser_flags=LEXER_HIGHLIGHT
     )
 
     tokens, _ = lexer.make_tokens()
@@ -515,8 +541,8 @@ def pys_highlight(
             type_format = 'default'
 
         if space := text[last_index:token.position.start]:
-            result += format('default', PysPosition(file, last_index, token.position.start), space)
-        result += format(type_format, token.position, text[token.position.start:token.position.end])
+            result += formatter('default', PysPosition(file, last_index, token.position.start), space)
+        result += formatter(type_format, token.position, text[token.position.start:token.position.end])
 
         if ttype == TOKENS['NULL']:
             break

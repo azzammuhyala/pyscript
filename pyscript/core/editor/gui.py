@@ -80,14 +80,16 @@ try:
             text_tag_add = text.tag_add
             text_tag_remove = text.tag_remove
             text_index = text.index
+            get_length = len
+            to_string = str
 
             for tag in text.tag_names():
                 if tag != 'sel':
                     text_tag_remove(tag, '1.0', END)
 
             for type, value in self.lexer.get_tokens(text.get('1.0', END)):
-                end_index = text_index(f'{index} + {len(value)} chars')
-                text_tag_add(str(type), index, end_index)
+                end_index = text_index(f'{index} + {get_length(value)} chars')
+                text_tag_add(to_string(type), index, end_index)
                 index = end_index
 
         def on_save(self, event=None):

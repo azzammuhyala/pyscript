@@ -1,17 +1,19 @@
 from .core.buffer import PysFileBuffer
-from .core.cache import undefined, hook
-from .core.constants import DEFAULT, DEBUG, DONT_SHOW_BANNER_ON_SHELL, NO_COLOR
+from .core.cache import pys_sys, undefined
+from .core.constants import (
+    ENV_PYSCRIPT_CLASSIC_LINE_SHELL, DEFAULT, DEBUG, NO_COLOR, DONT_SHOW_BANNER_ON_SHELL, CLASSIC_LINE_SHELL
+)
 from .core.editor.gui import PysGUIEditor, GUI_SUPPORT
 from .core.editor.terminal import PysTerminalEditor, TERMINAL_SUPPORT
 from .core.highlight import (
-    HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight, PygmentsPyScriptStyle, PygmentsPyScriptLexer
+    PYGMENTS, HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight, PygmentsPyScriptStyle, PygmentsPyScriptLexer
 )
 from .core.runner import _normalize_namespace, pys_runner, pys_shell
 from .core.utils.module import remove_python_path
 from .core.utils.path import getcwd, normpath, get_name_from_path
 from .core.version import __version__
 
-try:
+if PYGMENTS:
     from pygments import highlight
     from pygments.formatters import (
         BBCodeFormatter, HtmlFormatter, LatexFormatter, TerminalFormatter, TerminalTrueColorFormatter,
@@ -26,10 +28,6 @@ try:
         'pm-true-terminal': TerminalTrueColorFormatter,
         'pm-256-terminal': Terminal256Formatter
     }
-
-    PYGMENTS = True
-except ImportError:
-    PYGMENTS = False
 
 from argparse import OPTIONAL, REMAINDER, ArgumentParser
 from os import environ
@@ -79,6 +77,12 @@ parser.add_argument(
     '-i', '--inspect',
     action='store_true',
     help="Inspect interactively after running a code",
+)
+
+parser.add_argument(
+    '-k', '--classic-line-shell',
+    action='store_true',
+    help="Use a classic command line shell"
 )
 
 parser.add_argument(
@@ -134,9 +138,9 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    'argv',
+    'arg',
     nargs=REMAINDER,
-    help="Remaining arguments stored in hook.argv (sys.argv or sys.hook.argv)"
+    help="Remaining arguments stored in sys_module.argv (sys.argv)"
 )
 
 def argument_error(argument, message):
@@ -157,9 +161,11 @@ if args.terminal:
         try:
             import ctypes
             kernel32 = ctypes.windll.kernel32
-            kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7) # stdout
-            kernel32.SetConsoleMode(kernel32.GetStdHandle(-12), 7) # stderr
-            kernel32.SetConsoleMode(kernel32.GetStdHandle(-10), 7) # stdin
+            for i in (-11, -12, -10):
+                try:
+                    kernel32.SetConsoleMode(kernel32.GetStdHandle(i), 7)
+                except:
+                    continue
         except:
             pass
 
@@ -182,17 +188,18 @@ if args.debug:
     flags |= DEBUG
 if args.no_color or environ.get('NO_COLOR') is not None:
     flags |= NO_COLOR
+if args.classic_line_shell or environ.get(ENV_PYSCRIPT_CLASSIC_LINE_SHELL) is not None:
+    flags |= CLASSIC_LINE_SHELL
+if args.q:
+    flags |= DONT_SHOW_BANNER_ON_SHELL
 if args.P:
     for cwd in {'', '.', getcwd()}:
         remove_python_path(cwd)
-if args.q:
-    flags |= DONT_SHOW_BANNER_ON_SHELL
 
-hook.argv = ['']
-hook.argv[1:] = args.argv
+pys_sys.argv = argv = ['', *args.arg]
 
 if args.file is not None:
-    hook.argv[0] = args.file
+    argv[0] = args.file
     path = normpath(args.file)
 
     try:
@@ -228,7 +235,7 @@ if args.file is not None:
                 print(
                     pys_highlight(
                         source=file,
-                        format=FORMAT_HIGHLIGHT_MAP[args.highlight]
+                        formatter=FORMAT_HIGHLIGHT_MAP[args.highlight]
                     )
                 )
             else:
@@ -264,7 +271,7 @@ if args.file is not None:
                 )
 
 elif args.command is not None:
-    hook.argv[0] = '-c'
+    argv[0] = '-c'
 
     file = PysFileBuffer(args.command, '<arg-command>')
     result = pys_runner(

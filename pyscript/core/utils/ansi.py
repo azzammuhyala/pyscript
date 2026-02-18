@@ -105,7 +105,7 @@ class AnsiParser(HTMLParser):
         self.stack += 1
 
     def handle_endtag(self, tag):
-        if self.stack <= 0:
+        if self.stack < 1:
             raise SyntaxError(f"unmatch tag: {tag}, stack {self.stack}")
         if tag != 'ansi':
             raise ValueError(f"unknown end-tag: {tag}")

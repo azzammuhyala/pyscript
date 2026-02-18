@@ -12,7 +12,7 @@ KEYWORDS = _pyscript.constants.KEYWORDS
 
 # parser flags
 DEFAULT = _pyscript.constants.DEFAULT
-HIGHLIGHT = _pyscript.constants.HIGHLIGHT
+LEXER_HIGHLIGHT = _pyscript.constants.LEXER_HIGHLIGHT
 DICT_TO_JSDICT = _pyscript.constants.DICT_TO_JSDICT
 
 # highlight formatter
@@ -152,7 +152,7 @@ __all__ = (
     'TOKENS',
     'KEYWORDS',
     'DEFAULT',
-    'HIGHLIGHT',
+    'LEXER_HIGHLIGHT',
     'DICT_TO_JSDICT',
     'HLFMT_HTML',
     'HLFMT_ANSI',

@@ -16,14 +16,14 @@ class jsdict(dict):
     def __or__(self, *args, **kwargs) -> 'jsdict':
         return jsdict(dor(self, *args, **kwargs))
 
-    def __setattr__(self: 'jsdict', key: Any, value: Any) -> None:
+    def __setattr__(self, key: Any, value: Any) -> None:
         if value is None:
             if key in self:
                 ddelitem(self, key)
         else:
             dsetitem(self, key, value)
 
-    def __delattr__(self: 'jsdict', key: Any) -> None:
+    def __delattr__(self, key: Any) -> None:
         if key in self:
             ddelitem(self, key)
 

@@ -1,3 +1,4 @@
+from .cache import pys_sys
 from .constants import ENV_PYSCRIPT_NO_GIL
 from .objects import PysFunction
 
@@ -13,9 +14,8 @@ if environ.get(ENV_PYSCRIPT_NO_GIL) is None:
 
     def handle_call(object, context, position):
         with lock:
-            ins = isinstance
 
-            if ins(object, PysFunction):
+            if (ins := isinstance)(object, PysFunction):
                 code = object.__code__
                 code.context = context
                 code.position = position
@@ -24,9 +24,7 @@ if environ.get(ENV_PYSCRIPT_NO_GIL) is None:
                 handle_call(object.__func__, context, position)
 
             elif ins(object, type):
-                gt = getattr
-
-                method = gt(object, '__new__', None)
+                method = (gt := getattr)(object, '__new__', None)
                 if method is not None:
                     handle_call(method, context, position)
 
@@ -34,13 +32,12 @@ if environ.get(ENV_PYSCRIPT_NO_GIL) is None:
                 if method is not None:
                     handle_call(method, context, position)
 
-    GIL = True
+    GIL = pys_sys.gil = True
 else:
 
     def handle_call(object, context, position):
-        ins = isinstance
 
-        if ins(object, PysFunction):
+        if (ins := isinstance)(object, PysFunction):
             code = object.__code__
             code.context = context
             code.position = position
@@ -49,9 +46,7 @@ else:
             handle_call(object.__func__, context, position)
 
         elif ins(object, type):
-            gt = getattr
-
-            method = gt(object, '__new__', None)
+            method = (gt := getattr)(object, '__new__', None)
             if method is not None:
                 handle_call(method, context, position)
 
@@ -59,4 +54,4 @@ else:
             if method is not None:
                 handle_call(method, context, position)
 
-    GIL = False
+    GIL = pys_sys.gil = False

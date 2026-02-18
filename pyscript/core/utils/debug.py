@@ -1,7 +1,7 @@
-from ..constants import ENV_PYSCRIPT_NO_EXCEPTHOOK
+from ..constants import ENV_PYSCRIPT_NO_EXCEPTHOOK, ENV_PYSCRIPT_NO_READLINE
 from ..exceptions import PysSignal
 
-from os import environ
+from os import environ, system
 from sys import excepthook
 
 import sys
@@ -22,6 +22,37 @@ def sys_excepthook(exc_type, exc_value, exc_tb):
 
 def thread_excepthook(args):
     sys_excepthook(args.exc_type, args.exc_value, args.exc_traceback)
+
+def import_readline():
+    return False
+
+if 'google.colab' in sys.modules:
+    from google.colab.output import clear
+    def clear_shell():
+        clear()
+
+elif sys.platform == 'win32':
+    def clear_shell():
+        system('cls')
+
+else:
+    def clear_shell():
+        system('clear')
+
+    if environ.get(ENV_PYSCRIPT_NO_READLINE) is None:
+        def import_readline():
+            try:
+                import readline
+                return True
+            except:
+                return False
+
+def get_error_args(traceback):
+    return (None, None, None) if traceback is None else (
+        (exception, None, traceback)
+        if isinstance(exception := traceback.exception, type) else
+        (type(exception), exception, traceback)
+    )
 
 if environ.get(ENV_PYSCRIPT_NO_EXCEPTHOOK) is None:
     import threading

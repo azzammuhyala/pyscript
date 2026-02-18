@@ -1,7 +1,7 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
 from .checks import is_keyword
-from .constants import TOKENS, DEFAULT, SILENT, HIGHLIGHT, NO_COLOR
+from .constants import TOKENS, DEFAULT, SILENT, LEXER_HIGHLIGHT, NO_COLOR
 from .context import PysContext
 from .exceptions import PysTraceback
 from .position import PysPosition, format_error_arrow
@@ -220,14 +220,14 @@ class PysLexer(Pys):
             )
 
     def warning(self, message):
-        if not (self.flags & SILENT or self.parser_flags & HIGHLIGHT or message in self.warnings):
+        if not (self.flags & SILENT or self.parser_flags & LEXER_HIGHLIGHT or message in self.warnings):
             print(message, file=sys.stderr)
             self.warnings.add(message)
 
     def throw(self, start, end, message, add_token=True):
         if self.error is None:
 
-            if self.parser_flags & HIGHLIGHT:
+            if self.parser_flags & LEXER_HIGHLIGHT:
                 if add_token:
                     self.add_token(TOKENS['NONE'], start)
 
@@ -859,5 +859,5 @@ class PysLexer(Pys):
             comment += self.current_character
             self.advance()
 
-        if self.parser_flags & HIGHLIGHT:
+        if self.parser_flags & LEXER_HIGHLIGHT:
             self.add_token(TOKENS['COMMENT'], start, comment)

@@ -10,7 +10,8 @@ from .objects import PysFunction
 from .pysbuiltins import ce, nce, increment, decrement
 from .results import PysRunTimeResult
 from .symtab import PysClassSymbolTable, find_closest
-from .utils.generic import getattribute, setimuattr, dkeys, is_object_of, get_error_args
+from .utils.debug import get_error_args
+from .utils.generic import getattribute, setimuattr, dkeys, is_object_of
 from .utils.similarity import get_closest
 
 from collections.abc import Iterable

@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Any, Callable, Iterable, Literal, Optional
 
 if TYPE_CHECKING:
     from .core.buffer import PysFileBuffer
-    from .core.cache import PysUndefined, PysHook
+    from .core.cache import PysUndefined
     from .core.context import PysContext
     from .core.highlight import _PysHighlightFormatter
     from .core.position import PysPosition
@@ -16,7 +16,8 @@ if TYPE_CHECKING:
 from . import core as core
 from .core.highlight import (
     PygmentsPyScriptStyle as PygmentsPyScriptStyle,
-    PygmentsPyScriptLexer as PygmentsPyScriptLexer
+    PygmentsPyScriptLexer as PygmentsPyScriptLexer,
+    PygmentsPyScriptShellLexer as PygmentsPyScriptShellLexer
 )
 
 DEFAULT: int
@@ -25,7 +26,8 @@ DEBUG: int
 SILENT: int
 RETURN_RESULT: int
 DONT_SHOW_BANNER_ON_SHELL: int
-HIGHLIGHT: int
+CLASSIC_LINE_SHELL: int
+LEXER_HIGHLIGHT: int
 DICT_TO_JSDICT: int
 
 HLFMT_HTML: _PysHighlightFormatter
@@ -33,13 +35,12 @@ HLFMT_ANSI: _PysHighlightFormatter
 HLFMT_BBCODE: _PysHighlightFormatter
 
 undefined: PysUndefined
-hook: PysHook
 version: str
 version_info: PysVersionInfo
 
 def pys_highlight(
     source: str | bytes | bytearray | Iterable | BuiltinMethodType | IOBase | PysFileBuffer,
-    format: Optional[
+    formatter: Optional[
         Callable[
             [
                 str | Literal[

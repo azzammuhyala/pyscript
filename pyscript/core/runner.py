@@ -1,7 +1,7 @@
 from .analyzer import PysAnalyzer
 from .buffer import PysFileBuffer
-from .cache import undefined, hook, PysUndefined
-from .constants import DEFAULT, SILENT, RETURN_RESULT, NO_COLOR, DONT_SHOW_BANNER_ON_SHELL
+from .cache import pys_sys, undefined, PysUndefined
+from .constants import DEFAULT, SILENT, RETURN_RESULT, NO_COLOR, DONT_SHOW_BANNER_ON_SHELL, CLASSIC_LINE_SHELL
 from .context import PysContext
 from .exceptions import PysTraceback, PysSignal
 from .handlers import handle_call
@@ -12,10 +12,11 @@ from .parser import PysParser
 from .position import PysPosition
 from .pysbuiltins import require
 from .results import PysRunTimeResult, PysExecuteResult
-from .shell import PysCommandLineShell
+from .shell import PysClassicLineShell, PysPromptToolkitLineShell
 from .symtab import PysSymbolTable, new_symbol_table
+from .utils.debug import import_readline
 from .utils.decorators import TYPECHECK_STACK, typechecked
-from .utils.generic import get_frame, get_locals, import_readline
+from .utils.generic import get_frame, get_locals
 from .version import version
 
 from types import ModuleType
@@ -67,6 +68,11 @@ def pys_runner(
 
     - context_parent_entry_position : The last parent position object, useful for specifying the row and column
                                       sections in the traceback (context_parent is required).
+
+    Returns
+    -------
+    A PysExecuteResult object (`pyscript.core.results.PysExecuteResult`), which contains the execution result value,
+    error, and the context after execution.
     """
 
     if (context_parent is None) != (context_parent_entry_position is None):
@@ -133,13 +139,14 @@ def pys_runner(
             )
 
         result.parser_flags = parser.parser_flags
+        pys_sys.flags = context.flags
         runtime_result = get_visitor(node.__class__)(node, context)
 
         if runtime_result.error:
             return result.failure(runtime_result.error)
 
-        if mode == 'single' and hook.display is not None:
-            hook.display(runtime_result.value)
+        if mode == 'single' and (displayhook := pys_sys.displayhook) is not None:
+            displayhook(runtime_result.value)
         return result.success(runtime_result.value)
 
     if runtime_runner_result.error:
@@ -167,6 +174,11 @@ def pys_exec(
     - flags : A special flags.
 
     - parser_flags : A special parser flags.
+
+    Returns
+    -------
+    If `flags` has `RETURN_RESULT`, it returns a PysExecuteResult object (`pyscript.core.results.PysExecuteResult`),
+    which contains the execution result value, error, and the context after execution. Otherwise, it returns None.
     """
 
     file = PysFileBuffer(source)
@@ -207,6 +219,12 @@ def pys_eval(
     - flags : A special flags.
 
     - parser_flags : A special parser flags.
+
+    Returns
+    -------
+    If `flags` has `RETURN_RESULT`, it returns a PysExecuteResult object (`pyscript.core.results.PysExecuteResult`),
+    which contains the execution result value, error, and the context after execution. Otherwise, it returns the
+    execution result value directly.
     """
 
     file = PysFileBuffer(source)
@@ -238,6 +256,10 @@ def pys_require(name, flags: int = DEFAULT) -> ModuleType | Any:
     - name : A name or path of the module to be imported.
 
     - flags : A special flags.
+
+    Returns
+    -------
+    A module object or other any object (using `>`).
     """
 
     file = PysFileBuffer('', get_frame(1 + TYPECHECK_STACK).f_code.co_filename)
@@ -263,22 +285,28 @@ def pys_shell(
     - flags : A special flags.
 
     - parser_flags : A special parser flags.
+
+    Returns
+    -------
+    Shell exit code. Sometimes the exit code is an other object.
     """
 
-    if hook.running_shell:
+    if pys_sys.__running_shell__:
         raise RuntimeError("another shell is still running")
 
+    line = 0
+    default_parser_flags = parser_flags
     file = PysFileBuffer('', '<pyscript-shell>')
     symtab = _normalize_namespace(file, globals)
-    shell = PysCommandLineShell()
-    line = 0
+    colored = not (flags & NO_COLOR)
+    shell = (PysClassicLineShell if flags & CLASSIC_LINE_SHELL else PysPromptToolkitLineShell)(colored=colored)
 
-    if flags & NO_COLOR:
-        reset = ''
-        bmagenta = ''
-    else:
+    if colored:
         reset = ACOLORS('reset')
         bmagenta = ACOLORS('bold-magenta')
+    else:
+        reset = ''
+        bmagenta = ''
 
     import_readline()
 
@@ -287,24 +315,25 @@ def pys_shell(
             f'PyScript {version}\n'
             f'Python {sys.version}\n'
             'Type "help", "copyright", "credits" or "license" for more information.\n'
-            'Type "quit", "exit" or "/exit" to exit the shell; "/clear" to clear the terminal; "/clean" to clean up '
-            'the namespace'
+            'Type "quit", "exit" or "/exit" to exit the shell; "/clear" to clear the shell; "/clean" to clean up the '
+            'namespace'
         )
 
     try:
-        hook.running_shell = True
+        pys_sys.__running_shell__ = True
 
         while True:
 
             try:
-                shell.ps1 = f'{bmagenta}{hook.ps1}{reset}'
-                shell.ps2 = f'{bmagenta}{hook.ps2}{reset}'
+                shell.ps1 = f'{bmagenta}{pys_sys.ps1}{reset}'
+                shell.ps2 = f'{bmagenta}{pys_sys.ps2}{reset}'
 
                 text = shell.prompt()
                 if text == 0:
                     return 0
                 elif text == 1:
                     symtab = _normalize_namespace(file, globals)
+                    parser_flags = default_parser_flags
                     continue
 
                 result = pys_runner(
@@ -331,4 +360,4 @@ def pys_shell(
                 return 0
 
     finally:
-        hook.running_shell = False
+        pys_sys.__running_shell__ = False

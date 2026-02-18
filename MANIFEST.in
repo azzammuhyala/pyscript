@@ -1,4 +1,5 @@
+include changelog.md
 include README.md
 
 recursive-include pyscript *
-recursive-exclude backup *
+global-exclude __pycache__ *.py[cod]

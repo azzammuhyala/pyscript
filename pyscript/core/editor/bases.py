@@ -1,6 +1,6 @@
 from ..bases import Pys
 from ..buffer import PysFileBuffer
-from ..utils.decorators import inheritable
+from ..utils.decorators import typechecked, inheritable
 from ..utils.generic import setimuattr
 from ..utils.string import normstr
 
@@ -10,6 +10,7 @@ class PysEditor(Pys):
 
     __slots__ = ('file', 'used', 'modified', 'wrapped', 'basename')
 
+    @typechecked
     def __init__(self, file: PysFileBuffer) -> None:
         self.file = file
         self.used = False

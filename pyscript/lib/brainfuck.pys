@@ -21,13 +21,13 @@ class BFInterpreter {
         fin = fin ?? default_input
         fout = fout ?? default_output
 
-        if (!isinstance(cells, (int, type(none))))
+        if (not isinstance(cells, (int, type(none))))
             throw TypeError("BFInterpreter() cells must be integer or none")
-        if (!callable(fin))
+        if (not callable(fin))
             throw TypeError("BFInterpreter() fin must be callable")
-        if (!callable(fout))
+        if (not callable(fout))
             throw TypeError("BFInterpreter() fout must be callable")
-        if (!(cells is none) && cells <= 0)
+        if (not (cells is none) and cells <= 0)
             throw ValueError("BFInterpreter() cells must be greater than 0")
 
         self.source = source
@@ -46,24 +46,24 @@ class BFInterpreter {
 
         addtok = tokens.append
         addstack = stack.append
-        postack = stack.pop
+        popstack = stack.pop
         setBracketMap = self._bracketMap.__setitem__
 
         for (position, character of enumerate(source)) {
 
-            if (!comment && character == '#')
+            if (not comment and character == '#')
                 comment = true
-            elif (comment && character == '\n')
+            elif (comment and character == '\n')
                 comment = false
 
-            if (!comment && character -> '<>+-,.[]') {
+            if (not comment and character in '<>+-,.[]') {
                 tokenIndex = len(tokens)
 
                 if (character == '[')
                     addstack(tokenIndex)
 
                 elif (character == ']') {
-                    if (!stack)
+                    if (not stack)
                         throw SyntaxError("unbalanced brackets")
 
                     startIndex = popstack()
@@ -91,7 +91,7 @@ class BFInterpreter {
     }
 
     func step(self) {
-        if (!self.running) return;
+        if (not self.running) return;
 
         if (self._tokenCursor >= len(tokens := self._tokens)) {
             self.running = false
@@ -99,7 +99,7 @@ class BFInterpreter {
         }
 
         position, character = tokens[tokenCursor := self._tokenCursor]
-        cell = (memory := self.memory)[self.point]
+        cell = (memory := self.memory)[point := self.point]
 
         self._tokenCursor += 1
 
@@ -116,24 +116,24 @@ class BFInterpreter {
                 break
 
             case '<':
-                if (self.point == 0)
+                if (point == 0)
                     throw IndexError("pointer out of bounds")
                 self.point -= 1
                 break
 
             case '+':
-                memory[self.point] = (cell + 1) % 256
+                memory[point] = (cell + 1) % 256
                 break
 
             case '-':
-                memory[self.point] = (cell - 1) % 256
+                memory[point] = (cell - 1) % 256
                 break
 
             case ',':
                 new = self.fin()
-                if (!(isinstance(new, int) && 0 <= new <= 255))
+                if (not (isinstance(new, int) and 0 <= new <= 255))
                     throw TypeError("BFInterpreter() fin must be returns unsigned 8-bit integer")
-                memory[self.point] = new
+                memory[point] = new
                 break
 
             case '.':
@@ -156,7 +156,7 @@ class BFInterpreter {
     }
 
     func stop(self, cleanUp=true) {
-        if (!self.running) return;
+        if (not self.running) return;
         self.running = false
         if (cleanUp) del self.memory, self.point
     }

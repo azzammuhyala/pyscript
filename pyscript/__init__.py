@@ -9,11 +9,13 @@ if __import__('sys').version_info < (3, 10):
 from . import core
 
 from .core.constants import (
-    DEFAULT, NO_COLOR, DEBUG, SILENT, RETURN_RESULT, DONT_SHOW_BANNER_ON_SHELL, HIGHLIGHT, DICT_TO_JSDICT
+    DEFAULT, NO_COLOR, DEBUG, SILENT, RETURN_RESULT, DONT_SHOW_BANNER_ON_SHELL, CLASSIC_LINE_SHELL, LEXER_HIGHLIGHT,
+    DICT_TO_JSDICT
 )
-from .core.cache import undefined, hook
+from .core.cache import undefined
 from .core.highlight import (
-    HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight, PygmentsPyScriptStyle, PygmentsPyScriptLexer
+    HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight, PygmentsPyScriptStyle, PygmentsPyScriptLexer,
+    PygmentsPyScriptShellLexer
 )
 from .core.runner import pys_runner, pys_exec, pys_eval, pys_require, pys_shell
 from .core.version import version, version_info, __version__, __date__
@@ -26,13 +28,13 @@ __all__ = (
     'SILENT',
     'RETURN_RESULT',
     'DONT_SHOW_BANNER_ON_SHELL',
-    'HIGHLIGHT',
+    'CLASSIC_LINE_SHELL',
+    'LEXER_HIGHLIGHT',
     'DICT_TO_JSDICT',
     'HLFMT_HTML',
     'HLFMT_ANSI',
     'HLFMT_BBCODE',
     'undefined',
-    'hook',
     'version',
     'version_info',
     'pys_highlight',
@@ -42,5 +44,6 @@ __all__ = (
     'pys_require',
     'pys_shell',
     'PygmentsPyScriptStyle',
-    'PygmentsPyScriptLexer'
+    'PygmentsPyScriptLexer',
+    'PygmentsPyScriptShellLexer'
 )

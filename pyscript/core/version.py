@@ -1,4 +1,5 @@
 from .bases import Pys
+from .cache import pys_sys
 from .utils.decorators import immutable, inheritable, singleton
 
 from re import compile as re_compile
@@ -6,10 +7,10 @@ from types import MappingProxyType
 
 version_match = re_compile(r'^(\d+)\.(\d+)\.(\d+)((?:a|b|rc)(\d+)|\.(dev|post)(\d+))?$').match
 
-__version__ = '1.11.3'
-__date__ = '14 February 2026, 12:00 UTC+7'
+__version__ = '1.12.0'
+__date__ = '18 February 2026, 17:52 UTC+7'
 
-version = f'{__version__} ({__date__})'
+version = pys_sys.version = f'{__version__} ({__date__})'
 
 TAG_VERSION_MAP = MappingProxyType({
     'a': 'alpha',
@@ -50,7 +51,12 @@ class PysVersionInfo(Pys, tuple):
             pre_tag_full = pre_num = None
 
         global version_info
-        version_info = tuple.__new__(cls, (int(major), int(minor), int(micro), pre_tag_full, pre_num))
+        version_info = pys_sys.version_info = tuple.__new__(
+            cls,
+            (
+                int(major), int(minor), int(micro), pre_tag_full, pre_num
+            )
+        )
         return version_info
 
     @property

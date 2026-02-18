@@ -12,17 +12,9 @@ TYPECHECK_STACK = 0
 if environ.get(ENV_PYSCRIPT_NO_TYPECHECK) is None:
     try:
         from beartype import beartype as typechecked
-        TYPECHECK_STACK = 1
+        TYPECHECK_STACK += 1
     except ImportError:
         pass
-        # pyscript.pys_exec('print("hello")') => TypeError: 'NoneType' object is not callable
-        # i think this is a bug?
-
-        # try:
-        #     from typeguard import typechecked
-        #     TYPECHECK_STACK = 1
-        # except ImportError:
-        #     pass
 
 class _PysNameSpaceUtilities(Pys):
 
@@ -33,7 +25,8 @@ class _PysNameSpaceUtilities(Pys):
 
     def new_singleton(cls, *args, **kwargs):
         # circular import problem solved
-        from ..cache import singletons
+        from ..cache import pys_sys
+        singletons = pys_sys.singletons
         if type(singletons.get(cls, None)) is not cls:
             singletons[cls] = cls.__new_singleton__(cls, *args, **kwargs)
         return singletons[cls]

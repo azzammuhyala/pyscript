@@ -1,11 +1,10 @@
 from .bases import Pys
-from .cache import hook
+from .cache import pys_sys
 from .constants import DEFAULT
 from .context import PysContext
 from .exceptions import PysTraceback, PysSignal
 from .position import PysPosition
-from .utils.debug import print_traceback
-from .utils.generic import get_error_args
+from .utils.debug import print_traceback, get_error_args
 
 from typing import Any
 
@@ -175,8 +174,8 @@ class PysExecuteResult(PysResult):
                     return 0, True
                 elif type(self.error.exception) is SystemExit:
                     return self.error.exception.code, True
-                elif hook.exception is not None:
-                    hook.exception(*get_error_args(self.error))
+                elif (excepthook := pys_sys.excepthook) is not None:
+                    excepthook(*get_error_args(self.error))
                 return 1, False
 
         if result.should_return():

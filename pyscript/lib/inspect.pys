@@ -1,12 +1,11 @@
 import _pyscript
-import sys
 
 func iscontext(object) => isinstance(object, _pyscript.context.PysContext)
 func issymtab(object) => isinstance(object, _pyscript.symtab.PysSymbolTable)
 func iscode(object) => isinstance(object, _pyscript.objects.PysCode)
 func isfunction(object) => isinstance(object, _pyscript.objects.PysFunction)
 
-getcontext = sys.getcontext
+getcontext = _pyscript.objects.PysPythonFunction(func(pyfunc) => pyfunc.__code__.context)
 getsymtab = _pyscript.objects.PysPythonFunction(func(pyfunc) => pyfunc.__code__.context.symbol_table)
 
 func getcode(fn) {

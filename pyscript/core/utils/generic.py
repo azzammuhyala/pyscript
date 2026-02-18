@@ -1,10 +1,5 @@
-from ..constants import ENV_PYSCRIPT_NO_READLINE
-
 from inspect import currentframe
-from os import environ, system
 from types import UnionType
-
-import sys
 
 getattribute = object.__getattribute__
 setimuattr = object.__setattr__
@@ -34,7 +29,7 @@ def get_locals(deep=0):
         return locals if isinstance(locals, dict) else dict(locals)
     return {}
 
-def get_sequence(object, key, default=None):
+def get_subscript(object, key, default=None):
     return object[key] if 0 <= key < len(object) else default
 
 def is_object_of(obj: object | type, class_or_tuple: type | UnionType | tuple[type | UnionType, ...]) -> bool:
@@ -48,30 +43,4 @@ def is_object_of(obj: object | type, class_or_tuple: type | UnionType | tuple[ty
     return (
         isinstance(obj, class_or_tuple) or
         (isinstance(obj, type) and issubclass(obj, class_or_tuple))
-    )
-
-def import_readline():
-    return False
-
-if sys.platform == 'win32':
-    def clear_console():
-        system('cls')
-
-else:
-    def clear_console():
-        system('clear')
-
-    if environ.get(ENV_PYSCRIPT_NO_READLINE) is None:
-        def import_readline():
-            try:
-                import readline
-                return True
-            except:
-                return False
-
-def get_error_args(traceback):
-    return (None, None, None) if traceback is None else (
-        (exception, None, traceback)
-        if isinstance(exception := traceback.exception, type) else
-        (type(exception), exception, traceback)
     )

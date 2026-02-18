@@ -8,6 +8,7 @@ try:
     from prompt_toolkit.filters import Condition
     from prompt_toolkit.formatted_text import ANSI
     from prompt_toolkit.key_binding import KeyBindings
+    from prompt_toolkit.keys import Keys
     from prompt_toolkit.layout import Layout, HSplit, Window, Float, FloatContainer
     from prompt_toolkit.layout.containers import ConditionalContainer
     from prompt_toolkit.layout.controls import FormattedTextControl
@@ -22,6 +23,7 @@ try:
             PysEditor.__init__(self, file)
 
             self.show_exit_window = False
+            self.overwrite = False
 
             on_edit = Condition(lambda: not self.show_exit_window)
             on_exit = Condition(lambda: self.show_exit_window)
@@ -32,9 +34,7 @@ try:
                 scrollbar=True,
                 wrap_lines=on_wrap,
                 lexer=PygmentsLexer(PygmentsPyScriptLexer),
-                input_processors=[
-                    TabsProcessor(tabstop=4)
-                ]
+                input_processors=[TabsProcessor(tabstop=4)]
             )
 
             self.title = Window(
@@ -58,6 +58,19 @@ try:
             @self.key_bindings.add('tab', filter=on_edit, eager=True)
             def _(event):
                 self.text.buffer.insert_text('\t')
+
+            @self.key_bindings.add('insert', filter=on_edit, eager=True)
+            def _(event):
+                self.overwrite = not self.overwrite
+
+            @self.key_bindings.add('pageup', filter=on_edit, eager=True)
+            def _(event):
+                self.current_buffer.cursor_position = 0
+
+            @self.key_bindings.add('pagedown', filter=on_edit, eager=True)
+            def _(event):
+                buffer = self.current_buffer
+                buffer.cursor_position = len(buffer.text)
 
             @self.key_bindings.add('c-w', filter=on_edit, eager=True)
             def _(event):
@@ -95,6 +108,16 @@ try:
             def _(event):
                 self.show_exit_window = False
                 self.layout.focus(self.text)
+
+            @self.key_bindings.add(Keys.Any, filter=on_edit)
+            def _(event):
+                buffer = self.current_buffer
+                text = event.data
+                if self.overwrite and buffer.cursor_position < len(buffer.text):
+                    buffer.delete(1)
+                    buffer.insert_text(text)
+                else:
+                    buffer.insert_text(text)
 
             self.root = FloatContainer(
                 content=HSplit(

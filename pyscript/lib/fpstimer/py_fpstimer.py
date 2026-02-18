@@ -30,8 +30,8 @@ class FPSTimer:
 
         currentTime = monotonic()
 
-        FPSTimer._framesPerSecond = 0.0 if currentTime == lastTick else 1 / (currentTime - lastTick)
         FPSTimer._timeElapsed = timeElapsed = currentTime - lastTick
+        FPSTimer._framesPerSecond = 0.0 if timeElapsed == 0 else 1 / timeElapsed
         FPSTimer._rawTime = elapsedTime
         FPSTimer._lastTick = currentTime
 

@@ -1,16 +1,17 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
-from .cache import loading_modules, path, modules, hook
+from .cache import pys_sys
 from .checks import is_blacklist_python_builtins, is_private_attribute
-from .constants import OTHER_PATH, NO_COLOR
+from .constants import OTHER_PATH, NO_COLOR, CLASSIC_LINE_SHELL
 from .exceptions import PysSignal
 from .handlers import handle_call
 from .mapping import ACOLORS, EMPTY_MAP
 from .objects import PysFunction, PysPythonFunction, PysBuiltinFunction
 from .results import PysRunTimeResult
-from .shell import PysCommandLineShell
+from .shell import PysClassicLineShell, PysPromptToolkitLineShell
 from .symtab import new_symbol_table
-from .utils.generic import dkeys, get_sequence, is_object_of as isobjectof, import_readline
+from .utils.debug import import_readline
+from .utils.generic import dkeys, get_subscript, is_object_of as isobjectof
 from .utils.module import get_module_path, set_python_path, remove_python_path
 from .utils.path import getcwd, normpath, get_name_from_path
 from .utils.string import normstr
@@ -145,7 +146,7 @@ def require(pyfunc, name):
     context = code.context
     filename = context.file.name
 
-    for p in path:
+    for p in pys_sys.path:
         module_path = get_module_path(normpath(p, name, absolute=False))
         if module_path is not None:
             break
@@ -159,10 +160,14 @@ def require(pyfunc, name):
             from .. import core as module
         elif name == 'builtins':
             module = pys_builtins
+        elif name == 'sys':
+            module = pys_sys
         else:
             module_path = name
 
     if module_path is not None:
+        loading_modules = pys_sys.loading_modules
+        modules = pys_sys.modules
         module = modules.get(module_path, None)
 
         if module is None:
@@ -246,7 +251,7 @@ def breakpoint(pyfunc):
     Pauses program execution and enters shell debugging mode.
     """
 
-    if hook.running_breakpoint:
+    if pys_sys.__running_breakpoint__:
         raise RuntimeError("another breakpoint is still running")
 
     from .runner import pys_runner
@@ -255,16 +260,22 @@ def breakpoint(pyfunc):
     context = code.context
     position = code.position
     symtab = context.symbol_table
+    flags = context.flags
+    colored = not (flags & NO_COLOR)
+    scopes = []
 
-    if context.flags & NO_COLOR:
-        reset = ''
-        bmagenta = ''
-    else:
+    if colored:
         reset = ACOLORS('reset')
         bmagenta = ACOLORS('bold-magenta')
+    else:
+        reset = ''
+        bmagenta = ''
 
-    shell = PysCommandLineShell(f'{bmagenta}(Pdb) {reset}', f'{bmagenta}...   {reset}')
-    scopes = []
+    shell = (PysClassicLineShell if flags & CLASSIC_LINE_SHELL else PysPromptToolkitLineShell)(
+        f'{bmagenta}(Pdb) {reset}',
+        f'{bmagenta}...   {reset}',
+        colored=colored
+    )
 
     def show_line():
         print(f'> {context.file.name}({position.start_line}){context.name}')
@@ -273,7 +284,7 @@ def breakpoint(pyfunc):
     show_line()
 
     try:
-        hook.running_breakpoint = True
+        pys_sys.__running_breakpoint__ = True
 
         while True:
 
@@ -309,11 +320,11 @@ def breakpoint(pyfunc):
                     show_line()
 
                 elif command in ('q', 'quit', 'exit'):
-                    code = get_sequence(args, 0, '0')
+                    code = get_subscript(args, 0, '0')
                     raise SystemExit(int(code) if code.isdigit() else code)
 
                 elif command in ('u', 'up'):
-                    count = get_sequence(args, 0, '')
+                    count = get_subscript(args, 0, '')
                     for _ in range(int(count) if count.isdigit() else 1):
                         if scopes:
                             symtab = scopes.pop()
@@ -322,7 +333,7 @@ def breakpoint(pyfunc):
                             break
 
                 elif command in ('d', 'down'):
-                    count = get_sequence(args, 0, '')
+                    count = get_subscript(args, 0, '')
                     parent = symtab.parent
                     for _ in range(int(count) if count.isdigit() else 1):
                         if parent is None:
@@ -350,7 +361,7 @@ def breakpoint(pyfunc):
                 raise SystemExit from e
 
     finally:
-        hook.running_breakpoint = False
+        pys_sys.__running_breakpoint__ = False
 
 @PysBuiltinFunction
 def globals(pyfunc):
@@ -653,7 +664,7 @@ def comprehension(pyfunc, init, wrap, condition=None):
     )
 
 pys_builtins = ModuleType(
-    'built-in',
+    'builtins',
     "Built-in functions, types, exceptions, and other objects.\n\n"
     "This module provides direct access to all 'built-in' identifiers of PyScript and Python."
 )
@@ -664,7 +675,6 @@ pys_builtins.__dict__.update(
     if not (is_private_attribute(name) or is_blacklist_python_builtins(name))
 )
 
-pys_builtins.__file__ = __file__
 pys_builtins.true = True
 pys_builtins.false = False
 pys_builtins.none = None
