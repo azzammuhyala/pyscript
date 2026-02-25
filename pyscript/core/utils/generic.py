@@ -1,4 +1,5 @@
 from inspect import currentframe
+from os import environ
 from types import UnionType
 
 getattribute = object.__getattribute__
@@ -31,6 +32,9 @@ def get_locals(deep=0):
 
 def get_subscript(object, key, default=None):
     return object[key] if 0 <= key < len(object) else default
+
+def is_environ(key):
+    return environ.get(key) is not None
 
 def is_object_of(obj: object | type, class_or_tuple: type | UnionType | tuple[type | UnionType, ...]) -> bool:
 

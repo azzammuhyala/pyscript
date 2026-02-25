@@ -432,8 +432,8 @@ class PysAnalyzer(Pys):
         if self.error:
             return
 
-        if node.cause:
-            self.visit(node.cause)
+        if node.primary:
+            self.visit(node.primary)
 
     def visit_AssertNode(self, node):
         self.visit(node.condition)

@@ -236,8 +236,8 @@ def walk(node):
         yield node
         yield from walk(node.target)
 
-        if node.cause:
-            yield from walk(node.cause)
+        if node.primary:
+            yield from walk(node.primary)
 
     elif isinstance(node, PysAssertNode):
         yield node

@@ -8,7 +8,6 @@ try:
     from prompt_toolkit.filters import Condition
     from prompt_toolkit.formatted_text import ANSI
     from prompt_toolkit.key_binding import KeyBindings
-    from prompt_toolkit.keys import Keys
     from prompt_toolkit.layout import Layout, HSplit, Window, Float, FloatContainer
     from prompt_toolkit.layout.containers import ConditionalContainer
     from prompt_toolkit.layout.controls import FormattedTextControl
@@ -23,7 +22,6 @@ try:
             PysEditor.__init__(self, file)
 
             self.show_exit_window = False
-            self.overwrite = False
 
             on_edit = Condition(lambda: not self.show_exit_window)
             on_exit = Condition(lambda: self.show_exit_window)
@@ -53,39 +51,45 @@ try:
                 filter=on_exit,
             )
 
-            self.key_bindings = KeyBindings()
+            key_bindings = KeyBindings()
 
-            @self.key_bindings.add('tab', filter=on_edit, eager=True)
+            @key_bindings.add('tab', filter=on_edit, eager=True)
             def _(event):
                 self.text.buffer.insert_text('\t')
 
-            @self.key_bindings.add('insert', filter=on_edit, eager=True)
-            def _(event):
-                self.overwrite = not self.overwrite
-
-            @self.key_bindings.add('pageup', filter=on_edit, eager=True)
+            @key_bindings.add('pageup', filter=on_edit, eager=True)
             def _(event):
                 self.current_buffer.cursor_position = 0
 
-            @self.key_bindings.add('pagedown', filter=on_edit, eager=True)
+            @key_bindings.add('pagedown', filter=on_edit, eager=True)
             def _(event):
                 buffer = self.current_buffer
                 buffer.cursor_position = len(buffer.text)
 
-            @self.key_bindings.add('c-w', filter=on_edit, eager=True)
+            @key_bindings.add('enter', filter=on_edit, eager=True)
+            def _(event):
+                buffer = self.current_buffer
+                line = buffer.document.current_line_before_cursor
+                buffer.insert_text('\n' + line[:len(line) - len(line.lstrip())])
+
+            @key_bindings.add('c-w', filter=on_edit, eager=True)
             def _(event):
                 self.wrapped = not self.wrapped
 
-            @self.key_bindings.add('c-z', filter=on_edit, eager=True)
+            @key_bindings.add('c-z', filter=on_edit, eager=True)
             def _(event):
                 self.current_buffer.undo()
 
-            @self.key_bindings.add('c-s', filter=on_edit, eager=True)
+            @key_bindings.add('c-y', filter=on_edit, eager=True)
+            def _(event):
+                self.current_buffer.redo()
+
+            @key_bindings.add('c-s', filter=on_edit, eager=True)
             def _(event):
                 self.save(self.text.text)
 
-            @self.key_bindings.add('c-x', filter=on_edit, eager=True)
-            @self.key_bindings.add('escape', filter=on_edit, eager=True)
+            @key_bindings.add('c-x', filter=on_edit, eager=True)
+            @key_bindings.add('escape', filter=on_edit, eager=True)
             def _(event):
                 if self.modified:
                     self.show_exit_window = True
@@ -93,31 +97,21 @@ try:
                 else:
                     self.exit()
 
-            @self.key_bindings.add('y', filter=on_exit)
+            @key_bindings.add('y', filter=on_exit)
             def _(event):
                 self.save(self.text.text)
                 self.show_exit_window = False
                 self.exit()
 
-            @self.key_bindings.add('n', filter=on_exit)
+            @key_bindings.add('n', filter=on_exit)
             def _(event):
                 self.show_exit_window = False
                 self.exit()
 
-            @self.key_bindings.add('c', filter=on_exit)
+            @key_bindings.add('c', filter=on_exit)
             def _(event):
                 self.show_exit_window = False
                 self.layout.focus(self.text)
-
-            @self.key_bindings.add(Keys.Any, filter=on_edit)
-            def _(event):
-                buffer = self.current_buffer
-                text = event.data
-                if self.overwrite and buffer.cursor_position < len(buffer.text):
-                    buffer.delete(1)
-                    buffer.insert_text(text)
-                else:
-                    buffer.insert_text(text)
 
             self.root = FloatContainer(
                 content=HSplit(
@@ -135,14 +129,13 @@ try:
                 ]
             )
 
-            self.text.text = self.file.text
             self.text.buffer.on_text_changed += self.on_change
 
             Application.__init__(
                 self,
                 layout=Layout(self.root),
                 style=style_from_pygments_cls(PygmentsPyScriptStyle),
-                key_bindings=self.key_bindings,
+                key_bindings=key_bindings,
                 full_screen=True,
                 mouse_support=True,
                 paste_mode=True
@@ -150,6 +143,7 @@ try:
 
         def run(self) -> None:
             PysEditor.run(self)
+            self.text.text = self.file.text
             Application.run(self)
 
         def on_change(self, buffer):
@@ -165,7 +159,7 @@ try:
 
     TERMINAL_SUPPORT = True
 
-except ImportError as e:
+except BaseException as e:
     _error = e
 
     class PysTerminalEditor(PysEditor):

@@ -2169,21 +2169,21 @@ class PysParser(Pys):
         if result.error:
             return result
 
-        cause = None
+        primary = None
 
         if self.current_token.match(TOKENS['KEYWORD'], 'from'):
             result.register_advancement()
             self.advance()
             self.skip(result)
 
-            cause = result.register(self.single_expression(), True)
+            primary = result.register(self.single_expression(), True)
             if result.error:
                 return result
 
         return result.success(
             PysThrowNode(
                 target,
-                cause,
+                primary,
                 position
             )
         )

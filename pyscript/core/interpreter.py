@@ -689,7 +689,7 @@ def visit_TryNode(node, context):
                 for nerror_class in targets:
                     error_class = register(visit_IdentifierNode(nerror_class, context))
                     if result.error:
-                        setimuattr(result.error, 'cause', error)
+                        setimuattr(result.error, 'primary', error)
                         stop = True
                         break
 
@@ -722,7 +722,7 @@ def visit_TryNode(node, context):
 
                 register(get_visitor(body.__class__)(body, context))
                 if result.error:
-                    setimuattr(result.error, 'cause', error)
+                    setimuattr(result.error, 'primary', error)
 
                 if tparameter:
                     with result(context, position):
@@ -743,7 +743,7 @@ def visit_TryNode(node, context):
         finally_result.register(get_visitor(finally_body.__class__)(finally_body, context))
         if finally_result.should_return():
             if finally_result.error:
-                setimuattr(finally_result.error, 'cause', result.error)
+                setimuattr(finally_result.error, 'primary', result.error)
             return finally_result
 
     if should_return():
@@ -823,7 +823,7 @@ def visit_WithNode(node, context):
 
     if should_return():
         if result.error and result.error is not error:
-            setimuattr(result.error, 'cause', error)
+            setimuattr(result.error, 'primary', error)
         return result
 
     return result.success(None)
@@ -860,7 +860,7 @@ def visit_ForNode(node, context):
                 register(visit_declaration_AssignmentNode(ndeclaration, context, next()))
 
             if should_return():
-                if result.error and is_object_of(result.error.exception, StopIteration):
+                if (error := result.error) and is_object_of(error.exception, StopIteration):
                     result.failure(None)
                 return False
 
@@ -1197,7 +1197,7 @@ def visit_ThrowNode(node, context):
     register = result.register
     should_return = result.should_return
     ntarget = node.target
-    ncause = node.cause
+    nprimary = node.primary
 
     target = register(get_visitor(ntarget.__class__)(ntarget, context))
     if should_return():
@@ -1212,36 +1212,36 @@ def visit_ThrowNode(node, context):
             )
         )
 
-    if ncause:
-        cause = register(get_visitor(ncause.__class__)(ncause, context))
+    if nprimary:
+        primary = register(get_visitor(nprimary.__class__)(nprimary, context))
         if should_return():
             return result
 
-        if not is_object_of(cause, BaseException):
+        if not is_object_of(primary, BaseException):
             return result.failure(
                 PysTraceback(
                     TypeError("exceptions must derive from BaseException"),
                     context,
-                    ncause.position
+                    nprimary.position
                 )
             )
 
-        cause = PysTraceback(
-            cause,
+        primary = PysTraceback(
+            primary,
             context,
-            ncause.position
+            nprimary.position
         )
 
     else:
-        cause = None
+        primary = None
 
     return result.failure(
         PysTraceback(
             target,
             context,
             node.position,
-            cause,
-            True if ncause else False
+            primary,
+            True if nprimary else False
         )
     )
 

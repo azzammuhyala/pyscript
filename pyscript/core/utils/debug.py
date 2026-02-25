@@ -1,7 +1,8 @@
 from ..constants import ENV_PYSCRIPT_NO_EXCEPTHOOK, ENV_PYSCRIPT_NO_READLINE
 from ..exceptions import PysSignal
+from .generic import is_environ
 
-from os import environ, system
+from os import system
 from sys import excepthook
 
 import sys
@@ -26,10 +27,26 @@ def thread_excepthook(args):
 def import_readline():
     return False
 
-if 'google.colab' in sys.modules:
-    from google.colab.output import clear
-    def clear_shell():
-        clear()
+USE_NOTEBOOK = False
+
+try:
+    from IPython import get_ipython
+
+    if type(get_ipython()).__name__ in (
+        'ZMQInteractiveShell',     # Jupyter Notebook / Lab
+        'Shell',                   # Google Colab
+        'TerminalInteractiveShell' # IPython Terminal
+    ):
+        from IPython.display import clear_output
+        def clear_shell():
+            clear_output()
+        USE_NOTEBOOK = True
+
+except:
+    pass
+
+if USE_NOTEBOOK:
+    pass
 
 elif sys.platform == 'win32':
     def clear_shell():
@@ -39,7 +56,7 @@ else:
     def clear_shell():
         system('clear')
 
-    if environ.get(ENV_PYSCRIPT_NO_READLINE) is None:
+    if not is_environ(ENV_PYSCRIPT_NO_READLINE):
         def import_readline():
             try:
                 import readline
@@ -54,7 +71,7 @@ def get_error_args(traceback):
         (type(exception), exception, traceback)
     )
 
-if environ.get(ENV_PYSCRIPT_NO_EXCEPTHOOK) is None:
+if not is_environ(ENV_PYSCRIPT_NO_EXCEPTHOOK):
     import threading
     sys.excepthook = sys_excepthook
     threading.excepthook = thread_excepthook

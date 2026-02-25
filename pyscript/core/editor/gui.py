@@ -20,13 +20,8 @@ try:
                 pass
 
             self.lexer = PygmentsPyScriptLexer()
-            self.style = PygmentsPyScriptStyle
-
             self.font = Font(family='Consolas', size=10)
-
             self.scrollbar = Scrollbar(self)
-            self.scrollbar.pack_configure(side='right', fill='y')
-
             self.text = Text(
                 self,
                 undo=True,
@@ -40,12 +35,15 @@ try:
             )
 
             self.text.pack_configure(side='left', expand=True, fill='both')
-            self.scrollbar.configure(command=self.text.yview)
 
             self.text.insert('1.0', self.file.text)
             self.text.edit_modified(False)
 
             self.text.bind('<<Modified>>', self.on_modified)
+            self.text.bind('<Return>', self.on_enter)
+
+            self.scrollbar.pack_configure(side='right', fill='y')
+            self.scrollbar.configure(command=self.text.yview)
 
             self.bind_all('<Control-S>', self.on_save)
             self.bind_all('<Control-s>', self.on_save)
@@ -59,15 +57,15 @@ try:
             self.protocol('WM_DELETE_WINDOW', self.on_close)
 
             self.setup_tags()
-            self.update()
 
         def run(self) -> None:
             PysEditor.run(self)
+            self.update()
             Tk.mainloop(self)
 
         def setup_tags(self):
             tag_configure = self.text.tag_configure
-            for token, style in self.style.list_styles():
+            for token, style in PygmentsPyScriptStyle.list_styles():
                 if color := style['color']:
                     tag_configure(str(token), foreground=f'#{color}')
 
@@ -129,9 +127,15 @@ try:
             self.text.configure(wrap='char' if self.wrapped else 'none')
             return 'break'
 
+        def on_enter(self, event=None):
+            text = self.text
+            line = text.get('insert linestart', 'insert lineend')
+            text.insert('insert', '\n' + line[:len(line) - len(line.lstrip())])
+            return 'break'
+
     GUI_SUPPORT = True
 
-except ImportError as e:
+except BaseException as e:
     _error = e
 
     class PysGUIEditor(PysEditor):

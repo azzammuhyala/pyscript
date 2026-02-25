@@ -9,8 +9,8 @@ if __import__('sys').version_info < (3, 10):
 from . import core
 
 from .core.constants import (
-    DEFAULT, NO_COLOR, DEBUG, SILENT, RETURN_RESULT, DONT_SHOW_BANNER_ON_SHELL, CLASSIC_LINE_SHELL, LEXER_HIGHLIGHT,
-    DICT_TO_JSDICT
+    DEFAULT, NO_COLOR, DEBUG, SILENT, RETURN_RESULT, DONT_SHOW_BANNER_ON_SHELL, CLASSIC_LINE_SHELL, NO_COLOR_PROMPT,
+    NOTEBOOK, LEXER_HIGHLIGHT, DICT_TO_JSDICT
 )
 from .core.cache import undefined
 from .core.highlight import (
@@ -29,6 +29,8 @@ __all__ = (
     'RETURN_RESULT',
     'DONT_SHOW_BANNER_ON_SHELL',
     'CLASSIC_LINE_SHELL',
+    'NO_COLOR_PROMPT',
+    'NOTEBOOK',
     'LEXER_HIGHLIGHT',
     'DICT_TO_JSDICT',
     'HLFMT_HTML',

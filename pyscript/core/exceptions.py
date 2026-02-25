@@ -14,22 +14,22 @@ if TYPE_CHECKING:
 @immutable
 class PysTraceback(Pys):
 
-    __slots__ = ('exception', 'context', 'position', 'cause', 'directly')
+    __slots__ = ('exception', 'context', 'position', 'primary', 'implicit')
 
     def __init__(
         self,
         exception: BaseException | type[BaseException],
         context: 'PysContext',
         position: 'PysPosition',
-        cause: Optional['PysTraceback'] = None,
-        directly: bool = False
+        primary: Optional['PysTraceback'] = None,
+        implicit: bool = False
     ) -> None:
 
         setimuattr(self, 'exception', exception)
         setimuattr(self, 'context', context)
         setimuattr(self, 'position', position)
-        setimuattr(self, 'cause', cause)
-        setimuattr(self, 'directly', directly)
+        setimuattr(self, 'primary', primary)
+        setimuattr(self, 'implicit', implicit)
 
     def __repr__(self) -> str:
         return f'<traceback of exception {self.exception!r}>'
@@ -97,14 +97,13 @@ class PysTraceback(Pys):
                 result += f': {magenta}{message}{reset}'
 
         return (
-            self.cause.string_traceback() +
             (
-                '\n\nThe above exception was the direct cause of the following exception:\n\n'
-                if self.directly else
-                '\n\nDuring handling of the above exception, another exception occurred:\n\n'
-            ) + result
-            if self.cause else
-            result
+                f'{self.primary.string_traceback()}\n\n' + (
+                    "The above exception was the direct cause of the following exception"
+                    if self.implicit else
+                    "During handling of the above exception, another exception occurred"
+                ) + f':\n\n{result}'
+            ) if self.primary else result
         )
 
 class PysSignal(Pys, BaseException):

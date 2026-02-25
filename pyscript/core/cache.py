@@ -18,6 +18,7 @@ pys_sys = ModuleType(
 pys_sys.__running_shell__ = False
 pys_sys.__running_breakpoint__ = False
 pys_sys.argv = ['']
+pys_sys.flags = 0
 pys_sys.displayhook = print_display
 pys_sys.excepthook = print_traceback
 pys_sys.clearhook = clear_shell
@@ -42,7 +43,8 @@ pys_sys.getsizeof = sys.getsizeof
 pys_sys.setrecursionlimit = sys.setrecursionlimit
 
 # added in python>=3.10.7
-if hasattr(sys, 'set_int_max_str_digits'):
+if hasattr(sys, 'get_int_max_str_digits') and hasattr(sys, 'set_int_max_str_digits'):
+    pys_sys.get_int_max_str_digits = sys.get_int_max_str_digits
     pys_sys.set_int_max_str_digits = sys.set_int_max_str_digits
 
 pys_sys.path = [SITE_PACKAGES_PATH, LIBRARIES_PATH]

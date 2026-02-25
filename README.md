@@ -87,10 +87,10 @@ Familiar? There it is!
 | 5  | `time`            | **required (library)** |
 | 6  | `tty`             | **required (library)** |
 | 1  | `beartype`        | **optional**           |
-| 2  | `google.colab`    | **optional**           |
-| 3  | `prompt_toolkit`  | **optional**           |
-| 4  | `pygments`        | **optional**           |
-| 5  | `tkinter`         | **optional**           |
+| 2  | `prompt_toolkit`  | **optional**           |
+| 3  | `pygments`        | **optional**           |
+| 4  | `tkinter`         | **optional**           |
+| 5  | `IPython`         | **optional**           |
 
 ### Status Explanation
 - **required**: Required by PyScript entirely.

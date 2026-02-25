@@ -387,7 +387,7 @@ class DumpNode:
             node,
             [
                 ('target', node.target),
-                ('cause', node.cause)
+                ('primary', node.primary)
             ]
         )
 

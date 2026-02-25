@@ -2,14 +2,14 @@ from .bases import Pys
 from .buffer import PysFileBuffer
 from .cache import pys_sys
 from .checks import is_blacklist_python_builtins, is_private_attribute
-from .constants import OTHER_PATH, NO_COLOR, CLASSIC_LINE_SHELL
+from .constants import OTHER_PATH, NO_COLOR, CLASSIC_LINE_SHELL, NO_COLOR_PROMPT
 from .exceptions import PysSignal
 from .handlers import handle_call
 from .mapping import ACOLORS, EMPTY_MAP
 from .objects import PysFunction, PysPythonFunction, PysBuiltinFunction
 from .results import PysRunTimeResult
 from .shell import PysClassicLineShell, PysPromptToolkitLineShell
-from .symtab import new_symbol_table
+from .symtab import new_module_namespace
 from .utils.debug import import_readline
 from .utils.generic import dkeys, get_subscript, is_object_of as isobjectof
 from .utils.module import get_module_path, set_python_path, remove_python_path
@@ -195,7 +195,7 @@ def require(pyfunc, name):
 
                 from .runner import pys_runner
 
-                symtab, module = new_symbol_table(file=file.name, name=get_name_from_path(name))
+                symtab, module = new_module_namespace(file=file.name, name=get_name_from_path(file.name))
 
                 # minimize circular imports (python standard)
                 modules[module_path] = module
@@ -262,18 +262,11 @@ def breakpoint(pyfunc):
     symtab = context.symbol_table
     flags = context.flags
     colored = not (flags & NO_COLOR)
+    colored_prompt = not (flags & NO_COLOR_PROMPT)
     scopes = []
-
-    if colored:
-        reset = ACOLORS('reset')
-        bmagenta = ACOLORS('bold-magenta')
-    else:
-        reset = ''
-        bmagenta = ''
-
     shell = (PysClassicLineShell if flags & CLASSIC_LINE_SHELL else PysPromptToolkitLineShell)(
-        f'{bmagenta}(Pdb) {reset}',
-        f'{bmagenta}...   {reset}',
+        f'{ACOLORS("bold-magenta")}(Pdb) {ACOLORS("reset")}' if colored and colored_prompt else '(Pdb) ',
+        f'{ACOLORS("bold-magenta")}...   {ACOLORS("reset")}' if colored and colored_prompt else '...   ',
         colored=colored
     )
 
@@ -298,7 +291,7 @@ def breakpoint(pyfunc):
                 if split:
                     command, *args = split
                 else:
-                    command, args = '', []
+                    command, args = '', ()
 
                 if command in ('c', 'continue'):
                     return
@@ -444,7 +437,7 @@ def exec(pyfunc, source, globals=None):
     if globals is None:
         symtab = code.context.symbol_table
     else:
-        symtab, _ = new_symbol_table(symbols=globals)
+        symtab, _ = new_module_namespace(symbols=globals)
 
     from .runner import pys_runner
 
@@ -481,7 +474,7 @@ def eval(pyfunc, source, globals=None):
     if globals is None:
         symtab = code.context.symbol_table
     else:
-        symtab, _ = new_symbol_table(symbols=globals)
+        symtab, _ = new_module_namespace(symbols=globals)
 
     from .runner import pys_runner
 

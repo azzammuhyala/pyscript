@@ -1,7 +1,7 @@
 from ..bases import Pys
 from ..constants import ENV_PYSCRIPT_NO_TYPECHECK
+from .generic import is_environ
 
-from os import environ
 from types import MethodType
 
 def typechecked(func, *args, **kwargs):
@@ -9,11 +9,11 @@ def typechecked(func, *args, **kwargs):
 
 TYPECHECK_STACK = 0
 
-if environ.get(ENV_PYSCRIPT_NO_TYPECHECK) is None:
+if not is_environ(ENV_PYSCRIPT_NO_TYPECHECK):
     try:
         from beartype import beartype as typechecked
         TYPECHECK_STACK += 1
-    except ImportError:
+    except:
         pass
 
 class _PysNameSpaceUtilities(Pys):

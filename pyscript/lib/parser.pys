@@ -1,4 +1,4 @@
-import _pyscript  # get a core from PyScript module (pyscript.core)
+import _pyscript  # get a PyScript core module (pyscript.core)
 
 # tokens offset
 DOUBLE = _pyscript.constants.DOUBLE

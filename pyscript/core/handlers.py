@@ -1,13 +1,13 @@
 from .cache import pys_sys
 from .constants import ENV_PYSCRIPT_NO_GIL
 from .objects import PysFunction
+from .utils.generic import is_environ
 
-from os import environ
 from types import MethodType
 
 wrapper_function = (MethodType, classmethod, staticmethod)
 
-if environ.get(ENV_PYSCRIPT_NO_GIL) is None:
+if not is_environ(ENV_PYSCRIPT_NO_GIL):
     from threading import RLock
 
     lock = RLock()

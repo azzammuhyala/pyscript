@@ -1,10 +1,10 @@
-from '_pyscript>utils>string' import normstr
-from getch import getch
+normstr = require('_pyscript>utils>string>normstr')
+getch = require('getch')
 sys = pyimport('sys')
 
 func default_input()
     while (true) {
-        result = ord(getch())
+        result = ord(getch.getch())
         if (0 <= result <= 255)
             return result
     }
@@ -15,6 +15,10 @@ func default_output(byte) {
 }
 
 class BFInterpreter {
+
+    __slots__ = (
+        'source', 'cells', 'fin', 'fout', 'running', 'memory', 'point', '_tokenCursor', '_tokens', '_bracketMap'
+    )
 
     func __init__(self, source, cells=none, fin=none, fout=none) {
         source = normstr(source)
@@ -37,14 +41,13 @@ class BFInterpreter {
 
         self.running = false
 
-        self._tokenCursor = 0
         self._tokens = tokens = []
         self._bracketMap = {}
 
         stack = []
         comment = false
 
-        addtok = tokens.append
+        addtoken = tokens.append
         addstack = stack.append
         popstack = stack.pop
         setBracketMap = self._bracketMap.__setitem__
@@ -72,7 +75,7 @@ class BFInterpreter {
                     setBracketMap(tokenIndex, startIndex)
                 }
 
-                addtok((position, character))
+                addtoken((position, character))
             }
         }
 
@@ -82,26 +85,29 @@ class BFInterpreter {
 
     func start(self) {
         if (self.running) return;
-        self._tokenCursor = 0
+
+        self._tokenCursor = -1
         self.running = true
         self.memory = [0]
         self.point = 0
+
         if (self.cells is not none)
             self.memory *= self.cells
     }
 
-    func step(self) {
+    func step(self, amount=1) {
         if (not self.running) return;
 
-        if (self._tokenCursor >= len(tokens := self._tokens)) {
+        self._tokenCursor += amount
+        tokenCursor = self._tokenCursor
+
+        if (tokenCursor >= len(tokens := self._tokens) or tokenCursor < 0) {
             self.running = false
             return
         }
 
-        position, character = tokens[tokenCursor := self._tokenCursor]
+        position, character = tokens[tokenCursor]
         cell = (memory := self.memory)[point := self.point]
-
-        self._tokenCursor += 1
 
         switch (character) {
 
@@ -152,13 +158,16 @@ class BFInterpreter {
 
         }
 
-        return self.point, position, character
+        return position, character
     }
 
     func stop(self, cleanUp=true) {
         if (not self.running) return;
+
         self.running = false
-        if (cleanUp) del self.memory, self.point
+
+        if (cleanUp)
+            del self._tokenCursor, self.memory, self.point
     }
 
     func __iter__(self) {

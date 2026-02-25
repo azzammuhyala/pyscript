@@ -504,9 +504,9 @@ def visit_ThrowNode(node):
     string = 'throw '
     string += unparse(node.target)
 
-    if node.cause:
+    if node.primary:
         string += ' from '
-        string += unparse(node.cause)
+        string += unparse(node.primary)
 
     return string
 

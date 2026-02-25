@@ -68,14 +68,10 @@ class PysFunction(PysObject):
         return self if instance is None else MethodType(self, instance)
 
     def __call__(self, *args, **kwargs):
-        qualname = self.__qualname__
         code = self.__code__
         code_body = code.body
-        code_context = code.context
-        code_position = code.position
         code_parameters_length = code.parameters_length
         code_parameter_names = code.parameter_names
-        arguments_length = len(args)
 
         result = PysRunTimeResult()
         symbol_table = PysSymbolTable(code.closure_symbol_table)
@@ -102,9 +98,9 @@ class PysFunction(PysObject):
                 raise PysSignal(
                     result.failure(
                         PysTraceback(
-                            TypeError(f"{qualname}() got multiple values for argument {name!r}"),
-                            code_context,
-                            code_position
+                            TypeError(f"{self.__qualname__}() got multiple values for argument {name!r}"),
+                            code.context,
+                            code.position
                         )
                     )
                 )
@@ -116,9 +112,11 @@ class PysFunction(PysObject):
                 raise PysSignal(
                     result.failure(
                         PysTraceback(
-                            TypeError(f"{qualname}() got an unexpected keyword argument {name!r}{hint_message}"),
-                            code_context,
-                            code_position
+                            TypeError(
+                                f"{self.__qualname__}() got an unexpected keyword argument {name!r}{hint_message}"
+                            ),
+                            code.context,
+                            code.position
                         )
                     )
                 )
@@ -126,6 +124,7 @@ class PysFunction(PysObject):
             set_symbol(name, value)
             add_argument(name)
 
+        arguments_length = len(args)
         total_registered = len(registered_arguments)
 
         if total_registered < code_parameters_length:
@@ -136,11 +135,11 @@ class PysFunction(PysObject):
                 result.failure(
                     PysTraceback(
                         TypeError(
-                            f"{qualname}() missing {total_missing} required positional argument"
+                            f"{self.__qualname__}() missing {total_missing} required positional argument"
                             f"{'' if total_missing == 1 else 's'}: {join(missing_arguments, conjunction='and')}"
                         ),
-                        code_context,
-                        code_position
+                        code.context,
+                        code.position
                     )
                 )
             )
@@ -152,13 +151,13 @@ class PysFunction(PysObject):
                 result.failure(
                     PysTraceback(
                         TypeError(
-                            f"{qualname}() takes no arguments ({given_arguments} given)"
+                            f"{self.__qualname__}() takes no arguments ({given_arguments} given)"
                             if code_parameters_length == 0 else
-                            f"{qualname}() takes {code_parameters_length} positional argument"
+                            f"{self.__qualname__}() takes {code_parameters_length} positional argument"
                             f"{'' if code_parameters_length == 1 else 's'} but {given_arguments} were given"
                         ),
-                        code_context,
-                        code_position
+                        code.context,
+                        code.position
                     )
                 )
             )
@@ -169,10 +168,10 @@ class PysFunction(PysObject):
                 PysContext(
                     file=code.file,
                     name=self.__name__,
-                    qualname=qualname,
+                    qualname=self.__qualname__,
                     symbol_table=symbol_table,
-                    parent=code_context,
-                    parent_entry_position=code_position
+                    parent=code.context,
+                    parent_entry_position=code.position
                 )
             )
         )

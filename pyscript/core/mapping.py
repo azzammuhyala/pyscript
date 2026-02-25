@@ -8,12 +8,12 @@ from operator import (
 from types import MappingProxyType
 
 contains = lambda a, b: a in b
-not_in = lambda a, b : a not in b
+not_contains = lambda a, b : a not in b
 
 EMPTY_MAP = {}
 
 BINARY_FUNCTIONS_MAP = {
-    TOKENS['NOT-IN']: not_in,
+    TOKENS['NOT-IN']: not_contains,
     TOKENS['IS-NOT']: is_not,
     TOKENS['PLUS']: add,
     TOKENS['MINUS']: sub,
@@ -48,7 +48,7 @@ BINARY_FUNCTIONS_MAP = {
     TOKENS['EQUAL-DOUBLE-LESS-THAN']: ilshift,
     TOKENS['EQUAL-DOUBLE-GREATER-THAN']: irshift,
     TOKENS['MINUS-GREATER-THAN']: contains,
-    TOKENS['EXCLAMATION-GREATER-THAN']: not_in
+    TOKENS['EXCLAMATION-GREATER-THAN']: not_contains
 }.__getitem__
 
 UNARY_FUNCTIONS_MAP = {

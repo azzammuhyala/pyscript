@@ -1,11 +1,11 @@
 from itertools import pairwise
 from re import compile as re_compile
 
-replace = re_compile(r'\s+').sub
+remove_whitespace = re_compile(r'\s+').sub
 
 def get_similarity_ratio(string1, string2):
-    bigram1 = set(s1 + s2 for s1, s2 in pairwise(replace('', string1).lower()))
-    bigram2 = set(s1 + s2 for s1, s2 in pairwise(replace('', string2).lower()))
+    bigram1 = set(s1 + s2 for s1, s2 in pairwise(remove_whitespace('', string1).lower()))
+    bigram2 = set(s1 + s2 for s1, s2 in pairwise(remove_whitespace('', string2).lower()))
     max_bigrams_count = max(len(bigram1), len(bigram2))
     return len(bigram1 & bigram2) / max_bigrams_count if max_bigrams_count else 0.0
 

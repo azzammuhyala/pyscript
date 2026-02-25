@@ -351,17 +351,17 @@ try:
         tokens = PygmentsPyScriptLexer.tokens.copy()
         tokens['root'] = [
             # Shell prompts
-            (r'^/(clear|clean|exit)$', Generic.Prompt)
+            (r'\A/(clear|clean|exit)\z', Generic.Prompt)
         ] + tokens['root']
-
-    PYGMENTS = True
 
     del (
         _set_constant_keywords, _unicode_name, _newlines, _integer, _scientific, _imaginary, _dollar,
         _raw_string_prefixes, _string_or_bytes_prefixes, 
     )
 
-except ImportError as e:
+    PYGMENTS = True
+
+except BaseException as e:
     _error = e
 
     class PygmentsPyScriptStyle(Pys):

@@ -1,7 +1,9 @@
 from .analyzer import PysAnalyzer
 from .buffer import PysFileBuffer
 from .cache import pys_sys, undefined, PysUndefined
-from .constants import DEFAULT, SILENT, RETURN_RESULT, NO_COLOR, DONT_SHOW_BANNER_ON_SHELL, CLASSIC_LINE_SHELL
+from .constants import (
+    DEFAULT, SILENT, RETURN_RESULT, NO_COLOR, DONT_SHOW_BANNER_ON_SHELL, CLASSIC_LINE_SHELL, NO_COLOR_PROMPT
+)
 from .context import PysContext
 from .exceptions import PysTraceback, PysSignal
 from .handlers import handle_call
@@ -13,7 +15,7 @@ from .position import PysPosition
 from .pysbuiltins import require
 from .results import PysRunTimeResult, PysExecuteResult
 from .shell import PysClassicLineShell, PysPromptToolkitLineShell
-from .symtab import PysSymbolTable, new_symbol_table
+from .symtab import PysSymbolTable, new_module_namespace
 from .utils.debug import import_readline
 from .utils.decorators import TYPECHECK_STACK, typechecked
 from .utils.generic import get_frame, get_locals
@@ -26,11 +28,11 @@ import sys
 
 def _normalize_namespace(file, namespace):
     if namespace is None:
-        symtab, _ = new_symbol_table(symbols=get_locals(2 + TYPECHECK_STACK))
+        symtab, _ = new_module_namespace(symbols=get_locals(2 + TYPECHECK_STACK))
     elif namespace is undefined:
-        symtab, _ = new_symbol_table(file=file.name, name='__main__')
+        symtab, _ = new_module_namespace(file=file.name, name='__main__')
     elif isinstance(namespace, dict):
-        symtab, _ = new_symbol_table(symbols=namespace)
+        symtab, _ = new_module_namespace(symbols=namespace)
     else:
         symtab = namespace
     return symtab
@@ -299,6 +301,7 @@ def pys_shell(
     file = PysFileBuffer('', '<pyscript-shell>')
     symtab = _normalize_namespace(file, globals)
     colored = not (flags & NO_COLOR)
+    colored_prompt = not (flags & NO_COLOR_PROMPT)
     shell = (PysClassicLineShell if flags & CLASSIC_LINE_SHELL else PysPromptToolkitLineShell)(colored=colored)
 
     if colored:
@@ -325,8 +328,8 @@ def pys_shell(
         while True:
 
             try:
-                shell.ps1 = f'{bmagenta}{pys_sys.ps1}{reset}'
-                shell.ps2 = f'{bmagenta}{pys_sys.ps2}{reset}'
+                shell.ps1 = f'{bmagenta}{pys_sys.ps1}{reset}' if colored and colored_prompt else pys_sys.ps1
+                shell.ps2 = f'{bmagenta}{pys_sys.ps2}{reset}' if colored and colored_prompt else pys_sys.ps2
 
                 text = shell.prompt()
                 if text == 0:

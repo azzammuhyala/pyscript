@@ -598,23 +598,23 @@ class PysReturnNode(PysNode):
 
 class PysThrowNode(PysNode):
 
-    __slots__ = ('target', 'cause')
+    __slots__ = ('target', 'primary')
 
     @typechecked
-    def __init__(self, target: PysNode, cause: PysNode | None, position: PysPosition) -> None:
+    def __init__(self, target: PysNode, primary: PysNode | None, position: PysPosition) -> None:
         super().__init__(
             PysPosition(
                 position.file,
                 position.start,
-                target.position.end if cause is None else cause.position.end
+                target.position.end if primary is None else primary.position.end
             )
         )
 
         setimuattr(self, 'target', target)
-        setimuattr(self, 'cause', cause)
+        setimuattr(self, 'primary', primary)
 
     def __repr__(self) -> str:
-        return f'Throw(target={self.target!r}, cause={self.cause!r})'
+        return f'Throw(target={self.target!r}, primary={self.primary!r})'
 
 class PysAssertNode(PysNode):
 

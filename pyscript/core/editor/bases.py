@@ -8,8 +8,6 @@ from os.path import basename
 
 class PysEditor(Pys):
 
-    __slots__ = ('file', 'used', 'modified', 'wrapped', 'basename')
-
     @typechecked
     def __init__(self, file: PysFileBuffer) -> None:
         self.file = file
@@ -24,10 +22,15 @@ class PysEditor(Pys):
 
     def save(self, text) -> None:
         text = normstr(text)
-        with open(self.file.name, 'w', encoding='utf-8') as file:
-            file.write(text)
-            setimuattr(self.file, 'text', text)
-        self.modified = False
+        try:
+            print('saved')
+            with open(self.file.name, 'w', encoding='utf-8') as file:
+                file.write(text)
+                setimuattr(self.file, 'text', text)
+        except:
+            pass
+        else:
+            self.modified = False
 
     def run(self) -> None:
         if self.used:

@@ -354,14 +354,49 @@ class PysLexer(Pys):
             is_complex = True
             self.advance()
 
-        if format is float:
-            result = float(number)
-        elif format is str:
-            result = int(number, base)
-        elif format is int:
-            result = int(number)
+        if self.parser_flags & LEXER_HIGHLIGHT:
 
-        self.add_token(TOKENS['NUMBER'], start, complex(0, result) if is_complex else result)
+            if format is float:
+                func = lambda : float(number)
+                result = number
+            elif format is str:
+                func = lambda : int(number, base)
+                base = {2: 'b', 8: 'o', 16: 'x'}[base]
+                result = f'0{base}{number}'
+            elif format is int:
+                func = lambda : int(number)
+                result = number
+
+            if is_complex:
+                func = lambda : complex(0, func())
+                result = f'{result}j'
+
+            self.add_token(TOKENS['NUMBER'], start, (result, func))
+            return
+
+        try:
+
+            if format is float:
+                result = float(number)
+            elif format is str:
+                result = int(number, base)
+            elif format is int:
+                result = int(number)
+
+            self.add_token(TOKENS['NUMBER'], start, complex(0, result) if is_complex else result)
+
+        except (ValueError, OverflowError):
+            integer_to_string_limit = (
+                f'({sys.get_int_max_str_digits()} digits) '
+                if hasattr(sys, 'get_int_max_str_digits') else
+                ''
+            )
+            self.throw(
+                start, self.index,
+                f"Exceeds the limit {integer_to_string_limit}for integer string conversion: "
+                f"value has {len(number)} digits; use sys.set_int_max_str_digits() to increase the limit - "
+                "Consider hexadecimal for huge integer literals to avoid decimal conversion limits."
+            )
 
     def make_string(self):
         start = self.index
@@ -557,6 +592,15 @@ class PysLexer(Pys):
 
             if decoded_error_message is not None:
                 self.throw(start, self.index, decoded_error_message, add_token=False)
+
+            elif self.parser_flags & LEXER_HIGHLIGHT:
+                self.add_token(
+                    TOKENS['STRING'],
+                    start,
+                    (string, (lambda : string.encode('latin-1')) if is_bytes else lambda : string)
+                )
+                return
+
             elif is_bytes:
                 try:
                     string = string.encode('latin-1')

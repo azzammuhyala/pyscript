@@ -1,7 +1,8 @@
 from .core.buffer import PysFileBuffer
 from .core.cache import pys_sys, undefined
 from .core.constants import (
-    ENV_PYSCRIPT_CLASSIC_LINE_SHELL, DEFAULT, DEBUG, NO_COLOR, DONT_SHOW_BANNER_ON_SHELL, CLASSIC_LINE_SHELL
+    ENV_PYSCRIPT_NO_COLOR_PROMPT, ENV_PYSCRIPT_CLASSIC_LINE_SHELL, DEFAULT, DEBUG, NO_COLOR, DONT_SHOW_BANNER_ON_SHELL,
+    CLASSIC_LINE_SHELL, NO_COLOR_PROMPT, NOTEBOOK
 )
 from .core.editor.gui import PysGUIEditor, GUI_SUPPORT
 from .core.editor.terminal import PysTerminalEditor, TERMINAL_SUPPORT
@@ -9,6 +10,8 @@ from .core.highlight import (
     PYGMENTS, HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight, PygmentsPyScriptStyle, PygmentsPyScriptLexer
 )
 from .core.runner import _normalize_namespace, pys_runner, pys_shell
+from .core.utils.debug import USE_NOTEBOOK
+from .core.utils.generic import is_environ
 from .core.utils.module import remove_python_path
 from .core.utils.path import getcwd, normpath, get_name_from_path
 from .core.version import __version__
@@ -30,7 +33,6 @@ if PYGMENTS:
     }
 
 from argparse import OPTIONAL, REMAINDER, ArgumentParser
-from os import environ
 
 import sys
 
@@ -42,14 +44,22 @@ FORMAT_HIGHLIGHT_MAP = {
 
 EDITOR_MAP = {}
 
-if GUI_SUPPORT:
-    EDITOR_MAP['gui'] = PysGUIEditor
-if TERMINAL_SUPPORT:
-    EDITOR_MAP['terminal'] = PysTerminalEditor
+for supported, name, class_editor in [
+    (GUI_SUPPORT, 'gui', PysGUIEditor),
+    (TERMINAL_SUPPORT, 'terminal', PysTerminalEditor)
+]:
+    if supported:
+        EDITOR_MAP[name] = class_editor
 
 parser = ArgumentParser(
     prog=f'{get_name_from_path(sys.executable)} -m pyscript',
     description=f'PyScript Launcher for Python Version {".".join(map(str, sys.version_info))}'
+)
+
+parser.add_argument(
+    '-b', '--notebook',
+    action='store_true',
+    help="combination of -k and -p flags, suitable for notebook platforms such as IPython, Jupyter, Google Colab, etc"
 )
 
 parser.add_argument(
@@ -99,6 +109,12 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    '-p', '--no-color-prompt',
+    action='store_true',
+    help="Suppress colored prompt output"
+)
+
+parser.add_argument(
     '-r', '--py-recursion',
     type=int,
     default=None,
@@ -140,7 +156,7 @@ parser.add_argument(
 parser.add_argument(
     'arg',
     nargs=REMAINDER,
-    help="Remaining arguments stored in sys_module.argv (sys.argv)"
+    help="Remaining arguments stored in pys_sys.argv (sys.argv)"
 )
 
 def argument_error(argument, message):
@@ -184,14 +200,17 @@ if args.py_recursion is not None:
 code = 0
 flags = DEFAULT
 
-if args.debug:
-    flags |= DEBUG
-if args.no_color or environ.get('NO_COLOR') is not None:
-    flags |= NO_COLOR
-if args.classic_line_shell or environ.get(ENV_PYSCRIPT_CLASSIC_LINE_SHELL) is not None:
-    flags |= CLASSIC_LINE_SHELL
-if args.q:
-    flags |= DONT_SHOW_BANNER_ON_SHELL
+for condition, flag in [
+    (args.notebook or USE_NOTEBOOK, NOTEBOOK),
+    (args.debug, DEBUG),
+    (args.classic_line_shell or is_environ(ENV_PYSCRIPT_CLASSIC_LINE_SHELL), CLASSIC_LINE_SHELL),
+    (args.no_color or is_environ('NO_COLOR'), NO_COLOR),
+    (args.no_color_prompt or is_environ(ENV_PYSCRIPT_NO_COLOR_PROMPT), NO_COLOR_PROMPT),
+    (args.q, DONT_SHOW_BANNER_ON_SHELL)
+]:
+    if condition:
+        flags |= flag
+
 if args.P:
     for cwd in {'', '.', getcwd()}:
         remove_python_path(cwd)

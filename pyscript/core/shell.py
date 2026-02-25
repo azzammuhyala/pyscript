@@ -15,7 +15,7 @@ class PysIncompleteHandler(Pys):
     def is_multiline(self) -> bool:
         return not self._must_break and (
             len(self._brackets_stack) > 0 or
-            self._next_line or
+            self._line_continuation or
             self._is_triple_string or
             self._in_decorator
         )
@@ -25,14 +25,14 @@ class PysIncompleteHandler(Pys):
         self._in_string = False
         self._in_decorator = False
         self._is_triple_string = False
-        self._next_line = False
+        self._line_continuation = False
         self._must_break = False
         self._string_prefix = ''
         self.text = ''
 
-    def process(self, text: str) -> bool:
+    def _process_line(self, text: str) -> None:
         self._in_decorator = False
-        self._next_line = False
+        self._line_continuation = False
 
         is_space = True
         index = 0
@@ -45,7 +45,10 @@ class PysIncompleteHandler(Pys):
                 character = text[index:index+1]
 
                 if character == '':
-                    self._next_line = True
+                    self._line_continuation = True
+                    break
+                elif not self._in_string:
+                    self._must_break = True
                     break
 
             elif character in '\'"':
@@ -95,7 +98,7 @@ class PysIncompleteHandler(Pys):
 
         if self._in_decorator and is_space:
             self._in_decorator = False
-        if self._in_string and not (self._next_line or self._is_triple_string):
+        if self._in_string and not (self._line_continuation or self._is_triple_string):
             self._must_break = True
 
         if self.is_multiline():
@@ -107,11 +110,15 @@ class PysLineShell(PysIncompleteHandler):
 
     def __init__(self, ps1: str = '>>> ', ps2: str = '... ', colored: bool = True) -> None:
         super().__init__()
-        self.colored = colored
+        self._colored = colored
         self.ps1 = ps1
         self.ps2 = ps2
 
-    def process_command(self, text: str) -> Literal[0, 1, -1] | None:
+    @property
+    def colored(self):
+        return self._colored
+
+    def _process_command(self, text: str) -> Literal[-1, 0, 1] | None:
         if text == '/exit':
             return 0
         elif text == '/clean':
@@ -126,19 +133,24 @@ class PysLineShell(PysIncompleteHandler):
 class PysClassicLineShell(PysLineShell):
 
     def prompt(self) -> str | Literal[0, 1]:
+        is_multiline = self.is_multiline
+        process_line = self._process_line
+        process_command = self._process_command
+
+        multiline = False
+
         while True:
 
             try:
 
-                if self.is_multiline():
+                if multiline:
                     text = input(self.ps2)
-
                 else:
                     text = input(self.ps1)
-                    code = self.process_command(text)
-                    if code == -1:
-                        continue
-                    elif code is not None:
+                    code = process_command(text)
+                    if code is not None:
+                        if code == -1:
+                            continue
                         return code
 
             except (OSError, ValueError):
@@ -148,20 +160,20 @@ class PysClassicLineShell(PysLineShell):
                 print("InputError", file=sys.stderr)
                 continue
 
-            self.process(text)
+            process_line(text)
 
-            if not self.is_multiline():
+            if is_multiline():
+                multiline = True
+            else:
                 text = self.text
                 self.reset()
                 return text
 
 try:
     from prompt_toolkit import PromptSession
-    from prompt_toolkit.filters import Condition
     from prompt_toolkit.formatted_text import ANSI
     from prompt_toolkit.layout.processors import TabsProcessor
     from prompt_toolkit.key_binding import KeyBindings
-    from prompt_toolkit.keys import Keys
     from prompt_toolkit.lexers import PygmentsLexer
     from prompt_toolkit.output.color_depth import ColorDepth
     from prompt_toolkit.styles.pygments import style_from_pygments_cls
@@ -174,37 +186,60 @@ try:
 
             PysLineShell.__init__(self, ps1, ps2, colored)
 
-            self.multiline_state = False
-            self.overwrite = False
+            key_bindings = KeyBindings()
 
-            self.key_bindings = KeyBindings()
+            def newline_with_indent():
+                buffer = self.default_buffer
+                line = buffer.document.current_line_before_cursor
+                buffer.insert_text('\n' + line[:len(line) - len(line.lstrip())])
 
-            @self.key_bindings.add('tab', eager=True)
+            @key_bindings.add('tab', eager=True)
             def _(event):
                 self.default_buffer.insert_text('\t')
 
-            @self.key_bindings.add('insert', eager=True)
+            @key_bindings.add('c-n', eager=True)
             def _(event):
-                self.overwrite = not self.overwrite
+                self.default_buffer.insert_text('\n')
 
-            @self.key_bindings.add('pageup', eager=True)
+            @key_bindings.add('s-tab', eager=True)
+            def _(event):
+                newline_with_indent()
+
+            @key_bindings.add('pageup', eager=True)
             def _(event):
                 self.default_buffer.cursor_position = 0
 
-            @self.key_bindings.add('pagedown', eager=True)
+            @key_bindings.add('pagedown', eager=True)
             def _(event):
                 buffer = self.default_buffer
                 buffer.cursor_position = len(buffer.text)
 
-            @self.key_bindings.add(Keys.Any)
+            @key_bindings.add('enter', eager=True)
             def _(event):
                 buffer = self.default_buffer
-                text = event.data
-                if self.overwrite and buffer.cursor_position < len(buffer.text):
-                    buffer.delete(1)
-                    buffer.insert_text(text)
-                else:
-                    buffer.insert_text(text)
+                reset = self.reset
+                process_line = self._process_line
+
+                reset()
+
+                # Ctrl + Z
+                if buffer.document.current_line_before_cursor.startswith('\x1a'):
+                    self.app.exit(exception=EOFError)
+                    return
+
+                for line in (buffer.text + '\n').splitlines():
+                    process_line(line)
+                    if self._must_break:
+                        reset()
+                        buffer.validate_and_handle()
+                        return
+
+                if not self.is_multiline():
+                    reset()
+                    buffer.validate_and_handle()
+                    return
+
+                newline_with_indent()
 
             style_keyword = {}
 
@@ -221,31 +256,26 @@ try:
 
             PromptSession.__init__(
                 self,
-                multiline=Condition(lambda: self.multiline_state),
                 input_processors=[TabsProcessor(tabstop=4)],
-                key_bindings=self.key_bindings,
+                key_bindings=key_bindings,
                 prompt_continuation=lambda width, line_number, is_soft_wrap: self._ps2,
                 **style_keyword
             )
 
-            self.default_buffer.on_text_changed += self.on_multiline_state
-
         def prompt(self) -> str | Literal[0, 1]:
+            prompt = PromptSession.prompt
+            process_command = self._process_command
+
             while True:
 
                 try:
+                    text = prompt(self, self._ps1)
 
-                    text = PromptSession.prompt(self, self._ps1)
-
-                    # Ctrl + Z
-                    if text.startswith('\x1a'):
-                        raise EOFError
-
-                    elif '\n' not in text:
-                        code = self.process_command(text)
-                        if code == -1:
-                            continue
-                        elif code is not None:
+                    if '\n' not in text:
+                        code = process_command(text)
+                        if code is not None:
+                            if code == -1:
+                                continue
                             return code
 
                     return text
@@ -259,29 +289,19 @@ try:
 
         @property
         def ps1(self) -> str:
-            return self._ps1.value if self.colored else self._ps1
+            return self._ps1.value if self._colored else self._ps1
 
         @ps1.setter
         def ps1(self, value: str) -> None:
-            self._ps1 = ANSI(value) if self.colored else value
+            self._ps1 = ANSI(value) if self._colored else value
 
         @property
         def ps2(self) -> str:
-            return self._ps2.value if self.colored else self._ps2
+            return self._ps2.value if self._colored else self._ps2
 
         @ps2.setter
         def ps2(self, value: str) -> None:
-            self._ps2 = ANSI(value) if self.colored else value
+            self._ps2 = ANSI(value) if self._colored else value
 
-        def on_multiline_state(self, _):
-            process = self.process
-            is_multiline = self.is_multiline
-            self.reset()
-            for line in self.default_buffer.text.splitlines():
-                process(line)
-                self.multiline_state = multiline_state = is_multiline()
-                if not multiline_state:
-                    return
-
-except ImportError:
+except:
     PysPromptToolkitLineShell = PysClassicLineShell

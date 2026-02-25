@@ -85,7 +85,7 @@ def find_closest(symtab: PysSymbolTable, name: str) -> str | None:
 
     return get_closest(symbols, name)
 
-def new_symbol_table(*, symbols=None, file=None, name=None, doc=None):
+def new_module_namespace(*, symbols=None, file=None, name=None, doc=None):
     symtab = PysSymbolTable()
 
     if symbols is None:

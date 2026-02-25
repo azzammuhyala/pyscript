@@ -1,0 +1,5 @@
+from py_getch import getch
+
+__all__ = (
+    'getch',
+)
