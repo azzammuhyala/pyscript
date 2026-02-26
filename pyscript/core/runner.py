@@ -337,6 +337,7 @@ def pys_shell(
                 elif text == 1:
                     symtab = _normalize_namespace(file, globals)
                     parser_flags = default_parser_flags
+                    line = 0
                     continue
 
                 result = pys_runner(

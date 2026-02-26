@@ -18,7 +18,7 @@ from .core.highlight import (
     PygmentsPyScriptShellLexer
 )
 from .core.runner import pys_runner, pys_exec, pys_eval, pys_require, pys_shell
-from .core.version import version, version_info, __version__, __date__
+from .core.version import version, version_info, __version__, __date__, __author__
 
 __all__ = (
     'core',

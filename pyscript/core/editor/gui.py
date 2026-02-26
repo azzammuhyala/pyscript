@@ -5,7 +5,7 @@ from ..highlight import PygmentsPyScriptStyle, PygmentsPyScriptLexer
 from ..version import __version__
 
 try:
-    from tkinter import END, Tk, Scrollbar, Text, messagebox
+    from tkinter import Tk, Scrollbar, Text, messagebox
     from tkinter.font import Font
 
     class PysGUIEditor(PysEditor, Tk):
@@ -15,7 +15,7 @@ try:
             Tk.__init__(self)
 
             try:
-                self.iconbitmap(ICON_PATH)
+                self.wm_iconbitmap(ICON_PATH)
             except:
                 pass
 
@@ -54,13 +54,13 @@ try:
             self.bind_all('<Control-equal>', self.on_change_font(1, lambda size : size < 128))
             self.bind_all('<Control-plus>', self.on_change_font(5, lambda size : size < 128))
 
-            self.protocol('WM_DELETE_WINDOW', self.on_close)
+            self.wm_protocol('WM_DELETE_WINDOW', self.on_close)
 
             self.setup_tags()
+            self.update()
 
         def run(self) -> None:
             PysEditor.run(self)
-            self.update()
             Tk.mainloop(self)
 
         def setup_tags(self):
@@ -83,15 +83,15 @@ try:
 
             for tag in text.tag_names():
                 if tag != 'sel':
-                    text_tag_remove(tag, '1.0', END)
+                    text_tag_remove(tag, '1.0', 'end')
 
-            for type, value in self.lexer.get_tokens(text.get('1.0', END)):
+            for type, value in self.lexer.get_tokens(text.get('1.0', 'end')):
                 end_index = text_index(f'{index} + {get_length(value)} chars')
                 text_tag_add(to_string(type), index, end_index)
                 index = end_index
 
         def on_save(self, event=None):
-            self.save(self.text.get('1.0', END))
+            self.save(self.text.get('1.0', 'end'))
             self.update()
             return 'break'
 

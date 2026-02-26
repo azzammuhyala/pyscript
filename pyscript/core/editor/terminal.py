@@ -76,13 +76,13 @@ try:
             def _(event):
                 self.wrapped = not self.wrapped
 
-            @key_bindings.add('c-z', filter=on_edit, eager=True)
-            def _(event):
-                self.current_buffer.undo()
-
             @key_bindings.add('c-y', filter=on_edit, eager=True)
             def _(event):
                 self.current_buffer.redo()
+
+            @key_bindings.add('c-z', filter=on_edit, eager=True)
+            def _(event):
+                self.current_buffer.undo()
 
             @key_bindings.add('c-s', filter=on_edit, eager=True)
             def _(event):
@@ -129,6 +129,7 @@ try:
                 ]
             )
 
+            self.text.text = self.file.text
             self.text.buffer.on_text_changed += self.on_change
 
             Application.__init__(
@@ -143,7 +144,6 @@ try:
 
         def run(self) -> None:
             PysEditor.run(self)
-            self.text.text = self.file.text
             Application.run(self)
 
         def on_change(self, buffer):

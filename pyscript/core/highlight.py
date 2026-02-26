@@ -351,7 +351,7 @@ try:
         tokens = PygmentsPyScriptLexer.tokens.copy()
         tokens['root'] = [
             # Shell prompts
-            (r'\A/(clear|clean|exit)\z', Generic.Prompt)
+            (r'\A/(clear|clean|exit)\Z', Generic.Prompt)
         ] + tokens['root']
 
     del (
@@ -378,7 +378,7 @@ except BaseException as e:
     PYGMENTS = False
 
 @typechecked
-class _PysHighlightFormatter(Pys):
+class PysHighlightFormatter(Pys):
 
     def __init__(
         self,
@@ -420,19 +420,19 @@ def _ansi_open_block(position, type):
     color = HIGHLIGHT_MAP.get(type, HIGHLIGHT_MAP['default'])
     return acolor(int(color[i:i+2], 16) for i in range(1, 6, 2))
 
-HLFMT_HTML = _PysHighlightFormatter(
+HLFMT_HTML = PysHighlightFormatter(
     lambda position, content: normstr(html_escape(content)).replace('\n', '<br>'),
     lambda position, type: f'<span style="color:{HIGHLIGHT_MAP.get(type, HIGHLIGHT_MAP["default"])}">',
     lambda position, type: '</span>',
 )
 
-HLFMT_ANSI = _PysHighlightFormatter(
+HLFMT_ANSI = PysHighlightFormatter(
     lambda position, content: normstr(content),
     _ansi_open_block,
     lambda position, type: '\x1b[0m',
 )
 
-HLFMT_BBCODE = _PysHighlightFormatter(
+HLFMT_BBCODE = PysHighlightFormatter(
     lambda position, content: normstr(content),
     lambda position, type: f'[color={HIGHLIGHT_MAP.get(type, HIGHLIGHT_MAP["default"])}]',
     lambda position, type: '[/color]',

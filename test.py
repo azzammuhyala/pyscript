@@ -15,7 +15,7 @@ def pyscript_tester():
         sys.exit(code)
 
 def pyscript_highlight_tester():
-    lexer = pyscript.PygmentsPyScriptLexer()
+    lexer = pyscript.PygmentsPyScriptShellLexer()
     formatter = formatters.TerminalTrueColorFormatter(style=pyscript.PygmentsPyScriptStyle, full=True)
     result = pygments.highlight(source, lexer, formatter)
     sys.stdout.write(result)

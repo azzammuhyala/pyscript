@@ -146,12 +146,12 @@ def require(pyfunc, name):
     context = code.context
     filename = context.file.name
 
-    for p in pys_sys.path:
-        module_path = get_module_path(normpath(p, name, absolute=False))
+    for path in pys_sys.path:
+        module_path = get_module_path(path := normpath(path, name, absolute=False))
         if module_path is not None:
             break
     else:
-        module_path = get_module_path(normpath(dirname(filename) or getcwd(), name, absolute=False))
+        module_path = get_module_path(path := normpath(dirname(filename) or getcwd(), name, absolute=False))
         if module_path == filename:
             module_path = None
 
@@ -195,7 +195,7 @@ def require(pyfunc, name):
 
                 from .runner import pys_runner
 
-                symtab, module = new_module_namespace(file=file.name, name=get_name_from_path(file.name))
+                symtab, module = new_module_namespace(file=module_path, name=get_name_from_path(path))
 
                 # minimize circular imports (python standard)
                 modules[module_path] = module

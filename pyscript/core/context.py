@@ -36,9 +36,6 @@ class PysContext(Pys):
         setimuattr(self, 'parent', parent)
         setimuattr(self, 'parent_entry_position', parent_entry_position)
 
-    def __repr__(self) -> str:
-        return f'<Context {self.name!r}>'
-
 class PysClassContext(PysContext):
 
     __slots__ = ()

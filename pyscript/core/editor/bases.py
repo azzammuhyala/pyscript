@@ -21,9 +21,8 @@ class PysEditor(Pys):
         inheritable(cls)
 
     def save(self, text) -> None:
-        text = normstr(text)
         try:
-            print('saved')
+            text = normstr(text)
             with open(self.file.name, 'w', encoding='utf-8') as file:
                 file.write(text)
                 setimuattr(self.file, 'text', text)

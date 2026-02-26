@@ -4,7 +4,7 @@ if TYPE_CHECKING:
     from .core.buffer import PysFileBuffer
     from .core.cache import PysUndefined
     from .core.context import PysContext
-    from .core.highlight import _PysHighlightFormatter
+    from .core.highlight import PysHighlightFormatter
     from .core.position import PysPosition
     from .core.results import PysExecuteResult
     from .core.symtab import PysSymbolTable
@@ -32,9 +32,9 @@ NOTEBOOK: int
 LEXER_HIGHLIGHT: int
 DICT_TO_JSDICT: int
 
-HLFMT_HTML: _PysHighlightFormatter
-HLFMT_ANSI: _PysHighlightFormatter
-HLFMT_BBCODE: _PysHighlightFormatter
+HLFMT_HTML: PysHighlightFormatter
+HLFMT_ANSI: PysHighlightFormatter
+HLFMT_BBCODE: PysHighlightFormatter
 
 undefined: PysUndefined
 version: str
@@ -95,4 +95,5 @@ def pys_shell(
 
 __version__: str
 __date__: str
+__author__: tuple[str]
 __all__: tuple[str]
