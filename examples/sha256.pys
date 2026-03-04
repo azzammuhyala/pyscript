@@ -1,5 +1,5 @@
 # ======================================================================================================================
-# SHA-256 Pure PyScript>=1.11.1
+# SHA-256 Implementation, Pure PyScript>=1.11.1
 # Reference: C implementation - https://www.oryx-embedded.com/doc/sha256_8c_source.html
 # No external crypto/hash modules used
 # ======================================================================================================================

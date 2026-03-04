@@ -25,14 +25,11 @@ while (running) {
         elif (event.type == pygame.KEYDOWN) {
             if (event.key == pygame.K_UP and direction != (0, CELL)) {
                 direction = (0, -CELL)
-            }
-            elif (event.key == pygame.K_DOWN and direction != (0, -CELL)) {
+            } elif (event.key == pygame.K_DOWN and direction != (0, -CELL)) {
                 direction = (0, CELL)
-            }
-            elif (event.key == pygame.K_LEFT and direction != (CELL, 0)) {
+            } elif (event.key == pygame.K_LEFT and direction != (CELL, 0)) {
                 direction = (-CELL, 0)
-            }
-            elif (event.key == pygame.K_RIGHT and direction != (-CELL, 0)) {
+            } elif (event.key == pygame.K_RIGHT and direction != (-CELL, 0)) {
                 direction = (CELL, 0)
             }
         }
@@ -43,8 +40,7 @@ while (running) {
 
     if (new_head == food) {
         food = (random.randrange(0, WIDTH, CELL), random.randrange(0, HEIGHT, CELL))
-    }
-    else {
+    } else {
         snake.pop()
     }
 
