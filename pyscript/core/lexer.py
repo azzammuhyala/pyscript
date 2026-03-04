@@ -28,6 +28,18 @@ ESCAPE_CHARACTERS_MAP = MappingProxyType({
     'v': '\v'
 })
 
+BASE_INTEGER_LITERAL = MappingProxyType({
+    'b': (2, '01'),
+    'o': (8, '01234567'),
+    'x': (16, '0123456789abcdefABCDEF')
+})
+
+ESCAPE_LITERAL_LENGTH = MappingProxyType({
+    'x': 2,
+    'u': 4,
+    'U': 8
+})
+
 class PysLexer(Pys):
 
     @typechecked
@@ -302,18 +314,8 @@ class PysLexer(Pys):
 
                 format = str
                 number = ''
-
                 character_base = self.character_are('lower')
-
-                if character_base == 'b':
-                    base = 2
-                    literal = '01'
-                elif character_base == 'o':
-                    base = 8
-                    literal = '01234567'
-                elif character_base == 'x':
-                    base = 16
-                    literal = '0123456789ABCDEFabcdef'
+                base, literal = BASE_INTEGER_LITERAL[character_base]
 
                 self.advance()
 
@@ -361,8 +363,7 @@ class PysLexer(Pys):
                 result = number
             elif format is str:
                 func = lambda : int(number, base)
-                base = {2: 'b', 8: 'o', 16: 'x'}[base]
-                result = f'0{base}{number}'
+                result = f'0{character_base}{number}'
             elif format is int:
                 func = lambda : int(number)
                 result = number
@@ -391,6 +392,7 @@ class PysLexer(Pys):
                 if hasattr(sys, 'get_int_max_str_digits') else
                 ''
             )
+
             self.throw(
                 start, self.index,
                 f"Exceeds the limit {integer_to_string_limit}for integer string conversion: "
@@ -491,15 +493,9 @@ class PysLexer(Pys):
 
                     elif self.character_in('xuU'):
                         base = self.current_character
-
-                        if base == 'x':
-                            length = 2
-                        elif base == 'u':
-                            length = 4
-                        elif base == 'U':
-                            length = 8
-
+                        length = ESCAPE_LITERAL_LENGTH[base]
                         end_escape = self.index - start_string
+
                         self.advance()
 
                         while self.character_in('0123456789ABCDEFabcdef') and len(escape) < length:

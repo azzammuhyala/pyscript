@@ -26,7 +26,7 @@ from typing import Any, Literal, Optional
 
 import sys
 
-def _normalize_namespace(file, namespace):
+def _normalize_namespace(namespace, file):
     if namespace is None:
         symtab, _ = new_module_namespace(symbols=get_locals(2 + TYPECHECK_STACK))
     elif namespace is undefined:
@@ -188,7 +188,7 @@ def pys_exec(
     result = pys_runner(
         file=file,
         mode='exec',
-        symbol_table=_normalize_namespace(file, globals),
+        symbol_table=_normalize_namespace(globals, file),
         flags=flags,
         parser_flags=parser_flags
     )
@@ -234,7 +234,7 @@ def pys_eval(
     result = pys_runner(
         file=file,
         mode='eval',
-        symbol_table=_normalize_namespace(file, globals),
+        symbol_table=_normalize_namespace(globals, file),
         flags=flags,
         parser_flags=parser_flags
     )
@@ -299,7 +299,7 @@ def pys_shell(
     line = 0
     default_parser_flags = parser_flags
     file = PysFileBuffer('', '<pyscript-shell>')
-    symtab = _normalize_namespace(file, globals)
+    symtab = _normalize_namespace(globals, file)
     colored = not (flags & NO_COLOR)
     colored_prompt = not (flags & NO_COLOR_PROMPT)
     shell = (PysClassicLineShell if flags & CLASSIC_LINE_SHELL else PysPromptToolkitLineShell)(colored=colored)
@@ -335,7 +335,7 @@ def pys_shell(
                 if text == 0:
                     return 0
                 elif text == 1:
-                    symtab = _normalize_namespace(file, globals)
+                    symtab = _normalize_namespace(globals, file)
                     parser_flags = default_parser_flags
                     line = 0
                     continue

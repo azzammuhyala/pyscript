@@ -48,10 +48,9 @@ def visit_StringNode(node, context):
     return PysRunTimeResult().success(node.value.value)
 
 def visit_KeywordNode(node, context):
-    name = node.name.value
     return PysRunTimeResult().success(
         (True if context.flags & DEBUG else False)
-        if name == '__debug__' else
+        if (name := node.name.value) == '__debug__' else
         get_value_from_keyword(name)
     )
 
@@ -83,10 +82,10 @@ def visit_IdentifierNode(node, context):
                 )
             )
 
+        return result.success(value)
+
     if result.should_return():
         return result
-
-    return result.success(value)
 
 def visit_DictionaryNode(node, context):
     result = PysRunTimeResult()
@@ -314,8 +313,9 @@ def visit_BinaryOperatorNode(node, context):
 
     register = result.register
     should_return = result.should_return
-    otype = node.operand.type
-    ovalue = node.operand.value
+    toperand = node.operand
+    otype = toperand.type
+    ovalue = toperand.value
     nleft = node.left
     nright = node.right
 
@@ -356,8 +356,9 @@ def visit_UnaryOperatorNode(node, context):
 
     register = result.register
     should_return = result.should_return
-    otype = node.operand.type
-    ovalue = node.operand.value
+    toperand = node.operand
+    otype = toperand.type
+    ovalue = toperand.value
     nvalue = node.value
 
     value = register(get_visitor(nvalue.__class__)(nvalue, context))
@@ -367,7 +368,7 @@ def visit_UnaryOperatorNode(node, context):
     with result(context, node.position):
         if (otype == T_KEYWORD and ovalue == 'not') or otype == T_NOT:
             return result.success(not value)
-        elif (otype == T_KEYWORD and ovalue == 'typeof'):
+        elif otype == T_KEYWORD and ovalue == 'typeof':
             return result.success(type(value).__name__)
         return result.success(UNARY_FUNCTIONS_MAP(otype)(value))
 
@@ -445,8 +446,9 @@ def visit_ImportNode(node, context):
     result = PysRunTimeResult()
 
     should_return = result.should_return
-    get_symbol = context.symbol_table.get
-    set_symbol = context.symbol_table.set
+    symbol_table = context.symbol_table
+    get_symbol = symbol_table.get
+    set_symbol = symbol_table.set
     npackages = node.packages
     tname, tas_name = node.name
     name_position = tname.position
@@ -858,12 +860,10 @@ def visit_ForNode(node, context):
             with result(context, niteration_position):
                 handle_call(next, context, niteration_position)
                 register(visit_declaration_AssignmentNode(ndeclaration, context, next()))
-
             if should_return():
                 if (error := result.error) and is_object_of(error.exception, StopIteration):
                     result.failure(None)
                 return False
-
             return True
 
         def update():
@@ -1248,45 +1248,47 @@ def visit_ThrowNode(node, context):
 def visit_AssertNode(node, context):
     result = PysRunTimeResult()
 
-    if not (context.flags & DEBUG):
-        register = result.register
-        should_return = result.should_return
-        ncondition = node.condition
+    if context.flags & DEBUG:
+        return result.success(None)
 
-        condition = register(get_visitor(ncondition.__class__)(ncondition, context))
-        if should_return():
-            return result
+    register = result.register
+    should_return = result.should_return
+    ncondition = node.condition
 
-        with result(context, ncondition.position):
+    condition = register(get_visitor(ncondition.__class__)(ncondition, context))
+    if should_return():
+        return result
 
-            if not condition:
-                nmessage = node.message
+    with result(context, ncondition.position):
 
-                if nmessage:
-                    message = register(get_visitor(nmessage.__class__)(nmessage, context))
-                    if should_return():
-                        return result
+        if not condition:
+            nmessage = node.message
 
-                    return result.failure(
-                        PysTraceback(
-                            AssertionError(message),
-                            context,
-                            node.position
-                        )
-                    )
+            if nmessage:
+                message = register(get_visitor(nmessage.__class__)(nmessage, context))
+                if should_return():
+                    return result
 
                 return result.failure(
                     PysTraceback(
-                        AssertionError,
+                        AssertionError(message),
                         context,
                         node.position
                     )
                 )
 
-        if should_return():
-            return result
+            return result.failure(
+                PysTraceback(
+                    AssertionError,
+                    context,
+                    node.position
+                )
+            )
 
-    return result.success(None)
+        return result.success(None)
+
+    if should_return():
+        return result
 
 def visit_DeleteNode(node, context):
     result = PysRunTimeResult()

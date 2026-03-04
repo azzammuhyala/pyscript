@@ -156,7 +156,7 @@ parser.add_argument(
 parser.add_argument(
     'arg',
     nargs=REMAINDER,
-    help="Remaining arguments stored in pys_sys.argv (sys.argv)"
+    help="Remaining arguments stored in pys_sys.argv (pyscript sys.argv)"
 )
 
 def argument_error(argument, message):
@@ -272,7 +272,7 @@ if args.file is not None:
         result = pys_runner(
             file=file,
             mode='exec',
-            symbol_table=_normalize_namespace(file, undefined),
+            symbol_table=_normalize_namespace(undefined, file),
             flags=flags
         )
 
@@ -296,7 +296,7 @@ elif args.command is not None:
     result = pys_runner(
         file=file,
         mode='exec',
-        symbol_table=_normalize_namespace(file, undefined),
+        symbol_table=_normalize_namespace(undefined, file),
         flags=flags
     )
 

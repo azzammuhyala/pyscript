@@ -124,7 +124,10 @@ class PysLineShell(PysIncompleteHandler):
         elif text == '/clean':
             return 1
         elif text == '/clear':
-            pys_sys.clearhook()
+            try:
+                pys_sys.clearhook()
+            except BaseException as e:
+                print(f'sys.clearhook: {type(e).__name__}: {e}', file=sys.stderr)
             return -1
 
     def prompt(self) -> Literal[0]:

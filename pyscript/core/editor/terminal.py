@@ -78,28 +78,29 @@ try:
 
             @key_bindings.add('c-y', filter=on_edit, eager=True)
             def _(event):
-                self.current_buffer.redo()
+                self.text.buffer.redo()
 
             @key_bindings.add('c-z', filter=on_edit, eager=True)
             def _(event):
-                self.current_buffer.undo()
+                self.text.buffer.undo()
 
             @key_bindings.add('c-s', filter=on_edit, eager=True)
             def _(event):
-                self.save(self.text.text)
+                self.save(self.text.buffer.text)
 
             @key_bindings.add('c-x', filter=on_edit, eager=True)
             @key_bindings.add('escape', filter=on_edit, eager=True)
             def _(event):
                 if self.modified:
                     self.show_exit_window = True
+                    self.output.hide_cursor()
                     self.layout.focus(self.close_window)
                 else:
                     self.exit()
 
             @key_bindings.add('y', filter=on_exit)
             def _(event):
-                self.save(self.text.text)
+                self.save(self.text.buffer.text)
                 self.show_exit_window = False
                 self.exit()
 
@@ -111,6 +112,7 @@ try:
             @key_bindings.add('c', filter=on_exit)
             def _(event):
                 self.show_exit_window = False
+                self.output.show_cursor()
                 self.layout.focus(self.text)
 
             self.root = FloatContainer(

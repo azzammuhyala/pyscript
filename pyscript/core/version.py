@@ -7,8 +7,8 @@ from types import MappingProxyType
 
 version_match = re_compile(r'^(\d+)\.(\d+)\.(\d+)((?:a|b|rc)(\d+)|\.(dev|post)(\d+))?$').match
 
-__version__ = '1.12.2'
-__date__ = '26 February 2026, 21:40 UTC+7'
+__version__ = '1.12.3'
+__date__ = '04 March 2026, 08:50 UTC+7'
 __author__ = ('azzammuhyala',)
 
 version = pys_sys.version = f'{__version__} ({__date__})'

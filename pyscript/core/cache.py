@@ -1,5 +1,5 @@
 from .bases import Pys
-from .constants import PYSCRIPT_PATH, CORE_PATH, LIBRARIES_PATH, SITE_PACKAGES_PATH
+from .constants import PYSCRIPT_PATH, CORE_PATH, LIBRARIES_PATH, SITE_PACKAGES_PATH, DEFAULT
 from .utils.debug import print_display, print_traceback, clear_shell
 from .utils.decorators import inheritable, singleton
 
@@ -18,7 +18,7 @@ pys_sys = ModuleType(
 pys_sys.__running_shell__ = False
 pys_sys.__running_breakpoint__ = False
 pys_sys.argv = ['']
-pys_sys.flags = 0
+pys_sys.flags = DEFAULT
 pys_sys.displayhook = print_display
 pys_sys.excepthook = print_traceback
 pys_sys.clearhook = clear_shell

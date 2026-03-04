@@ -59,7 +59,7 @@ def format_error_arrow(position, colored=True):
     if end == -1:
         end = len(text)
 
-    if text[position.start:position.end] in ('', '\n'):
+    if text[position.start:position.end] in {'', '\n'}:
         if position.start > start:
             line = text[start:end].lstrip().replace('\t', ' ')
             return f'{line}\n{bred}{" " * len(line)}^{reset}'

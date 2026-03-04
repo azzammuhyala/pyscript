@@ -28,8 +28,8 @@ try:
                 width=120,
                 font=self.font,
                 wrap='char',
-                bg='#131313',
-                fg='#f8f8f2',
+                bg='#171717',
+                fg='#f1f1f1',
                 insertbackground='white',
                 yscrollcommand=self.scrollbar.set
             )

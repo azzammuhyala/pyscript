@@ -35,7 +35,7 @@ pip install -U pyscript-programming-language
 
 [_OPTIONAL_] You can download additional libraries that PyScript requires with this command:
 ```sh
-pip install -U "pyscript-programming-language[other]"
+pip install -U pyscript-programming-language[other]
 ```
 
 And also, you can download PyScript with `git`:
