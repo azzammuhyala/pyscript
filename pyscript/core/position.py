@@ -1,7 +1,7 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
 from .constants import ENV_PYSCRIPT_MAXIMUM_TRACEBACK_LINE
-from .mapping import ACOLORS
+from .mapping import GET_ACOLORS
 from .utils.decorators import typechecked, immutable
 from .utils.generic import setimuattr
 
@@ -42,8 +42,8 @@ def format_error_arrow(position, colored=True):
         return ''
 
     if colored:
-        reset = ACOLORS('reset')
-        bred =  ACOLORS('bold-red')
+        reset = GET_ACOLORS('reset')
+        bred =  GET_ACOLORS('bold-red')
     else:
         reset = ''
         bred = ''

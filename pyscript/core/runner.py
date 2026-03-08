@@ -9,7 +9,7 @@ from .exceptions import PysTraceback, PysSignal
 from .handlers import handle_call
 from .interpreter import get_visitor
 from .lexer import PysLexer
-from .mapping import ACOLORS
+from .mapping import GET_ACOLORS
 from .parser import PysParser
 from .position import PysPosition
 from .pysbuiltins import require
@@ -90,10 +90,10 @@ def pys_runner(
     )
 
     result = PysExecuteResult(context, parser_flags)
-    runtime_runner_result = PysRunTimeResult()
+    runtime_result = PysRunTimeResult()
     position = PysPosition(file, -1, -1)
 
-    with runtime_runner_result(context, position):
+    with runtime_result(context, position):
 
         try:
 
@@ -142,6 +142,7 @@ def pys_runner(
 
         result.parser_flags = parser.parser_flags
         pys_sys.flags = context.flags
+
         runtime_result = get_visitor(node.__class__)(node, context)
 
         if runtime_result.error:
@@ -149,10 +150,10 @@ def pys_runner(
 
         if mode == 'single' and (displayhook := pys_sys.displayhook) is not None:
             displayhook(runtime_result.value)
+
         return result.success(runtime_result.value)
 
-    if runtime_runner_result.error:
-        return result.failure(runtime_runner_result.error)
+    return result.failure(runtime_result.error) if runtime_result.error else result
 
 @typechecked
 def pys_exec(
@@ -305,8 +306,8 @@ def pys_shell(
     shell = (PysClassicLineShell if flags & CLASSIC_LINE_SHELL else PysPromptToolkitLineShell)(colored=colored)
 
     if colored:
-        reset = ACOLORS('reset')
-        bmagenta = ACOLORS('bold-magenta')
+        reset = GET_ACOLORS('reset')
+        bmagenta = GET_ACOLORS('bold-magenta')
     else:
         reset = ''
         bmagenta = ''

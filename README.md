@@ -81,11 +81,12 @@ Familiar? There it is!
 | 18 | `typing`          | **required**           |
 | 19 | `unicodedata`     | **required**           |
 | 1  | `msvcrt`          | **required (library)** |
-| 2  | `shutil`          | **required (library)** |
-| 3  | `stat`            | **required (library)** |
-| 4  | `termios`         | **required (library)** |
-| 5  | `time`            | **required (library)** |
-| 6  | `tty`             | **required (library)** |
+| 2  | `pprint`          | **required (library)** |
+| 3  | `shutil`          | **required (library)** |
+| 4  | `stat`            | **required (library)** |
+| 5  | `termios`         | **required (library)** |
+| 6  | `time`            | **required (library)** |
+| 7  | `tty`             | **required (library)** |
 | 1  | `beartype`        | **optional**           |
 | 2  | `prompt_toolkit`  | **optional**           |
 | 3  | `pygments`        | **optional**           |

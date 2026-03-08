@@ -65,8 +65,9 @@ class PysIncompleteHandler(Pys):
                         self._is_triple_string = True
                         index += 2
 
-                    if self._in_string and self._string_prefix == character:
-                        self._in_string = False
+                    if self._in_string:
+                        if self._string_prefix == character:
+                            self._in_string = False
                     else:
                         self._string_prefix = character
                         self._in_string = True
@@ -127,7 +128,7 @@ class PysLineShell(PysIncompleteHandler):
             try:
                 pys_sys.clearhook()
             except BaseException as e:
-                print(f'sys.clearhook: {type(e).__name__}: {e}', file=sys.stderr)
+                print(f'clearhook: {type(e).__name__}: {e}', file=sys.stderr)
             return -1
 
     def prompt(self) -> Literal[0]:

@@ -4,7 +4,7 @@ from .checks import is_list, is_equals, is_public_attribute
 from .context import PysClassContext
 from .exceptions import PysTraceback
 from .handlers import handle_call
-from .mapping import BINARY_FUNCTIONS_MAP, UNARY_FUNCTIONS_MAP
+from .mapping import GET_BINARY_FUNCTIONS_MAP, GET_UNARY_FUNCTIONS_MAP
 from .nodes import PysNode, PysIdentifierNode, PysAttributeNode, PysSubscriptNode
 from .objects import PysFunction
 from .pysbuiltins import ce, nce, increment, decrement
@@ -18,12 +18,12 @@ from collections.abc import Iterable
 
 T_KEYWORD = TOKENS['KEYWORD']
 T_STRING = TOKENS['STRING']
-T_AND = TOKENS['DOUBLE-AMPERSAND']
-T_OR = TOKENS['DOUBLE-PIPE']
 T_NOT = TOKENS['EXCLAMATION']
+T_AND = TOKENS['DOUBLE-AMPERSAND']
+T_NULLISH = TOKENS['DOUBLE-QUESTION']
+T_OR = TOKENS['DOUBLE-PIPE']
 T_CE = TOKENS['EQUAL-TILDE']
 T_NCE = TOKENS['EXCLAMATION-TILDE']
-T_NULLISH = TOKENS['DOUBLE-QUESTION']
 
 get_incremental_function = {
     TOKENS['DOUBLE-PLUS']: increment,
@@ -84,8 +84,7 @@ def visit_IdentifierNode(node, context):
 
         return result.success(value)
 
-    if result.should_return():
-        return result
+    return result
 
 def visit_DictionaryNode(node, context):
     result = PysRunTimeResult()
@@ -167,19 +166,16 @@ def visit_TupleNode(node, context):
 def visit_AttributeNode(node, context):
     result = PysRunTimeResult()
 
-    should_return = result.should_return
-    nattribute = node.attribute
     ntarget = node.target
 
     target = result.register(get_visitor(ntarget.__class__)(ntarget, context))
-    if should_return():
+    if result.should_return():
         return result
 
-    with result(context, nattribute.position):
+    with result(context, (nattribute := node.attribute).position):
         return result.success(getattr(target, nattribute.value))
 
-    if should_return():
-        return result
+    return result
 
 def visit_SubscriptNode(node, context):
     result = PysRunTimeResult()
@@ -199,8 +195,7 @@ def visit_SubscriptNode(node, context):
     with result(context, node.position):
         return result.success(target[slice])
 
-    if should_return():
-        return result
+    return result
 
 def visit_CallNode(node, context):
     result = PysRunTimeResult()
@@ -210,8 +205,8 @@ def visit_CallNode(node, context):
 
     register = result.register
     should_return = result.should_return
-    append = args.append
-    setitem = kwargs.__setitem__
+    add_arg = args.append
+    add_kwarg = kwargs.__setitem__
     nposition = node.position
     ntarget = node.target
 
@@ -223,12 +218,12 @@ def visit_CallNode(node, context):
 
         if nargument.__class__ is tuple:
             keyword, nvalue = nargument
-            setitem(keyword.value, register(get_visitor(nvalue.__class__)(nvalue, context)))
+            add_kwarg(keyword.value, register(get_visitor(nvalue.__class__)(nvalue, context)))
             if should_return():
                 return result
 
         else:
-            append(register(get_visitor(nargument.__class__)(nargument, context)))
+            add_arg(register(get_visitor(nargument.__class__)(nargument, context)))
             if should_return():
                 return result
 
@@ -236,8 +231,7 @@ def visit_CallNode(node, context):
         handle_call(target, context, nposition)
         return result.success(target(*args, **kwargs))
 
-    if should_return():
-        return result
+    return result
 
 def visit_ChainOperatorNode(node, context):
     result = PysRunTimeResult()
@@ -256,17 +250,18 @@ def visit_ChainOperatorNode(node, context):
 
         for i, toperand in enumerate(node.operations, start=1):
             otype = toperand.type
-            ovalue = toperand.value
             nexpression = get_expression(i)
 
             right = register(get_visitor(nexpression.__class__)(nexpression, context))
             if should_return():
                 return result
 
-            if otype == T_KEYWORD and ovalue == 'in':
-                value = left in right
-            elif otype == T_KEYWORD and ovalue == 'is':
-                value = left is right
+            if otype == T_KEYWORD:
+                ovalue = toperand.value
+                if ovalue == 'in':
+                    value = left in right
+                elif ovalue == 'is':
+                    value = left is right
             elif otype == T_CE:
                 handle_call(ce, context, nposition)
                 value = ce(left, right)
@@ -274,17 +269,16 @@ def visit_ChainOperatorNode(node, context):
                 handle_call(nce, context, nposition)
                 value = nce(left, right)
             else:
-                value = BINARY_FUNCTIONS_MAP(otype)(left, right)
+                value = GET_BINARY_FUNCTIONS_MAP(otype)(left, right)
 
             if not value:
                 break
 
             left = right
 
-    if should_return():
-        return result
+        return result.success(value)
 
-    return result.success(value)
+    return result
 
 def visit_TernaryOperatorNode(node, context):
     result = PysRunTimeResult()
@@ -299,95 +293,85 @@ def visit_TernaryOperatorNode(node, context):
 
     with result(context, node.position):
         nvalue = node.valid if condition else node.invalid
+
         value = register(get_visitor(nvalue.__class__)(nvalue, context))
         if should_return():
             return result
 
         return result.success(value)
 
-    if should_return():
-        return result
+    return result
 
 def visit_BinaryOperatorNode(node, context):
     result = PysRunTimeResult()
 
     register = result.register
     should_return = result.should_return
-    toperand = node.operand
-    otype = toperand.type
-    ovalue = toperand.value
     nleft = node.left
-    nright = node.right
 
     left = register(get_visitor(nleft.__class__)(nleft, context))
     if should_return():
         return result
 
+    toperand = node.operand
+    otype = toperand.type
+    ovalue = toperand.value
+    nright = node.right
+
     with result(context, node.position):
-        should_return_right = True
+        return_right = True
 
         if (otype == T_KEYWORD and ovalue == 'and') or otype == T_AND:
-            if not left:
-                return result.success(left)
+            if not left: return result.success(left)
         elif (otype == T_KEYWORD and ovalue == 'or') or otype == T_OR:
-            if left:
-                return result.success(left)
+            if left: return result.success(left)
         elif otype == T_NULLISH:
-            if left is not None:
-                return result.success(left)
+            if left is not None: return result.success(left)
         else:
-            should_return_right = False
+            return_right = False
 
         right = register(get_visitor(nright.__class__)(nright, context))
         if should_return():
             return result
 
-        return result.success(
-            right
-            if should_return_right else
-            BINARY_FUNCTIONS_MAP(otype)(left, right)
-        )
+        return result.success(right if return_right else GET_BINARY_FUNCTIONS_MAP(otype)(left, right))
 
-    if should_return():
-        return result
+    return result
 
 def visit_UnaryOperatorNode(node, context):
     result = PysRunTimeResult()
 
-    register = result.register
-    should_return = result.should_return
+    nvalue = node.value
+
+    value = result.register(get_visitor(nvalue.__class__)(nvalue, context))
+    if result.should_return():
+        return result
+
     toperand = node.operand
     otype = toperand.type
     ovalue = toperand.value
-    nvalue = node.value
-
-    value = register(get_visitor(nvalue.__class__)(nvalue, context))
-    if should_return():
-        return result
 
     with result(context, node.position):
         if (otype == T_KEYWORD and ovalue == 'not') or otype == T_NOT:
             return result.success(not value)
         elif otype == T_KEYWORD and ovalue == 'typeof':
             return result.success(type(value).__name__)
-        return result.success(UNARY_FUNCTIONS_MAP(otype)(value))
+        return result.success(GET_UNARY_FUNCTIONS_MAP(otype)(value))
 
-    if should_return():
-        return result
+    return result
 
 def visit_IncrementalNode(node, context):
     result = PysRunTimeResult()
 
     register = result.register
     should_return = result.should_return
-    nposition = node.position
     ntarget = node.target
 
     value = register(get_visitor(ntarget.__class__)(ntarget, context))
     if should_return():
         return result
 
-    with result(context, nposition):
+    with result(context, nposition := node.position):
         handle_call(function := get_incremental_function(node.operand.type), context, nposition)
         increast_value = function(value)
 
@@ -400,8 +384,7 @@ def visit_IncrementalNode(node, context):
 
         return result.success(value)
 
-    if should_return():
-        return result
+    return result
 
 def visit_StatementsNode(node, context):
     result = PysRunTimeResult()
@@ -517,23 +500,15 @@ def visit_ImportNode(node, context):
             return result
 
     elif npackages:
-
         for tpackage, tas_package in npackages:
-
             with result(context, tpackage.position):
-                set_symbol(
-                    (tpackage if tas_package is None else tas_package).value,
-                    getattr(module, tpackage.value)
-                )
-
+                set_symbol((tpackage if tas_package is None else tas_package).value, getattr(module, tpackage.value))
             if should_return():
                 return result
 
     elif not (tname.type == T_STRING and tas_name is None):
-
         with result(context, node.position):
             set_symbol((tname if tas_name is None else tas_name).value, module)
-
         if should_return():
             return result
 
@@ -544,7 +519,6 @@ def visit_IfNode(node, context):
 
     register = result.register
     should_return = result.should_return
-    else_body = node.else_body
 
     for ncondition, body in node.cases_body:
         condition = register(get_visitor(ncondition.__class__)(ncondition, context))
@@ -552,19 +526,14 @@ def visit_IfNode(node, context):
             return result
 
         with result(context, ncondition.position):
-            condition = True if condition else False
+            if condition:
+                register(get_visitor(body.__class__)(body, context))
+                return result if should_return() else result.success(None)
 
         if should_return():
             return result
 
-        if condition:
-            register(get_visitor(body.__class__)(body, context))
-            if should_return():
-                return result
-
-            return result.success(None)
-
-    if else_body:
+    if else_body := node.else_body:
         register(get_visitor(else_body.__class__)(else_body, context))
         if should_return():
             return result
@@ -576,7 +545,6 @@ def visit_SwitchNode(node, context):
 
     register = result.register
     should_return = result.should_return
-    default_body = node.default_body
     ntarget = node.target
 
     fall_through = False
@@ -592,30 +560,29 @@ def visit_SwitchNode(node, context):
             return result
 
         with result(context, ncondition.position):
-            equal = True if target == case else False
+
+            if fall_through or target == case:
+                fall_through = True
+                no_match_found = False
+
+                register(get_visitor(body.__class__)(body, context))
+                if should_return():
+                    if result.should_break:
+                        result.should_break = False
+                        fall_through = False
+                    else:
+                        return result
 
         if should_return():
             return result
 
-        if fall_through or equal:
-            no_match_found = False
-
-            register(get_visitor(body.__class__)(body, context))
-            if should_return() and not result.should_break:
-                return result
-
+    if (fall_through or no_match_found) and (default_body := node.default_body):
+        register(get_visitor(default_body.__class__)(default_body, context))
+        if should_return():
             if result.should_break:
                 result.should_break = False
-                fall_through = False
             else:
-                fall_through = True
-
-    if (fall_through or no_match_found) and default_body:
-        register(get_visitor(default_body.__class__)(default_body, context))
-        if should_return() and not result.should_break:
-            return result
-
-        result.should_break = False
+                return result
 
     return result.success(None)
 
@@ -632,7 +599,6 @@ def visit_MatchNode(node, context):
         target = register(get_visitor(ntarget.__class__)(ntarget, context))
         if should_return():
             return result
-
         compare = True
 
     for ncondition, nvalue in node.cases:
@@ -641,21 +607,18 @@ def visit_MatchNode(node, context):
             return result
 
         with result(context, ncondition.position):
-            valid = target == condition if compare else (True if condition else False)
+
+            if target == condition if compare else (True if condition else False):
+                value = register(get_visitor(nvalue.__class__)(nvalue, context))
+                if should_return():
+                    return result
+
+                return result.success(value)
 
         if should_return():
             return result
 
-        if valid:
-            value = register(get_visitor(nvalue.__class__)(nvalue, context))
-            if should_return():
-                return result
-
-            return result.success(value)
-
-    ndefault = node.default
-
-    if ndefault:
+    if ndefault := node.default:
         default = register(get_visitor(ndefault.__class__)(ndefault, context))
         if should_return():
             return result
@@ -671,13 +634,10 @@ def visit_TryNode(node, context):
     failure = result.failure
     should_return = result.should_return
     body = node.body
-    else_body = node.else_body
-    finally_body = node.finally_body
 
     register(get_visitor(body.__class__)(body, context))
-    error = result.error
 
-    if error:
+    if error := result.error:
         exception = error.exception
         failure(None)
 
@@ -737,10 +697,10 @@ def visit_TryNode(node, context):
         else:
             failure(error)
 
-    elif else_body:
+    elif else_body := node.else_body:
         register(get_visitor(else_body.__class__)(else_body, context))
 
-    if finally_body:
+    if finally_body := node.finally_body:
         finally_result = PysRunTimeResult()
         finally_result.register(get_visitor(finally_body.__class__)(finally_body, context))
         if finally_result.should_return():
@@ -748,20 +708,16 @@ def visit_TryNode(node, context):
                 setimuattr(finally_result.error, 'primary', result.error)
             return finally_result
 
-    if should_return():
-        return result
-
-    return result.success(None)
+    return result if should_return() else result.success(None)
 
 def visit_WithNode(node, context):
     result = PysRunTimeResult()
 
-    exits = []
+    exit_functions = []
 
     register = result.register
-    failure = result.failure
     should_return = result.should_return
-    append = exits.append
+    append_exit_function = exit_functions.append
     set_symbol = context.symbol_table.set
 
     for ncontext, nalias in node.contexts:
@@ -799,7 +755,7 @@ def visit_WithNode(node, context):
 
             handle_call(enter, context, ncontext_position)
             enter_value = enter()
-            append((exit, ncontext_position))
+            append_exit_function((exit, ncontext_position))
 
         if should_return():
             break
@@ -814,9 +770,10 @@ def visit_WithNode(node, context):
         body = node.body
         register(get_visitor(body.__class__)(body, context))
 
+    failure = result.failure
     error = result.error
 
-    for exit, ncontext_position in reversed(exits):
+    for exit, ncontext_position in reversed(exit_functions):
         with result(context, ncontext_position):
             handle_call(exit, context, ncontext_position)
             if exit(*get_error_args(error)):
@@ -835,11 +792,7 @@ def visit_ForNode(node, context):
 
     register = result.register
     should_return = result.should_return
-    nheader = node.header
-    nheader_length = len(nheader)
-    body = node.body
-    body_class = body.__class__
-    else_body = node.else_body
+    nheader_length = len(nheader := node.header)
 
     if nheader_length == 2:
         ndeclaration, niteration = nheader
@@ -900,6 +853,9 @@ def visit_ForNode(node, context):
             def update():
                 pass
 
+    body = node.body
+    body_class = body.__class__
+
     while True:
         done = condition()
         if should_return():
@@ -924,7 +880,7 @@ def visit_ForNode(node, context):
     if result.should_break:
         result.should_break = False
 
-    elif else_body:
+    elif else_body := node.else_body:
         register(get_visitor(else_body.__class__)(else_body, context))
         if should_return():
             return result
@@ -937,11 +893,10 @@ def visit_WhileNode(node, context):
     register = result.register
     should_return = result.should_return
     ncondition = node.condition
-    ncondition_class = ncondition.__class__
     ncondition_position = ncondition.position
+    ncondition_class = ncondition.__class__
     body = node.body
     body_class = body.__class__
-    else_body = node.else_body
 
     while True:
         condition = register(get_visitor(ncondition_class)(ncondition, context))
@@ -967,7 +922,7 @@ def visit_WhileNode(node, context):
     if result.should_break:
         result.should_break = False
 
-    elif else_body:
+    elif else_body := node.else_body:
         register(get_visitor(else_body.__class__)(else_body, context))
         if should_return():
             return result
@@ -980,11 +935,10 @@ def visit_DoWhileNode(node, context):
     register = result.register
     should_return = result.should_return
     ncondition = node.condition
-    ncondition_class = ncondition.__class__
     ncondition_position = ncondition.position
+    ncondition_class = ncondition.__class__
     body = node.body
     body_class = body.__class__
-    else_body = node.else_body
 
     while True:
         register(get_visitor(body_class)(body, context))
@@ -1010,7 +964,7 @@ def visit_DoWhileNode(node, context):
     if result.should_break:
         result.should_break = False
 
-    elif else_body:
+    elif else_body := node.else_body:
         register(get_visitor(else_body.__class__)(else_body, context))
         if should_return():
             return result
@@ -1023,11 +977,10 @@ def visit_RepeatNode(node, context):
     register = result.register
     should_return = result.should_return
     ncondition = node.condition
-    ncondition_class = ncondition.__class__
     ncondition_position = ncondition.position
+    ncondition_class = ncondition.__class__
     body = node.body
     body_class = body.__class__
-    else_body = node.else_body
 
     while True:
         register(get_visitor(body_class)(body, context))
@@ -1053,7 +1006,7 @@ def visit_RepeatNode(node, context):
     if result.should_break:
         result.should_break = False
 
-    elif else_body:
+    elif else_body := node.else_body:
         register(get_visitor(else_body.__class__)(else_body, context))
         if should_return():
             return result
@@ -1067,16 +1020,17 @@ def visit_ClassNode(node, context):
 
     register = result.register
     should_return = result.should_return
-    append = bases.append
+    add_base = bases.append
+
+    for nbase in node.bases:
+        add_base(register(get_visitor(nbase.__class__)(nbase, context)))
+        if should_return():
+            return result
+
     nposition = node.position
     name = node.name.value
     body = node.body
     symbol_table = context.symbol_table
-
-    for nbase in node.bases:
-        append(register(get_visitor(nbase.__class__)(nbase, context)))
-        if should_return():
-            return result
 
     class_context = PysClassContext(
         name=name,
@@ -1101,9 +1055,7 @@ def visit_ClassNode(node, context):
         if should_return():
             return result
 
-        dposition = ndecorator.position
-
-        with result(context, dposition):
+        with result(context, dposition := ndecorator.position):
             handle_call(decorator, context, dposition)
             cls = decorator(cls)
 
@@ -1113,10 +1065,7 @@ def visit_ClassNode(node, context):
     with result(context, nposition):
         symbol_table.set(name, cls)
 
-    if should_return():
-        return result
-
-    return result.success(None)
+    return result if should_return() else result.success(None)
 
 def visit_FunctionNode(node, context):
     result = PysRunTimeResult()
@@ -1125,9 +1074,7 @@ def visit_FunctionNode(node, context):
 
     register = result.register
     should_return = result.should_return
-    append = parameters.append
-    nposition = node.position
-    name = None if node.name is None else node.name.value
+    add_parameter = parameters.append
 
     for nparameter in node.parameters:
 
@@ -1138,10 +1085,13 @@ def visit_FunctionNode(node, context):
             if should_return():
                 return result
 
-            append((keyword.value, value))
+            add_parameter((keyword.value, value))
 
         else:
-            append(nparameter.value)
+            add_parameter(nparameter.value)
+
+    nposition = node.position
+    name = None if node.name is None else node.name.value
 
     function = PysFunction(
         name=name,
@@ -1157,9 +1107,7 @@ def visit_FunctionNode(node, context):
         if should_return():
             return result
 
-        dposition = ndecorator.position
-
-        with result(context, dposition):
+        with result(context, dposition := ndecorator.position):
             handle_call(decorator, context, dposition)
             function = decorator(function)
 
@@ -1181,12 +1129,11 @@ def visit_GlobalNode(node, context):
 def visit_ReturnNode(node, context):
     result = PysRunTimeResult()
 
-    nvalue = node.value
-
-    if nvalue:
+    if nvalue := node.value:
         value = result.register(get_visitor(nvalue.__class__)(nvalue, context))
         if result.should_return():
             return result
+
         return result.success_return(value)
 
     return result.success_return(None)
@@ -1197,7 +1144,6 @@ def visit_ThrowNode(node, context):
     register = result.register
     should_return = result.should_return
     ntarget = node.target
-    nprimary = node.primary
 
     target = register(get_visitor(ntarget.__class__)(ntarget, context))
     if should_return():
@@ -1212,7 +1158,7 @@ def visit_ThrowNode(node, context):
             )
         )
 
-    if nprimary:
+    if nprimary := node.primary:
         primary = register(get_visitor(nprimary.__class__)(nprimary, context))
         if should_return():
             return result
@@ -1262,9 +1208,8 @@ def visit_AssertNode(node, context):
     with result(context, ncondition.position):
 
         if not condition:
-            nmessage = node.message
 
-            if nmessage:
+            if nmessage := node.message:
                 message = register(get_visitor(nmessage.__class__)(nmessage, context))
                 if should_return():
                     return result
@@ -1287,8 +1232,7 @@ def visit_AssertNode(node, context):
 
         return result.success(None)
 
-    if should_return():
-        return result
+    return result
 
 def visit_DeleteNode(node, context):
     result = PysRunTimeResult()
@@ -1401,15 +1345,15 @@ def visit_slice_SubscriptNode(node, context):
         return result.success(slice(start, stop, step))
 
     elif ntype is tuple:
-        slices = []
-        append = slices.append
+        indices = []
+        add_indices = indices.append
 
         for element in node:
-            append(register(visit_slice_SubscriptNode(element, context)))
+            add_indices(register(visit_slice_SubscriptNode(element, context)))
             if should_return():
                 return result
 
-        return result.success(tuple(slices))
+        return result.success(tuple(indices))
 
     else:
         value = register(get_visitor(node.__class__)(node, context))
@@ -1471,7 +1415,7 @@ def visit_declaration_AssignmentNode(node, context, value, operand=TOKENS['EQUAL
                 attribute,
                 value
                 if is_equals(operand) else
-                BINARY_FUNCTIONS_MAP(operand)(getattr(target, attribute), value)
+                GET_BINARY_FUNCTIONS_MAP(operand)(getattr(target, attribute), value)
             )
 
         if should_return():
@@ -1488,7 +1432,7 @@ def visit_declaration_AssignmentNode(node, context, value, operand=TOKENS['EQUAL
             return result
 
         with result(context, node.position):
-            target[slice] = value if is_equals(operand) else BINARY_FUNCTIONS_MAP(operand)(target[slice], value)
+            target[slice] = value if is_equals(operand) else GET_BINARY_FUNCTIONS_MAP(operand)(target[slice], value)
 
         if should_return():
             return result

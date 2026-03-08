@@ -1,6 +1,6 @@
 from pyscript.core.constants import TOKENS
 from pyscript.core.interpreter import get_value_from_keyword
-from pyscript.core.mapping import BINARY_FUNCTIONS_MAP, UNARY_FUNCTIONS_MAP, REVERSE_TOKENS
+from pyscript.core.mapping import GET_BINARY_FUNCTIONS_MAP, GET_UNARY_FUNCTIONS_MAP, REVERSE_TOKENS
 from pyscript.core.nodes import PysNode, PysIdentifierNode
 from pyscript.core.pysbuiltins import pys_builtins
 
@@ -63,12 +63,12 @@ def visit_CallNode(node):
 
 def visit_UnaryOperatorNode(node):
     if is_arithmetic(operand := node.operand.type):
-        return UNARY_FUNCTIONS_MAP(operand)(visit(node.value))
+        return GET_UNARY_FUNCTIONS_MAP(operand)(visit(node.value))
     raise ValueError(f"invalid unary operand node: {REVERSE_TOKENS[operand]}")
 
 def visit_BinaryOperatorNode(node):
     if is_arithmetic(operand := node.operand.type):
-        return BINARY_FUNCTIONS_MAP(operand)(visit(node.left), visit(node.right))
+        return GET_BINARY_FUNCTIONS_MAP(operand)(visit(node.left), visit(node.right))
     raise ValueError(f"invalid binary operand node: {REVERSE_TOKENS[operand]}")
 
 def visit_EllipsisNode(node):

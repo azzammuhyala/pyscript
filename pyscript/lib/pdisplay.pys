@@ -1,0 +1,17 @@
+sys = require('sys')
+ast = require('ast')
+pprint = pyimport('pprint')
+pyast = pyimport('ast')
+
+indent = 2
+
+sys.displayhook = func(value) {
+    if value is none
+        return
+    elif isinstance(value, pyast.AST)
+        print(pyast.dump(value, indent=indent))
+    elif isinstance(value, ast.Node)
+        print(ast.dump(value, indent=indent))
+    else
+        pprint.pprint(value, indent=indent)
+}

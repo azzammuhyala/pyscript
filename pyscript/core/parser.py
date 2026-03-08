@@ -564,6 +564,9 @@ class PysParser(Pys):
                         self.advance()
                         self.skip(result)
 
+                    elif self.current_token.type == TOKENS['NULL']:
+                        break
+
                     elif not is_right_bracket(self.current_token.type):
                         return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
 
@@ -651,6 +654,9 @@ class PysParser(Pys):
                         self.advance()
                         self.skip(result)
                         single_slice = False
+
+                    elif self.current_token.type == TOKENS['NULL']:
+                        break
 
                     elif not is_right_bracket(self.current_token.type):
                         return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
@@ -858,6 +864,9 @@ class PysParser(Pys):
                     self.advance()
                     self.skip(result)
 
+                elif self.current_token.type == TOKENS['NULL']:
+                    break
+
                 elif not is_right_bracket(self.current_token.type):
                     return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
 
@@ -875,6 +884,9 @@ class PysParser(Pys):
                     self.advance()
                     self.skip(result)
                     should_sequence = True
+
+                elif self.current_token.type == TOKENS['NULL']:
+                    break
 
                 elif not is_right_bracket(self.current_token.type):
                     return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
@@ -1027,6 +1039,9 @@ class PysParser(Pys):
                     result.register_advancement()
                     self.advance()
                     self.skip_expression(result)
+
+                elif bracket and self.current_token.type == TOKENS['NULL']:
+                    break
 
                 elif bracket and not is_right_bracket(self.current_token.type):
                     return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
@@ -1336,6 +1351,9 @@ class PysParser(Pys):
                 self.advance()
                 self.skip(result)
 
+            elif self.current_token.type == TOKENS['NULL']:
+                break
+
             elif not is_right_bracket(self.current_token.type):
                 return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
 
@@ -1559,6 +1577,9 @@ class PysParser(Pys):
                 result.register_advancement()
                 self.advance()
                 self.skip_expression(result)
+
+            elif bracket and self.current_token.type == TOKENS['NULL']:
+                break
 
             elif bracket and not is_right_bracket(self.current_token.type):
                 return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
@@ -1995,6 +2016,9 @@ class PysParser(Pys):
                 self.advance()
                 self.skip(result)
 
+            elif self.current_token.type == TOKENS['NULL']:
+                break
+
             elif not is_right_bracket(self.current_token.type):
                 return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
 
@@ -2111,6 +2135,9 @@ class PysParser(Pys):
                 result.register_advancement()
                 self.advance()
                 self.skip_expression(result)
+
+            elif bracket and self.current_token.type == TOKENS['NULL']:
+                break
 
             elif bracket and not is_right_bracket(self.current_token.type):
                 return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))

@@ -2,7 +2,7 @@ from .bases import Pys
 from .checks import is_equals
 from .constants import TOKENS
 from .cache import PysUndefined, undefined
-from .mapping import BINARY_FUNCTIONS_MAP, EMPTY_MAP
+from .mapping import GET_BINARY_FUNCTIONS_MAP, EMPTY_MAP
 from .utils.decorators import immutable
 from .utils.generic import setimuattr, dcontains, dgetitem, dsetitem, ddelitem, dget, dkeys
 from .utils.similarity import get_closest
@@ -49,7 +49,7 @@ class PysSymbolTable(Pys):
                 False
             )
 
-        dsetitem(symbols, name, BINARY_FUNCTIONS_MAP(operand)(dgetitem(symbols, name), value))
+        dsetitem(symbols, name, GET_BINARY_FUNCTIONS_MAP(operand)(dgetitem(symbols, name), value))
         return True
 
     def remove(self, name: str) -> bool:

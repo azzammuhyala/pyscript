@@ -5,7 +5,7 @@ from .checks import is_blacklist_python_builtins, is_private_attribute
 from .constants import OTHER_PATH, NO_COLOR, CLASSIC_LINE_SHELL, NO_COLOR_PROMPT
 from .exceptions import PysSignal
 from .handlers import handle_call
-from .mapping import ACOLORS, EMPTY_MAP
+from .mapping import GET_ACOLORS, EMPTY_MAP
 from .objects import PysFunction, PysPythonFunction, PysBuiltinFunction
 from .results import PysRunTimeResult
 from .shell import PysClassicLineShell, PysPromptToolkitLineShell
@@ -265,8 +265,8 @@ def breakpoint(pyfunc):
     colored_prompt = not (flags & NO_COLOR_PROMPT)
     scopes = []
     shell = (PysClassicLineShell if flags & CLASSIC_LINE_SHELL else PysPromptToolkitLineShell)(
-        f'{ACOLORS("bold-magenta")}(Pdb) {ACOLORS("reset")}' if colored and colored_prompt else '(Pdb) ',
-        f'{ACOLORS("bold-magenta")}...   {ACOLORS("reset")}' if colored and colored_prompt else '...   ',
+        f'{GET_ACOLORS("bold-magenta")}(Pdb) {GET_ACOLORS("reset")}' if colored and colored_prompt else '(Pdb) ',
+        f'{GET_ACOLORS("bold-magenta")}...   {GET_ACOLORS("reset")}' if colored and colored_prompt else '...   ',
         colored=colored
     )
 

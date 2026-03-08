@@ -2,62 +2,67 @@ from .constants import TOKENS
 from .utils.ansi import BOLD, acolor
 
 from operator import (
-    is_not, eq, ne, lt, gt, le, ge, add, sub, mul, truediv, floordiv, pow, matmul, mod, and_, or_, xor, lshift, rshift,
-    iadd, isub, imul, itruediv, ifloordiv, ipow, imatmul, imod, iand, ior, ixor, ilshift, irshift, pos, neg, inv
+    not_, is_not, eq, ne, lt, gt, le, ge, add, sub, mul, truediv, floordiv, pow, matmul, mod, and_, or_, xor, lshift,
+    rshift, iadd, isub, imul, itruediv, ifloordiv, ipow, imatmul, imod, iand, ior, ixor, ilshift, irshift, pos, neg, inv
 )
 from types import MappingProxyType
 
 contains = lambda a, b: a in b
 not_contains = lambda a, b : a not in b
+and_op = lambda a, b : a and b
+or_op = lambda a, b : a or b
 
 EMPTY_MAP = {}
 
-BINARY_FUNCTIONS_MAP = {
+GET_BINARY_FUNCTIONS_MAP = {
     TOKENS['NOT-IN']: not_contains,
     TOKENS['IS-NOT']: is_not,
-    TOKENS['PLUS']: add,
-    TOKENS['MINUS']: sub,
-    TOKENS['STAR']: mul,
-    TOKENS['SLASH']: truediv,
-    TOKENS['DOUBLE-SLASH']: floordiv,
-    TOKENS['DOUBLE-STAR']: pow,
-    TOKENS['AT']: matmul,
     TOKENS['PERCENT']: mod,
     TOKENS['AMPERSAND']: and_,
-    TOKENS['PIPE']: or_,
-    TOKENS['CIRCUMFLEX']: xor,
-    TOKENS['DOUBLE-LESS-THAN']: lshift,
-    TOKENS['DOUBLE-GREATER-THAN']: rshift,
-    TOKENS['DOUBLE-EQUAL']: eq,
-    TOKENS['EQUAL-EXCLAMATION']: ne,
+    TOKENS['STAR']: mul,
+    TOKENS['PLUS']: add,
+    TOKENS['MINUS']: sub,
+    TOKENS['SLASH']: truediv,
     TOKENS['LESS-THAN']: lt,
     TOKENS['GREATER-THAN']: gt,
-    TOKENS['EQUAL-LESS-THAN']: le,
-    TOKENS['EQUAL-GREATER-THAN']: ge,
-    TOKENS['EQUAL-PLUS']: iadd,
-    TOKENS['EQUAL-MINUS']: isub,
-    TOKENS['EQUAL-STAR']: imul,
-    TOKENS['EQUAL-SLASH']: itruediv,
-    TOKENS['EQUAL-DOUBLE-SLASH']: ifloordiv,
-    TOKENS['EQUAL-DOUBLE-STAR']: ipow,
-    TOKENS['EQUAL-AT']: imatmul,
+    TOKENS['AT']: matmul,
+    TOKENS['CIRCUMFLEX']: xor,
+    TOKENS['PIPE']: or_,
+    # TOKENS['DOUBLE-AMPERSAND']: and_op,
+    TOKENS['DOUBLE-STAR']: pow,
+    TOKENS['DOUBLE-SLASH']: floordiv,
+    TOKENS['DOUBLE-LESS-THAN']: lshift,
+    TOKENS['DOUBLE-EQUAL']: eq,
+    TOKENS['DOUBLE-GREATER-THAN']: rshift,
+    # TOKENS['DOUBLE-PIPE']: or_op,
+    TOKENS['EQUAL-EXCLAMATION']: ne,
     TOKENS['EQUAL-PERCENT']: imod,
     TOKENS['EQUAL-AMPERSAND']: iand,
-    TOKENS['EQUAL-PIPE']: ior,
+    TOKENS['EQUAL-STAR']: imul,
+    TOKENS['EQUAL-PLUS']: iadd,
+    TOKENS['EQUAL-MINUS']: isub,
+    TOKENS['EQUAL-SLASH']: itruediv,
+    TOKENS['EQUAL-LESS-THAN']: le,
+    TOKENS['EQUAL-GREATER-THAN']: ge,
+    TOKENS['EQUAL-AT']: imatmul,
     TOKENS['EQUAL-CIRCUMFLEX']: ixor,
+    TOKENS['EQUAL-PIPE']: ior,
+    TOKENS['EQUAL-DOUBLE-STAR']: ipow,
+    TOKENS['EQUAL-DOUBLE-SLASH']: ifloordiv,
     TOKENS['EQUAL-DOUBLE-LESS-THAN']: ilshift,
     TOKENS['EQUAL-DOUBLE-GREATER-THAN']: irshift,
     TOKENS['MINUS-GREATER-THAN']: contains,
     TOKENS['EXCLAMATION-GREATER-THAN']: not_contains
 }.__getitem__
 
-UNARY_FUNCTIONS_MAP = {
+GET_UNARY_FUNCTIONS_MAP = {
+    # TOKENS['EXCLAMATION']: not_,
     TOKENS['PLUS']: pos,
     TOKENS['MINUS']: neg,
     TOKENS['TILDE']: inv
 }.__getitem__
 
-ACOLORS = {
+GET_ACOLORS = {
     'reset': acolor('reset'),
     'magenta': acolor('magenta'),
     'bold-magenta': acolor('magenta', style=BOLD),

@@ -36,16 +36,16 @@ class PysTraceback(Pys):
 
     def string_traceback(self) -> str:
         # circular import problem solved
-        from .mapping import ACOLORS
+        from .mapping import GET_ACOLORS
         from .position import format_error_arrow
 
         context = self.context
         position = self.position
 
         if colored := not (context.flags & NO_COLOR):
-            reset = ACOLORS('reset')
-            magenta = ACOLORS('magenta')
-            bmagenta = ACOLORS('bold-magenta')
+            reset = GET_ACOLORS('reset')
+            magenta = GET_ACOLORS('magenta')
+            bmagenta = GET_ACOLORS('bold-magenta')
         else:
             reset = ''
             magenta = ''

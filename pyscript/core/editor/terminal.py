@@ -27,6 +27,17 @@ try:
             on_exit = Condition(lambda: self.show_exit_window)
             on_wrap = Condition(lambda: self.wrapped)
 
+            def on_change(buffer):
+                self.modified = True
+
+            def create_title():
+                columns = self.output.get_size().columns
+                file = f'{self.basename}{"*" if self.modified else ""}'
+                title = f'  PyScript {__version__} - {file}  '
+                if len(title) > columns:
+                    title = file
+                return ANSI(f'\x1b[7m{title}{" " * max(0, columns - len(title))}\x1b[0m')
+
             self.text = TextArea(
                 multiline=True,
                 scrollbar=True,
@@ -36,7 +47,7 @@ try:
             )
 
             self.title = Window(
-                content=FormattedTextControl(self.create_title),
+                content=FormattedTextControl(create_title),
                 height=1
             )
 
@@ -59,16 +70,16 @@ try:
 
             @key_bindings.add('pageup', filter=on_edit, eager=True)
             def _(event):
-                self.current_buffer.cursor_position = 0
+                self.text.buffer.cursor_position = 0
 
             @key_bindings.add('pagedown', filter=on_edit, eager=True)
             def _(event):
-                buffer = self.current_buffer
+                buffer = self.text.buffer
                 buffer.cursor_position = len(buffer.text)
 
             @key_bindings.add('enter', filter=on_edit, eager=True)
             def _(event):
-                buffer = self.current_buffer
+                buffer = self.text.buffer
                 line = buffer.document.current_line_before_cursor
                 buffer.insert_text('\n' + line[:len(line) - len(line.lstrip())])
 
@@ -132,7 +143,7 @@ try:
             )
 
             self.text.text = self.file.text
-            self.text.buffer.on_text_changed += self.on_change
+            self.text.buffer.on_text_changed += on_change
 
             Application.__init__(
                 self,
@@ -147,17 +158,6 @@ try:
         def run(self) -> None:
             PysEditor.run(self)
             Application.run(self)
-
-        def on_change(self, buffer):
-            self.modified = True
-
-        def create_title(self):
-            columns = self.output.get_size().columns
-            file = f'{self.basename}{"*" if self.modified else ""}'
-            title = f'  PyScript {__version__} - {file}  '
-            if len(title) > columns:
-                title = file
-            return ANSI(f'\x1b[7m{title}{" " * max(0, columns - len(title))}\x1b[0m')
 
     TERMINAL_SUPPORT = True
 
