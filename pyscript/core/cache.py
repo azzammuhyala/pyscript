@@ -3,8 +3,8 @@ from .constants import PYSCRIPT_PATH, CORE_PATH, LIBRARIES_PATH, SITE_PACKAGES_P
 from .utils.debug import print_display, print_traceback, clear_shell
 from .utils.decorators import inheritable, singleton
 
-from typing import Literal
 from types import ModuleType
+from typing import Literal
 
 import sys
 

@@ -5,8 +5,9 @@ sys = pyimport('sys')
 func default_input()
     while (true) {
         result = ord(getch.getch())
-        if (0 <= result <= 255)
+        if (0 <= result <= 255) {
             return result
+        }
     }
 
 func default_output(byte) {
@@ -17,7 +18,8 @@ func default_output(byte) {
 class BFInterpreter {
 
     __slots__ = (
-        'source', 'cells', 'fin', 'fout', 'running', 'memory', 'point', '_tokenCursor', '_tokens', '_bracketMap'
+        'source', 'cells', 'fin', 'fout', 'running', 'memory', 'point',
+        '_tokenCursor', '_tokens', '_bracketMap'
     )
 
     func __init__(self, source, cells=none, fin=none, fout=none) {
@@ -101,10 +103,7 @@ class BFInterpreter {
         self._tokenCursor += amount
         tokenCursor = self._tokenCursor
 
-        if (tokenCursor >= len(tokens := self._tokens) or tokenCursor < 0) {
-            self.running = false
-            return
-        }
+        if (tokenCursor >= len(tokens := self._tokens) or tokenCursor < 0) return;
 
         position, character = tokens[tokenCursor]
         cell = (memory := self.memory)[point := self.point]
@@ -163,11 +162,8 @@ class BFInterpreter {
 
     func stop(self, cleanUp=true) {
         if (not self.running) return;
-
         self.running = false
-
-        if (cleanUp)
-            del self._tokenCursor, self.memory, self.point
+        if (cleanUp) del self._tokenCursor, self.memory, self.point
     }
 
     func __iter__(self) {

@@ -3,6 +3,7 @@ from functools import reduce
 from html.parser import HTMLParser
 from operator import or_
 from types import MappingProxyType
+from typing import Literal, Mapping
 
 ANSI_NAMES_MAP = MappingProxyType({
     'reset': 0,
@@ -85,12 +86,12 @@ def acolor(*args, style: int = DEFAULT) -> str:
 
 class AnsiParser(HTMLParser):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.result = ''
         self.stack = 0
 
-    def handle_starttag(self, tag, attrs):
+    def handle_starttag(self, tag: Literal['ansi'], attrs: Mapping) -> None:
         if tag != 'ansi':
             raise ValueError(f"unknown start-tag: {tag}")
 
@@ -104,7 +105,7 @@ class AnsiParser(HTMLParser):
         self.result += acolor(color, style=reduce(or_, (FLAGS_MAP[style.upper()] for style in styles)))
         self.stack += 1
 
-    def handle_endtag(self, tag):
+    def handle_endtag(self, tag: Literal['ansi']) -> bool:
         if self.stack < 1:
             raise SyntaxError(f"unmatch tag: {tag}, stack {self.stack}")
         if tag != 'ansi':
@@ -113,10 +114,10 @@ class AnsiParser(HTMLParser):
         self.result += acolor('reset')
         self.stack -= 1
 
-    def handle_data(self, data):
+    def handle_data(self, data: str) -> None:
         self.result += data
 
-    def get_output(self):
+    def get_output(self) -> str:
         if self.stack != 0:
             raise SyntaxError("unmatch tag got EOF")
         return self.result

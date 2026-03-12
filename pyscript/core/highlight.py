@@ -508,7 +508,7 @@ def pys_highlight(
                     type_format = 'identifier-function'
                 else:
                     j = i + 1
-                    if (j < len(tokens) and tokens[j].type == TOKENS['LEFT-PARENTHESIS']):
+                    if (j < len(tokens) and tokens[j].type == TOKENS['LEFT_PARENTHESIS']):
                         type_format = 'identifier-function'
                     else:
                         type_format = 'identifier-constant' if tvalue.isupper() else 'identifier'

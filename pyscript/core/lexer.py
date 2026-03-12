@@ -11,7 +11,7 @@ from .utils.string import indent
 
 from unicodedata import lookup as unicode_lookup
 from types import MappingProxyType
-from typing import Optional
+from typing import Any, Optional
 
 import sys
 
@@ -141,27 +141,27 @@ class PysLexer(Pys):
 
             elif self.current_character == '(':
                 self.advance()
-                self.add_token(TOKENS['LEFT-PARENTHESIS'])
+                self.add_token(TOKENS['LEFT_PARENTHESIS'])
 
             elif self.current_character == ')':
                 self.advance()
-                self.add_token(TOKENS['RIGHT-PARENTHESIS'])
+                self.add_token(TOKENS['RIGHT_PARENTHESIS'])
 
             elif self.current_character == '[':
                 self.advance()
-                self.add_token(TOKENS['LEFT-SQUARE'])
+                self.add_token(TOKENS['LEFT_SQUARE'])
 
             elif self.current_character == ']':
                 self.advance()
-                self.add_token(TOKENS['RIGHT-SQUARE'])
+                self.add_token(TOKENS['RIGHT_SQUARE'])
 
             elif self.current_character == '{':
                 self.advance()
-                self.add_token(TOKENS['LEFT-CURLY'])
+                self.add_token(TOKENS['LEFT_CURLY'])
 
             elif self.current_character == '}':
                 self.advance()
-                self.add_token(TOKENS['RIGHT-CURLY'])
+                self.add_token(TOKENS['RIGHT_CURLY'])
 
             elif self.current_character == ',':
                 self.advance()
@@ -188,29 +188,29 @@ class PysLexer(Pys):
 
         return (None if self.tokens is None else tuple(self.tokens)), self.error
 
-    def update_current_character(self):
+    def update_current_character(self) -> None:
         self.current_character = self.file.text[self.index] if 0 <= self.index < len(self.file.text) else None
 
-    def advance(self):
+    def advance(self) -> None:
         if self.error is None:
             self.index += 1
             self.update_current_character()
 
-    def reverse(self, amount=1):
+    def reverse(self, amount: int = 1) -> None:
         if self.error is None:
             self.index -= amount
             self.update_current_character()
 
-    def read_more(self):
+    def read_more(self) -> bool:
         return self.current_character is not None and self.error is None
 
-    def character_in(self, characters):
+    def character_in(self, characters: str) -> bool:
         return self.read_more() and self.current_character in characters
 
-    def character_are(self, string_method, *args, **kwargs):
+    def character_are(self, string_method: str, *args, **kwargs) -> bool:
         return self.read_more() and getattr(self.current_character, string_method)(*args, **kwargs)
 
-    def add_token(self, type, start=None, value=None):
+    def add_token(self, type: int, start: Optional[int] = None, value: Optional[Any] = None) -> None:
         if self.error is None and self.tokens is not None:
 
             if start is None:
@@ -231,12 +231,12 @@ class PysLexer(Pys):
                 )
             )
 
-    def warning(self, message):
+    def warning(self, message: str) -> None:
         if not (self.flags & SILENT or self.parser_flags & LEXER_HIGHLIGHT or message in self.warnings):
             print(message, file=sys.stderr)
             self.warnings.add(message)
 
-    def throw(self, start, end, message, add_token=True):
+    def throw(self, start: int, end: int, message: str, add_token: bool = True) -> None:
         if self.error is None:
 
             if self.parser_flags & LEXER_HIGHLIGHT:
@@ -257,7 +257,7 @@ class PysLexer(Pys):
                     PysPosition(self.file, start, end)
                 )
 
-    def make_back_slash(self):
+    def make_back_slash(self) -> None:
         self.advance()
 
         if self.current_character != '\n':
@@ -265,7 +265,7 @@ class PysLexer(Pys):
 
         self.advance()
 
-    def make_number(self):
+    def make_number(self) -> None:
         start = self.index
 
         if self.current_character == '.':
@@ -274,7 +274,7 @@ class PysLexer(Pys):
             if self.file.text[self.index:self.index + 2] == '..':
                 self.advance()
                 self.advance()
-                self.add_token(TOKENS['TRIPLE-DOT'], start)
+                self.add_token(TOKENS['TRIPLE_DOT'], start)
                 return
 
             elif not self.character_in('0123456789'):
@@ -400,7 +400,7 @@ class PysLexer(Pys):
                 "Consider hexadecimal for huge integer literals to avoid decimal conversion limits."
             )
 
-    def make_string(self):
+    def make_string(self) -> None:
         start = self.index
 
         is_bytes = False
@@ -605,7 +605,7 @@ class PysLexer(Pys):
 
         self.add_token(TOKENS['STRING'], start, string)
 
-    def make_identifier(self):
+    def make_identifier(self) -> None:
         start = self.index
         identifier = False
 
@@ -633,263 +633,263 @@ class PysLexer(Pys):
             name
         )
 
-    def make_plus(self):
+    def make_plus(self) -> None:
         start = self.index
         type = TOKENS['PLUS']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EQUAL-PLUS']
+            type = TOKENS['EQUAL_PLUS']
             self.advance()
 
         elif self.current_character == '+':
-            type = TOKENS['DOUBLE-PLUS']
+            type = TOKENS['DOUBLE_PLUS']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_minus(self):
+    def make_minus(self) -> None:
         start = self.index
         type = TOKENS['MINUS']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EQUAL-MINUS']
+            type = TOKENS['EQUAL_MINUS']
             self.advance()
 
         elif self.current_character == '-':
-            type = TOKENS['DOUBLE-MINUS']
+            type = TOKENS['DOUBLE_MINUS']
             self.advance()
 
         elif self.current_character == '>':
-            type = TOKENS['MINUS-GREATER-THAN']
+            type = TOKENS['MINUS_GREATER_THAN']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_star(self):
+    def make_star(self) -> None:
         start = self.index
         type = TOKENS['STAR']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EQUAL-STAR']
+            type = TOKENS['EQUAL_STAR']
             self.advance()
 
         elif self.current_character == '*':
-            type = TOKENS['DOUBLE-STAR']
+            type = TOKENS['DOUBLE_STAR']
             self.advance()
 
             if self.current_character == '=':
-                type = TOKENS['EQUAL-DOUBLE-STAR']
+                type = TOKENS['EQUAL_DOUBLE_STAR']
                 self.advance()
 
         self.add_token(type, start)
 
-    def make_slash(self):
+    def make_slash(self) -> None:
         start = self.index
         type = TOKENS['SLASH']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EQUAL-SLASH']
+            type = TOKENS['EQUAL_SLASH']
             self.advance()
 
         elif self.current_character == '/':
-            type = TOKENS['DOUBLE-SLASH']
+            type = TOKENS['DOUBLE_SLASH']
             self.advance()
 
             if self.current_character == '=':
-                type = TOKENS['EQUAL-DOUBLE-SLASH']
+                type = TOKENS['EQUAL_DOUBLE_SLASH']
                 self.advance()
 
         self.add_token(type, start)
 
-    def make_percent(self):
+    def make_percent(self) -> None:
         start = self.index
         type = TOKENS['PERCENT']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EQUAL-PERCENT']
+            type = TOKENS['EQUAL_PERCENT']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_at(self):
+    def make_at(self) -> None:
         start = self.index
         type = TOKENS['AT']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EQUAL-AT']
+            type = TOKENS['EQUAL_AT']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_ampersand(self):
+    def make_ampersand(self) -> None:
         start = self.index
         type = TOKENS['AMPERSAND']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EQUAL-AMPERSAND']
+            type = TOKENS['EQUAL_AMPERSAND']
             self.advance()
 
         elif self.current_character == '&':
-            type = TOKENS['DOUBLE-AMPERSAND']
+            type = TOKENS['DOUBLE_AMPERSAND']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_pipe(self):
+    def make_pipe(self) -> None:
         start = self.index
         type = TOKENS['PIPE']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EQUAL-PIPE']
+            type = TOKENS['EQUAL_PIPE']
             self.advance()
 
         elif self.current_character == '|':
-            type = TOKENS['DOUBLE-PIPE']
+            type = TOKENS['DOUBLE_PIPE']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_circumflex(self):
+    def make_circumflex(self) -> None:
         start = self.index
         type = TOKENS['CIRCUMFLEX']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EQUAL-CIRCUMFLEX']
+            type = TOKENS['EQUAL_CIRCUMFLEX']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_tilde(self):
+    def make_tilde(self) -> None:
         start = self.index
         type = TOKENS['TILDE']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EQUAL-TILDE']
+            type = TOKENS['EQUAL_TILDE']
             self.advance()
 
         elif self.current_character == '!':
-            type = TOKENS['EXCLAMATION-TILDE']
+            type = TOKENS['EXCLAMATION_TILDE']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_equal(self):
+    def make_equal(self) -> None:
         start = self.index
         type = TOKENS['EQUAL']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['DOUBLE-EQUAL']
+            type = TOKENS['DOUBLE_EQUAL']
             self.advance()
 
         elif self.current_character == '>':
-            type = TOKENS['EQUAL-ARROW']
+            type = TOKENS['EQUAL_ARROW']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_exclamation(self):
+    def make_exclamation(self) -> None:
         start = self.index
         type = TOKENS['EXCLAMATION']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EQUAL-EXCLAMATION']
+            type = TOKENS['EQUAL_EXCLAMATION']
             self.advance()
 
         elif self.current_character == '>':
-            type = TOKENS['EXCLAMATION-GREATER-THAN']
+            type = TOKENS['EXCLAMATION_GREATER_THAN']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_less_than(self):
+    def make_less_than(self) -> None:
         start = self.index
-        type = TOKENS['LESS-THAN']
+        type = TOKENS['LESS_THAN']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EQUAL-LESS-THAN']
+            type = TOKENS['EQUAL_LESS_THAN']
             self.advance()
 
         elif self.current_character == '<':
-            type = TOKENS['DOUBLE-LESS-THAN']
+            type = TOKENS['DOUBLE_LESS_THAN']
             self.advance()
 
             if self.current_character == '=':
-                type = TOKENS['EQUAL-DOUBLE-LESS-THAN']
+                type = TOKENS['EQUAL_DOUBLE_LESS_THAN']
                 self.advance()
 
         self.add_token(type, start)
 
-    def make_greater_than(self):
+    def make_greater_than(self) -> None:
         start = self.index
-        type = TOKENS['GREATER-THAN']
+        type = TOKENS['GREATER_THAN']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EQUAL-GREATER-THAN']
+            type = TOKENS['EQUAL_GREATER_THAN']
             self.advance()
 
         elif self.current_character == '>':
-            type = TOKENS['DOUBLE-GREATER-THAN']
+            type = TOKENS['DOUBLE_GREATER_THAN']
             self.advance()
 
             if self.current_character == '=':
-                type = TOKENS['EQUAL-DOUBLE-GREATER-THAN']
+                type = TOKENS['EQUAL_DOUBLE_GREATER_THAN']
                 self.advance()
 
         self.add_token(type, start)
 
-    def make_question(self):
+    def make_question(self) -> None:
         start = self.index
         type = TOKENS['QUESTION']
 
         self.advance()
 
         if self.current_character == '?':
-            type = TOKENS['DOUBLE-QUESTION']
+            type = TOKENS['DOUBLE_QUESTION']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_colon(self):
+    def make_colon(self) -> None:
         start = self.index
         type = TOKENS['COLON']
 
         self.advance()
 
         if self.current_character == '=':
-            type = TOKENS['EQUAL-COLON']
+            type = TOKENS['EQUAL_COLON']
             self.advance()
 
         self.add_token(type, start)
 
-    def make_comment(self):
+    def make_comment(self) -> None:
         start = self.index
         comment = ''
 

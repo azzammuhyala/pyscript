@@ -4,7 +4,7 @@ from os.path import isdir, isfile, join
 
 import sys
 
-def get_module_path(path):
+def get_module_path(path: str) -> str | None:
     # circular import problem solved
     from ..checks import is_python_extensions
 
@@ -19,10 +19,10 @@ def get_module_path(path):
     if isdir(path) and isfile(candidate):
         return candidate
 
-def set_python_path(path):
+def set_python_path(path: str) -> None:
     if path not in sys.path:
         sys.path.insert(0, path)
 
-def remove_python_path(path):
+def remove_python_path(path: str) -> None:
     if path in sys.path:
         sys.path.remove(path)

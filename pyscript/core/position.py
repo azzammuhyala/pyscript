@@ -37,7 +37,7 @@ class PysPosition(Pys):
     def __repr__(self) -> str:
         return f'<Position({self.start!r}, {self.end!r}) from {self.file.name!r}>'
 
-def format_error_arrow(position, colored=True):
+def format_error_arrow(position: PysPosition, colored: bool = True) -> str:
     if position.is_positionless:
         return ''
 

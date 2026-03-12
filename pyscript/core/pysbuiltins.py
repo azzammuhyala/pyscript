@@ -21,7 +21,7 @@ from importlib import import_module
 from inspect import signature
 from os.path import dirname, isdir
 from types import BuiltinFunctionType, BuiltinMethodType, FunctionType, MethodType, ModuleType
-from typing import Any
+from typing import Any, Callable
 
 import builtins
 import sys
@@ -37,7 +37,7 @@ pyhelp = builtins.help
 pyvars = builtins.vars
 pydir = builtins.dir
 
-def _supported_method(pyfunc, object, name, *args, **kwargs):
+def _supported_method(pyfunc: PysPythonFunction, object: Any, name: str, *args, **kwargs) -> tuple[bool, Any]:
     if callable(method := getattr(object, name, None)):
         code = pyfunc.__code__
         handle_call(method, code.context, code.position)
@@ -49,7 +49,7 @@ def _supported_method(pyfunc, object, name, *args, **kwargs):
             pass
     return False, None
 
-def _unpack_comprehension_function(pyfunc, function):
+def _unpack_comprehension_function(pyfunc: PysPythonFunction, function: Callable) -> Callable:
     code = pyfunc.__code__
     check = function
     final = function
@@ -103,7 +103,7 @@ class _Helper(_Printer):
     def __repr__(self) -> str:
         return f'Type {self.name}() for interactive help, or {self.name}(object) for help about object.'
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> None:
         if not (args or kwargs):
             print(
                 "Welcome to the PyScript programming language! "
@@ -111,8 +111,8 @@ class _Helper(_Printer):
                 "To get help on a specific object, type 'help(object)'.\n"
                 "To get the list of builtin functions, types, exceptions, and other objects, type 'help(\"builtins\")'."
             )
-        else:
-            return pyhelp(*args, **kwargs)
+            return
+        pyhelp(*args, **kwargs)
 
 try:
     with (

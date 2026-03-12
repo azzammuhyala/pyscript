@@ -3,7 +3,7 @@ from .checks import is_list
 from .constants import TOKENS, DEFAULT
 from .context import PysContext
 from .exceptions import PysTraceback
-from .nodes import PysNode, PysKeywordNode, PysIdentifierNode, PysAttributeNode, PysSubscriptNode
+from .nodes import *
 from .position import PysPosition
 from .utils.decorators import typechecked
 
@@ -37,7 +37,7 @@ class PysAnalyzer(Pys):
         self.visit(self.node)
         return self.error
 
-    def throw(self, message, position):
+    def throw(self, message: str, position: PysPosition) -> None:
         if self.error is None:
             self.error = PysTraceback(
                 SyntaxError(message),
@@ -50,12 +50,12 @@ class PysAnalyzer(Pys):
                 position
             )
 
-    def visit(self, node):
+    def visit(self, node: PysNode) -> None:
         func = getattr(self, 'visit_' + type(node).__name__.removeprefix('Pys'), None)
         if not self.error and func:
             func(node)
 
-    def visit_DictionaryNode(self, node):
+    def visit_DictionaryNode(self, node: PysDictionaryNode) -> None:
         for key, value in node.pairs:
 
             self.visit(key)
@@ -66,35 +66,35 @@ class PysAnalyzer(Pys):
             if self.error:
                 return
 
-    def visit_SetNode(self, node):
+    def visit_SetNode(self, node: PysSetNode) -> None:
         for element in node.elements:
             self.visit(element)
             if self.error:
                 return
 
-    def visit_ListNode(self, node):
+    def visit_ListNode(self, node: PysListNode) -> None:
         for element in node.elements:
             self.visit(element)
             if self.error:
                 return
 
-    def visit_TupleNode(self, node):
+    def visit_TupleNode(self, node: PysTupleNode) -> None:
         for element in node.elements:
             self.visit(element)
             if self.error:
                 return
 
-    def visit_AttributeNode(self, node):
+    def visit_AttributeNode(self, node: PysAttributeNode) -> None:
         self.visit(node.target)
 
-    def visit_SubscriptNode(self, node):
+    def visit_SubscriptNode(self, node: PysSubscriptNode) -> None:
         self.visit(node.target)
         if self.error:
             return
 
         self.visit_slice_SubscriptNode(node.slice)
 
-    def visit_CallNode(self, node):
+    def visit_CallNode(self, node: PysCallNode) -> None:
         self.visit(node.target)
         if self.error:
             return
@@ -118,13 +118,13 @@ class PysAnalyzer(Pys):
             if self.error:
                 return
 
-    def visit_ChainOperatorNode(self, node):
+    def visit_ChainOperatorNode(self, node: PysChainOperatorNode) -> None:
         for expression in node.expressions:
             self.visit(expression)
             if self.error:
                 return
 
-    def visit_TernaryOperatorNode(self, node):
+    def visit_TernaryOperatorNode(self, node: PysTernaryOperatorNode) -> None:
         if node.style == 'general':
             self.visit(node.condition)
             if self.error:
@@ -147,27 +147,27 @@ class PysAnalyzer(Pys):
 
             self.visit(node.invalid)
 
-    def visit_BinaryOperatorNode(self, node):
+    def visit_BinaryOperatorNode(self, node: PysBinaryOperatorNode) -> None:
         self.visit(node.left)
         if self.error:
             return
 
         self.visit(node.right)
 
-    def visit_UnaryOperatorNode(self, node):
+    def visit_UnaryOperatorNode(self, node: PysUnaryOperatorNode) -> None:
         self.visit(node.value)
 
-    def visit_IncrementalNode(self, node):
-        operator = 'increase' if node.operand.type == TOKENS['DOUBLE-PLUS'] else 'decrease'
+    def visit_IncrementalNode(self, node: PysIncrementalNode) -> None:
+        operator = 'increase' if node.operand.type == TOKENS['DOUBLE_PLUS'] else 'decrease'
         self.visit_declaration_AssignmentNode(node.target, f"cannot {operator} literal", operator)
 
-    def visit_StatementsNode(self, node):
+    def visit_StatementsNode(self, node: PysStatementsNode) -> None:
         for element in node.body:
             self.visit(element)
             if self.error:
                 return
 
-    def visit_AssignmentNode(self, node):
+    def visit_AssignmentNode(self, node: PysAssignmentNode) -> None:
         self.visit_declaration_AssignmentNode(
             node.target,
             "cannot assign to expression here. Maybe you meant '==' instead of '='?"
@@ -177,7 +177,7 @@ class PysAnalyzer(Pys):
 
         self.visit(node.value)
 
-    def visit_IfNode(self, node):
+    def visit_IfNode(self, node: PysIfNode) -> None:
         for condition, body in node.cases_body:
             self.visit(condition)
             if self.error:
@@ -190,7 +190,7 @@ class PysAnalyzer(Pys):
         if node.else_body:
             self.visit(node.else_body)
 
-    def visit_SwitchNode(self, node):
+    def visit_SwitchNode(self, node: PysSwitchNode) -> None:
         self.visit(node.target)
         if self.error:
             return
@@ -213,7 +213,7 @@ class PysAnalyzer(Pys):
 
         self.in_switch -= 1
 
-    def visit_MatchNode(self, node):
+    def visit_MatchNode(self, node: PysMatchNode) -> None:
         if node.target:
             self.visit(node.target)
             if self.error:
@@ -231,7 +231,7 @@ class PysAnalyzer(Pys):
         if node.default:
             self.visit(node.default)
 
-    def visit_TryNode(self, node):
+    def visit_TryNode(self, node: PysTryNode) -> None:
         self.visit(node.body)
         if self.error:
             return
@@ -249,7 +249,7 @@ class PysAnalyzer(Pys):
         if node.finally_body:
             self.visit(node.finally_body)
 
-    def visit_WithNode(self, node):
+    def visit_WithNode(self, node: PysWithNode) -> None:
         for context, _ in node.contexts:
             self.visit(context)
             if self.error:
@@ -257,7 +257,7 @@ class PysAnalyzer(Pys):
 
         self.visit(node.body)
 
-    def visit_ForNode(self, node):
+    def visit_ForNode(self, node: PysForNode) -> None:
         if len(node.header) == 2:
             declaration, iteration = node.header
 
@@ -286,7 +286,7 @@ class PysAnalyzer(Pys):
         if node.else_body:
             self.visit(node.else_body)
 
-    def visit_WhileNode(self, node):
+    def visit_WhileNode(self, node: PysWhileNode) -> None:
         self.visit(node.condition)
         if self.error:
             return
@@ -302,7 +302,7 @@ class PysAnalyzer(Pys):
         if node.else_body:
             self.visit(node.else_body)
 
-    def visit_DoWhileNode(self, node):
+    def visit_DoWhileNode(self, node: PysDoWhileNode) -> None:
         self.in_loop += 1
 
         self.visit(node.body)
@@ -318,7 +318,7 @@ class PysAnalyzer(Pys):
         if node.else_body:
             self.visit(node.else_body)
 
-    def visit_RepeatNode(self, node):
+    def visit_RepeatNode(self, node: PysRepeatNode) -> None:
         self.in_loop += 1
 
         self.visit(node.body)
@@ -334,7 +334,7 @@ class PysAnalyzer(Pys):
         if node.else_body:
             self.visit(node.else_body)
 
-    def visit_ClassNode(self, node):
+    def visit_ClassNode(self, node: PysClassNode) -> None:
         for decorator in node.decorators:
             self.visit(decorator)
             if self.error:
@@ -363,7 +363,7 @@ class PysAnalyzer(Pys):
         self.in_function = in_function
         self.in_switch = in_switch
 
-    def visit_FunctionNode(self, node):
+    def visit_FunctionNode(self, node: PysFunctionNode) -> None:
         if node.constructor and self.in_class == 0:
             self.throw("constructor function outside of class", node.name.position)
             return
@@ -410,7 +410,7 @@ class PysAnalyzer(Pys):
         self.in_class = in_class
         self.in_switch = in_switch
 
-    def visit_GlobalNode(self, node):
+    def visit_GlobalNode(self, node: PysGlobalNode) -> None:
         if self.in_function == 0:
             self.throw("global outside of function", node.position)
 
@@ -419,7 +419,7 @@ class PysAnalyzer(Pys):
                 self.throw(f"name {identifier.value!r} is parameter and global", identifier.position)
                 return
 
-    def visit_ReturnNode(self, node):
+    def visit_ReturnNode(self, node: PysReturnNode) -> None:
         if self.in_function == 0:
             self.throw("return outside of function", node.position)
             return
@@ -427,7 +427,7 @@ class PysAnalyzer(Pys):
         if node.value:
             self.visit(node.value)
 
-    def visit_ThrowNode(self, node):
+    def visit_ThrowNode(self, node: PysThrowNode) -> None:
         self.visit(node.target)
         if self.error:
             return
@@ -435,7 +435,7 @@ class PysAnalyzer(Pys):
         if node.primary:
             self.visit(node.primary)
 
-    def visit_AssertNode(self, node):
+    def visit_AssertNode(self, node: PysAssertNode) -> None:
         self.visit(node.condition)
         if self.error:
             return
@@ -443,7 +443,7 @@ class PysAnalyzer(Pys):
         if node.message:
             self.visit(node.message)
 
-    def visit_DeleteNode(self, node):
+    def visit_DeleteNode(self, node: PysDeleteNode) -> None:
         for target in node.targets:
             type = target.__class__
 
@@ -469,43 +469,49 @@ class PysAnalyzer(Pys):
                 self.throw("cannot delete literal", target.position)
                 return
 
-    def visit_ContinueNode(self, node):
+    def visit_ContinueNode(self, node: PysContinueNode) -> None:
         if self.in_loop == 0:
             self.throw("continue outside of loop", node.position)
 
-    def visit_BreakNode(self, node):
+    def visit_BreakNode(self, node: PysBreakNode) -> None:
         if self.in_loop == 0 and self.in_switch == 0:
             self.throw("break outside of loop or switch case", node.position)
 
-    def visit_slice_SubscriptNode(self, nslice):
-        type = nslice.__class__
+    def visit_slice_SubscriptNode(self, node: PysNode | slice | tuple[PysNode | slice]) -> None:
+        type = node.__class__
 
         if type is slice:
-            if nslice.start is not None:
-                self.visit(nslice.start)
+            if node.start is not None:
+                self.visit(node.start)
                 if self.error:
                     return
 
-            if nslice.stop is not None:
-                self.visit(nslice.stop)
+            if node.stop is not None:
+                self.visit(node.stop)
                 if self.error:
                     return
 
-            if nslice.step is not None:
-                self.visit(nslice.step)
+            if node.step is not None:
+                self.visit(node.step)
                 if self.error:
                     return
 
         elif type is tuple:
-            for element in nslice:
+            for element in node:
                 self.visit_slice_SubscriptNode(element)
                 if self.error:
                     return
 
         else:
-            self.visit(nslice)
+            self.visit(node)
 
-    def visit_declaration_AssignmentNode(self, node, message, operator_name='assign'):
+    def visit_declaration_AssignmentNode(
+        self,
+        node: PysIdentifierNode | PysAttributeNode | PysSubscriptNode | PysSetNode | PysListNode | PysTupleNode,
+        message: str,
+        operator_name: str = 'assign'
+    ) -> None:
+
         type = node.__class__
 
         if type is PysAttributeNode:

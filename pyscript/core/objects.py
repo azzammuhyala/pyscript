@@ -1,12 +1,15 @@
 from .bases import Pys
 from .context import PysContext, PysClassContext
 from .exceptions import PysTraceback, PysSignal
+from .nodes import PysNode
+from .position import PysPosition
 from .results import PysRunTimeResult
 from .symtab import PysSymbolTable
 from .utils.similarity import get_closest
 from .utils.string import join
 
 from types import MethodType
+from typing import Any, Callable, Union
 
 class PysObject(Pys):
     __slots__ = ()
@@ -18,7 +21,16 @@ class PysCode(PysObject):
 
 class PysFunction(PysObject):
 
-    def __init__(self, name, qualname, parameters, body, context, position):
+    def __init__(
+        self,
+        name: str | None,
+        qualname: str | None,
+        parameters: list[str | tuple[str, Any]],
+        body: PysNode,
+        context: PysContext,
+        position: PysPosition
+    ) -> None:
+
         # circular import problem solved
         from .interpreter import get_visitor
 
@@ -61,13 +73,13 @@ class PysFunction(PysObject):
             combine_keyword_arguments=keyword_arguments.__or__
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<function {self.__qualname__} at 0x{id(self):016X}>'
 
-    def __get__(self, instance, owner):
+    def __get__(self, instance: Any | None, owner: type) -> Union['PysFunction', MethodType]:
         return self if instance is None else MethodType(self, instance)
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> Any:
         code = self.__code__
         code_body = code.body
         code_parameters_length = code.parameters_length
@@ -183,7 +195,7 @@ class PysFunction(PysObject):
 
 class PysPythonFunction(PysFunction):
 
-    def __init__(self, func):
+    def __init__(self, func: Callable) -> None:
         # circular import problem solved
         from .handlers import handle_call
 
@@ -197,10 +209,10 @@ class PysPythonFunction(PysFunction):
             handle_call=handle_call
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<python function {self.__qualname__} at 0x{id(self):016X}>'
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> Any:
         func = self.__func__
         code = self.__code__
         code.handle_call(func, code.context, code.position)
@@ -208,5 +220,5 @@ class PysPythonFunction(PysFunction):
 
 class PysBuiltinFunction(PysPythonFunction):
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<built-in function {self.__qualname__}>'

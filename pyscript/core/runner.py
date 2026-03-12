@@ -26,7 +26,7 @@ from typing import Any, Literal, Optional
 
 import sys
 
-def _normalize_namespace(namespace, file):
+def _normalize_namespace(namespace: PysUndefined | PysSymbolTable | dict | None, file: PysFileBuffer) -> PysSymbolTable:
     if namespace is None:
         symtab, _ = new_module_namespace(symbols=get_locals(2 + TYPECHECK_STACK))
     elif namespace is undefined:

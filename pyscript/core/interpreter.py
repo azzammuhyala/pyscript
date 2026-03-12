@@ -1,11 +1,11 @@
 from .constants import TOKENS, DEBUG
 from .cache import undefined
 from .checks import is_list, is_equals, is_public_attribute
-from .context import PysClassContext
+from .context import PysContext, PysClassContext
 from .exceptions import PysTraceback
 from .handlers import handle_call
 from .mapping import GET_BINARY_FUNCTIONS_MAP, GET_UNARY_FUNCTIONS_MAP
-from .nodes import PysNode, PysIdentifierNode, PysAttributeNode, PysSubscriptNode
+from .nodes import *
 from .objects import PysFunction
 from .pysbuiltins import ce, nce, increment, decrement
 from .results import PysRunTimeResult
@@ -15,19 +15,20 @@ from .utils.generic import getattribute, setimuattr, dkeys, is_object_of
 from .utils.similarity import get_closest
 
 from collections.abc import Iterable
+from typing import Any
 
 T_KEYWORD = TOKENS['KEYWORD']
 T_STRING = TOKENS['STRING']
 T_NOT = TOKENS['EXCLAMATION']
-T_AND = TOKENS['DOUBLE-AMPERSAND']
-T_NULLISH = TOKENS['DOUBLE-QUESTION']
-T_OR = TOKENS['DOUBLE-PIPE']
-T_CE = TOKENS['EQUAL-TILDE']
-T_NCE = TOKENS['EXCLAMATION-TILDE']
+T_AND = TOKENS['DOUBLE_AMPERSAND']
+T_NULLISH = TOKENS['DOUBLE_QUESTION']
+T_OR = TOKENS['DOUBLE_PIPE']
+T_CE = TOKENS['EQUAL_TILDE']
+T_NCE = TOKENS['EXCLAMATION_TILDE']
 
 get_incremental_function = {
-    TOKENS['DOUBLE-PLUS']: increment,
-    TOKENS['DOUBLE-MINUS']: decrement
+    TOKENS['DOUBLE_PLUS']: increment,
+    TOKENS['DOUBLE_MINUS']: decrement
 }.__getitem__
 
 get_value_from_keyword = {
@@ -41,20 +42,20 @@ get_value_from_keyword = {
     'null': None
 }.__getitem__
 
-def visit_NumberNode(node, context):
+def visit_NumberNode(node: PysNumberNode, context: PysContext) -> PysRunTimeResult:
     return PysRunTimeResult().success(node.value.value)
 
-def visit_StringNode(node, context):
+def visit_StringNode(node: PysStringNode, context: PysContext) -> PysRunTimeResult:
     return PysRunTimeResult().success(node.value.value)
 
-def visit_KeywordNode(node, context):
+def visit_KeywordNode(node: PysKeywordNode, context: PysContext) -> PysRunTimeResult:
     return PysRunTimeResult().success(
         (True if context.flags & DEBUG else False)
         if (name := node.name.value) == '__debug__' else
         get_value_from_keyword(name)
     )
 
-def visit_IdentifierNode(node, context):
+def visit_IdentifierNode(node: PysIdentifierNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     position = node.position
@@ -86,7 +87,7 @@ def visit_IdentifierNode(node, context):
 
     return result
 
-def visit_DictionaryNode(node, context):
+def visit_DictionaryNode(node: PysDictionaryNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     elements = node.class_type()
@@ -112,7 +113,7 @@ def visit_DictionaryNode(node, context):
 
     return result.success(elements)
 
-def visit_SetNode(node, context):
+def visit_SetNode(node: PysSetNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     elements = set()
@@ -131,7 +132,7 @@ def visit_SetNode(node, context):
 
     return result.success(elements)
 
-def visit_ListNode(node, context):
+def visit_ListNode(node: PysListNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     elements = []
@@ -147,7 +148,7 @@ def visit_ListNode(node, context):
 
     return result.success(elements)
 
-def visit_TupleNode(node, context):
+def visit_TupleNode(node: PysTupleNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     elements = []
@@ -163,7 +164,7 @@ def visit_TupleNode(node, context):
 
     return result.success(tuple(elements))
 
-def visit_AttributeNode(node, context):
+def visit_AttributeNode(node: PysAttributeNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     ntarget = node.target
@@ -177,7 +178,7 @@ def visit_AttributeNode(node, context):
 
     return result
 
-def visit_SubscriptNode(node, context):
+def visit_SubscriptNode(node: PysSubscriptNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     register = result.register
@@ -197,7 +198,7 @@ def visit_SubscriptNode(node, context):
 
     return result
 
-def visit_CallNode(node, context):
+def visit_CallNode(node: PysCallNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     args = []
@@ -233,7 +234,7 @@ def visit_CallNode(node, context):
 
     return result
 
-def visit_ChainOperatorNode(node, context):
+def visit_ChainOperatorNode(node: PysChainOperatorNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     register = result.register
@@ -280,7 +281,7 @@ def visit_ChainOperatorNode(node, context):
 
     return result
 
-def visit_TernaryOperatorNode(node, context):
+def visit_TernaryOperatorNode(node: PysTernaryOperatorNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     register = result.register
@@ -302,7 +303,7 @@ def visit_TernaryOperatorNode(node, context):
 
     return result
 
-def visit_BinaryOperatorNode(node, context):
+def visit_BinaryOperatorNode(node: PysBinaryOperatorNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     register = result.register
@@ -338,7 +339,7 @@ def visit_BinaryOperatorNode(node, context):
 
     return result
 
-def visit_UnaryOperatorNode(node, context):
+def visit_UnaryOperatorNode(node: PysUnaryOperatorNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     nvalue = node.value
@@ -360,7 +361,7 @@ def visit_UnaryOperatorNode(node, context):
 
     return result
 
-def visit_IncrementalNode(node, context):
+def visit_IncrementalNode(node: PysIncrementalNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     register = result.register
@@ -386,7 +387,7 @@ def visit_IncrementalNode(node, context):
 
     return result
 
-def visit_StatementsNode(node, context):
+def visit_StatementsNode(node: PysStatementsNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     register = result.register
@@ -408,7 +409,7 @@ def visit_StatementsNode(node, context):
 
     return result.success(None)
 
-def visit_AssignmentNode(node, context):
+def visit_AssignmentNode(node: PysAssignmentNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     register = result.register
@@ -425,7 +426,7 @@ def visit_AssignmentNode(node, context):
 
     return result.success(value)
 
-def visit_ImportNode(node, context):
+def visit_ImportNode(node: PysImportNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     should_return = result.should_return
@@ -514,7 +515,7 @@ def visit_ImportNode(node, context):
 
     return result.success(None)
 
-def visit_IfNode(node, context):
+def visit_IfNode(node: PysIfNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     register = result.register
@@ -540,7 +541,7 @@ def visit_IfNode(node, context):
 
     return result.success(None)
 
-def visit_SwitchNode(node, context):
+def visit_SwitchNode(node: PysSwitchNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     register = result.register
@@ -586,7 +587,7 @@ def visit_SwitchNode(node, context):
 
     return result.success(None)
 
-def visit_MatchNode(node, context):
+def visit_MatchNode(node: PysMatchNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     register = result.register
@@ -627,7 +628,7 @@ def visit_MatchNode(node, context):
 
     return result.success(None)
 
-def visit_TryNode(node, context):
+def visit_TryNode(node: PysTryNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     register = result.register
@@ -710,7 +711,7 @@ def visit_TryNode(node, context):
 
     return result if should_return() else result.success(None)
 
-def visit_WithNode(node, context):
+def visit_WithNode(node: PysWithNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     exit_functions = []
@@ -787,7 +788,7 @@ def visit_WithNode(node, context):
 
     return result.success(None)
 
-def visit_ForNode(node, context):
+def visit_ForNode(node: PysForNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     register = result.register
@@ -887,7 +888,7 @@ def visit_ForNode(node, context):
 
     return result.success(None)
 
-def visit_WhileNode(node, context):
+def visit_WhileNode(node: PysWhileNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     register = result.register
@@ -929,7 +930,7 @@ def visit_WhileNode(node, context):
 
     return result.success(None)
 
-def visit_DoWhileNode(node, context):
+def visit_DoWhileNode(node: PysDoWhileNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     register = result.register
@@ -971,7 +972,7 @@ def visit_DoWhileNode(node, context):
 
     return result.success(None)
 
-def visit_RepeatNode(node, context):
+def visit_RepeatNode(node: PysRepeatNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     register = result.register
@@ -1013,7 +1014,7 @@ def visit_RepeatNode(node, context):
 
     return result.success(None)
 
-def visit_ClassNode(node, context):
+def visit_ClassNode(node: PysClassNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     bases = []
@@ -1067,7 +1068,7 @@ def visit_ClassNode(node, context):
 
     return result if should_return() else result.success(None)
 
-def visit_FunctionNode(node, context):
+def visit_FunctionNode(node: PysFunctionNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     parameters = []
@@ -1122,11 +1123,11 @@ def visit_FunctionNode(node, context):
 
     return result.success(function)
 
-def visit_GlobalNode(node, context):
+def visit_GlobalNode(node: PysGlobalNode, context: PysContext) -> PysRunTimeResult:
     context.symbol_table.globals.update(name.value for name in node.identifiers)
     return PysRunTimeResult().success(None)
 
-def visit_ReturnNode(node, context):
+def visit_ReturnNode(node: PysReturnNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     if nvalue := node.value:
@@ -1138,7 +1139,7 @@ def visit_ReturnNode(node, context):
 
     return result.success_return(None)
 
-def visit_ThrowNode(node, context):
+def visit_ThrowNode(node: PysThrowNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     register = result.register
@@ -1191,7 +1192,7 @@ def visit_ThrowNode(node, context):
         )
     )
 
-def visit_AssertNode(node, context):
+def visit_AssertNode(node: PysAssertNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     if context.flags & DEBUG:
@@ -1234,7 +1235,7 @@ def visit_AssertNode(node, context):
 
     return result
 
-def visit_DeleteNode(node, context):
+def visit_DeleteNode(node: PysDeleteNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     register = result.register
@@ -1306,16 +1307,16 @@ def visit_DeleteNode(node, context):
 
     return result.success(None)
 
-def visit_EllipsisNode(node, context):
+def visit_EllipsisNode(node: PysEllipsisNode, context: PysContext) -> PysRunTimeResult:
     return PysRunTimeResult().success(...)
 
-def visit_ContinueNode(node, context):
+def visit_ContinueNode(node: PysContinueNode, context: PysContext) -> PysRunTimeResult:
     return PysRunTimeResult().success_continue()
 
-def visit_BreakNode(node, context):
+def visit_BreakNode(node: PysBreakNode, context: PysContext) -> PysRunTimeResult:
     return PysRunTimeResult().success_break()
 
-def visit_slice_SubscriptNode(node, context):
+def visit_slice_SubscriptNode(node: PysNode | slice | tuple[PysNode | slice], context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
     register = result.register
@@ -1362,7 +1363,13 @@ def visit_slice_SubscriptNode(node, context):
 
         return result.success(value)
 
-def visit_declaration_AssignmentNode(node, context, value, operand=TOKENS['EQUAL']):
+def visit_declaration_AssignmentNode(
+    node: PysIdentifierNode | PysAttributeNode | PysSubscriptNode | PysSetNode | PysListNode | PysTupleNode,
+    context: PysContext,
+    value: Any,
+    operand: int = TOKENS['EQUAL']
+) -> PysRunTimeResult:
+
     result = PysRunTimeResult()
 
     register = result.register

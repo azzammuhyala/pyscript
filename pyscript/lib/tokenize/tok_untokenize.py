@@ -1,13 +1,16 @@
 from pyscript.core.checks import is_keyword, is_left_bracket, is_right_bracket
 from pyscript.core.constants import TOKENS
 from pyscript.core.mapping import SYMBOLS_TOKEN_MAP
+from pyscript.core.token import PysToken
 from pyscript.core.utils.generic import get_subscript
 
-def untokenize(iterable):
+from typing import Iterable
+
+def untokenize(iterable: Iterable[PysToken]) -> str:
     iterable = tuple(iterable)
 
     parts = []
-    last_identifier = False
+    add_space = False
     brackets_stack = 0
 
     for i, token in enumerate(iterable):
@@ -24,41 +27,41 @@ def untokenize(iterable):
                 brackets_stack
             )
             parts.append(f'\n{"    " * stack}')
-            last_identifier = False
+            add_space = False
 
         elif type == TOKENS['KEYWORD']:
-            parts.append(f'{" " if last_identifier else ""}{value}')
-            last_identifier = True
+            parts.append(f'{" " if add_space else ""}{value}')
+            add_space = True
 
         elif type == TOKENS['IDENTIFIER']:
-            parts.append(f'${value}' if is_keyword(value) else f'{" " if last_identifier else ""}{value}')
-            last_identifier = True
+            parts.append(f'${value}' if is_keyword(value) else f'{" " if add_space else ""}{value}')
+            add_space = True
 
         elif type in (TOKENS['NUMBER'], TOKENS['STRING']):
-            parts.append(f'{" " if last_identifier else ""}{value!r}')
-            last_identifier = True
+            parts.append(f'{" " if add_space else ""}{value!r}')
+            add_space = True
 
         elif type == TOKENS['COMMENT']:
             parts.append(f' #{value}')
-            last_identifier = False
+            add_space = False
 
         elif type == TOKENS['NONE']:
             parts.append(token.position.file.text[token.position.start:token.position.end])
-            last_identifier = True
+            add_space = True
 
         elif is_left_bracket(type):
             brackets_stack += 1
             parts.append(SYMBOLS_TOKEN_MAP[type])
-            last_identifier = False
+            add_space = False
 
         elif is_right_bracket(type):
             if brackets_stack > 0:
                 brackets_stack -= 1
             parts.append(SYMBOLS_TOKEN_MAP[type])
-            last_identifier = False
+            add_space = False
 
         else:
             parts.append(SYMBOLS_TOKEN_MAP[type])
-            last_identifier = False
+            add_space = False
 
     return ''.join(parts)

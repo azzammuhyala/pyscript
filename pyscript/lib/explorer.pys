@@ -48,7 +48,7 @@ func newfile(path, exists_ok=True) {
 
     if (os.path.exists(path)) {
         if (!exists_ok) {
-            result._failure(FileExistsError("{!r} already exists".format(path)))
+            return result._failure(FileExistsError("{!r} already exists".format(path)))
         }
     }
     else {
@@ -64,7 +64,7 @@ func newfolder(path, exists_ok=True) {
 
     if (os.path.exists(path)) {
         if (!exists_ok) {
-            result._failure(FileExistsError("{!r} already exists".format(path)))
+            return result._failure(FileExistsError("{!r} already exists".format(path)))
         }
     }
     else {

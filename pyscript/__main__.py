@@ -166,11 +166,11 @@ def argument_error(argument, message):
 argv = sys.argv[1:]
 
 file_idx = sum(1 for arg in argv if arg.startswith('-'))
-end_idx = argv.index('--', 0, file_idx) if '--' in argv[:file_idx] else -1
-end_com = file_idx if end_idx == -1 else end_idx
-arg_com = argv[:end_com]
-com_idx = argv.index('-c', 0, end_com)        if '-c'        in arg_com else \
-         (argv.index('--command', 0, end_com) if '--command' in arg_com else -1)
+end_idx  = argv.index('--', 0, file_idx) if '--' in argv[:file_idx] else -1
+end_com  = file_idx if end_idx == -1 else end_idx
+arg_com  = argv[:end_com]
+com_idx  = argv.index('-c', 0, end_com)        if '-c'        in arg_com else \
+          (argv.index('--command', 0, end_com) if '--command' in arg_com else -1)
 
 args = parser.parse_args(argv if com_idx == -1 else argv[:com_idx + 2])
 arg = args.arg if com_idx == -1 else argv[com_idx + 2:]
@@ -213,11 +213,11 @@ code = 0
 flags = DEFAULT
 
 for condition, flag in [
-    (args.notebook or USE_NOTEBOOK,                                          NOTEBOOK),
-    (args.debug,                                                             DEBUG),
+    (args.notebook           or USE_NOTEBOOK,                                NOTEBOOK),
     (args.classic_line_shell or is_environ(ENV_PYSCRIPT_CLASSIC_LINE_SHELL), CLASSIC_LINE_SHELL),
     (args.no_color           or is_environ('NO_COLOR'),                      NO_COLOR),
     (args.no_color_prompt    or is_environ(ENV_PYSCRIPT_NO_COLOR_PROMPT),    NO_COLOR_PROMPT),
+    (args.debug,                                                             DEBUG),
     (args.q,                                                                 DONT_SHOW_BANNER_ON_SHELL)
 ]:
     if condition:

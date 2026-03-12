@@ -3,8 +3,9 @@ from ..constants import ENV_PYSCRIPT_NO_TYPECHECK
 from .generic import is_environ
 
 from types import MethodType
+from typing import Callable
 
-def typechecked(func, *args, **kwargs):
+def typechecked(func: Callable, *args, **kwargs):
     return func
 
 TYPECHECK_STACK = 0

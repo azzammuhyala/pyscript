@@ -13,12 +13,12 @@ class FPSTimer:
     _rawTime = 0.0
     _framesPerSecond = 0.0
 
-    def __new_singleton__(cls):
+    def __new_singleton__(cls) -> 'FPSTimer':
         global fpstimer
         fpstimer = super(cls, cls).__new__(cls)
         return fpstimer
 
-    def tick(self, framerate):
+    def tick(self, framerate: float | int) -> float:
         currentTime = monotonic()
         lastTick = FPSTimer._lastTick
         elapsedTime = currentTime - lastTick
@@ -37,13 +37,13 @@ class FPSTimer:
 
         return timeElapsed
 
-    def get_time(self):
+    def get_time(self) -> float:
         return FPSTimer._timeElapsed
 
-    def get_rawtime(self):
+    def get_rawtime(self) -> float:
         return FPSTimer._rawTime
 
-    def get_fps(self):
+    def get_fps(self) -> float:
         return FPSTimer._framesPerSecond
 
     getTime = get_time

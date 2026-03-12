@@ -119,11 +119,11 @@ class Parser {
             throw error.exception
     }
 
-    func highlight(self, format=None, max_bracket_level=3) {
+    func highlight(self, formatter=None, max_bracket_level=3) {
         # this function only supports direct source buffers
         return _pyscript.highlight.pys_highlight(
             source=self.file,
-            format=format,
+            formatter=formatter,
             max_bracket_level=max_bracket_level
         )
     }
@@ -141,8 +141,8 @@ func ast(source, mode='exec', flags=DEFAULT)
 func analyze(source, mode='exec', flags=DEFAULT)
     return Parser(source, flags).analyze(mode=mode)
 
-func highlight(source, format=None, max_bracket_level=3)
-    return Parser(source).highlight(format=format, max_bracket_level=max_bracket_level)
+func highlight(source, formatter=None, max_bracket_level=3)
+    return Parser(source).highlight(formatter=formatter, max_bracket_level=max_bracket_level)
 
 __all__ = (
     'DOUBLE',

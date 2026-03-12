@@ -6,13 +6,13 @@ if sys.platform == 'win32':
 else:
     from termios import tcgetattr, tcsetattr, TCSADRAIN
     from tty import setraw
+    from sys import stdin
 
-    def getch():
-        standarInput = sys.stdin
-        fileDescriptor = standarInput.fileno()
+    def getch() -> bytes:
+        fileDescriptor = stdin.fileno()
         oldSettings = tcgetattr(fileDescriptor)
         try:
-            setraw(standarInput.fileno())
-            return standarInput.read(1).encode()
+            setraw(stdin.fileno())
+            return stdin.read(1).encode()
         finally:
             tcsetattr(fileDescriptor, TCSADRAIN, oldSettings)

@@ -1,18 +1,20 @@
 from .cache import pys_sys
 from .constants import ENV_PYSCRIPT_NO_GIL
+from .context import PysContext
 from .objects import PysFunction
+from .position import PysPosition
 from .utils.generic import is_environ
 
 from types import MethodType
+from typing import Any
 
 wrapper_function = (MethodType, classmethod, staticmethod)
 
 if not is_environ(ENV_PYSCRIPT_NO_GIL):
     from threading import RLock
-
     lock = RLock()
 
-    def handle_call(object, context, position):
+    def handle_call(object: Any, context: PysContext, position: PysPosition) -> None:
         with lock:
 
             if (ins := isinstance)(object, PysFunction):
@@ -35,7 +37,7 @@ if not is_environ(ENV_PYSCRIPT_NO_GIL):
     GIL = pys_sys.gil = True
 else:
 
-    def handle_call(object, context, position):
+    def handle_call(object: Any, context: PysContext, position: PysPosition) -> None:
 
         if (ins := isinstance)(object, PysFunction):
             code = object.__code__

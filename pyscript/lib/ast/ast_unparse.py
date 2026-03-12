@@ -1,31 +1,33 @@
 from pyscript.core.checks import is_keyword
 from pyscript.core.constants import TOKENS
 from pyscript.core.mapping import SYMBOLS_TOKEN_MAP
-from pyscript.core.nodes import PysNode, PysStringNode
+from pyscript.core.nodes import *
 from pyscript.core.utils.string import indent as sindent
 
-def indent(string):
+from typing import Literal
+
+def indent(string: str) -> str:
     return sindent(string, 4)
 
-def identifier(name):
+def identifier(name: str) -> str:
     return f'${name}' if is_keyword(name) else name
 
-def unparse(ast_obj):
+def unparse(ast_obj: PysNode) -> str:
     return get_visitor(ast_obj.__class__)(ast_obj)
 
-def visit_NumberNode(node):
+def visit_NumberNode(node: PysNumberNode) -> str:
     return repr(node.value.value)
 
-def visit_StringNode(node):
+def visit_StringNode(node: PysStringNode) -> str:
     return repr(node.value.value)
 
-def visit_KeywordNode(node):
+def visit_KeywordNode(node: PysKeywordNode) -> str:
     return node.name.value
 
-def visit_IdentifierNode(node):
+def visit_IdentifierNode(node: PysIdentifierNode) -> str:
     return identifier(node.name.value)
 
-def visit_DictionaryNode(node):
+def visit_DictionaryNode(node: PysDictionaryNode) -> str:
     elements = []
 
     if node.class_type is dict:
@@ -47,20 +49,20 @@ def visit_DictionaryNode(node):
 
     return '{' + ', '.join(elements) + '}'
 
-def visit_SetNode(node):
+def visit_SetNode(node: PysSetNode) -> str:
     return '{' + ', '.join(map(unparse, node.elements)) + '}'
 
-def visit_ListNode(node):
+def visit_ListNode(node: PysListNode) -> str:
     return '[' + ', '.join(map(unparse, node.elements)) + ']'
 
-def visit_TupleNode(node):
+def visit_TupleNode(node: PysTupleNode) -> str:
     string = ', '.join(map(unparse, node.elements))
     return '(' + (string + ',' if len(node.elements) == 1 else string) + ')'
 
-def visit_AttributeNode(node):
+def visit_AttributeNode(node: PysAttributeNode) -> str:
     return f'{unparse(node.target)}.{identifier(node.attribute.value)}'
 
-def visit_SubscriptNode(node):
+def visit_SubscriptNode(node: PysSubscriptNode) -> str:
     string = unparse(node.target)
     string += '['
 
@@ -103,7 +105,7 @@ def visit_SubscriptNode(node):
 
     return string
 
-def visit_CallNode(node):
+def visit_CallNode(node: PysCallNode) -> str:
     arguments = []
 
     for argument in node.arguments:
@@ -115,7 +117,7 @@ def visit_CallNode(node):
 
     return f'{unparse(node.target)}({", ".join(arguments)})'
 
-def visit_ChainOperatorNode(node):
+def visit_ChainOperatorNode(node: PysChainOperatorNode) -> str:
     string = unparse(node.expressions[0])
 
     for i, operand in enumerate(node.operations, start=1):
@@ -133,10 +135,10 @@ def visit_ChainOperatorNode(node):
 
     return f'({string})'
 
-def visit_TernaryOperatorNode(node):
+def visit_TernaryOperatorNode(node: PysTernaryOperatorNode) -> str:
     return f'({unparse(node.condition)} ? {unparse(node.valid)} : {unparse(node.invalid)})'
 
-def visit_BinaryOperatorNode(node):
+def visit_BinaryOperatorNode(node: PysBinaryOperatorNode) -> str:
     if node.operand.match(TOKENS['KEYWORD'], 'and'):
         operand = 'and'
     elif node.operand.match(TOKENS['KEYWORD'], 'or'):
@@ -146,7 +148,7 @@ def visit_BinaryOperatorNode(node):
 
     return f'({unparse(node.left)} {operand} {unparse(node.right)})'
 
-def visit_UnaryOperatorNode(node):
+def visit_UnaryOperatorNode(node: PysUnaryOperatorNode) -> str:
     if node.operand.match(TOKENS['KEYWORD'], 'not'):
         operand = 'not '
     elif node.operand.match(TOKENS['KEYWORD'], 'typeof'):
@@ -156,18 +158,18 @@ def visit_UnaryOperatorNode(node):
 
     return f'({operand}{unparse(node.value)})'
 
-def visit_IncrementalNode(node):
+def visit_IncrementalNode(node: PysIncrementalNode) -> str:
     operand = SYMBOLS_TOKEN_MAP[node.operand.type]
     target = unparse(node.target)
     return '(' + (operand + target if node.operand_position == 'left' else target + operand) + ')'
 
-def visit_StatementsNode(node):
+def visit_StatementsNode(node: PysStatementsNode) -> str:
     return '\n'.join(map(unparse, node.body))
 
-def visit_AssignmentNode(node):
+def visit_AssignmentNode(node: PysAssignmentNode) -> str:
     return f'{unparse(node.target)} {SYMBOLS_TOKEN_MAP[node.operand.type]} {unparse(node.value)}'
 
-def visit_ImportNode(node):
+def visit_ImportNode(node: PysImportNode) -> str:
     string = ''
 
     name, as_name = node.name
@@ -205,7 +207,7 @@ def visit_ImportNode(node):
 
     return string
 
-def visit_IfNode(node):
+def visit_IfNode(node: PysIfNode) -> str:
     cases = []
 
     for i, (condition, body) in enumerate(node.cases_body):
@@ -227,7 +229,7 @@ def visit_IfNode(node):
 
     return string
 
-def visit_SwitchNode(node):
+def visit_SwitchNode(node: PysSwitchNode) -> str:
     cases = []
 
     for condition, body in node.case_cases:
@@ -252,7 +254,7 @@ def visit_SwitchNode(node):
 
     return string
 
-def visit_MatchNode(node):
+def visit_MatchNode(node: PysMatchNode) -> str:
     string = 'match '
 
     if node.target:
@@ -281,7 +283,7 @@ def visit_MatchNode(node):
 
     return string
 
-def visit_TryNode(node):
+def visit_TryNode(node: PysTryNode) -> str:
     catch_cases = []
 
     for (targets, parameter), body in node.catch_cases:
@@ -325,7 +327,7 @@ def visit_TryNode(node):
 
     return string
 
-def visit_WithNode(node):
+def visit_WithNode(node: PysWithNode) -> str:
     contexts = []
 
     for context, alias in node.contexts:
@@ -345,7 +347,7 @@ def visit_WithNode(node):
 
     return string
 
-def visit_ForNode(node):
+def visit_ForNode(node: PysForNode) -> str:
     string = 'for ('
 
     if len(node.header) == 2:
@@ -378,7 +380,7 @@ def visit_ForNode(node):
 
     return string
 
-def visit_WhileNode(node):
+def visit_WhileNode(node: PysWhileNode) -> str:
     string = 'while ('
     string += unparse(node.condition)
     string += ') {\n'
@@ -392,7 +394,7 @@ def visit_WhileNode(node):
 
     return string
 
-def visit_DoWhileNode(node):
+def visit_DoWhileNode(node: PysDoWhileNode) -> str:
     string = 'do {\n'
     string += indent(unparse(node.body))
     string += '\n} while ('
@@ -406,7 +408,7 @@ def visit_DoWhileNode(node):
 
     return string
 
-def visit_RepeatNode(node):
+def visit_RepeatNode(node: PysRepeatNode) -> str:
     string = 'repeat {\n'
     string += indent(unparse(node.body))
     string += '\n} until ('
@@ -420,7 +422,7 @@ def visit_RepeatNode(node):
 
     return string
 
-def visit_ClassNode(node):
+def visit_ClassNode(node: PysClassNode) -> str:
     bases = []
     decorators = []
 
@@ -450,7 +452,7 @@ def visit_ClassNode(node):
 
     return string
 
-def visit_FunctionNode(node):
+def visit_FunctionNode(node: PysFunctionNode) -> str:
     decorators = []
     parameters = []
 
@@ -486,12 +488,12 @@ def visit_FunctionNode(node):
 
     return string
 
-def visit_GlobalNode(node):
+def visit_GlobalNode(node: PysGlobalNode) -> str:
     string = 'global '
     string += ', '.join(identifier(name.value) for name in node.identifiers)
     return string
 
-def visit_ReturnNode(node):
+def visit_ReturnNode(node: PysReturnNode) -> str:
     string = 'return'
 
     if node.value:
@@ -500,7 +502,7 @@ def visit_ReturnNode(node):
 
     return string
 
-def visit_ThrowNode(node):
+def visit_ThrowNode(node: PysThrowNode) -> str:
     string = 'throw '
     string += unparse(node.target)
 
@@ -510,7 +512,7 @@ def visit_ThrowNode(node):
 
     return string
 
-def visit_AssertNode(node):
+def visit_AssertNode(node: PysAssertNode) -> str:
     string = 'assert '
     string += unparse(node.condition)
 
@@ -520,18 +522,18 @@ def visit_AssertNode(node):
 
     return string
 
-def visit_DeleteNode(node):
+def visit_DeleteNode(node: PysDeleteNode) -> str:
     string = 'del '
     string += ', '.join(map(unparse, node.targets))
     return string
 
-def visit_EllipsisNode(node):
+def visit_EllipsisNode(node: PysEllipsisNode) -> Literal['...']:
     return '...'
 
-def visit_ContinueNode(node):
+def visit_ContinueNode(node: PysContinueNode) -> Literal['continue']:
     return 'continue'
 
-def visit_BreakNode(node):
+def visit_BreakNode(node: PysBreakNode) -> Literal['break']:
     return 'break'
 
 get_visitor = {

@@ -6,7 +6,7 @@ EXACT_TOKEN_TYPES = dict(comprehension(SYMBOLS_TOKEN_MAP.items(), func(token, sy
 locals().update(TOKENS)
 
 __all__ = (
+    'TOKENS',
     'SYMBOLS_TOKEN_MAP',
-    'EXACT_TOKEN_TYPES',
-    'TOKENS'
+    'EXACT_TOKEN_TYPES'
 ) + tuple(TOKENS.keys())

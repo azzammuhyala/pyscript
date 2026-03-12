@@ -1,8 +1,14 @@
 from pyscript.core.constants import TOKENS
 from pyscript.core.interpreter import get_value_from_keyword
 from pyscript.core.mapping import GET_BINARY_FUNCTIONS_MAP, GET_UNARY_FUNCTIONS_MAP, REVERSE_TOKENS
-from pyscript.core.nodes import PysNode, PysIdentifierNode
+from pyscript.core.nodes import (
+    PysNode, PysNumberNode, PysStringNode, PysKeywordNode, PysIdentifierNode, PysDictionaryNode, PysSetNode,
+    PysListNode, PysTupleNode, PysCallNode, PysUnaryOperatorNode, PysBinaryOperatorNode, PysEllipsisNode
+)
 from pyscript.core.pysbuiltins import pys_builtins
+
+from types import EllipsisType
+from typing import Any
 
 is_arithmetic = frozenset([TOKENS['PLUS'], TOKENS['MINUS']]).__contains__
 
@@ -21,57 +27,57 @@ get_identifier = {
     'NotANumber': nan
 }.get
 
-def visit(node):
+def visit(node: PysNode) -> Any:
     return get_visitor(node.__class__)(node)
 
-def visit_unknown_node(node):
+def visit_unknown_node(node: PysNode) -> None:
     raise ValueError(f"invalid node: {type(node).__name__}")
 
-def visit_NumberNode(node):
+def visit_NumberNode(node: PysNumberNode) -> int | float | complex:
     return node.value.value
 
-def visit_StringNode(node):
+def visit_StringNode(node: PysStringNode) -> str | bytes:
     return node.value.value
 
-def visit_KeywordNode(node):
+def visit_KeywordNode(node: PysKeywordNode) -> bool | None:
     if (name := node.name.value) == '__debug__':
         raise ValueError("invalid constant keyword for __debug__")
     #      vvvvvvvvvvvvvvvvvvvvvvvvvvvv <- always boolean or none
     return get_value_from_keyword(name)
 
-def visit_IdentifierNode(node):
+def visit_IdentifierNode(node: PysIdentifierNode) -> Any:
     if (value := get_identifier(name := node.name.value)) is None:
         raise ValueError(f"invalid identifier: {name}")
     return value
 
-def visit_DictionaryNode(node):
+def visit_DictionaryNode(node: PysDictionaryNode) -> dict:
     return {visit(key): visit(value) for key, value in node.pairs}
 
-def visit_SetNode(node):
+def visit_SetNode(node: PysSetNode) -> set:
     return set(map(visit, node.elements))
 
-def visit_ListNode(node):
+def visit_ListNode(node: PysListNode) -> list:
     return list(map(visit, node.elements))
 
-def visit_TupleNode(node):
+def visit_TupleNode(node: PysTupleNode) -> tuple:
     return tuple(map(visit, node.elements))
 
-def visit_CallNode(node):
+def visit_CallNode(node: PysCallNode) -> set:
     if isinstance(target := node.target, PysIdentifierNode) and target.name.value == 'set' and not node.arguments:
         return set()
     raise ValueError("invalid call node except for 'set()'")
 
-def visit_UnaryOperatorNode(node):
+def visit_UnaryOperatorNode(node: PysUnaryOperatorNode) -> Any:
     if is_arithmetic(operand := node.operand.type):
         return GET_UNARY_FUNCTIONS_MAP(operand)(visit(node.value))
-    raise ValueError(f"invalid unary operand node: {REVERSE_TOKENS[operand]}")
+    raise ValueError(f"invalid unary operator node: {REVERSE_TOKENS[operand]}")
 
-def visit_BinaryOperatorNode(node):
+def visit_BinaryOperatorNode(node: PysBinaryOperatorNode) -> Any:
     if is_arithmetic(operand := node.operand.type):
         return GET_BINARY_FUNCTIONS_MAP(operand)(visit(node.left), visit(node.right))
-    raise ValueError(f"invalid binary operand node: {REVERSE_TOKENS[operand]}")
+    raise ValueError(f"invalid binary operator node: {REVERSE_TOKENS[operand]}")
 
-def visit_EllipsisNode(node):
+def visit_EllipsisNode(node: PysEllipsisNode) -> EllipsisType:
     return ...
 
 get_visitor = {

@@ -26,7 +26,7 @@ is_python_extensions = frozenset([
 ]).__contains__
 
 is_equals = frozenset([
-    TOKENS['EQUAL'], TOKENS['EQUAL-COLON']
+    TOKENS['EQUAL'], TOKENS['EQUAL_COLON']
 ]).__contains__
 
 is_blacklist_python_builtins = frozenset([

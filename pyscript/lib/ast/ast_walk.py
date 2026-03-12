@@ -1,6 +1,8 @@
 from pyscript.core.nodes import *
 
-def walk(node):
+from typing import Generator
+
+def walk(node: PysNode) -> Generator[PysNode, None, None]:
 
     if isinstance(node, PysDictionaryNode):
         yield node
@@ -254,3 +256,6 @@ def walk(node):
 
     elif isinstance(node, PysNode):
         yield node
+
+    else:
+        raise TypeError(f"unknown node object: {type(node).__name__}")

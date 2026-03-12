@@ -2,8 +2,9 @@ from collections.abc import Iterable
 from io import IOBase, TextIOWrapper
 from json import detect_encoding
 from types import BuiltinMethodType
+from typing import Sequence
 
-def normstr(obj):
+def normstr(obj) -> str:
     if isinstance(obj, str):
         return obj.replace('\r\n', '\n').replace('\r', '\n').replace('\v', '\n')
 
@@ -36,7 +37,7 @@ def normstr(obj):
 
     raise TypeError('not a string')
 
-def join(sequence, conjunction='and'):
+def join(sequence: Sequence[str], conjunction: str = 'and') -> str:
     length = len(sequence)
     if length == 1:
         return sequence[0]
@@ -44,6 +45,6 @@ def join(sequence, conjunction='and'):
         return f'{sequence[0]} {conjunction} {sequence[1]}'
     return f'{", ".join(sequence[:-1])}, {conjunction} {sequence[-1]}'
 
-def indent(string, length):
+def indent(string: str, length: int) -> str:
     prefix = ' ' * length
     return '\n'.join(prefix + line for line in normstr(string).splitlines())
