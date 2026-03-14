@@ -356,7 +356,7 @@ try:
 
     del (
         _set_constant_keywords, _unicode_name, _newlines, _integer, _scientific, _imaginary, _dollar,
-        _raw_string_prefixes, _string_or_bytes_prefixes, 
+        _raw_string_prefixes, _string_or_bytes_prefixes
     )
 
     PYGMENTS = True

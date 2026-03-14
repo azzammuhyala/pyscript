@@ -14,7 +14,7 @@ from .parser import PysParser
 from .position import PysPosition
 from .pysbuiltins import require
 from .results import PysRunTimeResult, PysExecuteResult
-from .shell import PysClassicLineShell, PysPromptToolkitLineShell
+from .shell import PysClassicLineShell, PysPromptToolkitLineShell, ADVANCE_LINE_SHELL_SUPPORT
 from .symtab import PysSymbolTable, new_module_namespace
 from .utils.debug import import_readline
 from .utils.decorators import TYPECHECK_STACK, typechecked
@@ -303,7 +303,11 @@ def pys_shell(
     symtab = _normalize_namespace(globals, file)
     colored = not (flags & NO_COLOR)
     colored_prompt = not (flags & NO_COLOR_PROMPT)
-    shell = (PysClassicLineShell if flags & CLASSIC_LINE_SHELL else PysPromptToolkitLineShell)(colored=colored)
+    shell = (
+        PysClassicLineShell
+        if not ADVANCE_LINE_SHELL_SUPPORT or flags & CLASSIC_LINE_SHELL else
+        PysPromptToolkitLineShell
+    )(colored=colored)
 
     if colored:
         reset = GET_ACOLORS('reset')
@@ -320,7 +324,7 @@ def pys_shell(
             f'Python {sys.version}\n'
             'Type "help", "copyright", "credits" or "license" for more information.\n'
             'Type "quit", "exit" or "/exit" to exit the shell; "/clear" to clear the shell; "/clean" to clean up the '
-            'namespace'
+            'namespace.'
         )
 
     try:

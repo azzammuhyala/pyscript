@@ -175,8 +175,6 @@ com_idx  = argv.index('-c', 0, end_com)        if '-c'        in arg_com else \
 args = parser.parse_args(argv if com_idx == -1 else argv[:com_idx + 2])
 arg = args.arg if com_idx == -1 else argv[com_idx + 2:]
 
-del argv, file_idx, end_idx, end_com, arg_com, com_idx
-
 if args.terminal:
 
     for fd in (sys.stdout, sys.stderr, sys.stdin):
@@ -228,6 +226,27 @@ if args.P:
         remove_python_path(cwd)
 
 pys_sys.argv = argv = ['', *arg]
+
+# clean up
+try:
+    if PYGMENTS:
+        del (
+            BBCodeFormatter, HtmlFormatter, LatexFormatter, TerminalFormatter, TerminalTrueColorFormatter,
+            Terminal256Formatter
+        )
+
+    del (
+        ENV_PYSCRIPT_NO_COLOR_PROMPT, ENV_PYSCRIPT_CLASSIC_LINE_SHELL, DEFAULT, DEBUG, NO_COLOR, CLASSIC_LINE_SHELL,
+        NO_COLOR_PROMPT, NOTEBOOK, GUI_SUPPORT, TERMINAL_SUPPORT, PYGMENTS, HLFMT_ANSI, HLFMT_HTML, HLFMT_BBCODE,
+        USE_NOTEBOOK, OPTIONAL, REMAINDER, file_idx, end_idx, end_com, arg_com, com_idx, arg, pys_sys, __version__,
+        is_environ, remove_python_path, getcwd, get_name_from_path, PysGUIEditor, PysTerminalEditor, ArgumentParser
+    )
+
+    del (
+        supported, name, class_editor, condition, flag, fd, kernel32, i
+    )
+except:
+    pass
 
 if args.file is not None:
     argv[0] = args.file
@@ -290,8 +309,10 @@ if args.file is not None:
 
         code, _ = result.end_process()
 
-        if args.inspect and not (sys.stdout.closed or sys.stderr.closed):
-            if sys.stdin.closed:
+        if args.inspect:
+            if sys.stdout.closed or sys.stderr.closed:
+                code = 1
+            elif sys.stdin.closed:
                 print("Can't run interactive shell: sys.stdin closed", file=sys.stderr)
                 code = 1
             else:
@@ -314,8 +335,10 @@ elif args.command is not None:
 
     code, _ = result.end_process()
 
-    if args.inspect and not (sys.stdout.closed or sys.stderr.closed):
-        if sys.stdin.closed:
+    if args.inspect:
+        if sys.stdout.closed or sys.stderr.closed:
+            code = 1
+        elif sys.stdin.closed:
             print("Can't run interactive shell: sys.stdin closed", file=sys.stderr)
             code = 1
         else:

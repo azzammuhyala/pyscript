@@ -2,7 +2,7 @@ from ..constants import ENV_PYSCRIPT_NO_EXCEPTHOOK, ENV_PYSCRIPT_NO_READLINE
 from ..exceptions import PysTraceback, PysSignal
 from .generic import is_environ
 
-from os import system           # <-- WARNING: Python>=3.14 deprecated
+from os import system           # <-- WARNING: Python>=3.14, this function is deprecated
 from sys import excepthook
 from types import TracebackType
 from typing import Any, Literal

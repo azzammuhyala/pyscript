@@ -477,7 +477,7 @@ class PysAnalyzer(Pys):
         if self.in_loop == 0 and self.in_switch == 0:
             self.throw("break outside of loop or switch case", node.position)
 
-    def visit_slice_SubscriptNode(self, node: PysNode | slice | tuple[PysNode | slice]) -> None:
+    def visit_slice_SubscriptNode(self, node: PysNode | slice | tuple[PysNode | slice, ...]) -> None:
         type = node.__class__
 
         if type is slice:

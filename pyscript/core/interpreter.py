@@ -1316,7 +1316,11 @@ def visit_ContinueNode(node: PysContinueNode, context: PysContext) -> PysRunTime
 def visit_BreakNode(node: PysBreakNode, context: PysContext) -> PysRunTimeResult:
     return PysRunTimeResult().success_break()
 
-def visit_slice_SubscriptNode(node: PysNode | slice | tuple[PysNode | slice], context: PysContext) -> PysRunTimeResult:
+def visit_slice_SubscriptNode(
+    node: PysNode | slice | tuple[PysNode | slice, ...],
+    context: PysContext
+) -> PysRunTimeResult:
+
     result = PysRunTimeResult()
 
     register = result.register

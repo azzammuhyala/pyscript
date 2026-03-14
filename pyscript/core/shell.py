@@ -12,14 +12,6 @@ class PysIncompleteHandler(Pys):
         self._brackets_stack = []
         self.reset()
 
-    def is_multiline(self) -> bool:
-        return not self._must_break and (
-            len(self._brackets_stack) > 0 or
-            self._line_continuation or
-            self._is_triple_string or
-            self._in_decorator
-        )
-
     def reset(self) -> None:
         self._brackets_stack.clear()
         self._in_string = False
@@ -29,6 +21,14 @@ class PysIncompleteHandler(Pys):
         self._must_break = False
         self._string_prefix = ''
         self.text = ''
+
+    def _is_multiline(self) -> bool:
+        return not self._must_break and (
+            len(self._brackets_stack) > 0 or
+            self._line_continuation or
+            self._is_triple_string or
+            self._in_decorator
+        )
 
     def _process_line(self, text: str) -> None:
         self._in_decorator = False
@@ -55,7 +55,7 @@ class PysIncompleteHandler(Pys):
                 bind_3 = text[index:index+3]
 
                 if self._is_triple_string:
-                    if len(bind_3) == 3 and self._string_prefix * 3 == bind_3:
+                    if self._string_prefix * 3 == bind_3:
                         self._in_string = False
                         self._is_triple_string = False
                         index += 2
@@ -77,6 +77,14 @@ class PysIncompleteHandler(Pys):
                 if character == '#':
                     break
 
+                elif character == '$':
+                    index += 1
+                    while index < len(text) and (character := text[index]).isspace():
+                        index += 1
+                    if not character.isidentifier():
+                        self._must_break = True
+                        break
+
                 elif is_space and character == '@':
                     self._in_decorator = True
                     index += 1
@@ -92,6 +100,10 @@ class PysIncompleteHandler(Pys):
                         True
                     )
 
+                elif character == '`':
+                    self._must_break = True
+                    break
+
                 if is_space and not character.isspace():
                     is_space = False
 
@@ -102,7 +114,7 @@ class PysIncompleteHandler(Pys):
         if self._in_string and not (self._line_continuation or self._is_triple_string):
             self._must_break = True
 
-        if self.is_multiline():
+        if self._is_multiline():
             self.text += text + '\n'
         else:
             self.text += text
@@ -137,7 +149,7 @@ class PysLineShell(PysIncompleteHandler):
 class PysClassicLineShell(PysLineShell):
 
     def prompt(self) -> str | Literal[0, 1]:
-        is_multiline = self.is_multiline
+        is_multiline = self._is_multiline
         process_line = self._process_line
         process_command = self._process_command
 
@@ -238,7 +250,7 @@ try:
                         buffer.validate_and_handle()
                         return
 
-                if not self.is_multiline():
+                if not self._is_multiline():
                     reset()
                     buffer.validate_and_handle()
                     return
@@ -307,5 +319,13 @@ try:
         def ps2(self, value: str) -> None:
             self._ps2 = ANSI(value) if self._colored else value
 
-except:
-    PysPromptToolkitLineShell = PysClassicLineShell
+    ADVANCE_LINE_SHELL_SUPPORT = True
+
+except BaseException as e:
+    _error = e
+
+    class PysPromptToolkitLineShell(PysLineShell):
+        def __new__(cls, *args, **kwargs):
+            raise ImportError(f"cannot import module prompt_toolkit: {_error}") from _error
+
+    ADVANCE_LINE_SHELL_SUPPORT = False

@@ -95,5 +95,5 @@ def pys_shell(
 
 __version__: str
 __date__: str
-__author__: tuple[str]
-__all__: tuple[str]
+__author__: tuple[str, ...]
+__all__: tuple[str, ...]

@@ -5,7 +5,7 @@ from .utils.string import normstr
 
 from io import IOBase
 from types import BuiltinMethodType
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Union
 
 @immutable
 class PysBuffer(Pys):
@@ -17,7 +17,7 @@ class PysFileBuffer(PysBuffer):
 
     def __new__(
         cls,
-        text: str | bytes | bytearray | Iterable | BuiltinMethodType | IOBase | 'PysFileBuffer',
+        text: Union[str, bytes, bytearray, Iterable, BuiltinMethodType, IOBase, 'PysFileBuffer'],
         name: Optional[str | bytes] = None
     ) -> 'PysFileBuffer':
 

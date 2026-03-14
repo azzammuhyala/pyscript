@@ -157,9 +157,11 @@ class PysExecuteResult(PysResult):
 
     def success(self, value: Any) -> 'PysExecuteResult':
         self.value = value
+        self.error = None
         return self
 
     def failure(self, error: PysTraceback) -> 'PysExecuteResult':
+        self.value = None
         self.error = error
         return self
 

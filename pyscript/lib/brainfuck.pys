@@ -2,13 +2,13 @@ normstr = require('_pyscript>utils>string>normstr')
 getch = require('getch')
 sys = pyimport('sys')
 
-func default_input()
+func default_input() {
     while (true) {
-        result = ord(getch.getch())
-        if (0 <= result <= 255) {
+        if (0 <= (result := ord(getch.getch())) <= 255) {
             return result
         }
     }
+}
 
 func default_output(byte) {
     sys.stdout.write(chr(byte))
