@@ -1,22 +1,21 @@
 from .path import extension
 
-from os.path import isdir, isfile, join
-
+import os
 import sys
 
 def get_module_path(path: str) -> str | None:
     # circular import problem solved
     from ..checks import is_python_extensions
 
-    if isfile(path) and not is_python_extensions(extension(path)):
+    if os.path.isfile(path) and not is_python_extensions(extension(path)):
         return path
 
     candidate = path + '.pys'
-    if isfile(candidate):
+    if os.path.isfile(candidate):
         return candidate
 
-    candidate = join(path, '__init__.pys')
-    if isdir(path) and isfile(candidate):
+    candidate = os.path.join(path, '__init__.pys')
+    if os.path.isdir(path) and os.path.isfile(candidate):
         return candidate
 
 def set_python_path(path: str) -> None:

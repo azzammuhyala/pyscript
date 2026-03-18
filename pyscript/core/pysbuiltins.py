@@ -19,11 +19,11 @@ from .utils.string import normstr
 from math import inf, nan, isclose
 from importlib import import_module
 from inspect import signature
-from os.path import dirname, isdir
 from types import BuiltinFunctionType, BuiltinMethodType, FunctionType, MethodType, ModuleType
 from typing import Any, Callable
 
 import builtins
+import os
 import sys
 
 real_number = (int, float)
@@ -151,7 +151,7 @@ def require(pyfunc, name):
         if module_path is not None:
             break
     else:
-        module_path = get_module_path(path := normpath(dirname(filename) or getcwd(), name, absolute=False))
+        module_path = get_module_path(path := normpath(os.path.dirname(filename) or getcwd(), name, absolute=False))
         if module_path == filename:
             module_path = None
 
@@ -172,7 +172,7 @@ def require(pyfunc, name):
 
         if module is None:
 
-            if isdir(module_path):
+            if os.path.isdir(module_path):
                 raise ModuleNotFoundError(f"No module named {name!r}: Invalid module")
             elif module_path in loading_modules:
                 raise ImportError(
@@ -237,7 +237,7 @@ def pyimport(pyfunc, name):
     name: A name of the module to be imported.
     """
 
-    dirpath = dirname(pyfunc.__code__.context.file.name)
+    dirpath = os.path.dirname(pyfunc.__code__.context.file.name)
     try:
         set_python_path(dirpath)
         return import_module(normstr(name))

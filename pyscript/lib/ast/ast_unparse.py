@@ -21,6 +21,9 @@ def visit_NumberNode(node: PysNumberNode) -> str:
 def visit_StringNode(node: PysStringNode) -> str:
     return repr(node.value.value)
 
+def visit_DebugNode(node: PysDebugNode) -> Literal['__debug__']:
+    return '__debug__'
+
 def visit_KeywordNode(node: PysKeywordNode) -> str:
     return node.name.value
 

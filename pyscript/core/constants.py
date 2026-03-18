@@ -1,13 +1,14 @@
-from os.path import sep, join
 from types import MappingProxyType
 
+import os
+
 # paths
-PYSCRIPT_PATH = sep.join(__file__.split(sep)[:-2])
-CORE_PATH = join(PYSCRIPT_PATH, 'core')
-LIBRARIES_PATH = join(PYSCRIPT_PATH, 'lib')
-SITE_PACKAGES_PATH = join(PYSCRIPT_PATH, 'site-packages')
-OTHER_PATH = join(PYSCRIPT_PATH, 'other')
-ICON_PATH = join(OTHER_PATH, 'PyScript.ico')
+PYSCRIPT_PATH = os.path.sep.join(__file__.split(os.path.sep)[:-2])
+CORE_PATH = os.path.join(PYSCRIPT_PATH, 'core')
+LIBRARIES_PATH = os.path.join(PYSCRIPT_PATH, 'lib')
+OTHER_PATH = os.path.join(PYSCRIPT_PATH, 'other')
+SITE_PACKAGES_PATH = os.path.join(PYSCRIPT_PATH, 'site-packages')
+ICON_PATH = os.path.join(OTHER_PATH, 'PyScript.ico')
 
 # environment variables
 ENV_PYSCRIPT_NO_EXCEPTHOOK = 'PYSCRIPT_NO_EXCEPTHOOK'
@@ -17,6 +18,8 @@ ENV_PYSCRIPT_NO_TYPECHECK = 'PYSCRIPT_NO_TYPECHECK'
 ENV_PYSCRIPT_NO_COLOR_PROMPT = 'PYSCRIPT_NO_COLOR_PROMPT'
 ENV_PYSCRIPT_MAXIMUM_TRACEBACK_LINE = 'PYSCRIPT_MAXIMUM_TRACEBACK_LINE'
 ENV_PYSCRIPT_CLASSIC_LINE_SHELL = 'PYSCRIPT_CLASSIC_LINE_SHELL'
+ENV_PYSCRIPT_HISTORY_PATH = 'PYSCRIPT_HISTORY_PATH'
+ENV_PYSCRIPT_MAXIMUM_HISTORY_LINE = 'PYSCRIPT_MAXIMUM_HISTORY_LINE'
 
 # tokens offset
 DOUBLE = 2**8

@@ -5,9 +5,9 @@ from .mapping import GET_ACOLORS
 from .utils.decorators import typechecked, immutable
 from .utils.generic import setimuattr
 
-from os import environ
+import os
 
-MAXIMUM_TRACEBACK_LINE = environ.get(ENV_PYSCRIPT_MAXIMUM_TRACEBACK_LINE)
+MAXIMUM_TRACEBACK_LINE = os.environ.get(ENV_PYSCRIPT_MAXIMUM_TRACEBACK_LINE)
 if MAXIMUM_TRACEBACK_LINE is None:
     MAXIMUM_TRACEBACK_LINE = 5
 else:

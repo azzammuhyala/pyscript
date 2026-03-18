@@ -42,7 +42,7 @@ BUILTIN_TYPES = frozenset(
 BUILTIN_FUNCTIONS = frozenset(
     name 
     for name, object in pys_builtins.__dict__.items()
-    if is_public_attribute(name) and callable(object)
+    if is_public_attribute(name) and callable(object) and not isinstance(object, type)
 )
 
 try:
@@ -55,6 +55,7 @@ try:
     from pygments.unistring import xid_start, xid_continue
 
     _set_constant_keywords = frozenset(CONSTANT_KEYWORDS)
+    _keywords = '|'.join(KEYWORDS)
     _unicode_name = f'[{xid_start}][{xid_continue}]*'
     _newlines = r'\r\n|\r|\n'
     _integer = r'[0-9](?:_?[0-9])*'
@@ -218,13 +219,13 @@ try:
 
                 # Class definition
                 (
-                    rf'\b(class)\b(\s+)({_dollar}{_unicode_name})\b',
+                    rf'\b(class)\b(\s+)(?!(?:{_keywords})\b)({_dollar}{_unicode_name})\b',
                     bygroups(Keyword.Constant, Whitespace, Name.Class)
                 ),
 
                 # Function definition
                 (
-                    rf'\b(def|define|func|function)\b(\s+)({_dollar}{_unicode_name})\b',
+                    rf'\b(def|define|func|function)\b(\s+)(?!(?:{_keywords})\b)({_dollar}{_unicode_name})\b',
                     bygroups(Keyword.Constant, Whitespace, Name.Function)
                 ),
 
@@ -355,7 +356,7 @@ try:
         ] + tokens['root']
 
     del (
-        _set_constant_keywords, _unicode_name, _newlines, _integer, _scientific, _imaginary, _dollar,
+        _set_constant_keywords, _keywords, _unicode_name, _newlines, _integer, _scientific, _imaginary, _dollar,
         _raw_string_prefixes, _string_or_bytes_prefixes
     )
 

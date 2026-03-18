@@ -30,11 +30,11 @@ class Parser {
 
         # source is a list of tokens
         if (isinstance(source, tuple)) {
-            if (not source)
+            if (!source)
                 throw ValueError("Parser(): source got empty tuple")
 
             for (i, token of enumerate(source)) {
-                if (not isinstance(token, _pyscript.token.PysToken))
+                if (!isinstance(token, _pyscript.token.PysToken))
                     throw TypeError("Parser(): source must be tuple of tokens")
                 if (token.type in (TOKENS['COMMENT'], TOKENS['NONE']))
                     throw ValueError("Parser(): source token with comment or none token is invalid")
@@ -56,7 +56,7 @@ class Parser {
             compiled = 'none'
         }
 
-        if (not isinstance(flags, int))
+        if (!isinstance(flags, int))
             throw TypeError("Parser(): flags must be integer")
 
         _pyscript.utils.generic.setimuattr(self, 'source', source)
@@ -84,7 +84,7 @@ class Parser {
     }
 
     func ast(self, mode='exec') {
-        if (mode not in ('exec', 'eval'))
+        if (mode !> ('exec', 'eval'))
             throw ValueError("ast(): mode must be 'exec' or 'eval'")
 
         if (self._compiled == 'tokenize')

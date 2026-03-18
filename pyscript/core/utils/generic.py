@@ -1,7 +1,8 @@
 from inspect import currentframe
-from os import environ
 from types import FrameType, UnionType
 from typing import Any, Optional
+
+import os
 
 getattribute = object.__getattribute__
 setimuattr = object.__setattr__
@@ -35,7 +36,7 @@ def get_subscript(object: Any, key: Any, default: Optional[Any] = None) -> Any:
     return object[key] if 0 <= key < len(object) else default
 
 def is_environ(key: str) -> bool:
-    return environ.get(key) is not None
+    return os.environ.get(key) is not None
 
 def is_object_of(obj: object | type, class_or_tuple: type | UnionType | tuple[type | UnionType, ...]) -> bool:
 

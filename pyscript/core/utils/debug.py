@@ -2,11 +2,11 @@ from ..constants import ENV_PYSCRIPT_NO_EXCEPTHOOK, ENV_PYSCRIPT_NO_READLINE
 from ..exceptions import PysTraceback, PysSignal
 from .generic import is_environ
 
-from os import system           # <-- WARNING: Python>=3.14, this function is deprecated
 from sys import excepthook
 from types import TracebackType
 from typing import Any, Literal
 
+import os  # <-- WARNING: Python>=3.14, os.system function is deprecated
 import sys
 
 def print_display(value: Any) -> None:
@@ -52,11 +52,11 @@ if USE_NOTEBOOK:
 
 elif sys.platform == 'win32':
     def clear_shell() -> None:
-        system('cls')
+        os.system('cls')
 
 else:
     def clear_shell() -> None:
-        system('clear')
+        os.system('clear')
 
     if not is_environ(ENV_PYSCRIPT_NO_READLINE):
         def import_readline() -> bool:
@@ -66,9 +66,9 @@ else:
             except:
                 return False
 
-def get_error_args(
-    traceback: PysTraceback
-) -> tuple[type[BaseException] | None, BaseException | None, PysTraceback | None]:
+def get_error_args(traceback: PysTraceback) -> tuple[type[BaseException] | None,
+                                                     BaseException | None,
+                                                     PysTraceback | None]:
     return (None, None, None) if traceback is None else (
         (exception, None, traceback)
         if isinstance(exception := traceback.exception, type) else

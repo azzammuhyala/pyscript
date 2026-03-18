@@ -1,9 +1,13 @@
 from .bases import Pys
 from .cache import pys_sys
+from .constants import ENV_PYSCRIPT_HISTORY_PATH, ENV_PYSCRIPT_MAXIMUM_HISTORY_LINE
 from .mapping import BRACKETS_MAP
+from .utils.decorators import singleton
+from .utils.path import normpath
 
-from typing import Literal
+from typing import Iterable, Literal, Optional
 
+import os
 import sys
 
 class PysIncompleteHandler(Pys):
@@ -99,6 +103,8 @@ class PysIncompleteHandler(Pys):
                         if self._brackets_stack else
                         True
                     )
+                    if self._must_break:
+                        break
 
                 elif character == '`':
                     self._must_break = True
@@ -186,13 +192,104 @@ class PysClassicLineShell(PysLineShell):
                 return text
 
 try:
-    from prompt_toolkit import PromptSession
+    from threading import RLock
+
     from prompt_toolkit.formatted_text import ANSI
+    from prompt_toolkit.history import History, InMemoryHistory
     from prompt_toolkit.layout.processors import TabsProcessor
     from prompt_toolkit.key_binding import KeyBindings
     from prompt_toolkit.lexers import PygmentsLexer
     from prompt_toolkit.output.color_depth import ColorDepth
+    from prompt_toolkit.shortcuts.prompt import PromptSession
     from prompt_toolkit.styles.pygments import style_from_pygments_cls
+
+    HISTORY_PATH = os.environ.get(ENV_PYSCRIPT_HISTORY_PATH, os.path.join(os.path.expanduser('~'), '.pyscript_history'))
+    if HISTORY_PATH and HISTORY_PATH != '<none>':
+        HISTORY_PATH = normpath(HISTORY_PATH, absolute=False)
+        USE_FILE_HISTORY = True
+    else:
+        HISTORY_PATH = '<none>'
+        USE_FILE_HISTORY = False
+
+    MAXIMUM_HISTORY_LINE = os.environ.get(ENV_PYSCRIPT_MAXIMUM_HISTORY_LINE)
+    if MAXIMUM_HISTORY_LINE is None:
+        MAXIMUM_HISTORY_LINE = 1000
+    else:
+        try:
+            MAXIMUM_HISTORY_LINE = max(5, int(MAXIMUM_HISTORY_LINE))
+        except:
+            MAXIMUM_HISTORY_LINE = 1000
+
+    @singleton
+    class PysHistory(Pys, History):
+
+        def __new_singleton__(cls) -> 'PysHistory':
+            if USE_FILE_HISTORY:
+                return super().__new__(cls)
+            raise NotImplementedError('not using file history')
+
+        def update_history(self, append_string: Optional[str] = None) -> list[str]:
+            try:
+
+                with history_lock:
+                    strings = []
+                    lines = []
+                    update = False
+
+                    if os.path.exists(HISTORY_PATH):
+
+                        def add_to_string():
+                            if line := '\n'.join(lines):
+                                strings.append(line)
+                            lines.clear()
+
+                        with open(HISTORY_PATH, 'r', encoding='utf-8') as file:
+
+                            for line in file:
+                                line = line[:-1]
+                                if line.startswith('\x1e'):
+                                    add_to_string()
+                                    line = line[1:]
+                                if line:
+                                    lines.append(line)
+
+                            if lines:
+                                add_to_string()
+
+                    else:
+                        update = True
+
+                    if append_string is not None:
+                        strings.append(append_string)
+                        update = True
+
+                    if len(strings) > MAXIMUM_HISTORY_LINE:
+                        del strings[:-MAXIMUM_HISTORY_LINE]
+                        update = True
+
+                    if update:
+                        with open(HISTORY_PATH, 'w', encoding='utf-8') as file:
+                            file.writelines(f'\x1e{line}\n' for line in strings)
+
+                    return strings
+
+            except:
+                return []
+
+        def load_history_strings(self) -> Iterable[str]:
+            return reversed(self.update_history())
+
+        def store_string(self, string: str) -> None:
+            self.update_history(string)
+
+        def append_string(self, string: str) -> None:
+            if len(self._loaded_strings) >= MAXIMUM_HISTORY_LINE:
+                del self._loaded_strings[-1]
+            self._loaded_strings.insert(0, string)
+            self.update_history(string)
+
+    history_lock = RLock()
+    history = (PysHistory if USE_FILE_HISTORY else InMemoryHistory)()
 
     class PysPromptToolkitLineShell(PysLineShell, PromptSession):
 
@@ -257,16 +354,16 @@ try:
 
                 newline_with_indent()
 
-            style_keyword = {}
+            other_keyword = {}
 
             if colored:
                 if PYGMENTS:
-                    style_keyword.update({
+                    other_keyword.update({
                         'lexer': PygmentsLexer(PygmentsPyScriptShellLexer),
                         'style': style_from_pygments_cls(PygmentsPyScriptStyle)
                     })
             else:
-                style_keyword.update({
+                other_keyword.update({
                     'color_depth': ColorDepth.DEPTH_1_BIT
                 })
 
@@ -275,7 +372,8 @@ try:
                 input_processors=[TabsProcessor(tabstop=4)],
                 key_bindings=key_bindings,
                 prompt_continuation=lambda width, line_number, is_soft_wrap: self._ps2,
-                **style_keyword
+                history=history,
+                **other_keyword
             )
 
         def prompt(self) -> str | Literal[0, 1]:

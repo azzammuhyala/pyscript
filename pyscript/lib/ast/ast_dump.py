@@ -114,6 +114,9 @@ class DumpNode:
             ]
         )
 
+    def visit_DebugNode(self, node: PysDebugNode) -> str:
+        return self._node_representation(node, [])
+
     def visit_IdentifierNode(self, node: PysIdentifierNode) -> str:
         return self._node_representation(
             node,

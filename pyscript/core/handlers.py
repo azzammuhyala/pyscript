@@ -12,10 +12,10 @@ wrapper_function = (MethodType, classmethod, staticmethod)
 
 if not is_environ(ENV_PYSCRIPT_NO_GIL):
     from threading import RLock
-    lock = RLock()
+    gil_lock = RLock()
 
     def handle_call(object: Any, context: PysContext, position: PysPosition) -> None:
-        with lock:
+        with gil_lock:
 
             if (ins := isinstance)(object, PysFunction):
                 code = object.__code__

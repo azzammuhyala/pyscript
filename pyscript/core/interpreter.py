@@ -49,11 +49,10 @@ def visit_StringNode(node: PysStringNode, context: PysContext) -> PysRunTimeResu
     return PysRunTimeResult().success(node.value.value)
 
 def visit_KeywordNode(node: PysKeywordNode, context: PysContext) -> PysRunTimeResult:
-    return PysRunTimeResult().success(
-        (True if context.flags & DEBUG else False)
-        if (name := node.name.value) == '__debug__' else
-        get_value_from_keyword(name)
-    )
+    return PysRunTimeResult().success(get_value_from_keyword(node.name.value))
+
+def visit_DebugNode(node: PysDebugNode, context: PysContext) -> PysRunTimeResult:
+    return PysRunTimeResult().success(True if context.flags & DEBUG else False)
 
 def visit_IdentifierNode(node: PysIdentifierNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
@@ -208,7 +207,6 @@ def visit_CallNode(node: PysCallNode, context: PysContext) -> PysRunTimeResult:
     should_return = result.should_return
     add_arg = args.append
     add_kwarg = kwargs.__setitem__
-    nposition = node.position
     ntarget = node.target
 
     target = register(get_visitor(ntarget.__class__)(ntarget, context))
@@ -228,7 +226,7 @@ def visit_CallNode(node: PysCallNode, context: PysContext) -> PysRunTimeResult:
             if should_return():
                 return result
 
-    with result(context, nposition):
+    with result(context, nposition := node.position):
         handle_call(target, context, nposition)
         return result.success(target(*args, **kwargs))
 
@@ -316,15 +314,20 @@ def visit_BinaryOperatorNode(node: PysBinaryOperatorNode, context: PysContext) -
 
     toperand = node.operand
     otype = toperand.type
-    ovalue = toperand.value
     nright = node.right
 
     with result(context, node.position):
         return_right = True
 
-        if (otype == T_KEYWORD and ovalue == 'and') or otype == T_AND:
+        if otype == T_KEYWORD:
+            ovalue = toperand.value
+            if ovalue == 'and':
+                if not left: return result.success(left)
+            elif ovalue == 'or':
+                if left: return result.success(left)
+        elif otype == T_AND:
             if not left: return result.success(left)
-        elif (otype == T_KEYWORD and ovalue == 'or') or otype == T_OR:
+        elif otype == T_OR:
             if left: return result.success(left)
         elif otype == T_NULLISH:
             if left is not None: return result.success(left)
@@ -350,13 +353,18 @@ def visit_UnaryOperatorNode(node: PysUnaryOperatorNode, context: PysContext) -> 
 
     toperand = node.operand
     otype = toperand.type
-    ovalue = toperand.value
 
     with result(context, node.position):
-        if (otype == T_KEYWORD and ovalue == 'not') or otype == T_NOT:
+
+        if otype == T_KEYWORD:
+            ovalue = toperand.value
+            if ovalue == 'not':
+                return result.success(not value)
+            elif ovalue == 'typeof':
+                return result.success(type(value).__name__)
+        elif otype == T_NOT:
             return result.success(not value)
-        elif otype == T_KEYWORD and ovalue == 'typeof':
-            return result.success(type(value).__name__)
+
         return result.success(GET_UNARY_FUNCTIONS_MAP(otype)(value))
 
     return result

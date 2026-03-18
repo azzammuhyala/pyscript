@@ -59,6 +59,13 @@ class PysKeywordNode(PysNode):
     def __repr__(self) -> str:
         return f'Keyword(name={self.name!r})'
 
+class PysDebugNode(PysNode):
+
+    __slots__ = ()
+
+    def __repr__(self) -> Literal['Debug()']:
+        return 'Debug()'
+
 class PysIdentifierNode(PysNode):
 
     __slots__ = ('name',)

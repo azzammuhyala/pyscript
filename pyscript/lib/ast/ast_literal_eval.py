@@ -40,10 +40,8 @@ def visit_StringNode(node: PysStringNode) -> str | bytes:
     return node.value.value
 
 def visit_KeywordNode(node: PysKeywordNode) -> bool | None:
-    if (name := node.name.value) == '__debug__':
-        raise ValueError("invalid constant keyword for __debug__")
     #      vvvvvvvvvvvvvvvvvvvvvvvvvvvv <- always boolean or none
-    return get_value_from_keyword(name)
+    return get_value_from_keyword(node.name.value)
 
 def visit_IdentifierNode(node: PysIdentifierNode) -> Any:
     if (value := get_identifier(name := node.name.value)) is None:

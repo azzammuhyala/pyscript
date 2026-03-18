@@ -601,7 +601,7 @@ class PysLexer(Pys):
                 try:
                     string = string.encode('latin-1')
                 except UnicodeEncodeError:
-                    self.throw(start, self.index, "invalid bytes literal", add_token=False)
+                    self.throw(start, self.index, "bytes can only contain ASCII literal characters", add_token=False)
 
         self.add_token(TOKENS['STRING'], start, string)
 

@@ -2,7 +2,8 @@ from .analyzer import PysAnalyzer
 from .buffer import PysFileBuffer
 from .cache import pys_sys, undefined, PysUndefined
 from .constants import (
-    DEFAULT, SILENT, RETURN_RESULT, NO_COLOR, DONT_SHOW_BANNER_ON_SHELL, CLASSIC_LINE_SHELL, NO_COLOR_PROMPT
+    LIBRARIES_PATH, OTHER_PATH, SITE_PACKAGES_PATH, DEFAULT, SILENT, RETURN_RESULT, NO_COLOR, DONT_SHOW_BANNER_ON_SHELL,
+    CLASSIC_LINE_SHELL, NO_COLOR_PROMPT
 )
 from .context import PysContext
 from .exceptions import PysTraceback, PysSignal
@@ -24,6 +25,7 @@ from .version import version
 from types import ModuleType
 from typing import Any, Literal, Optional
 
+import os
 import sys
 
 def _normalize_namespace(namespace: PysUndefined | PysSymbolTable | dict | None, file: PysFileBuffer) -> PysSymbolTable:
@@ -61,7 +63,8 @@ def pys_runner(
 
     - symbol_table : Symbol table scope (`pyscript.core.symtab.PysSymbolTable`).
 
-    - flags : A special flag.
+    - flags : A special flag (If None then it automatically uses flags from context_parent, and if not available then
+              flags are set to DEFAULT).
 
     - parser_flags : A special parser flag.
 
@@ -319,6 +322,11 @@ def pys_shell(
     import_readline()
 
     if not (flags & DONT_SHOW_BANNER_ON_SHELL):
+
+        for path in (LIBRARIES_PATH, OTHER_PATH, SITE_PACKAGES_PATH):
+            if not os.path.isdir(path):
+                print(f'WARNING: "{path}" directory not found', file=sys.stderr)
+
         print(
             f'PyScript {version}\n'
             f'Python {sys.version}\n'

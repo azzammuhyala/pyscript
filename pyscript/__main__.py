@@ -45,7 +45,7 @@ FORMAT_HIGHLIGHT_MAP = {
 EDITOR_MAP = {}
 
 for supported, name, class_editor in [
-    (GUI_SUPPORT, 'gui', PysGUIEditor),
+    (GUI_SUPPORT,      'gui',      PysGUIEditor),
     (TERMINAL_SUPPORT, 'terminal', PysTerminalEditor)
 ]:
     if supported:
@@ -173,7 +173,7 @@ com_idx  = argv.index('-c', 0, end_com)        if '-c'        in arg_com else \
           (argv.index('--command', 0, end_com) if '--command' in arg_com else -1)
 
 args = parser.parse_args(argv if com_idx == -1 else argv[:com_idx + 2])
-arg = args.arg if com_idx == -1 else argv[com_idx + 2:]
+arg  = args.arg if com_idx == -1 else argv[com_idx + 2:]
 
 if args.terminal:
 

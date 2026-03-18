@@ -4,7 +4,7 @@ from ..utils.decorators import typechecked, inheritable
 from ..utils.generic import setimuattr
 from ..utils.string import normstr
 
-from os.path import basename
+import os
 
 class PysEditor(Pys):
 
@@ -14,7 +14,7 @@ class PysEditor(Pys):
         self.used = False
         self.modified = False
         self.wrapped = True
-        self.basename = basename(self.file.name)
+        self.basename = os.path.basename(self.file.name)
 
     def __init_subclass__(cls, **kwargs) -> None:
         super().__init_subclass__(**kwargs)

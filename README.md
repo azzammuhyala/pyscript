@@ -1,4 +1,4 @@
-# PyScript
+# PyScript 🐍🟨🟦⬛
 
 <div align="center">
     <img src="https://github.com/azzammuhyala/pyscript/blob/main/PyScript.png?raw=true" alt="PyScript Logo" width="200">
@@ -7,7 +7,7 @@
 PyScript is a simple programming language built on top of Python. It combines some syntax from Python and JavaScript,
 so if you're already familiar with Python, JavaScript or both, it should be quite easy to learn.
 
-## Introduction
+## Introduction 📖
 PyScript may not be the language we'll be discussing, but the name PyScript already exists, a flexible and platform for
 running Python in a browser. Since it's inception, the language was inspired by Python and JavaScript, which are
 relatively easy for humans to read. This name was chosen because it wasn't immediately known whether this name was
@@ -22,7 +22,7 @@ low-level languages.
 To learn more about PyScript, you can see on [PyScript documentation](https://azzammuhyala.github.io/pyscript) or 
 [PyScript repository](https://github.com/azzammuhyala/pyscript) for full source code.
 
-## Installation
+## Installation ⬇️
 First, you'll need to download Python. Make sure you're using the latest version above `3.10`, to ensure the code runs
 correctly. Visit the official [Python website](https://python.org) to download it.
 
@@ -54,11 +54,11 @@ If successful, you can see the version, release date, and a `>>>` like Python sh
 > If you are using the VS Code editor, you can use the
 [PyScript extension](https://marketplace.visualstudio.com/items?itemName=azzammuhyala.pyslang) for Syntax Highlight!
 
-## Example
+## Example 📜
 Familiar? There it is!
 <pre><span style="color:#549952"># get a number and operator with input()</span><span style="color:#D4D4D4"><br></span><span style="color:#8CDCFE">a</span><span style="color:#D4D4D4"> = </span><span style="color:#4EC9B0">float</span><span style="color:#FFD705">(</span><span style="color:#DCDCAA">input</span><span style="color:#D45DBA">(</span><span style="color:#CE9178">&quot;Enter a first number : &quot;</span><span style="color:#D45DBA">)</span><span style="color:#FFD705">)</span><span style="color:#D4D4D4"><br></span><span style="color:#8CDCFE">b</span><span style="color:#D4D4D4"> = </span><span style="color:#4EC9B0">float</span><span style="color:#FFD705">(</span><span style="color:#DCDCAA">input</span><span style="color:#D45DBA">(</span><span style="color:#CE9178">&quot;Enter a second number: &quot;</span><span style="color:#D45DBA">)</span><span style="color:#FFD705">)</span><span style="color:#D4D4D4"><br></span><span style="color:#8CDCFE">op</span><span style="color:#D4D4D4"> = </span><span style="color:#DCDCAA">input</span><span style="color:#FFD705">(</span><span style="color:#CE9178">&quot;Enter an operation (+, -, *, /): &quot;</span><span style="color:#FFD705">)</span><span style="color:#D4D4D4"><br><br></span><span style="color:#549952"># define a functions</span><span style="color:#D4D4D4"><br></span><span style="color:#307CD6">func</span><span style="color:#D4D4D4"> </span><span style="color:#DCDCAA">add</span><span style="color:#FFD705">(</span><span style="color:#8CDCFE">a</span><span style="color:#D4D4D4">, </span><span style="color:#8CDCFE">b</span><span style="color:#FFD705">)</span><span style="color:#D4D4D4"> </span><span style="color:#FFD705">{</span><span style="color:#D4D4D4"><br></span><span style="color:#D4D4D4">    </span><span style="color:#C586C0">return</span><span style="color:#D4D4D4"> </span><span style="color:#8CDCFE">a</span><span style="color:#D4D4D4"> + </span><span style="color:#8CDCFE">b</span><span style="color:#D4D4D4"><br></span><span style="color:#FFD705">}</span><span style="color:#D4D4D4"><br><br></span><span style="color:#307CD6">func</span><span style="color:#D4D4D4"> </span><span style="color:#DCDCAA">sub</span><span style="color:#FFD705">(</span><span style="color:#8CDCFE">a</span><span style="color:#D4D4D4">, </span><span style="color:#8CDCFE">b</span><span style="color:#FFD705">)</span><span style="color:#D4D4D4"> </span><span style="color:#FFD705">{</span><span style="color:#D4D4D4"><br></span><span style="color:#D4D4D4">    </span><span style="color:#C586C0">return</span><span style="color:#D4D4D4"> </span><span style="color:#8CDCFE">a</span><span style="color:#D4D4D4"> - </span><span style="color:#8CDCFE">b</span><span style="color:#D4D4D4"><br></span><span style="color:#FFD705">}</span><span style="color:#D4D4D4"><br><br></span><span style="color:#307CD6">func</span><span style="color:#D4D4D4"> </span><span style="color:#DCDCAA">mul</span><span style="color:#FFD705">(</span><span style="color:#8CDCFE">a</span><span style="color:#D4D4D4">, </span><span style="color:#8CDCFE">b</span><span style="color:#FFD705">)</span><span style="color:#D4D4D4"> </span><span style="color:#FFD705">{</span><span style="color:#D4D4D4"><br></span><span style="color:#D4D4D4">    </span><span style="color:#C586C0">return</span><span style="color:#D4D4D4"> </span><span style="color:#8CDCFE">a</span><span style="color:#D4D4D4"> * </span><span style="color:#8CDCFE">b</span><span style="color:#D4D4D4"><br></span><span style="color:#FFD705">}</span><span style="color:#D4D4D4"><br><br></span><span style="color:#307CD6">func</span><span style="color:#D4D4D4"> </span><span style="color:#DCDCAA">floordiv</span><span style="color:#FFD705">(</span><span style="color:#8CDCFE">a</span><span style="color:#D4D4D4">, </span><span style="color:#8CDCFE">b</span><span style="color:#FFD705">)</span><span style="color:#D4D4D4"> </span><span style="color:#FFD705">{</span><span style="color:#D4D4D4"><br></span><span style="color:#D4D4D4">    </span><span style="color:#549952"># check b is zero</span><span style="color:#D4D4D4"><br></span><span style="color:#D4D4D4">    </span><span style="color:#C586C0">return</span><span style="color:#D4D4D4"> </span><span style="color:#8CDCFE">b</span><span style="color:#D4D4D4"> != </span><span style="color:#B5CEA8">0</span><span style="color:#D4D4D4"> ? </span><span style="color:#8CDCFE">a</span><span style="color:#D4D4D4"> / </span><span style="color:#8CDCFE">b</span><span style="color:#D4D4D4"> : </span><span style="color:#CE9178">&quot;Cannot be divided by 0!&quot;</span><span style="color:#D4D4D4"><br></span><span style="color:#FFD705">}</span><span style="color:#D4D4D4"><br><br></span><span style="color:#549952"># operation matching</span><span style="color:#D4D4D4"><br></span><span style="color:#C586C0">switch</span><span style="color:#D4D4D4"> </span><span style="color:#FFD705">(</span><span style="color:#8CDCFE">op</span><span style="color:#D4D4D4">.</span><span style="color:#DCDCAA">strip</span><span style="color:#D45DBA">()</span><span style="color:#FFD705">)</span><span style="color:#D4D4D4"><br></span><span style="color:#FFD705">{</span><span style="color:#D4D4D4"><br></span><span style="color:#D4D4D4">    </span><span style="color:#C586C0">case</span><span style="color:#D4D4D4"> </span><span style="color:#CE9178">&#x27;+&#x27;</span><span style="color:#D4D4D4">:</span><span style="color:#D4D4D4"><br></span><span style="color:#D4D4D4">        </span><span style="color:#8CDCFE">result</span><span style="color:#D4D4D4"> = </span><span style="color:#DCDCAA">add</span><span style="color:#D45DBA">(</span><span style="color:#8CDCFE">a</span><span style="color:#D4D4D4">, </span><span style="color:#8CDCFE">b</span><span style="color:#D45DBA">)</span><span style="color:#D4D4D4"><br></span><span style="color:#D4D4D4">        </span><span style="color:#DCDCAA">print</span><span style="color:#D45DBA">(</span><span style="color:#CE9178">&quot;Result of {} + {} = {}&quot;</span><span style="color:#D4D4D4">.</span><span style="color:#DCDCAA">format</span><span style="color:#1A9FFF">(</span><span style="color:#8CDCFE">a</span><span style="color:#D4D4D4">, </span><span style="color:#8CDCFE">b</span><span style="color:#D4D4D4">, </span><span style="color:#8CDCFE">result</span><span style="color:#1A9FFF">)</span><span style="color:#D45DBA">)</span><span style="color:#D4D4D4"><br></span><span style="color:#D4D4D4">        </span><span style="color:#C586C0">break</span><span style="color:#D4D4D4"><br><br></span><span style="color:#D4D4D4">    </span><span style="color:#C586C0">case</span><span style="color:#D4D4D4"> </span><span style="color:#CE9178">&#x27;-&#x27;</span><span style="color:#D4D4D4">:</span><span style="color:#D4D4D4"><br></span><span style="color:#D4D4D4">        </span><span style="color:#8CDCFE">result</span><span style="color:#D4D4D4"> = </span><span style="color:#DCDCAA">sub</span><span style="color:#D45DBA">(</span><span style="color:#8CDCFE">a</span><span style="color:#D4D4D4">, </span><span style="color:#8CDCFE">b</span><span style="color:#D45DBA">)</span><span style="color:#D4D4D4"><br></span><span style="color:#D4D4D4">        </span><span style="color:#DCDCAA">print</span><span style="color:#D45DBA">(</span><span style="color:#CE9178">&quot;Result of {} - {} = {}&quot;</span><span style="color:#D4D4D4">.</span><span style="color:#DCDCAA">format</span><span style="color:#1A9FFF">(</span><span style="color:#8CDCFE">a</span><span style="color:#D4D4D4">, </span><span style="color:#8CDCFE">b</span><span style="color:#D4D4D4">, </span><span style="color:#8CDCFE">result</span><span style="color:#1A9FFF">)</span><span style="color:#D45DBA">)</span><span style="color:#D4D4D4"><br></span><span style="color:#D4D4D4">        </span><span style="color:#C586C0">break</span><span style="color:#D4D4D4"><br><br></span><span style="color:#D4D4D4">    </span><span style="color:#C586C0">case</span><span style="color:#D4D4D4"> </span><span style="color:#CE9178">&#x27;*&#x27;</span><span style="color:#D4D4D4">:</span><span style="color:#D4D4D4"><br></span><span style="color:#D4D4D4">        </span><span style="color:#8CDCFE">result</span><span style="color:#D4D4D4"> = </span><span style="color:#DCDCAA">mul</span><span style="color:#D45DBA">(</span><span style="color:#8CDCFE">a</span><span style="color:#D4D4D4">, </span><span style="color:#8CDCFE">b</span><span style="color:#D45DBA">)</span><span style="color:#D4D4D4"><br></span><span style="color:#D4D4D4">        </span><span style="color:#DCDCAA">print</span><span style="color:#D45DBA">(</span><span style="color:#CE9178">&quot;Result of {} * {} = {}&quot;</span><span style="color:#D4D4D4">.</span><span style="color:#DCDCAA">format</span><span style="color:#1A9FFF">(</span><span style="color:#8CDCFE">a</span><span style="color:#D4D4D4">, </span><span style="color:#8CDCFE">b</span><span style="color:#D4D4D4">, </span><span style="color:#8CDCFE">result</span><span style="color:#1A9FFF">)</span><span style="color:#D45DBA">)</span><span style="color:#D4D4D4"><br></span><span style="color:#D4D4D4">        </span><span style="color:#C586C0">break</span><span style="color:#D4D4D4"><br><br></span><span style="color:#D4D4D4">    </span><span style="color:#C586C0">case</span><span style="color:#D4D4D4"> </span><span style="color:#CE9178">&#x27;/&#x27;</span><span style="color:#D4D4D4">:</span><span style="color:#D4D4D4"><br></span><span style="color:#D4D4D4">        </span><span style="color:#8CDCFE">result</span><span style="color:#D4D4D4"> = </span><span style="color:#DCDCAA">floordiv</span><span style="color:#D45DBA">(</span><span style="color:#8CDCFE">a</span><span style="color:#D4D4D4">, </span><span style="color:#8CDCFE">b</span><span style="color:#D45DBA">)</span><span style="color:#D4D4D4"><br></span><span style="color:#D4D4D4">        </span><span style="color:#DCDCAA">print</span><span style="color:#D45DBA">(</span><span style="color:#CE9178">&quot;Result of {} / {} = {}&quot;</span><span style="color:#D4D4D4">.</span><span style="color:#DCDCAA">format</span><span style="color:#1A9FFF">(</span><span style="color:#8CDCFE">a</span><span style="color:#D4D4D4">, </span><span style="color:#8CDCFE">b</span><span style="color:#D4D4D4">, </span><span style="color:#8CDCFE">result</span><span style="color:#1A9FFF">)</span><span style="color:#D45DBA">)</span><span style="color:#D4D4D4"><br></span><span style="color:#D4D4D4">        </span><span style="color:#C586C0">break</span><span style="color:#D4D4D4"><br><br></span><span style="color:#D4D4D4">    </span><span style="color:#C586C0">default</span><span style="color:#D4D4D4">:</span><span style="color:#D4D4D4"><br></span><span style="color:#D4D4D4">        </span><span style="color:#DCDCAA">print</span><span style="color:#D45DBA">(</span><span style="color:#CE9178">&quot;Unknown operation&quot;</span><span style="color:#D45DBA">)</span><span style="color:#D4D4D4"><br></span><span style="color:#FFD705">}</span></pre>
 
-## Library Requirements
+## Library Requirements 📓
 | No | Name              | Status                 |
 |:--:|:------------------|:----------------------:|
 | 1  | `argparse`        | **required**           |
@@ -80,18 +80,20 @@ Familiar? There it is!
 | 17 | `types`           | **required**           |
 | 18 | `typing`          | **required**           |
 | 19 | `unicodedata`     | **required**           |
-| 1  | `msvcrt`          | **required (library)** |
-| 2  | `pprint`          | **required (library)** |
-| 3  | `shutil`          | **required (library)** |
-| 4  | `stat`            | **required (library)** |
-| 5  | `termios`         | **required (library)** |
-| 6  | `time`            | **required (library)** |
-| 7  | `tty`             | **required (library)** |
+| 1  | `ast`             | **required (library)** |
+| 2  | `msvcrt`          | **required (library)** |
+| 3  | `pprint`          | **required (library)** |
+| 4  | `shutil`          | **required (library)** |
+| 5  | `stat`            | **required (library)** |
+| 6  | `termios`         | **required (library)** |
+| 7  | `time`            | **required (library)** |
+| 8  | `tty`             | **required (library)** |
 | 1  | `beartype`        | **optional**           |
 | 2  | `prompt_toolkit`  | **optional**           |
 | 3  | `pygments`        | **optional**           |
-| 4  | `tkinter`         | **optional**           |
-| 5  | `IPython`         | **optional**           |
+| 4  | `readline`        | **optional**           |
+| 5  | `tkinter`         | **optional**           |
+| 6  | `IPython`         | **optional**           |
 
 ### Status Explanation
 - **required**: Required by PyScript entirely.
@@ -99,7 +101,7 @@ Familiar? There it is!
                           import it.
 - **optional**: Not required, but if it is present, some features can be used without issue.
 
-## Behind it
+## Behind it 🕰️
 This language created from based up on a
 [YouTube tutorial](https://www.youtube.com/playlist?list=PLZQftyCk7_SdoVexSmwy_tBgs7P0b97yD) (check more on GitHub
 [here](https://github.com/davidcallanan/py-myopl-code) by **@davidcallanan**). At least, it takes about 6 months to

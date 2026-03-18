@@ -177,7 +177,7 @@ class PysParser(Pys):
             return self.assert_statement()
 
         elif self.current_token.type == TOKENS['AT']:
-            return self.decorator()
+            return self.decorator_statement()
 
         elif self.current_token.match(TOKENS['KEYWORD'], 'continue'):
             result = PysParserResult()
@@ -707,12 +707,19 @@ class PysParser(Pys):
         result = PysParserResult()
         token = self.current_token
 
-        if token.match(TOKENS['KEYWORD'], '__debug__', 'True', 'False', 'None', 'true', 'false', 'nil', 'none', 'null'):
+        if token.match(TOKENS['KEYWORD'], 'True', 'False', 'None', 'true', 'false', 'nil', 'none', 'null'):
             result.register_advancement()
             self.advance()
             self.skip_expression(result)
 
             return result.success(PysKeywordNode(token))
+
+        elif token.match(TOKENS['KEYWORD'], '__debug__'):
+            result.register_advancement()
+            self.advance()
+            self.skip_expression(result)
+
+            return result.success(PysDebugNode(token.position))
 
         elif token.type == TOKENS['IDENTIFIER']:
             result.register_advancement()
@@ -921,43 +928,6 @@ class PysParser(Pys):
             )
 
         return result.success(node(elements, position))
-
-    def assignment_statement(self, function: Optional[Callable[[], PysParserResult]] = None) -> PysParserResult:
-        result = PysParserResult()
-
-        node = result.register(self.expression(function))
-        if result.error:
-            return result
-
-        if self.current_token.type in (
-            TOKENS['EQUAL'],
-            TOKENS['EQUAL_PLUS'],
-            TOKENS['EQUAL_MINUS'],
-            TOKENS['EQUAL_STAR'],
-            TOKENS['EQUAL_SLASH'],
-            TOKENS['EQUAL_DOUBLE_SLASH'],
-            TOKENS['EQUAL_PERCENT'],
-            TOKENS['EQUAL_AT'],
-            TOKENS['EQUAL_DOUBLE_STAR'],
-            TOKENS['EQUAL_AMPERSAND'],
-            TOKENS['EQUAL_PIPE'],
-            TOKENS['EQUAL_CIRCUMFLEX'],
-            TOKENS['EQUAL_DOUBLE_LESS_THAN'],
-            TOKENS['EQUAL_DOUBLE_GREATER_THAN']
-        ):
-            operand = self.current_token
-
-            result.register_advancement()
-            self.advance()
-            self.skip_expression(result)
-
-            value = result.register(self.assignment_statement(function), True)
-            if result.error:
-                return result
-
-            node = PysAssignmentNode(node, operand, value)
-
-        return result.success(node)
 
     def from_statement(self) -> PysParserResult:
         result = PysParserResult()
@@ -2248,7 +2218,7 @@ class PysParser(Pys):
             )
         )
 
-    def decorator(self) -> PysParserResult:
+    def decorator_statement(self) -> PysParserResult:
         result = PysParserResult()
 
         if self.current_token.type != TOKENS['AT']:
@@ -2281,6 +2251,43 @@ class PysParser(Pys):
             return result.success(class_expression)
 
         return result.failure(self.new_error("expected function or class declaration after decorator"))
+
+    def assignment_statement(self, function: Optional[Callable[[], PysParserResult]] = None) -> PysParserResult:
+        result = PysParserResult()
+
+        node = result.register(self.expression(function))
+        if result.error:
+            return result
+
+        if self.current_token.type in (
+            TOKENS['EQUAL'],
+            TOKENS['EQUAL_PLUS'],
+            TOKENS['EQUAL_MINUS'],
+            TOKENS['EQUAL_STAR'],
+            TOKENS['EQUAL_SLASH'],
+            TOKENS['EQUAL_DOUBLE_SLASH'],
+            TOKENS['EQUAL_PERCENT'],
+            TOKENS['EQUAL_AT'],
+            TOKENS['EQUAL_DOUBLE_STAR'],
+            TOKENS['EQUAL_AMPERSAND'],
+            TOKENS['EQUAL_PIPE'],
+            TOKENS['EQUAL_CIRCUMFLEX'],
+            TOKENS['EQUAL_DOUBLE_LESS_THAN'],
+            TOKENS['EQUAL_DOUBLE_GREATER_THAN']
+        ):
+            operand = self.current_token
+
+            result.register_advancement()
+            self.advance()
+            self.skip_expression(result)
+
+            value = result.register(self.assignment_statement(function), True)
+            if result.error:
+                return result
+
+            node = PysAssignmentNode(node, operand, value)
+
+        return result.success(node)
 
     def block_statements(self) -> PysParserResult:
         result = PysParserResult()
