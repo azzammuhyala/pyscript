@@ -4,7 +4,7 @@ from .constants import TOKENS
 from .cache import PysUndefined, undefined
 from .mapping import GET_BINARY_FUNCTIONS_MAP, EMPTY_MAP
 from .utils.decorators import immutable
-from .utils.generic import setimuattr, dcontains, dgetitem, dsetitem, ddelitem, dget, dkeys
+from .utils.generic import setimuattr, delimuattr, dcontains, dgetitem, dsetitem, ddelitem, dget, dkeys
 from .utils.similarity import get_closest
 
 from types import ModuleType

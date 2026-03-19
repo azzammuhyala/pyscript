@@ -10,12 +10,12 @@ from .objects import PysFunction
 from .pysbuiltins import ce, nce, increment, decrement
 from .results import PysRunTimeResult
 from .symtab import PysClassSymbolTable, find_closest
-from .utils.debug import get_error_args
+from .utils.debug import get_traceback_info
 from .utils.generic import getattribute, setimuattr, dkeys, is_object_of
 from .utils.similarity import get_closest
 
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, Callable
 
 T_KEYWORD = TOKENS['KEYWORD']
 T_STRING = TOKENS['STRING']
@@ -785,7 +785,7 @@ def visit_WithNode(node: PysWithNode, context: PysContext) -> PysRunTimeResult:
     for exit, ncontext_position in reversed(exit_functions):
         with result(context, ncontext_position):
             handle_call(exit, context, ncontext_position)
-            if exit(*get_error_args(error)):
+            if exit(*get_traceback_info(error)):
                 failure(None)
                 error = None
 
@@ -1055,6 +1055,7 @@ def visit_ClassNode(node: PysClassNode, context: PysContext) -> PysRunTimeResult
     with result(context, nposition):
         cls = type(name, tuple(bases), class_context.symbol_table.symbols)
         cls.__qualname__ = class_context.qualname
+        cls.__module__ = 'pyscript'
 
     if should_return():
         return result
@@ -1505,7 +1506,7 @@ def visit_declaration_AssignmentNode(
 
     return result.success(None)
 
-get_visitor = {
+get_visitor: Callable[[type[PysNode]], Callable[[PysNode, PysContext], PysRunTimeResult]] = {
     class_node: globals()['visit_' + class_node.__name__.removeprefix('Pys')]
     for class_node in PysNode.__subclasses__()
 }.__getitem__

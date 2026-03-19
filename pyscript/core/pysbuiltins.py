@@ -83,7 +83,7 @@ def _unpack_comprehension_function(pyfunc: PysPythonFunction, function: Callable
     handle_call(function, code.context, code.position)
     return final
 
-class _Printer(Pys):
+class PysPrinter(Pys):
 
     def __init__(self, name: str, text: str | Any) -> None:
         self.name = name
@@ -95,7 +95,7 @@ class _Printer(Pys):
     def __call__(self) -> None:
         print(self.text)
 
-class _Helper(_Printer):
+class PysHelper(PysPrinter):
 
     def __init__(self) -> None:
         super().__init__('help', None)
@@ -120,15 +120,15 @@ try:
         open(normpath(OTHER_PATH, 'credits', absolute=False)) as credits, 
         open(normpath(OTHER_PATH, 'license', absolute=False)) as license
     ):
-        copyright = _Printer('copyright', copyright.read())
-        credits = _Printer('credits', credits.read())
-        license = _Printer('license', license.read())
+        copyright = PysPrinter('copyright', copyright.read())
+        credits = PysPrinter('credits', credits.read())
+        license = PysPrinter('license', license.read())
 except:
-    copyright = _Printer('copyright', '')
-    credits = _Printer('credits', '')
-    license = _Printer('license', '')
+    copyright = PysPrinter('copyright', '')
+    credits = PysPrinter('credits', '')
+    license = PysPrinter('license', '')
 
-help = _Helper()
+help = PysHelper()
 
 @PysBuiltinFunction
 def require(pyfunc, name):

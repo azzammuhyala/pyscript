@@ -146,15 +146,16 @@ def pys_runner(
         result.parser_flags = parser.parser_flags
         pys_sys.flags = context.flags
 
-        runtime_result = get_visitor(node.__class__)(node, context)
+        visitor_result = get_visitor(node.__class__)(node, context)
 
-        if runtime_result.error:
-            return result.failure(runtime_result.error)
+        if visitor_result.error:
+            return result.failure(visitor_result.error)
 
         if mode == 'single' and (displayhook := pys_sys.displayhook) is not None:
-            displayhook(runtime_result.value)
+            handle_call(displayhook, context, position)
+            displayhook(visitor_result.value)
 
-        return result.success(runtime_result.value)
+        return result.success(visitor_result.value)
 
     return result.failure(runtime_result.error) if runtime_result.error else result
 
@@ -348,7 +349,7 @@ def pys_shell(
                 if text == 0:
                     return 0
                 elif text == 1:
-                    symtab = _normalize_namespace(globals, file)
+                    symtab = _normalize_namespace(undefined, file)
                     parser_flags = default_parser_flags
                     line = 0
                     continue

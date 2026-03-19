@@ -7,22 +7,20 @@ if (shell.ADVANCE_LINE_SHELL_SUPPORT) {
     MAXIMUM_HISTORY_LINE = shell.MAXIMUM_HISTORY_LINE
 
     func load() => list(shell.history.load_history_strings())
-
-    append = shell.history.append_string
-
-    if (shell.USE_FILE_HISTORY) {
+    func append(string) shell.history.append_string(string)
+    if (shell.USE_FILE_HISTORY)
         func clear() {
             shell.history._loaded_strings.clear()
             explorer.clear(HISTORY_PATH)
         }
-    } else {
+    else
         func clear() {
             shell.history._loaded_strings.clear()
             shell.history._storage.clear()
         }
-    }
+}
 
-} else {
+else {
     HISTORY_PATH = '<none>'
     MAXIMUM_HISTORY_LINE = 1000
 

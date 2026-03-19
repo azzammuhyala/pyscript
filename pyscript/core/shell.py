@@ -1,7 +1,9 @@
 from .bases import Pys
 from .cache import pys_sys
 from .constants import ENV_PYSCRIPT_HISTORY_PATH, ENV_PYSCRIPT_MAXIMUM_HISTORY_LINE
+from .exceptions import PysSignal
 from .mapping import BRACKETS_MAP
+from .utils.debug import print_traceback
 from .utils.decorators import singleton
 from .utils.path import normpath
 
@@ -140,13 +142,23 @@ class PysLineShell(PysIncompleteHandler):
     def _process_command(self, text: str) -> Literal[-1, 0, 1] | None:
         if text == '/exit':
             return 0
+
         elif text == '/clean':
             return 1
+
         elif text == '/clear':
             try:
                 pys_sys.clearhook()
-            except BaseException as e:
-                print(f'clearhook: {type(e).__name__}: {e}', file=sys.stderr)
+            except:
+                try:
+                    exc_type, exc_value, exc_tb = sys.exc_info()
+                    print('An exception occurred while calling clearhook function:', file=sys.stderr)
+                    if exc_type is PysSignal and (exc_tb := exc_value.result.error) is not None:
+                        print_traceback(None, None, exc_tb)
+                    else:
+                        sys.excepthook(exc_type, exc_value, exc_tb)
+                except:
+                    pass
             return -1
 
     def prompt(self) -> Literal[0]:
@@ -155,11 +167,13 @@ class PysLineShell(PysIncompleteHandler):
 class PysClassicLineShell(PysLineShell):
 
     def prompt(self) -> str | Literal[0, 1]:
+        reset = self.reset
         is_multiline = self._is_multiline
         process_line = self._process_line
         process_command = self._process_command
 
         multiline = False
+        reset()
 
         while True:
 
@@ -188,12 +202,10 @@ class PysClassicLineShell(PysLineShell):
                 multiline = True
             else:
                 text = self.text
-                self.reset()
+                reset()
                 return text
 
 try:
-    from threading import RLock
-
     from prompt_toolkit.formatted_text import ANSI
     from prompt_toolkit.history import History, InMemoryHistory
     from prompt_toolkit.layout.processors import TabsProcessor
@@ -228,15 +240,21 @@ try:
                 return super().__new__(cls)
             raise NotImplementedError('not using file history')
 
+        def __init__(self):
+            from threading import RLock
+
+            super().__init__()
+            self.lock = RLock()
+
         def update_history(self, append_string: Optional[str] = None) -> list[str]:
             try:
 
-                with history_lock:
+                with self.lock:
                     strings = []
                     lines = []
                     update = False
 
-                    if os.path.exists(HISTORY_PATH):
+                    if os.path.isfile(HISTORY_PATH):
 
                         def add_to_string():
                             if line := '\n'.join(lines):
@@ -288,15 +306,11 @@ try:
             self._loaded_strings.insert(0, string)
             self.update_history(string)
 
-    history_lock = RLock()
     history = (PysHistory if USE_FILE_HISTORY else InMemoryHistory)()
 
     class PysPromptToolkitLineShell(PysLineShell, PromptSession):
 
         def __init__(self, ps1: str = '>>> ', ps2: str = '... ', colored: bool = True) -> None:
-            # circular import problem solved
-            from .highlight import PYGMENTS, PygmentsPyScriptStyle, PygmentsPyScriptShellLexer
-
             PysLineShell.__init__(self, ps1, ps2, colored)
 
             key_bindings = KeyBindings()
@@ -330,24 +344,31 @@ try:
             @key_bindings.add('enter', eager=True)
             def _(event):
                 buffer = self.default_buffer
+                document = buffer.document
                 reset = self.reset
+                is_multiline = self._is_multiline
                 process_line = self._process_line
 
                 reset()
 
                 # Ctrl + Z
-                if buffer.document.current_line_before_cursor.startswith('\x1a'):
+                if document.current_line_before_cursor.startswith('\x1a'):
                     self.app.exit(exception=EOFError)
                     return
 
-                for line in (buffer.text + '\n').splitlines():
+                row = document.cursor_position_row
+                should_process_lines = True
+
+                for i, line in enumerate((buffer.text + '\n').splitlines()):
                     process_line(line)
                     if self._must_break:
                         reset()
                         buffer.validate_and_handle()
                         return
+                    if i == row and is_multiline():
+                        should_process_lines = False
 
-                if not self._is_multiline():
+                if should_process_lines and not is_multiline():
                     reset()
                     buffer.validate_and_handle()
                     return
@@ -357,11 +378,15 @@ try:
             other_keyword = {}
 
             if colored:
+                # circular import problem solved
+                from .highlight import PYGMENTS, PygmentsPyScriptStyle, PygmentsPyScriptShellLexer
+
                 if PYGMENTS:
                     other_keyword.update({
                         'lexer': PygmentsLexer(PygmentsPyScriptShellLexer),
                         'style': style_from_pygments_cls(PygmentsPyScriptStyle)
                     })
+
             else:
                 other_keyword.update({
                     'color_depth': ColorDepth.DEPTH_1_BIT
@@ -379,6 +404,8 @@ try:
         def prompt(self) -> str | Literal[0, 1]:
             prompt = PromptSession.prompt
             process_command = self._process_command
+
+            self.reset()
 
             while True:
 

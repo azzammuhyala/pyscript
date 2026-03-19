@@ -58,6 +58,7 @@ class PysFunction(PysObject):
 
         self.__name__ = name = '<function>' if name is None else name
         self.__qualname__ = name if qualname is None else f'{qualname}.{name}'
+        self.__module__ = 'pyscript'
         self.__code__ = PysCode(
             parameters=tuple(parameters),
             body=body,
@@ -81,16 +82,13 @@ class PysFunction(PysObject):
 
     def __call__(self, *args, **kwargs) -> Any:
         code = self.__code__
-        code_body = code.body
-        code_parameters_length = code.parameters_length
-        code_parameter_names = code.parameter_names
 
         result = PysRunTimeResult()
         symbol_table = PysSymbolTable(code.closure_symbol_table)
         registered_arguments = set()
 
-        add_argument = registered_arguments.add
         set_symbol = symbol_table.set
+        add_argument = registered_arguments.add
 
         for name, arg in zip(code.argument_names, args):
             set_symbol(name, arg)
@@ -103,6 +101,8 @@ class PysFunction(PysObject):
             set_symbol(name, arg)
             add_argument(name)
             pop_keyword_arguments(name, None)
+
+        code_parameter_names = code.parameter_names
 
         for name, value in combined_keyword_arguments.items():
 
@@ -136,6 +136,7 @@ class PysFunction(PysObject):
             set_symbol(name, value)
             add_argument(name)
 
+        code_parameters_length = code.parameters_length
         arguments_length = len(args)
         total_registered = len(registered_arguments)
 
@@ -175,7 +176,7 @@ class PysFunction(PysObject):
             )
 
         result.register(
-            code.get_visitor(code_body.__class__)(
+            code.get_visitor((code_body := code.body).__class__)(
                 code_body,
                 PysContext(
                     file=code.file,
@@ -202,6 +203,7 @@ class PysPythonFunction(PysFunction):
         self.__func__ = func
         self.__name__ = getattr(func, '__name__', '<function>')
         self.__qualname__ = getattr(func, '__qualname__', '<function>')
+        self.__module__ = getattr(func, '__module__', 'pyscript')
         self.__doc__ = getattr(func, '__doc__', None)
         self.__code__ = PysCode(
             context=None,

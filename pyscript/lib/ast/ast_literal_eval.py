@@ -6,9 +6,10 @@ from pyscript.core.nodes import (
     PysListNode, PysTupleNode, PysCallNode, PysUnaryOperatorNode, PysBinaryOperatorNode, PysEllipsisNode
 )
 from pyscript.core.pysbuiltins import pys_builtins
+from pyscript.core.results import PysRunTimeResult
 
 from types import EllipsisType
-from typing import Any
+from typing import Any, Callable
 
 is_arithmetic = frozenset([TOKENS['PLUS'], TOKENS['MINUS']]).__contains__
 
@@ -78,7 +79,7 @@ def visit_BinaryOperatorNode(node: PysBinaryOperatorNode) -> Any:
 def visit_EllipsisNode(node: PysEllipsisNode) -> EllipsisType:
     return ...
 
-get_visitor = {
+get_visitor: Callable[[type[PysNode]], Callable[[PysNode], Any]] = {
     class_node: globals().get('visit_' + class_node.__name__.removeprefix('Pys'), visit_unknown_node)
     for class_node in PysNode.__subclasses__()
 }.__getitem__

@@ -4,7 +4,7 @@ from pyscript.core.mapping import SYMBOLS_TOKEN_MAP
 from pyscript.core.nodes import *
 from pyscript.core.utils.string import indent as sindent
 
-from typing import Literal
+from typing import Callable, Literal
 
 def indent(string: str) -> str:
     return sindent(string, 4)
@@ -539,7 +539,7 @@ def visit_ContinueNode(node: PysContinueNode) -> Literal['continue']:
 def visit_BreakNode(node: PysBreakNode) -> Literal['break']:
     return 'break'
 
-get_visitor = {
+get_visitor: Callable[[type[PysNode]], Callable[[PysNode], str]] = {
     class_node: globals()['visit_' + class_node.__name__.removeprefix('Pys')]
     for class_node in PysNode.__subclasses__()
 }.__getitem__

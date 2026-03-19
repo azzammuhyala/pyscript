@@ -5,7 +5,7 @@ from .context import PysContext
 from .exceptions import PysTraceback, PysSignal
 from .nodes import PysNode
 from .position import PysPosition
-from .utils.debug import print_traceback, get_error_args
+from .utils.debug import print_traceback, get_traceback_info
 
 from types import TracebackType
 from typing import Any, Literal, Union
@@ -169,8 +169,10 @@ class PysExecuteResult(PysResult):
 
     def end_process(self) -> tuple[int | Any, bool]:
         result = PysRunTimeResult()
+        context = self.context
+        position = PysPosition(self.context.file, -1, -1)
 
-        with result(self.context, PysPosition(self.context.file, -1, -1)):
+        with result(context, position):
 
             if self.error:
                 if self.error.exception is SystemExit:
@@ -178,12 +180,14 @@ class PysExecuteResult(PysResult):
                 elif type(self.error.exception) is SystemExit:
                     return self.error.exception.code, True
                 elif (excepthook := pys_sys.excepthook) is not None:
-                    excepthook(*get_error_args(self.error))
+                    from .handlers import handle_call
+                    handle_call(excepthook, context, position)
+                    excepthook(*get_traceback_info(self.error))
                 return 1, False
 
         if result.should_return():
             if result.error:
-                print_traceback(*get_error_args(result.error))
+                print_traceback(*get_traceback_info(result.error))
             return 1, False
 
         return 0, False

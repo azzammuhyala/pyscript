@@ -66,9 +66,9 @@ else:
             except:
                 return False
 
-def get_error_args(traceback: PysTraceback) -> tuple[type[BaseException] | None,
-                                                     BaseException | None,
-                                                     PysTraceback | None]:
+def get_traceback_info(traceback: PysTraceback | None) -> tuple[type[BaseException] | None,
+                                                                BaseException | None,
+                                                                PysTraceback | None]:
     return (None, None, None) if traceback is None else (
         (exception, None, traceback)
         if isinstance(exception := traceback.exception, type) else
