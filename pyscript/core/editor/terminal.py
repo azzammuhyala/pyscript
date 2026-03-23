@@ -1,6 +1,6 @@
 from .bases import PysEditor
 from ..buffer import PysFileBuffer
-from ..highlight import PygmentsPyScriptStyle, PygmentsPyScriptLexer
+from ..highlight import PYGMENTS, PygmentsPyScriptStyle, PygmentsPyScriptLexer
 from ..version import __version__
 
 try:
@@ -13,13 +13,14 @@ try:
     from prompt_toolkit.layout.controls import FormattedTextControl
     from prompt_toolkit.layout.processors import TabsProcessor
     from prompt_toolkit.lexers import PygmentsLexer
+    from prompt_toolkit.output.color_depth import ColorDepth
     from prompt_toolkit.styles.pygments import style_from_pygments_cls
     from prompt_toolkit.widgets import TextArea
 
     class PysTerminalEditor(PysEditor, Application):
 
-        def __init__(self, file: PysFileBuffer) -> None:
-            PysEditor.__init__(self, file)
+        def __init__(self, file: PysFileBuffer, colored: bool = True) -> None:
+            PysEditor.__init__(self, file, colored)
 
             self.show_exit_window = False
 
@@ -30,20 +31,63 @@ try:
             def on_change(buffer):
                 self.modified = True
 
-            def create_title():
-                columns = self.output.get_size().columns
-                file = f'{self.basename}{"*" if self.modified else ""}'
-                title = f'  PyScript {__version__} - {file}  '
-                if len(title) > columns:
-                    title = file
-                return ANSI(f'\x1b[7m{title}{" " * max(0, columns - len(title))}\x1b[0m')
+            text_other_keyword = {}
+            close_window_keyword = {}
+            app_other_keyword = {}
+
+            if colored:
+
+                if PYGMENTS:
+                    text_other_keyword.update({
+                        'lexer': PygmentsLexer(PygmentsPyScriptLexer),
+                    })
+                    app_other_keyword.update({
+                        'style': style_from_pygments_cls(PygmentsPyScriptStyle)
+                    })
+
+                close_window_keyword.update({
+                    'content': FormattedTextControl(
+                        " File has been modified. Save before exit? \n"
+                        "          (Y)es / (N)o / (C)ancel          "
+                    ),
+                    'height': 2,
+                    'style': 'reverse'
+                })
+
+                def create_title():
+                    columns = self.output.get_size().columns
+                    file = self.basename + ('*' if self.modified else '')
+                    title = f'  PyScript {__version__} - {file}  '
+                    if len(title) > columns:
+                        title = file
+                    return ANSI(f'\x1b[7m{title}{" " * max(0, columns - len(title))}\x1b[0m')
+
+            else:
+                app_other_keyword.update({
+                    'color_depth': ColorDepth.DEPTH_1_BIT
+                })
+                close_window_keyword.update({
+                    'content': FormattedTextControl(
+                        "[File has been modified. Save before exit?]\n"
+                        "[         (Y)es / (N)o / (C)ancel         ]"
+                    ),
+                    'height': 2
+                })
+
+                def create_title():
+                    columns = self.output.get_size().columns
+                    file = self.basename + ('*' if self.modified else '')
+                    title = f' [PyScript {__version__} - {file}] '
+                    if len(title) > columns:
+                        title = file
+                    return title + ' ' * max(0, columns - len(title))
 
             self.text = TextArea(
                 multiline=True,
                 scrollbar=True,
                 wrap_lines=on_wrap,
-                lexer=PygmentsLexer(PygmentsPyScriptLexer),
-                input_processors=[TabsProcessor(tabstop=4)]
+                input_processors=[TabsProcessor(tabstop=4)],
+                **text_other_keyword
             )
 
             self.title = Window(
@@ -51,11 +95,7 @@ try:
                 height=1
             )
 
-            self.close_window = Window(
-                content=FormattedTextControl("File has been modified. Save before exit?\n(Y)es / (N)o / (C)ancel"),
-                height=2,
-                style='reverse'
-            )
+            self.close_window = Window(**close_window_keyword)
 
             self.exit_container = ConditionalContainer(
                 content=self.close_window,
@@ -148,11 +188,11 @@ try:
             Application.__init__(
                 self,
                 layout=Layout(self.root),
-                style=style_from_pygments_cls(PygmentsPyScriptStyle),
                 key_bindings=key_bindings,
                 full_screen=True,
                 mouse_support=True,
-                paste_mode=True
+                paste_mode=True,
+                **app_other_keyword
             )
 
         def run(self) -> None:

@@ -257,7 +257,8 @@ try:
                     if os.path.isfile(HISTORY_PATH):
 
                         def add_to_string():
-                            if line := '\n'.join(lines):
+                            line = '\n'.join(lines)
+                            if line:
                                 strings.append(line)
                             lines.clear()
 
@@ -301,8 +302,11 @@ try:
             self.update_history(string)
 
         def append_string(self, string: str) -> None:
-            if len(self._loaded_strings) >= MAXIMUM_HISTORY_LINE:
+            length = len(self._loaded_strings)
+            if length == MAXIMUM_HISTORY_LINE:
                 del self._loaded_strings[-1]
+            elif length > MAXIMUM_HISTORY_LINE:
+                del self._loaded_strings[:-MAXIMUM_HISTORY_LINE]
             self._loaded_strings.insert(0, string)
             self.update_history(string)
 

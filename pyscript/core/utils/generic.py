@@ -27,7 +27,8 @@ def get_frame(deep: int = 0) -> FrameType | None:
     return frame
 
 def get_locals(deep: int = 0) -> dict[str, Any]:
-    if frame := get_frame(deep + 1):
+    frame = get_frame(deep + 1)
+    if frame:
         locals = frame.f_locals
         return locals if isinstance(locals, dict) else dict(locals)
     return {}

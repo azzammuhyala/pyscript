@@ -24,7 +24,7 @@ HLFMT_BBCODE = _pyscript.highlight.HLFMT_BBCODE
 @_pyscript.utils.decorators.inheritable
 class Parser {
 
-    __slots__ = ('_compiled', 'source', 'file', 'flags')
+    __slots__ = ('source', 'flags', 'file', '_compiled')
 
     func __init__(self, source, flags=DEFAULT) {
 

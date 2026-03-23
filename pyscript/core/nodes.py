@@ -509,7 +509,7 @@ class PysRepeatNode(PysNode):
     @typechecked
     def __init__(
         self,
-        body: PysNode,
+        body: PysNode | None,
         condition: PysNode,
         else_body: PysNode | None,
         position: PysPosition

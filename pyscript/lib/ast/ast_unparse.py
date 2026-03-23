@@ -2,12 +2,12 @@ from pyscript.core.checks import is_keyword
 from pyscript.core.constants import TOKENS
 from pyscript.core.mapping import SYMBOLS_TOKEN_MAP
 from pyscript.core.nodes import *
-from pyscript.core.utils.string import indent as sindent
+from pyscript.core.utils.string import indent as utility_indent
 
 from typing import Callable, Literal
 
 def indent(string: str) -> str:
-    return sindent(string, 4)
+    return utility_indent(string, 4)
 
 def identifier(name: str) -> str:
     return f'${name}' if is_keyword(name) else name
@@ -39,10 +39,11 @@ def visit_DictionaryNode(node: PysDictionaryNode) -> str:
             element_string += ': '
             element_string += unparse(value)
             elements.append(element_string)
+
     else:
         for key, value in node.pairs:
             element_string = (
-                key.value.value 
+                identifier(key.value.value)
                 if isinstance(key, PysStringNode) and key.value.value.isindentifier() else
                 f'[{unparse(key)}]'
             )
@@ -178,13 +179,9 @@ def visit_ImportNode(node: PysImportNode) -> str:
     name, as_name = node.name
     name_string = identifier(name.value) if name.type == TOKENS['IDENTIFIER'] else repr(name.value)
 
-    if as_name:
-        name_string += ' as '
-        name_string += identifier(as_name.value)
-
     if node.packages == 'all':
         string += 'from '
-        string += identifier(name_string)
+        string += name_string
         string += ' import *'
 
     elif node.packages:
@@ -205,6 +202,10 @@ def visit_ImportNode(node: PysImportNode) -> str:
         string += ', '.join(packages)
 
     else:
+        if as_name:
+            name_string += ' as '
+            name_string += identifier(as_name.value)
+
         string += 'import '
         string += name_string
 
@@ -315,16 +316,13 @@ def visit_TryNode(node: PysTryNode) -> str:
     string += '\n}\n'
     string += '\n'.join(catch_cases)
 
-    if catch_cases:
-        string += '\n'
-
     if node.else_body:
-        string += 'else {\n'
+        string += '\nelse {\n'
         string += indent(unparse(node.else_body))
         string += '\n}'
 
     if node.finally_body:
-        string += 'finally {\n'
+        string += '\nfinally {\n'
         string += indent(unparse(node.finally_body))
         string += '\n}'
 
@@ -405,21 +403,26 @@ def visit_DoWhileNode(node: PysDoWhileNode) -> str:
     string += ')'
 
     if node.else_body:
-        string += 'else {\n'
+        string += '\nelse {\n'
         string += indent(unparse(node.else_body))
         string += '\n}'
 
     return string
 
 def visit_RepeatNode(node: PysRepeatNode) -> str:
-    string = 'repeat {\n'
-    string += indent(unparse(node.body))
-    string += '\n} until ('
+    string = 'repeat '
+
+    if node.body:
+        string += '{\n'
+        string += indent(unparse(node.body))
+        string += '\n} '
+
+    string += 'until ('
     string += unparse(node.condition)
     string += ')'
 
     if node.else_body:
-        string += 'else {\n'
+        string += '\nelse {\n'
         string += indent(unparse(node.else_body))
         string += '\n}'
 
@@ -476,8 +479,13 @@ def visit_FunctionNode(node: PysFunctionNode) -> str:
         string += '\n'
 
     if node.constructor:
+        with_parenthesis = False
         string += 'constructor'
     else:
+        with_parenthesis = not decorators
+        if with_parenthesis:
+            string += '('
+
         string += 'func'
         if node.name:
             string += ' '
@@ -488,6 +496,9 @@ def visit_FunctionNode(node: PysFunctionNode) -> str:
     string += ') {\n'
     string += indent(unparse(node.body))
     string += '\n}'
+
+    if with_parenthesis:
+        string += ')'
 
     return string
 

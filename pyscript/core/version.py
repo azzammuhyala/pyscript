@@ -2,13 +2,12 @@ from .bases import Pys
 from .cache import pys_sys
 from .utils.decorators import immutable, inheritable, singleton
 
-from re import compile as re_compile
 from types import MappingProxyType
 
-version_match = re_compile(r'^(\d+)\.(\d+)\.(\d+)((?:a|b|rc)(\d+)|\.(dev|post)(\d+))?$').match
+import re
 
-__version__ = '1.12.8'
-__date__ = '19 March 2026, 20:10 UTC+7'
+__version__ = '1.12.9'
+__date__ = '23 March 2026, 19:20 UTC+7'
 __author__ = ('azzammuhyala',)
 
 version = pys_sys.version = f'{__version__} ({__date__})'
@@ -29,7 +28,7 @@ class PysVersionInfo(Pys, tuple):
     __slots__ = ()
 
     def __new_singleton__(cls) -> 'PysVersionInfo':
-        match = version_match(__version__)
+        match = re.match(r'^(\d+)\.(\d+)\.(\d+)((?:a|b|rc)(\d+)|\.(dev|post)(\d+))?$', __version__)
         if not match:
             raise ValueError(f"invalid format version: {__version__!r}")
 
@@ -54,9 +53,7 @@ class PysVersionInfo(Pys, tuple):
         global version_info
         version_info = pys_sys.version_info = tuple.__new__(
             cls,
-            (
-                int(major), int(minor), int(micro), pre_tag_full, pre_num
-            )
+            (int(major), int(minor), int(micro), pre_tag_full, pre_num)
         )
         return version_info
 

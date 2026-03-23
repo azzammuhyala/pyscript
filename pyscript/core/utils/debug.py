@@ -2,11 +2,11 @@ from ..constants import ENV_PYSCRIPT_NO_EXCEPTHOOK, ENV_PYSCRIPT_NO_READLINE
 from ..exceptions import PysTraceback, PysSignal
 from .generic import is_environ
 
+from subprocess import run
 from sys import excepthook
 from types import TracebackType
 from typing import Any, Literal
 
-import os  # <-- WARNING: Python>=3.14, os.system function is deprecated
 import sys
 
 def print_display(value: Any) -> None:
@@ -52,11 +52,11 @@ if USE_NOTEBOOK:
 
 elif sys.platform == 'win32':
     def clear_shell() -> None:
-        os.system('cls')
+        run('cls', shell=True)
 
 else:
     def clear_shell() -> None:
-        os.system('clear')
+        run('clear', shell=True)
 
     if not is_environ(ENV_PYSCRIPT_NO_READLINE):
         def import_readline() -> bool:

@@ -4,7 +4,7 @@ from .constants import TOKENS
 from .cache import PysUndefined, undefined
 from .mapping import GET_BINARY_FUNCTIONS_MAP, EMPTY_MAP
 from .utils.decorators import immutable
-from .utils.generic import setimuattr, delimuattr, dcontains, dgetitem, dsetitem, ddelitem, dget, dkeys
+from .utils.generic import setimuattr, dcontains, dgetitem, dsetitem, ddelitem, dget, dkeys
 from .utils.similarity import get_closest
 
 from types import ModuleType
@@ -21,8 +21,12 @@ class PysSymbolTable(Pys):
         setimuattr(self, 'globals', set())
 
     def get(self, name: str) -> Any | PysUndefined:
-        if (value := dget(symbols := self.symbols, name, undefined)) is undefined:
-            if parent := self.parent:
+        symbols = self.symbols
+        value = dget(symbols, name, undefined)
+
+        if value is undefined:
+            parent = self.parent
+            if parent:
                 return parent.get(name)
 
             builtins = dget(symbols, '__builtins__', undefined)
@@ -53,7 +57,9 @@ class PysSymbolTable(Pys):
         return True
 
     def remove(self, name: str) -> bool:
-        if not dcontains(symbols := self.symbols, name):
+        symbols = self.symbols
+
+        if not dcontains(symbols, name):
             return (
                 parent.remove(name)
                 if name in self.globals and (parent := self.parent) else 

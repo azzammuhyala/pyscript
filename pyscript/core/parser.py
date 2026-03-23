@@ -1796,7 +1796,7 @@ class PysParser(Pys):
         self.advance()
         self.skip(result)
 
-        body = result.register(self.block_statements(), True)
+        body = result.try_register(self.block_statements())
         if result.error:
             return result
 
@@ -1814,19 +1814,21 @@ class PysParser(Pys):
             return result
 
         else_body = None
-        advance_count = self.skip(result)
 
-        if self.current_token.match(TOKENS['KEYWORD'], 'else'):
-            result.register_advancement()
-            self.advance()
-            self.skip(result)
+        if body:
+            advance_count = self.skip(result)
 
-            else_body = result.register(self.block_statements(), True)
-            if result.error:
-                return result
+            if self.current_token.match(TOKENS['KEYWORD'], 'else'):
+                result.register_advancement()
+                self.advance()
+                self.skip(result)
 
-        else:
-            self.reverse(advance_count)
+                else_body = result.register(self.block_statements(), True)
+                if result.error:
+                    return result
+
+            else:
+                self.reverse(advance_count)
 
         return result.success(
             PysRepeatNode(

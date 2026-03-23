@@ -30,7 +30,8 @@ def normstr(obj) -> str:
 
         lines = []
         while True:
-            if not (line := obj()):
+            line = obj()
+            if not line:
                 break
             lines.append(normstr(line))
         return '\n'.join(lines)

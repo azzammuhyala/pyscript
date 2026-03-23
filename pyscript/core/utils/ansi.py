@@ -73,7 +73,8 @@ def acolor(*args, style: int = DEFAULT) -> str:
     style = f'\x1b[{";".join(styles)}m' if styles else ''
 
     if isinstance(arg, str):
-        if (color := arg.strip().lower().replace(' ', '-').replace('_', '-')) in ANSI_NAMES_MAP:
+        color = arg.strip().lower().replace(' ', '-').replace('_', '-')
+        if color in ANSI_NAMES_MAP:
             return f'{style}\x1b[{ANSI_NAMES_MAP[color] + offset}m'
         arg = arg.replace(',', ' ').split()
 

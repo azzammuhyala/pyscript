@@ -157,8 +157,9 @@ class PysFunction(PysObject):
                 )
             )
 
-        elif total_registered > code_parameters_length or arguments_length > code_parameters_length:
-            given_arguments = arguments_length if arguments_length > code_parameters_length else total_registered
+        elif total_registered > code_parameters_length or \
+            (arguments_exceeding := arguments_length > code_parameters_length):
+            given_arguments = arguments_length if arguments_exceeding else total_registered
 
             raise PysSignal(
                 result.failure(
@@ -175,8 +176,10 @@ class PysFunction(PysObject):
                 )
             )
 
+        code_body = code.body
+
         result.register(
-            code.get_visitor((code_body := code.body).__class__)(
+            code.get_visitor(code_body.__class__)(
                 code_body,
                 PysContext(
                     file=code.file,

@@ -6,7 +6,6 @@ from pyscript.core.nodes import (
     PysListNode, PysTupleNode, PysCallNode, PysUnaryOperatorNode, PysBinaryOperatorNode, PysEllipsisNode
 )
 from pyscript.core.pysbuiltins import pys_builtins
-from pyscript.core.results import PysRunTimeResult
 
 from types import EllipsisType
 from typing import Any, Callable
@@ -41,11 +40,13 @@ def visit_StringNode(node: PysStringNode) -> str | bytes:
     return node.value.value
 
 def visit_KeywordNode(node: PysKeywordNode) -> bool | None:
-    #      vvvvvvvvvvvvvvvvvvvvvvvvvvvv <- always boolean or none
+    #      vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv <- always boolean or none
     return get_value_from_keyword(node.name.value)
 
 def visit_IdentifierNode(node: PysIdentifierNode) -> Any:
-    if (value := get_identifier(name := node.name.value)) is None:
+    name = node.name.value
+    value = get_identifier(name)
+    if value is None:
         raise ValueError(f"invalid identifier: {name}")
     return value
 
@@ -62,17 +63,20 @@ def visit_TupleNode(node: PysTupleNode) -> tuple:
     return tuple(map(visit, node.elements))
 
 def visit_CallNode(node: PysCallNode) -> set:
-    if isinstance(target := node.target, PysIdentifierNode) and target.name.value == 'set' and not node.arguments:
+    target = node.target
+    if isinstance(target, PysIdentifierNode) and target.name.value == 'set' and not node.arguments:
         return set()
     raise ValueError("invalid call node except for 'set()'")
 
 def visit_UnaryOperatorNode(node: PysUnaryOperatorNode) -> Any:
-    if is_arithmetic(operand := node.operand.type):
+    operand = node.operand.type
+    if is_arithmetic(operand):
         return GET_UNARY_FUNCTIONS_MAP(operand)(visit(node.value))
     raise ValueError(f"invalid unary operator node: {REVERSE_TOKENS[operand]}")
 
 def visit_BinaryOperatorNode(node: PysBinaryOperatorNode) -> Any:
-    if is_arithmetic(operand := node.operand.type):
+    operand = node.operand.type
+    if is_arithmetic(operand):
         return GET_BINARY_FUNCTIONS_MAP(operand)(visit(node.left), visit(node.right))
     raise ValueError(f"invalid binary operator node: {REVERSE_TOKENS[operand]}")
 

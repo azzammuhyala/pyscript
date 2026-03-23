@@ -298,7 +298,7 @@ def pys_shell(
     Shell exit code. Sometimes the exit code is an other object.
     """
 
-    if pys_sys.__running_shell__:
+    if getattr(pys_sys, '__running_shell__', False):
         raise RuntimeError("another shell is still running")
 
     line = 0
@@ -342,8 +342,10 @@ def pys_shell(
         while True:
 
             try:
-                shell.ps1 = f'{bmagenta}{pys_sys.ps1}{reset}' if colored and colored_prompt else pys_sys.ps1
-                shell.ps2 = f'{bmagenta}{pys_sys.ps2}{reset}' if colored and colored_prompt else pys_sys.ps2
+                ps1 = getattr(pys_sys, 'ps1', '')
+                ps2 = getattr(pys_sys, 'ps2', '')
+                shell.ps1 = bmagenta + ps1 + reset if colored and colored_prompt else ps1
+                shell.ps2 = bmagenta + ps2 + reset if colored and colored_prompt else ps2
 
                 text = shell.prompt()
                 if text == 0:

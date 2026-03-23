@@ -75,11 +75,12 @@ Familiar? There it is!
 | 12 | `operator`        | **required**           |
 | 13 | `os`              | **required**           |
 | 14 | `re`              | **required**           |
-| 15 | `sys`             | **required**           |
-| 16 | `threading`       | **required**           |
-| 17 | `types`           | **required**           |
-| 18 | `typing`          | **required**           |
-| 19 | `unicodedata`     | **required**           |
+| 15 | `subprocess`      | **required**           |
+| 16 | `sys`             | **required**           |
+| 17 | `threading`       | **required**           |
+| 18 | `types`           | **required**           |
+| 19 | `typing`          | **required**           |
+| 20 | `unicodedata`     | **required**           |
 | 1  | `ast`             | **required (library)** |
 | 2  | `msvcrt`          | **required (library)** |
 | 3  | `pprint`          | **required (library)** |

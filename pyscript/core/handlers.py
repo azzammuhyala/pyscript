@@ -12,12 +12,14 @@ wrapper_function = (MethodType, classmethod, staticmethod)
 
 if not is_environ(ENV_PYSCRIPT_NO_GIL):
     from threading import RLock
+
     gil_lock = RLock()
 
     def handle_call(object: Any, context: PysContext, position: PysPosition) -> None:
         with gil_lock:
+            ins = isinstance
 
-            if (ins := isinstance)(object, PysFunction):
+            if ins(object, PysFunction):
                 code = object.__code__
                 code.context = context
                 code.position = position
@@ -26,7 +28,9 @@ if not is_environ(ENV_PYSCRIPT_NO_GIL):
                 handle_call(object.__func__, context, position)
 
             elif ins(object, type):
-                method = (gt := getattr)(object, '__new__', None)
+                gt = getattr
+
+                method = gt(object, '__new__', None)
                 if method is not None:
                     handle_call(method, context, position)
 
@@ -38,8 +42,9 @@ if not is_environ(ENV_PYSCRIPT_NO_GIL):
 else:
 
     def handle_call(object: Any, context: PysContext, position: PysPosition) -> None:
+        ins = isinstance
 
-        if (ins := isinstance)(object, PysFunction):
+        if ins(object, PysFunction):
             code = object.__code__
             code.context = context
             code.position = position
@@ -48,7 +53,9 @@ else:
             handle_call(object.__func__, context, position)
 
         elif ins(object, type):
-            method = (gt := getattr)(object, '__new__', None)
+            gt = getattr
+
+            method = gt(object, '__new__', None)
             if method is not None:
                 handle_call(method, context, position)
 

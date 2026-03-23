@@ -2,20 +2,38 @@ from pyscript.core.checks import is_keyword, is_left_bracket, is_right_bracket
 from pyscript.core.constants import TOKENS
 from pyscript.core.mapping import SYMBOLS_TOKEN_MAP
 from pyscript.core.token import PysToken
+from pyscript.core.utils.decorators import immutable, inheritable, singleton
 from pyscript.core.utils.generic import get_subscript
 
 from typing import Iterable
+
+@immutable
+@inheritable
+@singleton
+class TokenValueError:
+
+    def __repr__(self):
+        return '\\ERROR'
+
+token_value_error = TokenValueError()
 
 def untokenize(iterable: Iterable[PysToken]) -> str:
     iterable = tuple(iterable)
 
     parts = []
     add_space = False
+    newline = True
     brackets_stack = 0
 
     for i, token in enumerate(iterable):
         type = token.type
         value = token.value
+
+        if isinstance(value, tuple) and len(value) == 2 and callable(func := value[1]):
+            try:
+                value = func()
+            except:
+                value = token_value_error
 
         if type == TOKENS['NULL']:
             break
@@ -27,7 +45,9 @@ def untokenize(iterable: Iterable[PysToken]) -> str:
                 brackets_stack
             )
             parts.append(f'\n{"    " * stack}')
+            newline = True
             add_space = False
+            continue
 
         elif type == TOKENS['KEYWORD']:
             parts.append(f'{" " if add_space else ""}{value}')
@@ -42,7 +62,7 @@ def untokenize(iterable: Iterable[PysToken]) -> str:
             add_space = True
 
         elif type == TOKENS['COMMENT']:
-            parts.append(f' #{value}')
+            parts.append(f'{"" if newline else " "}#{value}')
             add_space = False
 
         elif type == TOKENS['NONE']:
@@ -63,5 +83,7 @@ def untokenize(iterable: Iterable[PysToken]) -> str:
         else:
             parts.append(SYMBOLS_TOKEN_MAP[type])
             add_space = False
+
+        newline = False
 
     return ''.join(parts)

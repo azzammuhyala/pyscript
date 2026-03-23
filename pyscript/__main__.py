@@ -236,7 +236,7 @@ try:
         )
 
     del (
-        ENV_PYSCRIPT_NO_COLOR_PROMPT, ENV_PYSCRIPT_CLASSIC_LINE_SHELL, DEFAULT, DEBUG, NO_COLOR, CLASSIC_LINE_SHELL,
+        ENV_PYSCRIPT_NO_COLOR_PROMPT, ENV_PYSCRIPT_CLASSIC_LINE_SHELL, DEFAULT, DEBUG, CLASSIC_LINE_SHELL,
         NO_COLOR_PROMPT, NOTEBOOK, GUI_SUPPORT, TERMINAL_SUPPORT, PYGMENTS, HLFMT_ANSI, HLFMT_HTML, HLFMT_BBCODE,
         USE_NOTEBOOK, OPTIONAL, REMAINDER, file_idx, end_idx, end_com, arg_com, com_idx, arg, pys_sys, __version__,
         is_environ, remove_python_path, getcwd, get_name_from_path, PysGUIEditor, PysTerminalEditor, ArgumentParser
@@ -275,7 +275,7 @@ if args.file is not None:
 
     if EDITOR_MAP and args.editor:
         try:
-            EDITOR_MAP[args.editor](file).run()
+            EDITOR_MAP[args.editor](file=file, colored=not (flags & NO_COLOR)).run()
         except BaseException as e:
             argument_error('-e/--editor', e)
 
@@ -354,4 +354,5 @@ else:
         flags=flags
     )
 
+# goodbye :>
 sys.exit(code)

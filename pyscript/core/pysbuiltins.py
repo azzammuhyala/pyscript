@@ -38,7 +38,8 @@ pyvars = builtins.vars
 pydir = builtins.dir
 
 def _supported_method(pyfunc: PysPythonFunction, object: Any, name: str, *args, **kwargs) -> tuple[bool, Any]:
-    if callable(method := getattr(object, name, None)):
+    method = getattr(object, name, None)
+    if callable(method):
         code = pyfunc.__code__
         handle_call(method, code.context, code.position)
         try:
@@ -50,7 +51,6 @@ def _supported_method(pyfunc: PysPythonFunction, object: Any, name: str, *args, 
     return False, None
 
 def _unpack_comprehension_function(pyfunc: PysPythonFunction, function: Callable) -> Callable:
-    code = pyfunc.__code__
     check = function
     final = function
     offset = 0
@@ -80,7 +80,9 @@ def _unpack_comprehension_function(pyfunc: PysPythonFunction, function: Callable
             def final(item):
                 return function(*item)
 
+    code = pyfunc.__code__
     handle_call(function, code.context, code.position)
+
     return final
 
 class PysPrinter(Pys):
@@ -147,11 +149,13 @@ def require(pyfunc, name):
     filename = context.file.name
 
     for path in pys_sys.path:
-        module_path = get_module_path(path := normpath(path, name, absolute=False))
+        path = normpath(path, name, absolute=False)
+        module_path = get_module_path(path)
         if module_path is not None:
             break
     else:
-        module_path = get_module_path(path := normpath(os.path.dirname(filename) or getcwd(), name, absolute=False))
+        path = normpath(os.path.dirname(filename) or getcwd(), name, absolute=False)
+        module_path = get_module_path(path)
         if module_path == filename:
             module_path = None
 
@@ -251,7 +255,7 @@ def breakpoint(pyfunc):
     Pauses program execution and enters shell debugging mode.
     """
 
-    if pys_sys.__running_breakpoint__:
+    if getattr(pys_sys, '__running_breakpoint__', False):
         raise RuntimeError("another breakpoint is still running")
 
     from .runner import pys_runner

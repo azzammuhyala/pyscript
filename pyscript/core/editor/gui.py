@@ -10,36 +10,9 @@ try:
 
     class PysGUIEditor(PysEditor, Tk):
 
-        def __init__(self, file: PysFileBuffer) -> None:
-            PysEditor.__init__(self, file)
+        def __init__(self, file: PysFileBuffer, colored: bool = True) -> None:
+            PysEditor.__init__(self, file, colored)
             Tk.__init__(self)
-
-            def setup_tags():
-                tag_configure = self.text.tag_configure
-                for token, style in PygmentsPyScriptStyle.list_styles():
-                    if color := style['color']:
-                        tag_configure(str(token), foreground=f'#{color}')
-
-            def update():
-                self.title(f'PyScript {__version__} - {self.basename}{"*" if self.modified else ""}')
-
-                index = '1.0'
-
-                text = self.text
-                text_tag_add = text.tag_add
-                text_tag_remove = text.tag_remove
-                text_index = text.index
-                get_length = len
-                to_string = str
-
-                for tag in text.tag_names():
-                    if tag != 'sel':
-                        text_tag_remove(tag, '1.0', 'end')
-
-                for type, value in self.lexer.get_tokens(text.get('1.0', 'end')):
-                    end_index = text_index(f'{index} + {get_length(value)} chars')
-                    text_tag_add(to_string(type), index, end_index)
-                    index = end_index
 
             def on_save(event=None):
                 self.save(self.text.get('1.0', 'end'))
@@ -140,7 +113,38 @@ try:
 
             self.wm_protocol('WM_DELETE_WINDOW', on_close)
 
-            setup_tags()
+            if colored:
+                tag_configure = self.text.tag_configure
+                for token, style in PygmentsPyScriptStyle.list_styles():
+                    color = style['color']
+                    if color:
+                        tag_configure(str(token), foreground=f'#{color}')
+
+                def update():
+                    self.title(f'PyScript {__version__} - {self.basename}{"*" if self.modified else ""}')
+
+                    index = '1.0'
+
+                    text = self.text
+                    text_tag_add = text.tag_add
+                    text_tag_remove = text.tag_remove
+                    text_index = text.index
+                    get_length = len
+                    to_string = str
+
+                    for tag in text.tag_names():
+                        if tag != 'sel':
+                            text_tag_remove(tag, '1.0', 'end')
+
+                    for type, value in self.lexer.get_tokens(text.get('1.0', 'end')):
+                        end_index = text_index(f'{index} + {get_length(value)} chars')
+                        text_tag_add(to_string(type), index, end_index)
+                        index = end_index
+
+            else:
+                def update():
+                    self.title(f'PyScript {__version__} - {self.basename}{"*" if self.modified else ""}')
+
             update()
 
         def run(self) -> None:

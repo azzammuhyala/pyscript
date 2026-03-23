@@ -319,13 +319,15 @@ class PysAnalyzer(Pys):
             self.visit(node.else_body)
 
     def visit_RepeatNode(self, node: PysRepeatNode) -> None:
-        self.in_loop += 1
 
-        self.visit(node.body)
-        if self.error:
-            return
+        if node.body:
+            self.in_loop += 1
 
-        self.in_loop -= 1
+            self.visit(node.body)
+            if self.error:
+                return
+
+            self.in_loop -= 1
 
         self.visit(node.condition)
         if self.error:

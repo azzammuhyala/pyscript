@@ -476,7 +476,8 @@ class PysLexer(Pys):
                         self.advance()
 
                 elif self.character_in('\\\'"nrtbfav\n'):
-                    if escape_character := ESCAPE_CHARACTERS_MAP.get(self.current_character):
+                    escape_character = ESCAPE_CHARACTERS_MAP.get(self.current_character)
+                    if escape_character:
                         string += escape_character
                     self.advance()
 

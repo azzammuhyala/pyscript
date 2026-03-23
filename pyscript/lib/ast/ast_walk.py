@@ -196,7 +196,10 @@ def walk(node: PysNode) -> Generator[PysNode, None, None]:
 
     elif isinstance(node, PysRepeatNode):
         yield node
-        yield from walk(node.body)
+
+        if node.body:
+            yield from walk(node.body)
+
         yield from walk(node.condition)
 
         if node.else_body:

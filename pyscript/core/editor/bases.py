@@ -9,8 +9,9 @@ import os
 class PysEditor(Pys):
 
     @typechecked
-    def __init__(self, file: PysFileBuffer) -> None:
+    def __init__(self, file: PysFileBuffer, colored: bool = True) -> None:
         self.file = file
+        self.colored = bool(colored)
         self.used = False
         self.modified = False
         self.wrapped = True

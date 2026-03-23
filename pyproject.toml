@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyscript-programming-language"
-version = "1.12.8"
+version = "1.12.9"
 description = "PyScript Programming Language"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
