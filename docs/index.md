@@ -1,10 +1,10 @@
 # PyScript Documention
 
+> Note: This documentation is still empty or incomplete
+
 <div align="center">
     <img src="https://github.com/azzammuhyala/pyscript/blob/main/PyScript.png?raw=true" alt="PyScript Logo" width="200">
 </div>
-
-> Note: This documentation is still empty or incomplete
 
 PyScript is a simple programming language built on top of Python. It combines some syntax from Python and JavaScript,
 so if you're already familiar with Python, JavaScript or both, it should be quite easy to learn.
@@ -37,14 +37,14 @@ pip install -U pyscript-programming-language
 
 [_OPTIONAL_] You can download additional libraries that PyScript requires with this command:
 ```sh
-pip install -U "pyscript-programming-language[other]"
+pip install -U pyscript-programming-language[other]
 ```
 
 And also, you can download PyScript with `git`:
 ```sh
 git clone https://github.com/azzammuhyala/pyscript
 cd pyscript
-python setup.py install
+pip install .
 ```
 
 After that, you can run the PyScript shell (_REPL_) with this command:
@@ -69,7 +69,7 @@ If successful, you can see the version, release date, and a `>>>` like Python sh
         - [list](syntaxes/expressions/list.md) [`[<elements>]`]
         - [dict](syntaxes/expressions/dict.md) [`{<key>: <value>}`]
         - [set](syntaxes/expressions/set.md) [`{<elements>}`]
-        - [Primary](syntaxes/expressions/primary.md) [`<target>(<parameters>)`, `<target>[<indexes>]`,
+        - [Primary](syntaxes/expressions/primary.md) [`<target>(<arguments>)`, `<target>[<slices>]`,
                                                       `<target>.<attribute>`]
         - [Incremental](syntaxes/expressions/incremental.md) [`<target>++` / `++<target>`, `<target>--` / `--<target>`]
         - [Power](syntaxes/expressions/power.md) [`**`]
@@ -86,34 +86,36 @@ If successful, you can see the version, release date, and a `>>>` like Python sh
                                                       `<valid> if <condition> else <invalid>`]
         - [typeof](syntaxes/expressions/typeof.md) [`typeof <target>`] (Lowest level operations)
         - [def/define/func/function - constructor](syntaxes/expressions/func-constructor.md) (Lowest level operations)
-        - [match-default](syntaxes/expressions/match-default.md) (Lowest level operations)
+        - [match - default](syntaxes/expressions/match-default.md) (Lowest level operations)
         - [Walrus](syntaxes/expressions/walrus.md) [`:=`] (Lowest level operations)
 
     - Statements
 
-        - [Assignment](syntaxes/statements/assignment.md)
-        - [from-import-as](syntaxes/statements/from-import-as.md)
-        - [if - elif/elseif - else](syntaxes/statements/if-elif-else.md)
-        - [switch-case-default](syntaxes/statements/switch-case-default.md)
-        - [try-catch-else-finally](syntaxes/statements/try-catch-else-finally.md)
-        - [with-as](syntaxes/statements/with-as.md)
-        - [for-else](syntaxes/statements/for-else.md)
-        - [while-else](syntaxes/statements/while-else.md)
-        - [do-while-else](syntaxes/statements/do-while-else.md)
-        - [repeat-until-else](syntaxes/statements/repeat-until-else.md)
-        - [class-extends](syntaxes/statements/class-extends.md)
+        - [from - import - as](syntaxes/statements/from-import-as.md)
+        - [if - elif/elseif/else if - else](syntaxes/statements/if-elif-else.md)
+        - [switch - case - default](syntaxes/statements/switch-case-default.md)
+        - [try - catch/except - else - finally](syntaxes/statements/try-catch-else-finally.md)
+        - [with - as](syntaxes/statements/with-as.md)
+        - [for - else](syntaxes/statements/for-else.md)
+        - [while - else](syntaxes/statements/while-else.md)
+        - [do - while - else](syntaxes/statements/do-while-else.md)
+        - [repeat - until - else](syntaxes/statements/repeat-until-else.md)
+        - [class - extends](syntaxes/statements/class-extends.md)
         - [return](syntaxes/statements/return.md)
         - [global](syntaxes/statements/global.md)
         - [del/delete](syntaxes/statements/del.md)
-        - [raise/throw - from](syntaxes/statements/throw-from.md)
+        - [throw/raise - from](syntaxes/statements/throw-from.md)
         - [assert](syntaxes/statements/assert.md)
         - [Decorator](syntaxes/statements/decorator.md)
+        - [continue](syntaxes/statements/continue.md)
+        - [break](syntaxes/statements/break.md)
+        - [Assignment](syntaxes/statements/assignment.md)
 
 - [PyScript Builtins](builtins/index.md)
 
+    - [isobjectof](builtins/builtins/isobjectof.md)
     - [copyright](builtins/builtins/copyright.md)
     - [credits](builtins/builtins/credits.md)
-    - [isobjectof](builtins/builtins/isobjectof.md)
     - [license](builtins/builtins/license.md)
     - [help](builtins/builtins/help.md)
     - [require](builtins/builtins/require.md)
@@ -136,20 +138,23 @@ If successful, you can see the version, release date, and a `>>>` like Python sh
 
     - PyScript Library
 
+        - [builtins](builtins/index.md)
+        - [sys](packages/pyscript-library/sys.md)
         - [ast](packages/pyscript-library/ast.md)
         - [fpstimer](packages/pyscript-library/fpstimer.md)
+        - [getch](packages/pyscript-library/getch.md)
         - [tokenize](packages/pyscript-library/tokenize.md)
         - [ansi](packages/pyscript-library/ansi.md)
         - [brainfuck](packages/pyscript-library/brainfuck.md)
         - [explorer](packages/pyscript-library/explorer.md)
-        - [getch](packages/pyscript-library/getch.md)
+        - [history](packages/pyscript-library/history.md)
         - [inspect](packages/pyscript-library/inspect.md)
         - [jsdict](packages/pyscript-library/jsdict.md)
         - [keyword](packages/pyscript-library/keyword.md)
         - [parser](packages/pyscript-library/parser.md)
+        - [pdisplay](packages/pyscript-library/pdisplay.md)
         - [site](packages/pyscript-library/site.md)
         - [symtable](packages/pyscript-library/symtable.md)
-        - [sys](packages/pyscript-library/sys.md)
         - [token](packages/pyscript-library/token.md)
 
     - PyScript Python Packages
@@ -169,3 +174,4 @@ If successful, you can see the version, release date, and a `>>>` like Python sh
 
             - [PygmentsPyScriptStyle](packages/pyscript-python-packages/classes/pygments-pyscript-style.md)
             - [PygmentsPyScriptLexer](packages/pyscript-python-packages/classes/pygments-pyscript-lexer.md)
+            - [PygmentsPyScriptShellLexer](packages/pyscript-python-packages/classes/pygments-pyscript-shell-lexer.md)
