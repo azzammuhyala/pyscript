@@ -1,7 +1,7 @@
 from pyscript.core.checks import is_keyword
-from pyscript.core.constants import TOKENS
 from pyscript.core.mapping import SYMBOLS_TOKEN_MAP
 from pyscript.core.nodes import *
+from pyscript.core.token import TOKENS
 from pyscript.core.utils.string import indent as utility_indent
 
 from typing import Callable, Literal

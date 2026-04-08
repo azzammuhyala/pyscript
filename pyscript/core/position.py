@@ -1,8 +1,8 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
 from .constants import ENV_PYSCRIPT_MAXIMUM_TRACEBACK_LINE
-from .mapping import GET_ACOLORS
-from .utils.decorators import typechecked, immutable
+from .mapping import GET_ACOLOR
+from .utils.decorators import typecheck, immutable
 from .utils.generic import setimuattr
 
 import os
@@ -21,7 +21,7 @@ class PysPosition(Pys):
 
     __slots__ = ('file', 'start', 'end', 'start_line', 'start_column', 'end_line', 'end_column', 'is_positionless')
 
-    @typechecked
+    @typecheck
     def __init__(self, file: PysFileBuffer, start: int, end: int) -> None:
         is_positionless = start < 0 or end < 0 or start > end or end > len(file.text) + 1
 
@@ -42,8 +42,8 @@ def format_error_arrow(position: PysPosition, colored: bool = True) -> str:
         return ''
 
     if colored:
-        reset = GET_ACOLORS('reset')
-        bred =  GET_ACOLORS('bold-red')
+        reset = GET_ACOLOR('reset')
+        bred =  GET_ACOLOR('bold-red')
     else:
         reset = ''
         bred = ''
@@ -61,7 +61,7 @@ def format_error_arrow(position: PysPosition, colored: bool = True) -> str:
 
     if text[position.start:position.end] in {'', '\n'}:
         if position.start > start:
-            line = text[start:end].lstrip().replace('\t', ' ')
+            line = text[start:end].lstrip().replace('\t', ' ').replace('\v', ' ')
             return f'{line}\n{bred}{" " * len(line)}^{reset}'
         return f'\n{bred}^{reset}'
 
@@ -111,4 +111,4 @@ def format_error_arrow(position: PysPosition, colored: bool = True) -> str:
 
         result.append(line)
 
-    return '\n'.join(result).replace('\t', ' ')
+    return '\n'.join(result).replace('\t', ' ').replace('\v', ' ')

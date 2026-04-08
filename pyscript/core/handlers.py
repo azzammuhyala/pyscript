@@ -1,8 +1,8 @@
 from .cache import pys_sys
 from .constants import ENV_PYSCRIPT_NO_GIL
 from .context import PysContext
-from .objects import PysFunction
 from .position import PysPosition
+from .pystypes import PysFunction
 from .utils.generic import is_environ
 
 from types import MethodType

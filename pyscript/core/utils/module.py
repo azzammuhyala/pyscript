@@ -5,9 +5,9 @@ import sys
 
 def get_module_path(path: str) -> str | None:
     # circular import problem solved
-    from ..checks import is_python_extensions
+    from ..checks import is_python_extension
 
-    if os.path.isfile(path) and not is_python_extensions(extension(path)):
+    if os.path.isfile(path) and not is_python_extension(extension(path)):
         return path
 
     candidate = path + '.pys'

@@ -1,13 +1,13 @@
 import _pyscript  # get a PyScript core module (pyscript.core)
 
 # tokens offset
-DOUBLE = _pyscript.constants.DOUBLE
-TRIPLE = _pyscript.constants.TRIPLE
-WITH_EQUAL = _pyscript.constants.WITH_EQUAL
-SPECIAL = _pyscript.constants.SPECIAL
+DOUBLE = _pyscript.token.DOUBLE
+TRIPLE = _pyscript.token.TRIPLE
+WITH_EQUAL = _pyscript.token.WITH_EQUAL
+SPECIAL = _pyscript.token.SPECIAL
 
 # constants
-TOKENS = _pyscript.constants.TOKENS
+TOKENS = _pyscript.token.TOKENS
 KEYWORDS = _pyscript.constants.KEYWORDS
 
 # parser flags

@@ -1,13 +1,14 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
-from .checks import is_constant_keywords, is_left_bracket, is_bracket, is_public_attribute
-from .constants import TOKENS, KEYWORDS, CONSTANT_KEYWORDS, LEXER_HIGHLIGHT
+from .checks import is_constant_keyword, is_left_bracket, is_bracket, is_public_attribute
+from .constants import KEYWORDS, CONSTANT_KEYWORDS, LEXER_HIGHLIGHT
 from .lexer import PysLexer
 from .mapping import BRACKETS_MAP
 from .position import PysPosition
 from .pysbuiltins import pys_builtins
+from .token import TOKENS
 from .utils.ansi import acolor
-from .utils.decorators import typechecked
+from .utils.decorators import typecheck
 from .utils.string import normstr
 
 from html import escape as html_escape
@@ -62,6 +63,7 @@ try:
     _scientific = f'(?:[eE][+-]?{_integer})'
     _imaginary = r'[jJiI]?'
     _dollar = r'(?:\$(?:[^\S\r\n]*))?'
+    _follow_identifier = rf'(\s+)(?!(?:{_keywords})\b)({_dollar}{_unicode_name})\b'
     _raw_string_prefixes = r'((?:R|r|BR|RB|Br|rB|Rb|bR|br|rb))'
     _string_or_bytes_prefixes = r'((?:B|b)?)'
 
@@ -141,7 +143,7 @@ try:
         name = 'pyscript'
         url = 'https://azzammuhyala.github.io/pyscript'
         aliases = ['pyscript', 'pyslang', 'pyscript-programming-language']
-        filenames = ['*.pys']
+        filenames = ['*.pys', '.pyscript_history']
 
         tokens = {
 
@@ -219,13 +221,13 @@ try:
 
                 # Class definition
                 (
-                    rf'\b(class)\b(\s+)(?!(?:{_keywords})\b)({_dollar}{_unicode_name})\b',
+                    rf'\b(class)\b{_follow_identifier}',
                     bygroups(Keyword.Constant, Whitespace, Name.Class)
                 ),
 
                 # Function definition
                 (
-                    rf'\b(def|define|func|function)\b(\s+)(?!(?:{_keywords})\b)({_dollar}{_unicode_name})\b',
+                    rf'\b(func|function)\b{_follow_identifier}',
                     bygroups(Keyword.Constant, Whitespace, Name.Function)
                 ),
 
@@ -253,7 +255,7 @@ try:
                 (r'\.\.\.', Keyword.Constant),
                 (
                     r'&&|\*\*|\+\+|--|//|<<|==|>>|\?\?|\|\||!=|%=|&=|\*=|\+=|-=|/=|:=|<=|>=|@=|^=|\|=|~=|\*\*=|//=|<<=|'
-                    r'>>=|->|=>|!>|~!|[!%&\*\+\-\./:<=>\?@^\|~]', Operator
+                    r'>>=|->|=>|!>|~!|<>|[!%&\*\+\-\./:<=>\?@^\|~]', Operator
                 ),
 
                 # Whitespaces
@@ -286,7 +288,7 @@ try:
             'raw-string-apostrophe-triple': [
                 (r"'''", String.Delimiter, '#pop'),
                 include('raw-string-escapes'),
-                (rf'{_newlines}|.', String),
+                (rf'{_newlines}|.', String)
             ],
 
             'raw-string-quotation-triple': [
@@ -338,7 +340,7 @@ try:
             'in-comment': [
                 (r'$', Comment.Single, '#pop'),
                 include('code-tags'),
-                (r'.', Comment.Single),
+                (r'.', Comment.Single)
             ]
 
         }
@@ -357,7 +359,7 @@ try:
 
     del (
         _set_constant_keywords, _keywords, _unicode_name, _newlines, _integer, _scientific, _imaginary, _dollar,
-        _raw_string_prefixes, _string_or_bytes_prefixes
+        _follow_identifier, _raw_string_prefixes, _string_or_bytes_prefixes
     )
 
     PYGMENTS = True
@@ -378,7 +380,7 @@ except BaseException as e:
 
     PYGMENTS = False
 
-@typechecked
+@typecheck
 class PysHighlightFormatter(Pys):
 
     def __init__(
@@ -441,7 +443,7 @@ HLFMT_BBCODE = PysHighlightFormatter(
 
 del _ansi_open_block
 
-@typechecked
+@typecheck
 def pys_highlight(
     source,
     formatter: Optional[Callable[[str, PysPosition, str], str]] = None,
@@ -491,7 +493,7 @@ def pys_highlight(
             type_format = 'end'
 
         elif ttype == TOKENS['KEYWORD']:
-            type_format = 'keyword-constant' if is_constant_keywords(tvalue) else 'keyword'
+            type_format = 'keyword-constant' if is_constant_keyword(tvalue) else 'keyword'
 
         elif ttype == TOKENS['IDENTIFIER']:
             if tvalue in BUILTIN_TYPES:
@@ -505,7 +507,7 @@ def pys_highlight(
                 previous_token = tokens[j]
                 if previous_token.match(TOKENS['KEYWORD'], 'class'):
                     type_format = 'identifier-type'
-                elif previous_token.match(TOKENS['KEYWORD'], 'def', 'define', 'func', 'function'):
+                elif previous_token.match(TOKENS['KEYWORD'], 'func', 'function'):
                     type_format = 'identifier-function'
                 else:
                     j = i + 1

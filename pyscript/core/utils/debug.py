@@ -77,5 +77,6 @@ def get_traceback_info(traceback: PysTraceback | None) -> tuple[type[BaseExcepti
 
 if not is_environ(ENV_PYSCRIPT_NO_EXCEPTHOOK):
     import threading
+
     sys.excepthook = sys_excepthook
     threading.excepthook = thread_excepthook

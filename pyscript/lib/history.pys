@@ -19,7 +19,6 @@ if (shell.ADVANCE_LINE_SHELL_SUPPORT) {
             shell.history._storage.clear()
         }
 }
-
 else {
     HISTORY_PATH = '<none>'
     MAXIMUM_HISTORY_LINE = 1000

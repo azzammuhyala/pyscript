@@ -46,9 +46,4 @@ class FPSTimer:
     def get_fps(self) -> float:
         return FPSTimer._framesPerSecond
 
-    getTime = get_time
-    getRawTime = get_rawtime
-    getFPS = get_fps
-    getFramesPerSecond = get_fps
-
 FPSTimer()

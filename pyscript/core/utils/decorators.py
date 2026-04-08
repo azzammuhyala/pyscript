@@ -5,18 +5,6 @@ from .generic import is_environ
 from types import MethodType
 from typing import Callable
 
-def typechecked(func: Callable, *args, **kwargs):
-    return func
-
-TYPECHECK_STACK = 0
-
-if not is_environ(ENV_PYSCRIPT_NO_TYPECHECK):
-    try:
-        from beartype import beartype as typechecked
-        TYPECHECK_STACK += 1
-    except:
-        pass
-
 class _PysNameSpaceUtilities(Pys):
 
     __slots__ = ()
@@ -37,6 +25,20 @@ class _PysNameSpaceUtilities(Pys):
 
     def inheritable_class(cls, *args, **kwargs):
         raise TypeError(f"uninherited class for {cls.__name__}")
+
+TYPECHECK_STACK = 0
+BEARTYPE = False
+
+def typecheck(func: Callable, *args, **kwargs):
+    return func
+
+if not is_environ(ENV_PYSCRIPT_NO_TYPECHECK):
+    try:
+        from beartype import beartype as typecheck
+        TYPECHECK_STACK += 1
+        BEARTYPE = True
+    except:
+        pass
 
 def immutable(cls):
     cls.__setattr__ = _PysNameSpaceUtilities.readonly_attribute

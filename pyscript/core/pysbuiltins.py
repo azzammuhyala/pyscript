@@ -1,12 +1,12 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
 from .cache import pys_sys
-from .checks import is_blacklist_python_builtins, is_private_attribute
+from .checks import is_blacklist_python_builtin, is_private_attribute
 from .constants import OTHER_PATH, NO_COLOR, CLASSIC_LINE_SHELL, NO_COLOR_PROMPT
 from .exceptions import PysSignal
 from .handlers import handle_call
-from .mapping import GET_ACOLORS, EMPTY_MAP
-from .objects import PysFunction, PysPythonFunction, PysBuiltinFunction
+from .mapping import GET_ACOLOR, EMPTY_MAP
+from .pystypes import PysFunction, PysPythonFunction, PysBuiltinFunction
 from .results import PysRunTimeResult
 from .shell import PysClassicLineShell, PysPromptToolkitLineShell, ADVANCE_LINE_SHELL_SUPPORT
 from .symtab import new_module_namespace
@@ -113,8 +113,8 @@ class PysHelper(PysPrinter):
                 "To get help on a specific object, type 'help(object)'.\n"
                 "To get the list of builtin functions, types, exceptions, and other objects, type 'help(\"builtins\")'."
             )
-            return
-        pyhelp(*args, **kwargs)
+        else:
+            pyhelp(*args, **kwargs)
 
 try:
     with (
@@ -273,8 +273,8 @@ def breakpoint(pyfunc):
         if not ADVANCE_LINE_SHELL_SUPPORT or flags & CLASSIC_LINE_SHELL else
         PysPromptToolkitLineShell
     )(
-        f'{GET_ACOLORS("bold-magenta")}(Pdb) {GET_ACOLORS("reset")}' if colored and colored_prompt else '(Pdb) ',
-        f'{GET_ACOLORS("bold-magenta")}...   {GET_ACOLORS("reset")}' if colored and colored_prompt else '...   ',
+        f'{GET_ACOLOR("bold-magenta")}(Pdb) {GET_ACOLOR("reset")}' if colored and colored_prompt else '(Pdb) ',
+        f'{GET_ACOLOR("bold-magenta")}...   {GET_ACOLOR("reset")}' if colored and colored_prompt else '...   ',
         colored=colored
     )
 
@@ -673,15 +673,16 @@ pys_builtins = ModuleType(
 pys_builtins.__dict__.update(
     (name, getattr(builtins, name))
     for name in pydir(builtins)
-    if not (is_private_attribute(name) or is_blacklist_python_builtins(name))
+    if not (is_private_attribute(name) or is_blacklist_python_builtin(name))
 )
 
 pys_builtins.true = True
 pys_builtins.false = False
 pys_builtins.none = None
-pys_builtins.ellipsis = Ellipsis
-pys_builtins.inf = pys_builtins.infinity = pys_builtins.Infinity = inf
-pys_builtins.nan = pys_builtins.notanumber = pys_builtins.NaN = pys_builtins.NotANumber = nan
+pys_builtins.inf = inf
+pys_builtins.infj = complex(0, inf)
+pys_builtins.nan = nan
+pys_builtins.nanj = complex(0, nan)
 pys_builtins.copyright = copyright
 pys_builtins.credits = credits
 pys_builtins.license = license

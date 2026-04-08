@@ -23,7 +23,7 @@ if PYGMENTS:
         Terminal256Formatter
     )
 
-    FORMAT_PYGMENTS_MAP = {
+    FORMATER_PYGMENTS_MAP = {
         'pm-bbcode': BBCodeFormatter,
         'pm-html': HtmlFormatter,
         'pm-latex': LatexFormatter,
@@ -36,7 +36,7 @@ from argparse import OPTIONAL, REMAINDER, ArgumentParser
 
 import sys
 
-FORMAT_HIGHLIGHT_MAP = {
+FORMATER_HIGHLIGHT_MAP = {
     'html': HLFMT_HTML,
     'ansi': HLFMT_ANSI,
     'bbcode': HLFMT_BBCODE
@@ -66,13 +66,13 @@ parser.add_argument(
     '-c', '--command',
     type=str,
     default=None,
-    help="Execute program from a string argument",
+    help="execute program from a string argument",
 )
 
 parser.add_argument(
     '-d', '-O', '--debug',
     action='store_true',
-    help="Set a debug flag, this will ignore assert statement. Check the flag is active with the __debug__ keyword"
+    help="set a debug flag, this will ignore assert statement. Check the flag is active with the __debug__ keyword"
 )
 
 if EDITOR_MAP:
@@ -80,57 +80,57 @@ if EDITOR_MAP:
         '-e', '--editor',
         choices=tuple(EDITOR_MAP.keys()),
         default=None,
-        help="Open the editor panel from a 'file'",
+        help="open the editor panel from a 'file'",
     )
 
 parser.add_argument(
     '-i', '--inspect',
     action='store_true',
-    help="Inspect interactively after running a code",
+    help="inspect interactively after running a code",
 )
 
 parser.add_argument(
     '-k', '--classic-line-shell',
     action='store_true',
-    help="Use a classic command line shell"
+    help="use a classic command line shell"
 )
 
 parser.add_argument(
     '-l', '--highlight',
-    choices=tuple(FORMAT_HIGHLIGHT_MAP.keys()) + tuple(FORMAT_PYGMENTS_MAP.keys() if PYGMENTS else ()),
+    choices=tuple(FORMATER_HIGHLIGHT_MAP.keys()) + tuple(FORMATER_PYGMENTS_MAP.keys() if PYGMENTS else ()),
     default=None,
-    help="Generate highlight code from a 'file'"
+    help="generate highlight code from a 'file'"
 )
 
 parser.add_argument(
     '-n', '--no-color',
     action='store_true',
-    help="Suppress colored output"
+    help="suppress colored output"
 )
 
 parser.add_argument(
     '-p', '--no-color-prompt',
     action='store_true',
-    help="Suppress colored prompt output"
+    help="suppress colored prompt output"
 )
 
 parser.add_argument(
     '-r', '--py-recursion',
     type=int,
     default=None,
-    help="Set a Python recursion limit"
+    help="set a Python recursion limit"
 )
 
 parser.add_argument(
     '-t', '--terminal',
     action='store_true',
-    help="Configure terminal encoding to UTF-8 and enable ANSI escape code processing on Windows"
+    help="configure terminal encoding to UTF-8 and enable ANSI escape code processing on Windows"
 )
 
 parser.add_argument(
     '-q',
     action='store_true',
-    help="Don't print version and copyright messages on interactive startup"
+    help="don't print version and copyright messages on interactive startup"
 )
 
 parser.add_argument(
@@ -142,7 +142,7 @@ parser.add_argument(
 parser.add_argument(
     '-P',
     action='store_true',
-    help="Don't prepend a potentially unsafe path to sys.path (python sys.path)"
+    help="don't prepend a potentially unsafe path to sys.path (python sys.path)"
 )
 
 parser.add_argument(
@@ -150,13 +150,13 @@ parser.add_argument(
     type=str,
     nargs=OPTIONAL,
     default=None,
-    help="File path to be executed"
+    help="file path to be executed"
 )
 
 parser.add_argument(
     'arg',
     nargs=REMAINDER,
-    help="Remaining arguments stored in pys_sys.argv (pyscript sys.argv)"
+    help="remaining arguments stored in pys_sys.argv (pyscript sys.argv)"
 )
 
 def argument_error(argument, message):
@@ -281,11 +281,11 @@ if args.file is not None:
 
     elif args.highlight:
         try:
-            if args.highlight in FORMAT_HIGHLIGHT_MAP:
+            if args.highlight in FORMATER_HIGHLIGHT_MAP:
                 print(
                     pys_highlight(
                         source=file,
-                        formatter=FORMAT_HIGHLIGHT_MAP[args.highlight]
+                        formatter=FORMATER_HIGHLIGHT_MAP[args.highlight]
                     )
                 )
             else:
@@ -293,7 +293,7 @@ if args.file is not None:
                     highlight(
                         code=file.text,
                         lexer=PygmentsPyScriptLexer(),
-                        formatter=FORMAT_PYGMENTS_MAP[args.highlight](style=PygmentsPyScriptStyle, full=True)
+                        formatter=FORMATER_PYGMENTS_MAP[args.highlight](style=PygmentsPyScriptStyle, full=True)
                     )
                 )
         except BaseException as e:
@@ -354,5 +354,5 @@ else:
         flags=flags
     )
 
-# goodbye :>
+# goodbye ;)
 sys.exit(code)

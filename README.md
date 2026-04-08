@@ -4,8 +4,8 @@
     <img src="https://github.com/azzammuhyala/pyscript/blob/main/PyScript.png?raw=true" alt="PyScript Logo" width="200">
 </div>
 
-PyScript is a simple programming language built on top of Python. It combines some syntax from Python and JavaScript,
-so if you're already familiar with Python, JavaScript or both, it should be quite easy to learn.
+PyScript is a programming language built on top of Python. It combines some syntax from Python and JavaScript, so if
+you're already familiar with Python, JavaScript or both, it should be quite easy to learn.
 
 ## Introduction 📖
 PyScript may not be the language we'll be discussing, but the name PyScript already exists, a flexible and platform for
@@ -27,8 +27,7 @@ First, you'll need to download Python. Make sure you're using the latest version
 correctly. Visit the official [Python website](https://python.org) to download it.
 
 Next, after downloading and configuring the Python application, you can download the PyScript from
-[PyScript releases](https://github.com/azzammuhyala/pyscript/releases) or from Python Pip with this command
-(_Recommended_):
+[PyScript releases](https://github.com/azzammuhyala/pyscript/releases) or from PIP with this command (_Recommended_):
 ```sh
 pip install -U pyscript-programming-language
 ```

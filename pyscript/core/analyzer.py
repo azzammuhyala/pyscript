@@ -1,17 +1,18 @@
 from .bases import Pys
-from .checks import is_list
-from .constants import TOKENS, DEFAULT
+from .checks import is_sequence
+from .constants import DEFAULT
 from .context import PysContext
 from .exceptions import PysTraceback
 from .nodes import *
 from .position import PysPosition
-from .utils.decorators import typechecked
+from .token import TOKENS
+from .utils.decorators import typecheck
 
 from typing import Optional
 
 class PysAnalyzer(Pys):
 
-    @typechecked
+    @typecheck
     def __init__(
         self,
         node: PysNode,
@@ -25,7 +26,7 @@ class PysAnalyzer(Pys):
         self.context_parent = context_parent
         self.context_parent_entry_position = context_parent_entry_position
 
-    @typechecked
+    @typecheck
     def analyze(self) -> PysTraceback | None:
         self.in_loop = 0
         self.in_function = 0
@@ -92,7 +93,7 @@ class PysAnalyzer(Pys):
         if self.error:
             return
 
-        self.visit_slice_SubscriptNode(node.slice)
+        self.visit_slice_from_SubscriptNode(node.slice)
 
     def visit_CallNode(self, node: PysCallNode) -> None:
         self.visit(node.target)
@@ -159,7 +160,7 @@ class PysAnalyzer(Pys):
 
     def visit_IncrementalNode(self, node: PysIncrementalNode) -> None:
         operator = 'increase' if node.operand.type == TOKENS['DOUBLE_PLUS'] else 'decrease'
-        self.visit_declaration_AssignmentNode(node.target, f"cannot {operator} literal", operator)
+        self.visit_declaration_from_AssignmentNode(node.target, f"cannot {operator} literal", operator)
 
     def visit_StatementsNode(self, node: PysStatementsNode) -> None:
         for element in node.body:
@@ -168,7 +169,7 @@ class PysAnalyzer(Pys):
                 return
 
     def visit_AssignmentNode(self, node: PysAssignmentNode) -> None:
-        self.visit_declaration_AssignmentNode(
+        self.visit_declaration_from_AssignmentNode(
             node.target,
             "cannot assign to expression here. Maybe you meant '==' instead of '='?"
         )
@@ -261,7 +262,7 @@ class PysAnalyzer(Pys):
         if len(node.header) == 2:
             declaration, iteration = node.header
 
-            self.visit_declaration_AssignmentNode(declaration, "cannot assign to expression")
+            self.visit_declaration_from_AssignmentNode(declaration, "cannot assign to expression")
             if self.error:
                 return
 
@@ -459,12 +460,16 @@ class PysAnalyzer(Pys):
                 if self.error:
                     return
 
-                self.visit_slice_SubscriptNode(target.slice)
+                self.visit_slice_from_SubscriptNode(target.slice)
                 if self.error:
                     return
 
             elif type is PysKeywordNode:
                 self.throw(f"cannot delete {target.name.value}", target.position)
+                return
+
+            elif type is PysDebugNode:
+                self.throw("cannot delete to __debug__", node.position)
                 return
 
             elif type is not PysIdentifierNode:
@@ -479,7 +484,7 @@ class PysAnalyzer(Pys):
         if self.in_loop == 0 and self.in_switch == 0:
             self.throw("break outside of loop or switch case", node.position)
 
-    def visit_slice_SubscriptNode(self, node: PysNode | slice | tuple[PysNode | slice, ...]) -> None:
+    def visit_slice_from_SubscriptNode(self, node: PysNode | slice | tuple[PysNode | slice, ...]) -> None:
         type = node.__class__
 
         if type is slice:
@@ -500,14 +505,14 @@ class PysAnalyzer(Pys):
 
         elif type is tuple:
             for element in node:
-                self.visit_slice_SubscriptNode(element)
+                self.visit_slice_from_SubscriptNode(element)
                 if self.error:
                     return
 
         else:
             self.visit(node)
 
-    def visit_declaration_AssignmentNode(
+    def visit_declaration_from_AssignmentNode(
         self,
         node: PysIdentifierNode | PysAttributeNode | PysSubscriptNode | PysSetNode | PysListNode | PysTupleNode,
         message: str,
@@ -524,16 +529,19 @@ class PysAnalyzer(Pys):
             if self.error:
                 return
 
-            self.visit_slice_SubscriptNode(node.slice)
+            self.visit_slice_from_SubscriptNode(node.slice)
 
-        elif is_list(type):
+        elif is_sequence(type):
             for element in node.elements:
-                self.visit_declaration_AssignmentNode(element, message, operator_name)
+                self.visit_declaration_from_AssignmentNode(element, message, operator_name)
                 if self.error:
                     return
 
         elif type is PysKeywordNode:
             self.throw(f"cannot {operator_name} to {node.name.value}", node.position)
+
+        elif type is PysDebugNode:
+            self.throw(f"cannot {operator_name} to __debug__", node.position)
 
         elif type is not PysIdentifierNode:
             self.throw(message, node.position)

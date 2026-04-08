@@ -1,4 +1,4 @@
-from .constants import TOKENS
+from .token import TOKENS
 from .utils.ansi import BOLD, acolor
 
 from operator import (
@@ -14,7 +14,7 @@ or_op = lambda a, b : a or b
 
 EMPTY_MAP = {}
 
-GET_BINARY_FUNCTIONS_MAP = {
+GET_BINARY_FUNCTION = {
     TOKENS['NOT_IN']: not_contains,
     TOKENS['IS_NOT']: is_not,
     TOKENS['PERCENT']: mod,
@@ -28,13 +28,13 @@ GET_BINARY_FUNCTIONS_MAP = {
     TOKENS['AT']: matmul,
     TOKENS['CIRCUMFLEX']: xor,
     TOKENS['PIPE']: or_,
-    # TOKENS['DOUBLE_AMPERSAND']: and_op,
+    TOKENS['DOUBLE_AMPERSAND']: and_op,
     TOKENS['DOUBLE_STAR']: pow,
     TOKENS['DOUBLE_SLASH']: floordiv,
     TOKENS['DOUBLE_LESS_THAN']: lshift,
     TOKENS['DOUBLE_EQUAL']: eq,
     TOKENS['DOUBLE_GREATER_THAN']: rshift,
-    # TOKENS['DOUBLE_PIPE']: or_op,
+    TOKENS['DOUBLE_PIPE']: or_op,
     TOKENS['EQUAL_EXCLAMATION']: ne,
     TOKENS['EQUAL_PERCENT']: imod,
     TOKENS['EQUAL_AMPERSAND']: iand,
@@ -52,17 +52,18 @@ GET_BINARY_FUNCTIONS_MAP = {
     TOKENS['EQUAL_DOUBLE_LESS_THAN']: ilshift,
     TOKENS['EQUAL_DOUBLE_GREATER_THAN']: irshift,
     TOKENS['MINUS_GREATER_THAN']: contains,
-    TOKENS['EXCLAMATION_GREATER_THAN']: not_contains
+    TOKENS['EXCLAMATION_GREATER_THAN']: not_contains,
+    TOKENS['LESS_THAN_GREATER_THAN']: ne
 }.__getitem__
 
-GET_UNARY_FUNCTIONS_MAP = {
-    # TOKENS['EXCLAMATION']: not_,
+GET_UNARY_FUNCTION = {
+    TOKENS['EXCLAMATION']: not_,
     TOKENS['PLUS']: pos,
     TOKENS['MINUS']: neg,
     TOKENS['TILDE']: inv
 }.__getitem__
 
-GET_ACOLORS = {
+GET_ACOLOR = {
     'reset': acolor('reset'),
     'magenta': acolor('magenta'),
     'bold-magenta': acolor('magenta', style=BOLD),
@@ -140,5 +141,6 @@ SYMBOLS_TOKEN_MAP = MappingProxyType({
     TOKENS['MINUS_GREATER_THAN']: '->',
     TOKENS['EQUAL_ARROW']: '=>',
     TOKENS['EXCLAMATION_GREATER_THAN']: '!>',
-    TOKENS['EXCLAMATION_TILDE']: '~!'
+    TOKENS['EXCLAMATION_TILDE']: '~!',
+    TOKENS['LESS_THAN_GREATER_THAN']: '<>'
 })

@@ -1,11 +1,13 @@
-from .constants import TOKENS, KEYWORDS, CONSTANT_KEYWORDS
+from .constants import KEYWORDS, CONSTANT_KEYWORDS
 from .mapping import BRACKETS_MAP
 from .nodes import *
+from .token import TOKENS
 
 is_expression = frozenset([
-    PysNumberNode, PysStringNode, PysKeywordNode, PysIdentifierNode, PysDictionaryNode, PysSetNode, PysListNode,
-    PysTupleNode, PysAttributeNode, PysSubscriptNode, PysCallNode, PysChainOperatorNode, PysTernaryOperatorNode,
-    PysBinaryOperatorNode, PysUnaryOperatorNode, PysIncrementalNode, PysMatchNode, PysFunctionNode, PysEllipsisNode
+    PysNumberNode, PysStringNode, PysKeywordNode, PysDebugNode, PysIdentifierNode, PysDictionaryNode, PysSetNode,
+    PysListNode, PysTupleNode, PysAttributeNode, PysSubscriptNode, PysCallNode, PysChainOperatorNode,
+    PysTernaryOperatorNode, PysBinaryOperatorNode, PysUnaryOperatorNode, PysIncrementalNode, PysMatchNode,
+    PysFunctionNode, PysEllipsisNode
 ]).__contains__
 
 is_statement = frozenset([
@@ -14,24 +16,28 @@ is_statement = frozenset([
     PysAssertNode, PysDeleteNode, PysContinueNode, PysBreakNode
 ]).__contains__
 
-is_list = frozenset([
+is_sequence = frozenset([
     PysSetNode, PysListNode, PysTupleNode
 ]).__contains__
 
+is_constant = frozenset([
+    PysKeywordNode, PysDebugNode
+])
+
 is_keyword = frozenset(KEYWORDS).__contains__
-is_constant_keywords = frozenset(CONSTANT_KEYWORDS).__contains__
+is_constant_keyword = frozenset(CONSTANT_KEYWORDS).__contains__
 
-is_python_extensions = frozenset([
-    '.py', '.ipy', '.pyc', '.pyd', '.pyi', '.pyo', '.pyp', '.pyw', '.pyz', '.rpy', '.xpy', '.pyproj'
-]).__contains__
-
-is_equals = frozenset([
+is_equal = frozenset([
     TOKENS['EQUAL'], TOKENS['EQUAL_COLON']
 ]).__contains__
 
-is_blacklist_python_builtins = frozenset([
+is_blacklist_python_builtin = frozenset([
     'IndentationError', 'TabError', 'breakpoint', 'compile', 'copyright', 'credits', 'dir', 'eval', 'exec', 'help',
     'globals', 'license', 'locals', 'vars'
+]).__contains__
+
+is_python_extension = frozenset([
+    '.py', '.ipy', '.pyc', '.pyd', '.pyi', '.pyo', '.pyp', '.pyw', '.pyz', '.rpy', '.xpy', '.pyproj'
 ]).__contains__
 
 is_left_bracket = frozenset(BRACKETS_MAP.keys()).__contains__

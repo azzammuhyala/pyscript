@@ -1,7 +1,6 @@
 from pyscript.core.checks import is_keyword, is_left_bracket, is_right_bracket
-from pyscript.core.constants import TOKENS
 from pyscript.core.mapping import SYMBOLS_TOKEN_MAP
-from pyscript.core.token import PysToken
+from pyscript.core.token import TOKENS, PysToken
 from pyscript.core.utils.decorators import immutable, inheritable, singleton
 from pyscript.core.utils.generic import get_subscript
 

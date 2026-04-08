@@ -1,30 +1,24 @@
-from pyscript.core.constants import TOKENS
 from pyscript.core.interpreter import get_value_from_keyword
-from pyscript.core.mapping import GET_BINARY_FUNCTIONS_MAP, GET_UNARY_FUNCTIONS_MAP, REVERSE_TOKENS
+from pyscript.core.mapping import GET_BINARY_FUNCTION, GET_UNARY_FUNCTION, REVERSE_TOKENS
 from pyscript.core.nodes import (
     PysNode, PysNumberNode, PysStringNode, PysKeywordNode, PysIdentifierNode, PysDictionaryNode, PysSetNode,
     PysListNode, PysTupleNode, PysCallNode, PysUnaryOperatorNode, PysBinaryOperatorNode, PysEllipsisNode
 )
 from pyscript.core.pysbuiltins import pys_builtins
+from pyscript.core.token import TOKENS
 
 from types import EllipsisType
 from typing import Any, Callable
 
 is_arithmetic = frozenset([TOKENS['PLUS'], TOKENS['MINUS']]).__contains__
 
-inf = pys_builtins.inf
-nan = pys_builtins.nan
-
 get_identifier = {
-    'ellipsis': Ellipsis,
-    'Ellipsis': Ellipsis,
-    'inf': inf,
-    'infinity': inf,
-    'Infinity': inf,
-    'nan': nan,
-    'notanumber': nan,
-    'NaN': nan,
-    'NotANumber': nan
+    'Ellipsis': pys_builtins.Ellipsis,
+    'NotImplemented': pys_builtins.NotImplemented,
+    'inf': pys_builtins.inf,
+    'infj': pys_builtins.infj,
+    'nan': pys_builtins.nan,
+    'nanj': pys_builtins.nanj,
 }.get
 
 def visit(node: PysNode) -> Any:
@@ -71,13 +65,13 @@ def visit_CallNode(node: PysCallNode) -> set:
 def visit_UnaryOperatorNode(node: PysUnaryOperatorNode) -> Any:
     operand = node.operand.type
     if is_arithmetic(operand):
-        return GET_UNARY_FUNCTIONS_MAP(operand)(visit(node.value))
+        return GET_UNARY_FUNCTION(operand)(visit(node.value))
     raise ValueError(f"invalid unary operator node: {REVERSE_TOKENS[operand]}")
 
 def visit_BinaryOperatorNode(node: PysBinaryOperatorNode) -> Any:
     operand = node.operand.type
     if is_arithmetic(operand):
-        return GET_BINARY_FUNCTIONS_MAP(operand)(visit(node.left), visit(node.right))
+        return GET_BINARY_FUNCTION(operand)(visit(node.left), visit(node.right))
     raise ValueError(f"invalid binary operator node: {REVERSE_TOKENS[operand]}")
 
 def visit_EllipsisNode(node: PysEllipsisNode) -> EllipsisType:

@@ -10,7 +10,7 @@ from .exceptions import PysTraceback, PysSignal
 from .handlers import handle_call
 from .interpreter import get_visitor
 from .lexer import PysLexer
-from .mapping import GET_ACOLORS
+from .mapping import GET_ACOLOR
 from .parser import PysParser
 from .position import PysPosition
 from .pysbuiltins import require
@@ -18,7 +18,7 @@ from .results import PysRunTimeResult, PysExecuteResult
 from .shell import PysClassicLineShell, PysPromptToolkitLineShell, ADVANCE_LINE_SHELL_SUPPORT
 from .symtab import PysSymbolTable, new_module_namespace
 from .utils.debug import import_readline
-from .utils.decorators import TYPECHECK_STACK, typechecked
+from .utils.decorators import TYPECHECK_STACK, typecheck
 from .utils.generic import get_frame, get_locals
 from .version import version
 
@@ -39,7 +39,7 @@ def _normalize_namespace(namespace: PysUndefined | PysSymbolTable | dict | None,
         symtab = namespace
     return symtab
 
-@typechecked
+@typecheck
 def pys_runner(
     file: PysFileBuffer,
     mode: Literal['exec', 'eval', 'single'],
@@ -159,7 +159,7 @@ def pys_runner(
 
     return result.failure(runtime_result.error) if runtime_result.error else result
 
-@typechecked
+@typecheck
 def pys_exec(
     source,
     globals: Optional[dict[str, Any] | PysSymbolTable | PysUndefined] = None,
@@ -204,7 +204,7 @@ def pys_exec(
     elif result.error and not (flags & SILENT):
         raise PysSignal(PysRunTimeResult().failure(result.error))
 
-@typechecked
+@typecheck
 def pys_eval(
     source,
     globals: Optional[dict[str, Any] | PysSymbolTable | PysUndefined] = None,
@@ -252,7 +252,7 @@ def pys_eval(
 
     return result.value
 
-@typechecked
+@typecheck
 def pys_require(name, flags: int = DEFAULT) -> ModuleType | Any:
 
     """
@@ -273,7 +273,7 @@ def pys_require(name, flags: int = DEFAULT) -> ModuleType | Any:
     handle_call(require, PysContext(file=file, flags=flags), PysPosition(file, -1, -1))
     return require(name)
 
-@typechecked
+@typecheck
 def pys_shell(
     globals: Optional[dict[str, Any] | PysSymbolTable | PysUndefined] = None,
     flags: int = DEFAULT,
@@ -314,8 +314,8 @@ def pys_shell(
     )(colored=colored)
 
     if colored:
-        reset = GET_ACOLORS('reset')
-        bmagenta = GET_ACOLORS('bold-magenta')
+        reset = GET_ACOLOR('reset')
+        bmagenta = GET_ACOLOR('bold-magenta')
     else:
         reset = ''
         bmagenta = ''
@@ -342,8 +342,12 @@ def pys_shell(
         while True:
 
             try:
-                ps1 = getattr(pys_sys, 'ps1', '')
-                ps2 = getattr(pys_sys, 'ps2', '')
+                try:
+                    ps1 = str(getattr(pys_sys, 'ps1', ''))
+                    ps2 = str(getattr(pys_sys, 'ps2', ''))
+                except:
+                    ps1 = ps2 = ''
+
                 shell.ps1 = bmagenta + ps1 + reset if colored and colored_prompt else ps1
                 shell.ps2 = bmagenta + ps2 + reset if colored and colored_prompt else ps2
 

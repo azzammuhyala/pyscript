@@ -3,11 +3,11 @@ import _pyscript
 func iscontext(object) => isinstance(object, _pyscript.context.PysContext)
 func issymtab(object) => isinstance(object, _pyscript.symtab.PysSymbolTable)
 func istraceback(object) => isinstance(object, _pyscript.exceptions.PysTraceback)
-func iscode(object) => isinstance(object, _pyscript.objects.PysCode)
-func isfunction(object) => isinstance(object, _pyscript.objects.PysFunction)
+func iscode(object) => isinstance(object, _pyscript.pystypes.PysCode)
+func isfunction(object) => isinstance(object, _pyscript.pystypes.PysFunction)
 
-getcontext = _pyscript.objects.PysPythonFunction(func(pyfunc) => pyfunc.__code__.context)
-getsymtab = _pyscript.objects.PysPythonFunction(func(pyfunc) => pyfunc.__code__.context.symbol_table)
+getcontext = _pyscript.pystypes.PysPythonFunction(func(pyfunc) => pyfunc.__code__.context)
+getsymtab = _pyscript.pystypes.PysPythonFunction(func(pyfunc) => pyfunc.__code__.context.symbol_table)
 
 func getcode(fn) {
     if (!isfunction(fn)) throw TypeError("getcode(): fn must be derived from PysFunction")

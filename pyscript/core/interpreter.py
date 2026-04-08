@@ -1,15 +1,18 @@
-from .constants import TOKENS, DEBUG
+# Tree-Walk Interpreter
+
+from .constants import DEBUG
 from .cache import undefined
-from .checks import is_list, is_equals, is_public_attribute
+from .checks import is_sequence, is_equal, is_public_attribute
 from .context import PysContext, PysClassContext
 from .exceptions import PysTraceback
 from .handlers import handle_call
-from .mapping import GET_BINARY_FUNCTIONS_MAP, GET_UNARY_FUNCTIONS_MAP
+from .mapping import GET_BINARY_FUNCTION, GET_UNARY_FUNCTION
 from .nodes import *
-from .objects import PysFunction
 from .pysbuiltins import ce, nce, increment, decrement
+from .pystypes import PysFunction
 from .results import PysRunTimeResult
 from .symtab import PysClassSymbolTable, find_closest
+from .token import TOKENS
 from .utils.debug import get_traceback_info
 from .utils.generic import getattribute, setimuattr, dkeys, is_object_of
 from .utils.similarity import get_closest
@@ -191,7 +194,7 @@ def visit_SubscriptNode(node: PysSubscriptNode, context: PysContext) -> PysRunTi
     if should_return():
         return result
 
-    slice = register(visit_slice_SubscriptNode(node.slice, context))
+    slice = register(visit_slice_from_SubscriptNode(node.slice, context))
     if should_return():
         return result
 
@@ -275,7 +278,7 @@ def visit_ChainOperatorNode(node: PysChainOperatorNode, context: PysContext) -> 
                 handle_call(nce, context, nposition)
                 value = nce(left, right)
             else:
-                value = GET_BINARY_FUNCTIONS_MAP(otype)(left, right)
+                value = GET_BINARY_FUNCTION(otype)(left, right)
 
             if not value:
                 break
@@ -346,7 +349,7 @@ def visit_BinaryOperatorNode(node: PysBinaryOperatorNode, context: PysContext) -
         if should_return():
             return result
 
-        return result.success(right if return_right else GET_BINARY_FUNCTIONS_MAP(otype)(left, right))
+        return result.success(right if return_right else GET_BINARY_FUNCTION(otype)(left, right))
 
     return result
 
@@ -370,10 +373,8 @@ def visit_UnaryOperatorNode(node: PysUnaryOperatorNode, context: PysContext) -> 
                 return result.success(not value)
             elif ovalue == 'typeof':
                 return result.success(type(value).__name__)
-        elif otype == T_NOT:
-            return result.success(not value)
 
-        return result.success(GET_UNARY_FUNCTIONS_MAP(otype)(value))
+        return result.success(GET_UNARY_FUNCTION(otype)(value))
 
     return result
 
@@ -398,7 +399,7 @@ def visit_IncrementalNode(node: PysIncrementalNode, context: PysContext) -> PysR
         if node.operand_position == 'left':
             value = increast_value
 
-        register(visit_declaration_AssignmentNode(ntarget, context, increast_value))
+        register(visit_declaration_from_AssignmentNode(ntarget, context, increast_value))
         if should_return():
             return result
 
@@ -439,7 +440,7 @@ def visit_AssignmentNode(node: PysAssignmentNode, context: PysContext) -> PysRun
     if should_return():
         return result
 
-    register(visit_declaration_AssignmentNode(node.target, context, value, node.operand.type))
+    register(visit_declaration_from_AssignmentNode(node.target, context, value, node.operand.type))
     if should_return():
         return result
 
@@ -845,7 +846,7 @@ def visit_ForNode(node: PysForNode, context: PysContext) -> PysRunTimeResult:
         def condition():
             with result(context, niteration_position):
                 handle_call(next, context, niteration_position)
-                register(visit_declaration_AssignmentNode(ndeclaration, context, next()))
+                register(visit_declaration_from_AssignmentNode(ndeclaration, context, next()))
             if should_return():
                 error = result.error
                 if error and is_object_of(error.exception, StopIteration):
@@ -1355,7 +1356,7 @@ def visit_DeleteNode(node: PysDeleteNode, context: PysContext) -> PysRunTimeResu
             if should_return():
                 return result
 
-            slice = register(visit_slice_SubscriptNode(ntarget.slice, context))
+            slice = register(visit_slice_from_SubscriptNode(ntarget.slice, context))
             if should_return():
                 return result
 
@@ -1377,7 +1378,7 @@ def visit_ContinueNode(node: PysContinueNode, context: PysContext) -> PysRunTime
 def visit_BreakNode(node: PysBreakNode, context: PysContext) -> PysRunTimeResult:
     return PysRunTimeResult().success_break()
 
-def visit_slice_SubscriptNode(
+def visit_slice_from_SubscriptNode(
     node: PysNode | slice | tuple[PysNode | slice, ...],
     context: PysContext
 ) -> PysRunTimeResult:
@@ -1414,7 +1415,7 @@ def visit_slice_SubscriptNode(
         add_indices = indices.append
 
         for element in node:
-            add_indices(register(visit_slice_SubscriptNode(element, context)))
+            add_indices(register(visit_slice_from_SubscriptNode(element, context)))
             if should_return():
                 return result
 
@@ -1427,7 +1428,7 @@ def visit_slice_SubscriptNode(
 
         return result.success(value)
 
-def visit_declaration_AssignmentNode(
+def visit_declaration_from_AssignmentNode(
     node: PysIdentifierNode | PysAttributeNode | PysSubscriptNode | PysSetNode | PysListNode | PysTupleNode,
     context: PysContext,
     value: Any,
@@ -1482,11 +1483,8 @@ def visit_declaration_AssignmentNode(
 
         with result(context, node.position):
             setattr(
-                target,
-                attribute,
-                value
-                if is_equals(operand) else
-                GET_BINARY_FUNCTIONS_MAP(operand)(getattr(target, attribute), value)
+                target, attribute,
+                value if is_equal(operand) else GET_BINARY_FUNCTION(operand)(getattr(target, attribute), value)
             )
 
         if should_return():
@@ -1498,17 +1496,17 @@ def visit_declaration_AssignmentNode(
         if should_return():
             return result
 
-        slice = register(visit_slice_SubscriptNode(node.slice, context))
+        slice = register(visit_slice_from_SubscriptNode(node.slice, context))
         if should_return():
             return result
 
         with result(context, node.position):
-            target[slice] = value if is_equals(operand) else GET_BINARY_FUNCTIONS_MAP(operand)(target[slice], value)
+            target[slice] = value if is_equal(operand) else GET_BINARY_FUNCTION(operand)(target[slice], value)
 
         if should_return():
             return result
 
-    elif is_list(ntype):
+    elif is_sequence(ntype):
         position = node.position
 
         if not isinstance(value, Iterable):
@@ -1526,7 +1524,7 @@ def visit_declaration_AssignmentNode(
         with result(context, position):
 
             for element, element_value in zip(elements, value):
-                register(visit_declaration_AssignmentNode(element, context, element_value, operand))
+                register(visit_declaration_from_AssignmentNode(element, context, element_value, operand))
                 if should_return():
                     return result
 

@@ -1,18 +1,20 @@
 from .bases import Pys
 from .position import PysPosition
 from .token import PysToken
-from .utils.decorators import typechecked, immutable, inheritable
+from .utils.decorators import typecheck, immutable, inheritable
 from .utils.generic import setimuattr
-from .utils.jsdict import jsdict
 
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    from .pystypes import jsdict
 
 @immutable
 class PysNode(Pys):
 
     __slots__ = ('position',)
 
-    @typechecked
+    @typecheck
     def __init__(self, position: PysPosition) -> None:
         setimuattr(self, 'position', position)
 
@@ -27,7 +29,7 @@ class PysNumberNode(PysNode):
 
     __slots__ = ('value',)
 
-    @typechecked
+    @typecheck
     def __init__(self, value: PysToken) -> None:
         super().__init__(value.position)
         setimuattr(self, 'value', value)
@@ -39,7 +41,7 @@ class PysStringNode(PysNode):
 
     __slots__ = ('value',)
 
-    @typechecked
+    @typecheck
     def __init__(self, value: PysToken) -> None:
         super().__init__(value.position)
         setimuattr(self, 'value', value)
@@ -51,7 +53,7 @@ class PysKeywordNode(PysNode):
 
     __slots__ = ('name',)
 
-    @typechecked
+    @typecheck
     def __init__(self, name: PysToken) -> None:
         super().__init__(name.position)
         setimuattr(self, 'name', name)
@@ -70,7 +72,7 @@ class PysIdentifierNode(PysNode):
 
     __slots__ = ('name',)
 
-    @typechecked
+    @typecheck
     def __init__(self, name: PysToken) -> None:
         super().__init__(name.position)
         setimuattr(self, 'name', name)
@@ -82,11 +84,11 @@ class PysDictionaryNode(PysNode):
 
     __slots__ = ('pairs', 'class_type')
 
-    @typechecked
+    @typecheck
     def __init__(
         self,
         pairs: list[tuple[PysNode, PysNode]],
-        class_type: type[dict] | type[jsdict],
+        class_type: type[dict] | type['jsdict'],
         position: PysPosition
     ) -> None:
 
@@ -101,7 +103,7 @@ class PysSetNode(PysNode):
 
     __slots__ = ('elements',)
 
-    @typechecked
+    @typecheck
     def __init__(self, elements: list[PysNode], position: PysPosition) -> None:
         super().__init__(position)
         setimuattr(self, 'elements', tuple(elements))
@@ -113,7 +115,7 @@ class PysListNode(PysNode):
 
     __slots__ = ('elements',)
 
-    @typechecked
+    @typecheck
     def __init__(self, elements: list[PysNode], position: PysPosition) -> None:
         super().__init__(position)
         setimuattr(self, 'elements', tuple(elements))
@@ -125,7 +127,7 @@ class PysTupleNode(PysNode):
 
     __slots__ = ('elements',)
 
-    @typechecked
+    @typecheck
     def __init__(self, elements: list[PysNode], position: PysPosition) -> None:
         super().__init__(position)
         setimuattr(self, 'elements', tuple(elements))
@@ -137,7 +139,7 @@ class PysAttributeNode(PysNode):
 
     __slots__ = ('target', 'attribute')
 
-    @typechecked
+    @typecheck
     def __init__(self, target: PysNode, attribute: PysToken) -> None:
         super().__init__(PysPosition(target.position.file, target.position.start, attribute.position.end))
         setimuattr(self, 'target', target)
@@ -150,7 +152,7 @@ class PysSubscriptNode(PysNode):
 
     __slots__ = ('target', 'slice')
 
-    @typechecked
+    @typecheck
     def __init__(
         self,
         target: PysNode,
@@ -169,7 +171,7 @@ class PysCallNode(PysNode):
 
     __slots__ = ('target', 'arguments')
 
-    @typechecked
+    @typecheck
     def __init__(
         self,
         target: PysNode,
@@ -188,7 +190,7 @@ class PysChainOperatorNode(PysNode):
 
     __slots__ = ('operations', 'expressions')
 
-    @typechecked
+    @typecheck
     def __init__(self, operations: list[PysToken], expressions: list[PysNode]) -> None:
         super().__init__(
             PysPosition(
@@ -208,7 +210,7 @@ class PysTernaryOperatorNode(PysNode):
 
     __slots__ = ('condition', 'valid', 'invalid', 'style')
 
-    @typechecked
+    @typecheck
     def __init__(
         self,
         condition: PysNode,
@@ -241,7 +243,7 @@ class PysBinaryOperatorNode(PysNode):
 
     __slots__ = ('left', 'operand', 'right')
 
-    @typechecked
+    @typecheck
     def __init__(self, left: PysNode, operand: PysToken, right: PysNode) -> None:
         super().__init__(PysPosition(left.position.file, left.position.start, right.position.end))
         setimuattr(self, 'left', left)
@@ -255,7 +257,7 @@ class PysUnaryOperatorNode(PysNode):
 
     __slots__ = ('operand', 'value')
 
-    @typechecked
+    @typecheck
     def __init__(self, operand: PysToken, value: PysNode) -> None:
         super().__init__(PysPosition(operand.position.file, operand.position.start, value.position.end))
         setimuattr(self, 'operand',  operand)
@@ -268,7 +270,7 @@ class PysIncrementalNode(PysNode):
 
     __slots__ = ('operand', 'target', 'operand_position')
 
-    @typechecked
+    @typecheck
     def __init__(self, operand: PysToken, target: PysNode, operand_position: Literal['left', 'right']) -> None:
         super().__init__(
             PysPosition(operand.position.file, operand.position.start, target.position.end)
@@ -293,7 +295,7 @@ class PysStatementsNode(PysNode):
 
     __slots__ = ('body',)
 
-    @typechecked
+    @typecheck
     def __init__(self, body: list[PysNode], position: PysPosition) -> None:
         super().__init__(position)
         setimuattr(self, 'body', tuple(body))
@@ -305,7 +307,7 @@ class PysAssignmentNode(PysNode):
 
     __slots__ = ('target', 'operand', 'value')
 
-    @typechecked
+    @typecheck
     def __init__(self, target: PysNode, operand: PysToken, value: PysNode) -> None:
         super().__init__(PysPosition(target.position.file, target.position.start, value.position.end))
         setimuattr(self, 'target', target)
@@ -319,7 +321,7 @@ class PysImportNode(PysNode):
 
     __slots__ = ('name', 'packages')
 
-    @typechecked
+    @typecheck
     def __init__(
         self,
         name: tuple[PysToken, PysToken | None],
@@ -338,7 +340,7 @@ class PysIfNode(PysNode):
 
     __slots__ = ('cases_body', 'else_body')
 
-    @typechecked
+    @typecheck
     def __init__(
         self,
         cases_body: list[tuple[PysNode, PysNode]],
@@ -357,7 +359,7 @@ class PysSwitchNode(PysNode):
 
     __slots__ = ('target', 'case_cases', 'default_body')
 
-    @typechecked
+    @typecheck
     def __init__(
         self,
         target: PysNode,
@@ -378,7 +380,7 @@ class PysMatchNode(PysNode):
 
     __slots__ = ('target', 'cases', 'default')
 
-    @typechecked
+    @typecheck
     def __init__(
         self,
         target: PysNode | None,
@@ -399,7 +401,7 @@ class PysTryNode(PysNode):
 
     __slots__ = ('body', 'catch_cases', 'else_body', 'finally_body')
 
-    @typechecked
+    @typecheck
     def __init__(
         self,
         body: PysNode,
@@ -429,7 +431,7 @@ class PysWithNode(PysNode):
 
     __slots__ = ('contexts', 'body')
 
-    @typechecked
+    @typecheck
     def __init__(self, contexts: list[tuple[PysNode, PysToken | None]], body: PysNode, position: PysPosition) -> None:
         super().__init__(position)
         setimuattr(self, 'contexts', tuple(contexts))
@@ -442,7 +444,7 @@ class PysForNode(PysNode):
 
     __slots__ = ('header', 'body', 'else_body')
 
-    @typechecked
+    @typecheck
     def __init__(
         self,
         header: tuple[PysNode | None, PysNode | None, PysNode | None] |
@@ -464,7 +466,7 @@ class PysWhileNode(PysNode):
 
     __slots__ = ('condition', 'body', 'else_body')
 
-    @typechecked
+    @typecheck
     def __init__(
         self,
         condition: PysNode,
@@ -485,7 +487,7 @@ class PysDoWhileNode(PysNode):
 
     __slots__ = ('body', 'condition', 'else_body')
 
-    @typechecked
+    @typecheck
     def __init__(
         self,
         body: PysNode,
@@ -506,7 +508,7 @@ class PysRepeatNode(PysNode):
 
     __slots__ = ('body', 'condition', 'else_body')
 
-    @typechecked
+    @typecheck
     def __init__(
         self,
         body: PysNode | None,
@@ -527,7 +529,7 @@ class PysClassNode(PysNode):
 
     __slots__ = ('decorators', 'name', 'bases', 'body')
 
-    @typechecked
+    @typecheck
     def __init__(
         self,
         decorators: list[PysNode],
@@ -550,7 +552,7 @@ class PysFunctionNode(PysNode):
 
     __slots__ = ('decorators', 'name', 'parameters', 'body', 'constructor')
 
-    @typechecked
+    @typecheck
     def __init__(
         self,
         decorators: list[PysNode],
@@ -583,7 +585,7 @@ class PysGlobalNode(PysNode):
 
     __slots__ = ('identifiers',)
 
-    @typechecked
+    @typecheck
     def __init__(self, identifiers: list[PysToken], position: PysPosition) -> None:
         super().__init__(position)
         setimuattr(self, 'identifiers', tuple(frozenset(identifiers)))
@@ -595,7 +597,7 @@ class PysReturnNode(PysNode):
 
     __slots__ = ('value',)
 
-    @typechecked
+    @typecheck
     def __init__(self, value: PysNode | None, position: PysPosition) -> None:
         super().__init__(position)
         setimuattr(self, 'value', value)
@@ -607,7 +609,7 @@ class PysThrowNode(PysNode):
 
     __slots__ = ('target', 'primary')
 
-    @typechecked
+    @typecheck
     def __init__(self, target: PysNode, primary: PysNode | None, position: PysPosition) -> None:
         super().__init__(
             PysPosition(
@@ -627,7 +629,7 @@ class PysAssertNode(PysNode):
 
     __slots__ = ('condition', 'message')
 
-    @typechecked
+    @typecheck
     def __init__(self, condition: PysNode, message: PysNode | None) -> None:
         super().__init__(condition.position)
         setimuattr(self, 'condition', condition)
@@ -640,7 +642,7 @@ class PysDeleteNode(PysNode):
 
     __slots__ = ('targets',)
 
-    @typechecked
+    @typecheck
     def __init__(self, targets: list[PysNode], position: PysPosition) -> None:
         super().__init__(position)
         setimuattr(self, 'targets', tuple(targets))

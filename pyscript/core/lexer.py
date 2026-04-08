@@ -1,12 +1,12 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
 from .checks import is_keyword
-from .constants import TOKENS, DEFAULT, SILENT, LEXER_HIGHLIGHT, NO_COLOR
+from .constants import DEFAULT, SILENT, LEXER_HIGHLIGHT, NO_COLOR
 from .context import PysContext
 from .exceptions import PysTraceback
 from .position import PysPosition, format_error_arrow
-from .token import PysToken
-from .utils.decorators import typechecked
+from .token import TOKENS, PysToken
+from .utils.decorators import typecheck
 from .utils.string import indent
 
 from unicodedata import lookup as unicode_lookup
@@ -42,7 +42,7 @@ ESCAPE_LITERAL_LENGTH = MappingProxyType({
 
 class PysLexer(Pys):
 
-    @typechecked
+    @typecheck
     def __init__(
         self,
         file: PysFileBuffer,
@@ -58,7 +58,7 @@ class PysLexer(Pys):
         self.context_parent = context_parent
         self.context_parent_entry_position = context_parent_entry_position
 
-    @typechecked
+    @typecheck
     def make_tokens(self) -> tuple[tuple[PysToken, ...] | tuple[PysToken], None] | tuple[None, PysTraceback]:
         self.index = 0
         self.tokens = []
@@ -843,6 +843,10 @@ class PysLexer(Pys):
             if self.current_character == '=':
                 type = TOKENS['EQUAL_DOUBLE_LESS_THAN']
                 self.advance()
+
+        elif self.current_character == '>':
+            type = TOKENS['LESS_THAN_GREATER_THAN']
+            self.advance()
 
         self.add_token(type, start)
 

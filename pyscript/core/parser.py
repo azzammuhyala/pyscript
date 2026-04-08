@@ -1,16 +1,16 @@
 from .bases import Pys
-from .checks import is_list, is_left_bracket, is_right_bracket
-from .constants import TOKENS, DEFAULT, DICT_TO_JSDICT
+from .checks import is_sequence, is_left_bracket, is_right_bracket
+from .constants import DEFAULT, DICT_TO_JSDICT
 from .context import PysContext
 from .exceptions import PysTraceback
 from .mapping import BRACKETS_MAP
 from .nodes import *
 from .position import PysPosition
+from .pystypes import jsdict
 from .results import PysParserResult
-from .token import PysToken
-from .utils.decorators import typechecked
+from .token import TOKENS, PysToken
+from .utils.decorators import typecheck
 from .utils.generic import setimuattr
-from .utils.jsdict import jsdict
 
 from types import MappingProxyType
 from typing import Any, Callable, Optional
@@ -24,7 +24,7 @@ SEQUENCES_MAP = MappingProxyType({
 
 class PysParser(Pys):
 
-    @typechecked
+    @typecheck
     def __init__(
         self,
         tokens: tuple[PysToken, ...] | tuple[PysToken],
@@ -40,7 +40,7 @@ class PysParser(Pys):
         self.context_parent = context_parent
         self.context_parent_entry_position = context_parent_entry_position
 
-    @typechecked
+    @typecheck
     def parse(
         self,
         function: Optional[Callable[[], PysParserResult]] = None
@@ -404,7 +404,8 @@ class PysParser(Pys):
         return self.chain_operator(
             self.bitwise,
             TOKENS['DOUBLE_EQUAL'], TOKENS['EQUAL_EXCLAMATION'], TOKENS['EQUAL_TILDE'], TOKENS['EXCLAMATION_TILDE'],
-            TOKENS['LESS_THAN'], TOKENS['GREATER_THAN'], TOKENS['EQUAL_LESS_THAN'], TOKENS['EQUAL_GREATER_THAN']
+            TOKENS['LESS_THAN'], TOKENS['GREATER_THAN'], TOKENS['EQUAL_LESS_THAN'], TOKENS['EQUAL_GREATER_THAN'],
+            TOKENS['LESS_THAN_GREATER_THAN']
         )
 
     def bitwise(self) -> PysParserResult:
@@ -1601,7 +1602,7 @@ class PysParser(Pys):
             self.advance()
             self.skip(result)
 
-        declaration = result.try_register(self.assignment_statement(self.primary))
+        declaration = result.try_register(self.assignment_statement(self.comparison))
         if result.error:
             return result
 
@@ -1883,7 +1884,7 @@ class PysParser(Pys):
                 return result
 
             end = base.position.end
-            bases = list(base.elements) if is_list(base.__class__) else [base]
+            bases = list(base.elements) if is_sequence(base.__class__) else [base]
 
         else:
             bases = []
@@ -1923,8 +1924,8 @@ class PysParser(Pys):
 
         if self.current_token.match(TOKENS['KEYWORD'], 'constructor'):
             constructor = True
-        elif not self.current_token.match(TOKENS['KEYWORD'], 'def', 'define', 'func', 'function'):
-            return result.failure(self.new_error("expected 'def', 'define', 'func', 'function', or 'constructor'"))
+        elif not self.current_token.match(TOKENS['KEYWORD'], 'func', 'function'):
+            return result.failure(self.new_error("expected 'func', 'function', or 'constructor'"))
 
         result.register_advancement()
         self.advance()
@@ -2149,7 +2150,7 @@ class PysParser(Pys):
 
         return result.success(
             PysDeleteNode(
-                list(targets.elements) if is_list(targets.__class__) else [targets],
+                list(targets.elements) if is_sequence(targets.__class__) else [targets],
                 position
             )
         )
@@ -2491,7 +2492,7 @@ class PysParser(Pys):
         elif name == 'indent':
             return result.failure(self.new_error("not a chance"))
 
-        elif name in ('dict_to_jsdict', 'dict2jsdict'):
+        elif name in ('dict_to_jsdict', 'dict2jsdict', 'jsdict'):
             self.parser_flags |= DICT_TO_JSDICT
             return result.success(True)
 

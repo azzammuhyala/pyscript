@@ -5,6 +5,7 @@ from .nodes import PysNode
 from .position import PysPosition
 from .results import PysRunTimeResult
 from .symtab import PysSymbolTable
+from .utils.generic import dinit, drepr, dor, dsetitem, ddelitem, ditems
 from .utils.similarity import get_closest
 from .utils.string import join
 
@@ -14,9 +15,45 @@ from typing import Any, Callable, Union
 class PysObject(Pys):
     __slots__ = ()
 
+class jsdict(PysObject, dict):
+
+    def __init__(self, *args, **kwargs) -> None:
+        dinit(self, *args, **kwargs)
+
+        removed_keys = []
+        add_key = removed_keys.append
+
+        for key, value in ditems(self):
+            if value is None:
+                add_key(key)
+
+        for key in removed_keys:
+            ddelitem(self, key)
+
+    def __repr__(self) -> str:
+        return f'jsdict({drepr(self)})'
+
+    def __or__(self, *args, **kwargs) -> 'jsdict':
+        return jsdict(dor(self, *args, **kwargs))
+
+    def __setattr__(self, key: Any, value: Any) -> None:
+        if value is None:
+            if key in self:
+                ddelitem(self, key)
+        else:
+            dsetitem(self, key, value)
+
+    def __delattr__(self, key: Any) -> None:
+        if key in self:
+            ddelitem(self, key)
+
+    __getitem__ = __getattribute__ = dict.get
+    __setitem__ = __setattr__
+    __delitem__ = __delattr__
+
 class PysCode(PysObject):
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         self.__dict__ = kwargs
 
 class PysFunction(PysObject):

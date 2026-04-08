@@ -1,8 +1,8 @@
 from .bases import Pys
-from .checks import is_equals
-from .constants import TOKENS
+from .checks import is_equal
 from .cache import PysUndefined, undefined
-from .mapping import GET_BINARY_FUNCTIONS_MAP, EMPTY_MAP
+from .mapping import GET_BINARY_FUNCTION, EMPTY_MAP
+from .token import TOKENS
 from .utils.decorators import immutable
 from .utils.generic import setimuattr, dcontains, dgetitem, dsetitem, ddelitem, dget, dkeys
 from .utils.similarity import get_closest
@@ -40,7 +40,7 @@ class PysSymbolTable(Pys):
         return value
 
     def set(self, name: str, value: Any, *, operand: int = TOKENS['EQUAL']) -> bool:
-        if is_equals(operand):
+        if is_equal(operand):
             if name in self.globals and (parent := self.parent):
                 return parent.set(name, value, operand=operand)
             dsetitem(self.symbols, name, value)
@@ -53,7 +53,7 @@ class PysSymbolTable(Pys):
                 False
             )
 
-        dsetitem(symbols, name, GET_BINARY_FUNCTIONS_MAP(operand)(dgetitem(symbols, name), value))
+        dsetitem(symbols, name, GET_BINARY_FUNCTION(operand)(dgetitem(symbols, name), value))
         return True
 
     def remove(self, name: str) -> bool:

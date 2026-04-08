@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyscript-programming-language"
-version = "1.12.9"
+version = "1.12.10"
 description = "PyScript Programming Language"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
@@ -36,6 +36,7 @@ classifiers = [
 Homepage = "https://azzammuhyala.github.io/pyscript"
 Source = "https://github.com/azzammuhyala/pyscript"
 "Bug Tracker" = "https://github.com/azzammuhyala/pyscript/issues"
+"Change Log" = "https://github.com/azzammuhyala/pyscript/blob/main/changelog.md"
 
 [project.optional-dependencies]
 other = [

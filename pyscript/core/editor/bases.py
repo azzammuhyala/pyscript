@@ -1,6 +1,6 @@
 from ..bases import Pys
 from ..buffer import PysFileBuffer
-from ..utils.decorators import typechecked, inheritable
+from ..utils.decorators import typecheck, inheritable
 from ..utils.generic import setimuattr
 from ..utils.string import normstr
 
@@ -8,7 +8,7 @@ import os
 
 class PysEditor(Pys):
 
-    @typechecked
+    @typecheck
     def __init__(self, file: PysFileBuffer, colored: bool = True) -> None:
         self.file = file
         self.colored = bool(colored)

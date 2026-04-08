@@ -228,7 +228,7 @@ try:
         MAXIMUM_HISTORY_LINE = 1000
     else:
         try:
-            MAXIMUM_HISTORY_LINE = max(5, int(MAXIMUM_HISTORY_LINE))
+            MAXIMUM_HISTORY_LINE = int(MAXIMUM_HISTORY_LINE)
         except:
             MAXIMUM_HISTORY_LINE = 1000
 
@@ -240,9 +240,8 @@ try:
                 return super().__new__(cls)
             raise NotImplementedError('not using file history')
 
-        def __init__(self):
+        def __init__(self) -> None:
             from threading import RLock
-
             super().__init__()
             self.lock = RLock()
 
@@ -250,9 +249,15 @@ try:
             try:
 
                 with self.lock:
+
+                    if MAXIMUM_HISTORY_LINE == 0:
+                        with open(HISTORY_PATH, 'w', encoding='utf-8') as file:
+                            file.write('')
+                        return []
+
                     strings = []
                     lines = []
-                    update = False
+                    update_history = False
 
                     if os.path.isfile(HISTORY_PATH):
 
@@ -276,17 +281,17 @@ try:
                                 add_to_string()
 
                     else:
-                        update = True
+                        update_history = True
 
                     if append_string is not None:
                         strings.append(append_string)
-                        update = True
+                        update_history = True
 
-                    if len(strings) > MAXIMUM_HISTORY_LINE:
+                    if MAXIMUM_HISTORY_LINE > 0 and len(strings) > MAXIMUM_HISTORY_LINE:
                         del strings[:-MAXIMUM_HISTORY_LINE]
-                        update = True
+                        update_history = True
 
-                    if update:
+                    if update_history:
                         with open(HISTORY_PATH, 'w', encoding='utf-8') as file:
                             file.writelines(f'\x1e{line}\n' for line in strings)
 
@@ -302,11 +307,18 @@ try:
             self.update_history(string)
 
         def append_string(self, string: str) -> None:
-            length = len(self._loaded_strings)
-            if length == MAXIMUM_HISTORY_LINE:
-                del self._loaded_strings[-1]
-            elif length > MAXIMUM_HISTORY_LINE:
-                del self._loaded_strings[:-MAXIMUM_HISTORY_LINE]
+            if MAXIMUM_HISTORY_LINE == 0:
+                self._loaded_strings.clear()
+                self.update_history()
+                return
+
+            elif MAXIMUM_HISTORY_LINE > 0:
+                length = len(self._loaded_strings)
+                if length == MAXIMUM_HISTORY_LINE:
+                    del self._loaded_strings[-1]
+                elif length > MAXIMUM_HISTORY_LINE:
+                    del self._loaded_strings[:-MAXIMUM_HISTORY_LINE]
+
             self._loaded_strings.insert(0, string)
             self.update_history(string)
 

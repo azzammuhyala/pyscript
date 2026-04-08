@@ -1,0 +1,35 @@
+from pygame import init, quit, Surface, SRCALPHA
+from 'pygame.draw' import rect
+from 'pygame.font' import Font
+from 'pygame.image' import save, tobytes
+from 'pygame.transform' import smoothscale
+from 'PIL.Image' import frombytes
+
+size = (500, 500)
+icoSize = (64, 64)
+borderRadius = 100
+color1 = '#f7df1e'
+color2 = '#3673a5'
+color3 = '#000000'
+
+init()
+
+image = Surface(size, SRCALPHA)
+font = Font(r'OpenSans-Bold.ttf', 250)
+imageRect = image.get_rect()
+
+rect(image, color1, imageRect, border_radius=borderRadius)
+
+texts = (font.render('Py', True, color2), font.render('S', True, color3))
+leftText = (imageRect.width - sum(map(func(text) => text.get_width(), texts))) / 2
+topText = (imageRect.height - max(map(func(text) => text.get_height(), texts))) / 2
+left = 0
+for (text in texts) {
+    image.blit(text, (leftText + left, topText))
+    left += text.get_width()
+}
+
+save(image, 'PyScript.png')
+frombytes('RGBA', icoSize, tobytes(smoothscale(image, icoSize), 'RGBA')).save('PyScript.ico', 'ICO')
+
+quit()
