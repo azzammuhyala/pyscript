@@ -9,12 +9,12 @@ comment "# "
 color brightgreen "\<class\>\s+[[:alnum:]_]+"
 
 # Function definitions
-color yellow "\<(def|define|func|function)\>\s+[[:alnum:]_]+"
+color yellow "\<(func|function)\>\s+[[:alnum:]_]+"
 
 # Keywords
 color magenta "\<(as|assert|break|case|catch|continue|default|del|delete|do|elif|else|elseif|except|finally|for)\>"
 color magenta "\<(from|if|import|match|raise|repeat|return|switch|throw|try|until|while|with)\>"
-color blue "\<(__debug__|False|None|True|and|class|constructor|def|define|func|function|extends|false|global|in|is)\>"
+color blue "\<(__debug__|False|None|True|and|class|constructor|func|function|extends|false|global|in|is)\>"
 color blue "\<(not|nil|none|null|of|or|true|typeof)\>"
 
 # Single strings - source: python.nanorc

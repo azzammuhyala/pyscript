@@ -72,27 +72,9 @@
             "}"
         ]
     },
-    "Keyword - def": {
-        "prefix": "def",
-        "body": [
-            "def ${1:functionName}(${2:parameter}) {",
-            "\t${0:# code}",
-            "}"
-        ],
-        "description": "same as func"
-    },
     "Keyword - default": {
         "prefix": "default",
         "body": "default:"
-    },
-    "Keyword - define": {
-        "prefix": "define",
-        "body": [
-            "define ${1:functionName}(${2:parameter}) {",
-            "\t${0:# code}",
-            "}"
-        ],
-        "description": "same as func"
     },
     "Keyword - del": {
         "prefix": "del",
@@ -443,11 +425,6 @@
         "prefix": "IndexError",
         "body": "IndexError"
     },
-    "Builtin - Infinity": {
-        "prefix": "Infinity",
-        "body": "Infinity",
-        "description": "same as inf"
-    },
     "Builtin - InterruptedError": {
         "prefix": "InterruptedError",
         "body": "InterruptedError"
@@ -476,11 +453,6 @@
         "prefix": "ModuleNotFoundError",
         "body": "ModuleNotFoundError"
     },
-    "Builtin - NaN": {
-        "prefix": "NaN",
-        "body": "NaN",
-        "description": "same as nan"
-    },
     "Builtin - NameError": {
         "prefix": "NameError",
         "body": "NameError"
@@ -488,11 +460,6 @@
     "Builtin - NotADirectoryError": {
         "prefix": "NotADirectoryError",
         "body": "NotADirectoryError"
-    },
-    "Builtin - NotANumber": {
-        "prefix": "NotANumber",
-        "body": "NotANumber",
-        "description": "same as nan"
     },
     "Builtin - NotImplemented": {
         "prefix": "NotImplemented",
@@ -718,11 +685,6 @@
         "prefix": "divmod",
         "body": "divmod($0)"
     },
-    "Builtin - ellipsis": {
-        "prefix": "ellipsis",
-        "body": "ellipsis",
-        "description": "same as Ellipsis"
-    },
     "Builtin - enumerate": {
         "prefix": "enumerate",
         "body": "enumerate($0)"
@@ -754,6 +716,11 @@
     "Builtin - frozenset": {
         "prefix": "frozenset",
         "body": "frozenset"
+    },
+    "Builtin - frozendict": {
+        "prefix": "frozendict",
+        "body": "frozendict",
+        "description": "only for Python 3.15+ versions"
     },
     "Builtin - getattr": {
         "prefix": "getattr",
@@ -791,10 +758,9 @@
         "prefix": "inf",
         "body": "inf"
     },
-    "Builtin - infinity": {
-        "prefix": "infinity",
-        "body": "infinity",
-        "description": "same as inf"
+    "Builtin - infj": {
+        "prefix": "infj",
+        "body": "infj"
     },
     "Builtin - input": {
         "prefix": "input",
@@ -864,10 +830,9 @@
         "prefix": "nan",
         "body": "nan"
     },
-    "Builtin - notanumber": {
-        "prefix": "notanumber",
-        "body": "notanumber",
-        "description": "same as nan"
+    "Builtin - nanj": {
+        "prefix": "nanj",
+        "body": "nanj"
     },
     "Builtin - object": {
         "prefix": "object",

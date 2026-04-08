@@ -11,7 +11,7 @@ Or you can include that file into a `.nanorc` file in the working directory:
 ```sh
 nano .nanorc # edit the .nanorc file
 ```
-Write this line in the `.nanorc` file:
+Add this line in the `.nanorc` file:
 ```nano
 include "./pyscript.nanorc"
 ```
