@@ -96,7 +96,9 @@ def pys_runner(
     runtime_result = PysRunTimeResult()
     position = PysPosition(file, -1, -1)
 
-    with runtime_result(context, position):
+    runtime_result._context = context
+    runtime_result._position = position
+    with runtime_result:
 
         try:
 

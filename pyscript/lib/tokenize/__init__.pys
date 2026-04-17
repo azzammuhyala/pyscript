@@ -1,13 +1,14 @@
 from parser import tokenize
 from token import *
 from token import __all__
-from tok_untokenize import untokenize
+from tok_untokenize import token_value_error, untokenize
 from '_pyscript>token' import PysToken as TokenInfo
 
 generate_tokens = tokenize
 
 __all__ = __all__ + (
     'tokenize',
+    'token_value_error',
     'untokenize',
     'TokenInfo',
     'generate_tokens'

@@ -89,6 +89,9 @@ try:
                 yscrollcommand=self.scrollbar.set
             )
 
+            self.scrollbar.pack_configure(side='right', fill='y')
+            self.scrollbar.configure(command=self.text.yview)
+
             self.text.pack_configure(side='left', expand=True, fill='both')
 
             self.text.insert('1.0', self.file.text)
@@ -99,9 +102,6 @@ try:
             self.text.bind('<Prior>', on_page_up)
             self.text.bind('<Next>', on_page_down)
 
-            self.scrollbar.pack_configure(side='right', fill='y')
-            self.scrollbar.configure(command=self.text.yview)
-
             self.bind_all('<Control-S>', on_save)
             self.bind_all('<Control-s>', on_save)
             self.bind_all('<Control-W>', on_toggle_wrap)
@@ -111,6 +111,8 @@ try:
             self.bind_all('<Control-equal>', on_change_font(1, lambda size : size < 128))
             self.bind_all('<Control-plus>', on_change_font(5, lambda size : size < 128))
 
+            # self.wm_geometry('800x600')
+            self.wm_minsize(300, 250)
             self.wm_protocol('WM_DELETE_WINDOW', on_close)
 
             if colored:

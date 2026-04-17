@@ -24,6 +24,12 @@ class PysTraceback(Pys):
         primary: Optional['PysTraceback'] = None,
         implicit: bool = False
     ) -> None:
+        # circular import problem solved
+        from .cache import pys_sys
+
+        pys_sys.last_type = type(exception) if isinstance(exception, BaseException) else exception
+        pys_sys.last_value = exception if isinstance(exception, BaseException) else None
+        pys_sys.last_traceback = self
 
         setimuattr(self, 'exception', exception)
         setimuattr(self, 'context', context)
@@ -32,7 +38,7 @@ class PysTraceback(Pys):
         setimuattr(self, 'implicit', implicit)
 
     def __repr__(self) -> str:
-        return f'<traceback of exception {self.exception!r}>'
+        return f'<traceback of {self.exception!r}>'
 
     def string_traceback(self) -> str:
         # circular import problem solved
@@ -60,9 +66,9 @@ class PysTraceback(Pys):
 
             frames.append(
                 f'  File {magenta}"{position.file.name}"{reset}' +
-                ('' if is_positionless else f', line {magenta}{position.start_line}{reset}') + 
+                ('' if is_positionless      else f', line {magenta}{position.start_line}{reset}') + 
                 ('' if context_name is None else f', in {magenta}{context_name}{reset}') +
-                ('' if is_positionless else f'\n{indent(format_error_arrow(position, colored), 4)}')
+                ('' if is_positionless      else f'\n{indent(format_error_arrow(position, colored), 4)}')
             )
 
             position = context.parent_entry_position

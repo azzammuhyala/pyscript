@@ -1,11 +1,11 @@
 from pyscript.core.interpreter import get_value_from_keyword
-from pyscript.core.mapping import GET_BINARY_FUNCTION, GET_UNARY_FUNCTION, REVERSE_TOKENS
+from pyscript.core.mapping import GET_BINARY_FUNCTION, GET_UNARY_FUNCTION
 from pyscript.core.nodes import (
     PysNode, PysNumberNode, PysStringNode, PysKeywordNode, PysIdentifierNode, PysDictionaryNode, PysSetNode,
     PysListNode, PysTupleNode, PysCallNode, PysUnaryOperatorNode, PysBinaryOperatorNode, PysEllipsisNode
 )
 from pyscript.core.pysbuiltins import pys_builtins
-from pyscript.core.token import TOKENS
+from pyscript.core.token import TOKENS, REVERSE_TOKENS
 
 from types import EllipsisType
 from typing import Any, Callable
@@ -18,7 +18,7 @@ get_identifier = {
     'inf': pys_builtins.inf,
     'infj': pys_builtins.infj,
     'nan': pys_builtins.nan,
-    'nanj': pys_builtins.nanj,
+    'nanj': pys_builtins.nanj
 }.get
 
 def visit(node: PysNode) -> Any:

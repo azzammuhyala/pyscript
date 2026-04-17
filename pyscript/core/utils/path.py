@@ -18,11 +18,8 @@ def base(path: str) -> str:
     return os.path.splitext(os.path.basename(path))[0]
 
 def extension(path: str) -> str:
-    return os.path.splitext(os.path.basename(path))[1]
+    return os.path.splitext(path)[1]
 
 def normpath(*paths, absolute: bool = True) -> str:
     path = os.path.normpath(os.path.sep.join(map(normstr, paths)))
     return abspath(path) if absolute else path
-
-def get_name_from_path(path) -> str:
-    return base(normpath(path, absolute=False))

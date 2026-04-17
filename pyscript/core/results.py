@@ -114,11 +114,6 @@ class PysRunTimeResult(PysResult):
 
     # --- HANDLE EXCEPTION ---
 
-    def __call__(self, context: PysContext, position: PysPosition) -> 'PysRunTimeResult':
-        self._context = context
-        self._position = position
-        return self
-
     def __enter__(self) -> None:
         pass
 
@@ -172,7 +167,9 @@ class PysExecuteResult(PysResult):
         context = self.context
         position = PysPosition(self.context.file, -1, -1)
 
-        with result(context, position):
+        result._context = context
+        result._position = position
+        with result:
 
             if self.error:
                 if self.error.exception is SystemExit:

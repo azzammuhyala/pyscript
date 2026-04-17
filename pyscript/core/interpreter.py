@@ -60,12 +60,12 @@ def visit_DebugNode(node: PysDebugNode, context: PysContext) -> PysRunTimeResult
 def visit_IdentifierNode(node: PysIdentifierNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
-    position = node.position
+    result._context = context
+    result._position = position = node.position
+    name = node.name.value
+    symbol_table = context.symbol_table
 
-    with result(context, position):
-        name = node.name.value
-        symbol_table = context.symbol_table
-
+    with result:
         value = symbol_table.get(name)
 
         if value is undefined:
@@ -95,6 +95,7 @@ def visit_DictionaryNode(node: PysDictionaryNode, context: PysContext) -> PysRun
 
     elements = node.class_type()
 
+    result._context = context
     register = result.register
     should_return = result.should_return
     setitem = getattribute(elements, '__setitem__')
@@ -108,7 +109,8 @@ def visit_DictionaryNode(node: PysDictionaryNode, context: PysContext) -> PysRun
         if should_return():
             return result
 
-        with result(context, nkey.position):
+        result._position = nkey.position
+        with result:
             setitem(key, value)
 
         if should_return():
@@ -121,13 +123,14 @@ def visit_SetNode(node: PysSetNode, context: PysContext) -> PysRunTimeResult:
 
     elements = set()
 
+    result._context = context
     register = result.register
     should_return = result.should_return
     add = elements.add
 
     for nelement in node.elements:
-
-        with result(context, nelement.position):
+        result._position = nelement.position
+        with result:
             add(register(get_visitor(nelement.__class__)(nelement, context)))
 
         if should_return():
@@ -178,7 +181,9 @@ def visit_AttributeNode(node: PysAttributeNode, context: PysContext) -> PysRunTi
 
     nattribute = node.attribute
 
-    with result(context, nattribute.position):
+    result._context = context
+    result._position = nattribute.position
+    with result:
         return result.success(getattr(target, nattribute.value))
 
     return result
@@ -198,7 +203,9 @@ def visit_SubscriptNode(node: PysSubscriptNode, context: PysContext) -> PysRunTi
     if should_return():
         return result
 
-    with result(context, node.position):
+    result._context = context
+    result._position = node.position
+    with result:
         return result.success(target[slice])
 
     return result
@@ -233,9 +240,9 @@ def visit_CallNode(node: PysCallNode, context: PysContext) -> PysRunTimeResult:
             if should_return():
                 return result
 
-    nposition = node.position
-
-    with result(context, nposition):
+    result._context = context
+    result._position = nposition = node.position
+    with result:
         handle_call(target, context, nposition)
         return result.success(target(*args, **kwargs))
 
@@ -253,9 +260,9 @@ def visit_ChainOperatorNode(node: PysChainOperatorNode, context: PysContext) -> 
     if should_return():
         return result
 
-    nposition = node.position
-
-    with result(context, nposition):
+    result._context = context
+    result._position = nposition = node.position
+    with result:
 
         for i, toperand in enumerate(node.operations, start=1):
             otype = toperand.type
@@ -300,7 +307,9 @@ def visit_TernaryOperatorNode(node: PysTernaryOperatorNode, context: PysContext)
     if should_return():
         return result
 
-    with result(context, node.position):
+    result._context = context
+    result._position = node.position
+    with result:
         nvalue = node.valid if condition else node.invalid
 
         value = register(get_visitor(nvalue.__class__)(nvalue, context))
@@ -325,7 +334,9 @@ def visit_BinaryOperatorNode(node: PysBinaryOperatorNode, context: PysContext) -
     toperand = node.operand
     otype = toperand.type
 
-    with result(context, node.position):
+    result._context = context
+    result._position = node.position
+    with result:
         return_right = True
 
         if otype == T_KEYWORD:
@@ -365,7 +376,9 @@ def visit_UnaryOperatorNode(node: PysUnaryOperatorNode, context: PysContext) -> 
     toperand = node.operand
     otype = toperand.type
 
-    with result(context, node.position):
+    result._context = context
+    result._position = node.position
+    with result:
 
         if otype == T_KEYWORD:
             ovalue = toperand.value
@@ -389,9 +402,9 @@ def visit_IncrementalNode(node: PysIncrementalNode, context: PysContext) -> PysR
     if should_return():
         return result
 
-    nposition = node.position
-
-    with result(context, nposition):
+    result._context = context
+    result._position = nposition = node.position
+    with result:
         function = get_incremental_function(node.operand.type)
         handle_call(function, context, nposition)
         increast_value = function(value)
@@ -452,9 +465,10 @@ def visit_ImportNode(node: PysImportNode, context: PysContext) -> PysRunTimeResu
     symbol_table = context.symbol_table
     get_symbol = symbol_table.get
     tname, tas_name = node.name
-    name_position = tname.position
 
-    with result(context, name_position):
+    result._context = context
+    result._position = name_position = tname.position
+    with result:
         name_module = tname.value
         use_python_package = False
 
@@ -496,7 +510,7 @@ def visit_ImportNode(node: PysImportNode, context: PysContext) -> PysRunTimeResu
 
     if npackages == 'all':
 
-        with result(context, name_position):
+        with result:
             exported_from = '__all__'
             exported_packages = getattr(module, exported_from, undefined)
             if exported_packages is undefined:
@@ -522,14 +536,17 @@ def visit_ImportNode(node: PysImportNode, context: PysContext) -> PysRunTimeResu
             return result
 
     elif npackages:
+
         for tpackage, tas_package in npackages:
-            with result(context, tpackage.position):
+            result._position = tpackage.position
+            with result:
                 set_symbol((tpackage if tas_package is None else tas_package).value, getattr(module, tpackage.value))
             if should_return():
                 return result
 
     elif not (tname.type == T_STRING and tas_name is None):
-        with result(context, node.position):
+
+        with result:
             set_symbol((tname if tas_name is None else tas_name).value, module)
         if should_return():
             return result
@@ -539,6 +556,7 @@ def visit_ImportNode(node: PysImportNode, context: PysContext) -> PysRunTimeResu
 def visit_IfNode(node: PysIfNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
+    result._context = context
     register = result.register
     should_return = result.should_return
 
@@ -547,7 +565,8 @@ def visit_IfNode(node: PysIfNode, context: PysContext) -> PysRunTimeResult:
         if should_return():
             return result
 
-        with result(context, ncondition.position):
+        result._position = ncondition.position
+        with result:
             if condition:
                 register(get_visitor(body.__class__)(body, context))
                 return result if should_return() else result.success(None)
@@ -567,6 +586,7 @@ def visit_IfNode(node: PysIfNode, context: PysContext) -> PysRunTimeResult:
 def visit_SwitchNode(node: PysSwitchNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
+    result._context = context
     register = result.register
     should_return = result.should_return
     ntarget = node.target
@@ -583,7 +603,8 @@ def visit_SwitchNode(node: PysSwitchNode, context: PysContext) -> PysRunTimeResu
         if should_return():
             return result
 
-        with result(context, ncondition.position):
+        result._position = ncondition.position
+        with result:
 
             if fall_through or target == case:
                 fall_through = True
@@ -613,6 +634,7 @@ def visit_SwitchNode(node: PysSwitchNode, context: PysContext) -> PysRunTimeResu
 def visit_MatchNode(node: PysMatchNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
+    result._context = context
     register = result.register
     should_return = result.should_return
     ntarget = node.target
@@ -630,7 +652,8 @@ def visit_MatchNode(node: PysMatchNode, context: PysContext) -> PysRunTimeResult
         if should_return():
             return result
 
-        with result(context, ncondition.position):
+        result._position = ncondition.position
+        with result:
 
             if target == condition if compare else (True if condition else False):
                 value = register(get_visitor(nvalue.__class__)(nvalue, context))
@@ -705,8 +728,9 @@ def visit_TryNode(node: PysTryNode, context: PysContext) -> PysRunTimeResult:
             elif handle_exception:
 
                 if tparameter:
-                    position = tparameter.position
-                    with result(context, position):
+                    result._context = context
+                    result._position = tparameter.position
+                    with result:
                         symbol_table = context.symbol_table
                         parameter = tparameter.value
                         symbol_table.set(parameter, error.exception)
@@ -718,7 +742,7 @@ def visit_TryNode(node: PysTryNode, context: PysContext) -> PysRunTimeResult:
                     setimuattr(result.error, 'primary', error)
 
                 if tparameter:
-                    with result(context, position):
+                    with result:
                         symbol_table.remove(parameter)
                     if should_return():
                         break
@@ -748,6 +772,7 @@ def visit_WithNode(node: PysWithNode, context: PysContext) -> PysRunTimeResult:
 
     exit_functions = []
 
+    result._context = context
     register = result.register
     should_return = result.should_return
     append_exit_function = exit_functions.append
@@ -758,9 +783,8 @@ def visit_WithNode(node: PysWithNode, context: PysContext) -> PysRunTimeResult:
         if should_return():
             break
 
-        ncontext_position = ncontext.position
-
-        with result(context, ncontext_position):
+        result._position = ncontext_position = ncontext.position
+        with result:
             enter = getattr(context_value, '__enter__', undefined)
             exit = getattr(context_value, '__exit__', undefined)
 
@@ -794,7 +818,8 @@ def visit_WithNode(node: PysWithNode, context: PysContext) -> PysRunTimeResult:
             break
 
         if nalias:
-            with result(context, nalias.position):
+            result._position = nalias.position
+            with result:
                 set_symbol(nalias.value, enter_value)
             if should_return():
                 break
@@ -807,7 +832,8 @@ def visit_WithNode(node: PysWithNode, context: PysContext) -> PysRunTimeResult:
     error = result.error
 
     for exit, ncontext_position in reversed(exit_functions):
-        with result(context, ncontext_position):
+        result._position = ncontext_position
+        with result:
             handle_call(exit, context, ncontext_position)
             if exit(*get_traceback_info(error)):
                 failure(None)
@@ -823,6 +849,7 @@ def visit_WithNode(node: PysWithNode, context: PysContext) -> PysRunTimeResult:
 def visit_ForNode(node: PysForNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
+    result._context = context
     register = result.register
     should_return = result.should_return
     nheader = node.header
@@ -835,8 +862,8 @@ def visit_ForNode(node: PysForNode, context: PysContext) -> PysRunTimeResult:
         if should_return():
             return result
 
-        niteration_position = niteration.position
-        with result(context, niteration_position):
+        result._position = niteration_position = niteration.position
+        with result:
             handle_call(getattr(iteration, '__iter__', None), context, niteration_position)
             next = iter(iteration).__next__
 
@@ -844,7 +871,7 @@ def visit_ForNode(node: PysForNode, context: PysContext) -> PysRunTimeResult:
             return result
 
         def condition():
-            with result(context, niteration_position):
+            with result:
                 handle_call(next, context, niteration_position)
                 register(visit_declaration_from_AssignmentNode(ndeclaration, context, next()))
             if should_return():
@@ -867,12 +894,12 @@ def visit_ForNode(node: PysForNode, context: PysContext) -> PysRunTimeResult:
 
         if ncondition:
             ncondition_class = ncondition.__class__
-            ncondition_position = ncondition.position
+            result._position = ncondition.position
             def condition():
                 value = register(get_visitor(ncondition_class)(ncondition, context))
                 if should_return():
                     return False
-                with result(context, ncondition_position):
+                with result:
                     return True if value else False
 
         else:
@@ -925,11 +952,12 @@ def visit_ForNode(node: PysForNode, context: PysContext) -> PysRunTimeResult:
 def visit_WhileNode(node: PysWhileNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
+    result._context = context
     register = result.register
     should_return = result.should_return
     ncondition = node.condition
-    ncondition_position = ncondition.position
     ncondition_class = ncondition.__class__
+    result._position = ncondition.position
     body = node.body
     body_class = body.__class__
 
@@ -938,7 +966,7 @@ def visit_WhileNode(node: PysWhileNode, context: PysContext) -> PysRunTimeResult
         if should_return():
             return result
 
-        with result(context, ncondition_position):
+        with result:
             if not condition:
                 break
 
@@ -967,10 +995,11 @@ def visit_WhileNode(node: PysWhileNode, context: PysContext) -> PysRunTimeResult
 def visit_DoWhileNode(node: PysDoWhileNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
+    result._context = context
     register = result.register
     should_return = result.should_return
     ncondition = node.condition
-    ncondition_position = ncondition.position
+    result._position = ncondition.position
     ncondition_class = ncondition.__class__
     body = node.body
     body_class = body.__class__
@@ -989,7 +1018,7 @@ def visit_DoWhileNode(node: PysDoWhileNode, context: PysContext) -> PysRunTimeRe
         if should_return():
             return result
 
-        with result(context, ncondition_position):
+        with result:
             if not condition:
                 break
 
@@ -1009,10 +1038,11 @@ def visit_DoWhileNode(node: PysDoWhileNode, context: PysContext) -> PysRunTimeRe
 def visit_RepeatNode(node: PysRepeatNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
+    result._context = context
     register = result.register
     should_return = result.should_return
     ncondition = node.condition
-    ncondition_position = ncondition.position
+    result._position = ncondition.position
     ncondition_class = ncondition.__class__
     body = node.body
 
@@ -1033,7 +1063,7 @@ def visit_RepeatNode(node: PysRepeatNode, context: PysContext) -> PysRunTimeResu
             if should_return():
                 return result
 
-            with result(context, ncondition_position):
+            with result:
                 if condition:
                     break
 
@@ -1055,7 +1085,7 @@ def visit_RepeatNode(node: PysRepeatNode, context: PysContext) -> PysRunTimeResu
             if should_return():
                 return result
 
-            with result(context, ncondition_position):
+            with result:
                 if condition:
                     break
 
@@ -1094,7 +1124,9 @@ def visit_ClassNode(node: PysClassNode, context: PysContext) -> PysRunTimeResult
     if should_return():
         return result
 
-    with result(context, nposition):
+    result._context = context
+    result._position = nposition
+    with result:
         cls = type(name, tuple(bases), class_context.symbol_table.symbols)
         cls.__qualname__ = class_context.qualname
         cls.__module__ = 'pyscript'
@@ -1107,16 +1139,16 @@ def visit_ClassNode(node: PysClassNode, context: PysContext) -> PysRunTimeResult
         if should_return():
             return result
 
-        dposition = ndecorator.position
-
-        with result(context, dposition):
+        result._position = dposition = ndecorator.position
+        with result:
             handle_call(decorator, context, dposition)
             cls = decorator(cls)
 
         if should_return():
             return result
 
-    with result(context, nposition):
+    result._position = nposition
+    with result:
         symbol_table.set(name, cls)
 
     return result if should_return() else result.success(None)
@@ -1126,6 +1158,7 @@ def visit_FunctionNode(node: PysFunctionNode, context: PysContext) -> PysRunTime
 
     parameters = []
 
+    result._context = context
     register = result.register
     should_return = result.should_return
     add_parameter = parameters.append
@@ -1161,9 +1194,8 @@ def visit_FunctionNode(node: PysFunctionNode, context: PysContext) -> PysRunTime
         if should_return():
             return result
 
-        dposition = ndecorator.position
-
-        with result(context, dposition):
+        result._position = dposition = ndecorator.position
+        with result:
             handle_call(decorator, context, dposition)
             function = decorator(function)
 
@@ -1171,7 +1203,8 @@ def visit_FunctionNode(node: PysFunctionNode, context: PysContext) -> PysRunTime
             return result
 
     if name:
-        with result(context, nposition):
+        result._position = nposition
+        with result:
             context.symbol_table.set(name, function)
         if should_return():
             return result
@@ -1265,7 +1298,9 @@ def visit_AssertNode(node: PysAssertNode, context: PysContext) -> PysRunTimeResu
     if should_return():
         return result
 
-    with result(context, ncondition.position):
+    result._context = context
+    result._position = ncondition.position
+    with result:
 
         if not condition:
             nmessage = node.message
@@ -1298,6 +1333,7 @@ def visit_AssertNode(node: PysAssertNode, context: PysContext) -> PysRunTimeResu
 def visit_DeleteNode(node: PysDeleteNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
 
+    result._context = context
     register = result.register
     should_return = result.should_return
     symbol_table = context.symbol_table
@@ -1306,10 +1342,10 @@ def visit_DeleteNode(node: PysDeleteNode, context: PysContext) -> PysRunTimeResu
         ntarget_type = ntarget.__class__
 
         if ntarget_type is PysIdentifierNode:
-            target_position = ntarget.position
             name = ntarget.name.value
 
-            with result(context, target_position):
+            result._position = target_position = ntarget.position
+            with result:
 
                 if not symbol_table.remove(name):
                     closest_symbol = get_closest(dkeys(symbol_table.symbols), name)
@@ -1343,8 +1379,8 @@ def visit_DeleteNode(node: PysDeleteNode, context: PysContext) -> PysRunTimeResu
             if should_return():
                 return result
 
-            target_position = ntarget.position
-            with result(context, target_position):
+            result._position = ntarget.position
+            with result:
                 delattr(target, ntarget.attribute.value)
 
             if should_return():
@@ -1360,8 +1396,8 @@ def visit_DeleteNode(node: PysDeleteNode, context: PysContext) -> PysRunTimeResu
             if should_return():
                 return result
 
-            target_position = ntarget.position
-            with result(context, target_position):
+            result._position = ntarget.position
+            with result:
                 del target[slice]
 
             if should_return():
@@ -1437,6 +1473,7 @@ def visit_declaration_from_AssignmentNode(
 
     result = PysRunTimeResult()
 
+    result._context = context
     register = result.register
     should_return = result.should_return
     ntype = node.__class__
@@ -1445,7 +1482,8 @@ def visit_declaration_from_AssignmentNode(
         symbol_table = context.symbol_table
         name = node.name.value
 
-        with result(context, node.position):
+        result._position = node.position
+        with result:
 
             if not symbol_table.set(name, value, operand=operand):
                 closest_symbol = get_closest(dkeys(symbol_table.symbols), name)
@@ -1481,7 +1519,8 @@ def visit_declaration_from_AssignmentNode(
 
         attribute = node.attribute.value
 
-        with result(context, node.position):
+        result._position = node.position
+        with result:
             setattr(
                 target, attribute,
                 value if is_equal(operand) else GET_BINARY_FUNCTION(operand)(getattr(target, attribute), value)
@@ -1500,7 +1539,8 @@ def visit_declaration_from_AssignmentNode(
         if should_return():
             return result
 
-        with result(context, node.position):
+        result._position = node.position
+        with result:
             target[slice] = value if is_equal(operand) else GET_BINARY_FUNCTION(operand)(target[slice], value)
 
         if should_return():
@@ -1521,7 +1561,8 @@ def visit_declaration_from_AssignmentNode(
         elements = node.elements
         count = 0
 
-        with result(context, position):
+        result._position = position
+        with result:
 
             for element, element_value in zip(elements, value):
                 register(visit_declaration_from_AssignmentNode(element, context, element_value, operand))

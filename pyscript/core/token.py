@@ -85,6 +85,8 @@ TOKENS = MappingProxyType({
     'LESS_THAN_GREATER_THAN': ord('<') + SPECIAL
 })
 
+REVERSE_TOKENS = MappingProxyType({type: name for name, type in TOKENS.items()})
+
 @immutable
 class PysToken(Pys):
 
@@ -106,8 +108,6 @@ class PysToken(Pys):
         setimuattr(self, 'value', value)
 
     def __repr__(self) -> str:
-        # circular import solved
-        from .mapping import REVERSE_TOKENS
         value = '' if self.value is None else f', {self.value!r}'
         return f'Token({REVERSE_TOKENS.get(self.type, "<UNKNOWN>")}{value})'
 

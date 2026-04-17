@@ -5,15 +5,15 @@ from .checks import is_blacklist_python_builtin, is_private_attribute
 from .constants import OTHER_PATH, NO_COLOR, CLASSIC_LINE_SHELL, NO_COLOR_PROMPT
 from .exceptions import PysSignal
 from .handlers import handle_call
-from .mapping import GET_ACOLOR, EMPTY_MAP
+from .mapping import GET_ACOLOR
 from .pystypes import PysFunction, PysPythonFunction, PysBuiltinFunction
 from .results import PysRunTimeResult
 from .shell import PysClassicLineShell, PysPromptToolkitLineShell, ADVANCE_LINE_SHELL_SUPPORT
 from .symtab import new_module_namespace
 from .utils.debug import import_readline
 from .utils.generic import dkeys, get_subscript, is_object_of as isobjectof
-from .utils.module import get_module_path, set_python_path, remove_python_path
-from .utils.path import getcwd, normpath, get_name_from_path
+from .utils.module import find_module_path, set_python_path, remove_python_path
+from .utils.path import base, normpath
 from .utils.string import normstr
 
 from math import inf, nan, isclose
@@ -118,14 +118,16 @@ class PysHelper(PysPrinter):
 
 try:
     with (
-        open(normpath(OTHER_PATH, 'copyright', absolute=False)) as copyright, 
-        open(normpath(OTHER_PATH, 'credits', absolute=False)) as credits, 
-        open(normpath(OTHER_PATH, 'license', absolute=False)) as license
+        open(normpath(OTHER_PATH, 'copyright')) as copyright, 
+        open(normpath(OTHER_PATH, 'credits')) as credits, 
+        open(normpath(OTHER_PATH, 'license')) as license
     ):
-        copyright = PysPrinter('copyright', copyright.read())
+        pys_sys.copyright = copyright.read()
+        copyright = PysPrinter('copyright', pys_sys.copyright)
         credits = PysPrinter('credits', credits.read())
         license = PysPrinter('license', license.read())
 except:
+    pys_sys.copyright = ''
     copyright = PysPrinter('copyright', '')
     credits = PysPrinter('credits', '')
     license = PysPrinter('license', '')
@@ -147,17 +149,7 @@ def require(pyfunc, name):
     code = pyfunc.__code__
     context = code.context
     filename = context.file.name
-
-    for path in pys_sys.path:
-        path = normpath(path, name, absolute=False)
-        module_path = get_module_path(path)
-        if module_path is not None:
-            break
-    else:
-        path = normpath(os.path.dirname(filename) or getcwd(), name, absolute=False)
-        module_path = get_module_path(path)
-        if module_path == filename:
-            module_path = None
+    path, module_path = find_module_path(filename, name)
 
     if module_path is None:
         if name == '_pyscript':
@@ -167,17 +159,18 @@ def require(pyfunc, name):
         elif name == 'sys':
             module = pys_sys
         else:
-            module_path = name
+            path = module_path = normpath(name)
 
     if module_path is not None:
-        loading_modules = pys_sys.loading_modules
         modules = pys_sys.modules
         module = modules.get(module_path, None)
 
         if module is None:
+            loading_modules = pys_sys.loading_modules
 
             if os.path.isdir(module_path):
                 raise ModuleNotFoundError(f"No module named {name!r}: Invalid module")
+
             elif module_path in loading_modules:
                 raise ImportError(
                     f"cannot import module name {name!r} from partially initialized module {filename!r}, "
@@ -199,7 +192,7 @@ def require(pyfunc, name):
 
                 from .runner import pys_runner
 
-                symtab, module = new_module_namespace(file=module_path, name=get_name_from_path(path))
+                symtab, module = new_module_namespace(file=module_path, name=base(path))
 
                 # minimize circular imports (python standard)
                 modules[module_path] = module
@@ -615,11 +608,8 @@ def decrement(pyfunc, object):
 
     return result
 
-pyincrement = increment.__func__
-pydecrement = decrement.__func__
-
 @PysBuiltinFunction
-def unpack(pyfunc, function, args=(), kwargs=EMPTY_MAP):
+def unpack(pyfunc, function, args=(), kwargs={}):
 
     """
     unpack(function: Callable, args: Iterable = (), kwargs: Mapping = {}) -> Any
@@ -663,6 +653,10 @@ def comprehension(pyfunc, init, wrap, condition=None):
         _unpack_comprehension_function(pyfunc, wrap),
         init if condition is None else filter(_unpack_comprehension_function(pyfunc, condition), init)
     )
+
+pyrequire = require.__func__
+pyincrement = increment.__func__
+pydecrement = decrement.__func__
 
 pys_builtins = ModuleType(
     'builtins',

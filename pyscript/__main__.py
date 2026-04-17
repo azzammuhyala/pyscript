@@ -12,8 +12,8 @@ from .core.highlight import (
 from .core.runner import _normalize_namespace, pys_runner, pys_shell
 from .core.utils.debug import USE_NOTEBOOK
 from .core.utils.generic import is_environ
-from .core.utils.module import remove_python_path
-from .core.utils.path import getcwd, normpath, get_name_from_path
+from .core.utils.module import find_module_path, remove_python_path
+from .core.utils.path import getcwd, base, normpath
 from .core.version import __version__
 
 if PYGMENTS:
@@ -52,7 +52,7 @@ for supported, name, class_editor in [
         EDITOR_MAP[name] = class_editor
 
 parser = ArgumentParser(
-    prog=f'{get_name_from_path(sys.executable)} -m pyscript',
+    prog=f'{base(sys.executable)} -m pyscript',
     description=f'PyScript Launcher for Python Version {".".join(map(str, sys.version_info))}'
 )
 
@@ -66,6 +66,7 @@ parser.add_argument(
     '-c', '--command',
     type=str,
     default=None,
+    metavar='STRING',
     help="execute program from a string argument",
 )
 
@@ -103,6 +104,14 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    '-m', '--module',
+    type=str,
+    default=None,
+    metavar='NAME',
+    help="run library module as a script"
+)
+
+parser.add_argument(
     '-n', '--no-color',
     action='store_true',
     help="suppress colored output"
@@ -118,6 +127,7 @@ parser.add_argument(
     '-r', '--py-recursion',
     type=int,
     default=None,
+    metavar='UINTEGER',
     help="set a Python recursion limit"
 )
 
@@ -169,11 +179,16 @@ file_idx = sum(1 for arg in argv if arg.startswith('-'))
 end_idx  = argv.index('--', 0, file_idx) if '--' in argv[:file_idx] else -1
 end_com  = file_idx if end_idx == -1 else end_idx
 arg_com  = argv[:end_com]
+
 com_idx  = argv.index('-c', 0, end_com)        if '-c'        in arg_com else \
           (argv.index('--command', 0, end_com) if '--command' in arg_com else -1)
+mod_idx  = argv.index('-m', 0, end_com)        if '-m'        in arg_com else \
+          (argv.index('--module', 0, end_com)  if '--module'  in arg_com else -1)
 
-args = parser.parse_args(argv if com_idx == -1 else argv[:com_idx + 2])
-arg  = args.arg if com_idx == -1 else argv[com_idx + 2:]
+ofs_idx = max(com_idx, mod_idx)
+
+args = parser.parse_args(argv if ofs_idx == -1 else argv[:ofs_idx + 2])
+arg  = args.arg if ofs_idx == -1 else argv[ofs_idx + 2:]
 
 if args.terminal:
 
@@ -238,8 +253,8 @@ try:
     del (
         ENV_PYSCRIPT_NO_COLOR_PROMPT, ENV_PYSCRIPT_CLASSIC_LINE_SHELL, DEFAULT, DEBUG, CLASSIC_LINE_SHELL,
         NO_COLOR_PROMPT, NOTEBOOK, GUI_SUPPORT, TERMINAL_SUPPORT, PYGMENTS, HLFMT_ANSI, HLFMT_HTML, HLFMT_BBCODE,
-        USE_NOTEBOOK, OPTIONAL, REMAINDER, file_idx, end_idx, end_com, arg_com, com_idx, arg, pys_sys, __version__,
-        is_environ, remove_python_path, getcwd, get_name_from_path, PysGUIEditor, PysTerminalEditor, ArgumentParser
+        USE_NOTEBOOK, OPTIONAL, REMAINDER, file_idx, end_idx, end_com, arg_com, com_idx, mod_idx, ofs_idx, arg, pys_sys,
+        __version__, is_environ, remove_python_path, getcwd, base, PysGUIEditor, PysTerminalEditor, ArgumentParser
     )
 
     del (
@@ -248,30 +263,56 @@ try:
 except:
     pass
 
-if args.file is not None:
-    argv[0] = args.file
-    path = normpath(args.file)
-
+def load_file(path):
+    file = PysFileBuffer('', path)
     try:
         with open(path, 'r', encoding='utf-8') as file:
             file = PysFileBuffer(file, path)
     except FileNotFoundError:
-        if EDITOR_MAP and args.editor:
-            file = PysFileBuffer('', path)
-        else:
-            parser.error(f"can't open file {path!r}: No such file or directory")
+        if not (EDITOR_MAP and args.editor):
+            argument_error('file', f"can't open file \"{path}\": No such file or directory")
     except PermissionError:
-        parser.error(f"can't open file {path!r}: Permission denied")
+        argument_error('file', f"can't open file \"{path}\": Permission denied")
     except IsADirectoryError:
-        parser.error(f"can't open file {path!r}: Path is not a file")
+        argument_error('file', f"can't open file \"{path}\": Path is not a file")
     except NotADirectoryError:
-        parser.error(f"can't open file {path!r}: Attempting to access directory from file")
+        argument_error('file', f"can't open file \"{path}\": Attempting to access directory from file")
     except (OSError, IOError):
-        parser.error(f"can't open file {path!r}: Attempting to access a system directory or file")
+        argument_error('file', f"can't open file \"{path}\": Attempting to access a system directory or file")
     except UnicodeDecodeError:
-        parser.error(f"can't read file {path!r}: Bad file")
+        argument_error('file', f"can't read file \"{path}\": Bad file")
     except BaseException as e:
-        parser.error(f"file {path!r}: Unexpected error: {e}")
+        argument_error('file', f"file \"{path}\": Unexpected error: {e}")
+    return file
+
+def execute(file):
+    result = pys_runner(
+        file=file,
+        mode='exec',
+        symbol_table=_normalize_namespace(undefined, file),
+        flags=flags
+    )
+
+    code, _ = result.end_process()
+
+    if args.inspect:
+        if sys.stdout.closed or sys.stderr.closed:
+            return 1
+        elif sys.stdin.closed:
+            print("Can't run interactive shell: sys.stdin closed", file=sys.stderr)
+            return 1
+        else:
+            return pys_shell(
+                globals=result.context.symbol_table,
+                flags=result.context.flags | DONT_SHOW_BANNER_ON_SHELL,
+                parser_flags=result.parser_flags
+            )
+
+    return code
+
+if args.file is not None:
+    argv[0] = args.file
+    file = load_file(normpath(args.file))
 
     if EDITOR_MAP and args.editor:
         try:
@@ -300,53 +341,20 @@ if args.file is not None:
             argument_error('-l/--highlight', e)
 
     else:
-        result = pys_runner(
-            file=file,
-            mode='exec',
-            symbol_table=_normalize_namespace(undefined, file),
-            flags=flags
-        )
+        code = execute(file)
 
-        code, _ = result.end_process()
+elif args.module is not None:
+    _, module_path = find_module_path(None, args.module, '__main__')
+    if module_path is None:
+        argument_error('-m/--module', f"can't find module \"{args.module}\"")
 
-        if args.inspect:
-            if sys.stdout.closed or sys.stderr.closed:
-                code = 1
-            elif sys.stdin.closed:
-                print("Can't run interactive shell: sys.stdin closed", file=sys.stderr)
-                code = 1
-            else:
-                code = pys_shell(
-                    globals=result.context.symbol_table,
-                    flags=result.context.flags | DONT_SHOW_BANNER_ON_SHELL,
-                    parser_flags=result.parser_flags
-                )
+    file = load_file(module_path)
+    argv[0] = file.name
+    code = execute(file)
 
 elif args.command is not None:
     argv[0] = '-c'
-
-    file = PysFileBuffer(args.command, '<arg-command>')
-    result = pys_runner(
-        file=file,
-        mode='exec',
-        symbol_table=_normalize_namespace(undefined, file),
-        flags=flags
-    )
-
-    code, _ = result.end_process()
-
-    if args.inspect:
-        if sys.stdout.closed or sys.stderr.closed:
-            code = 1
-        elif sys.stdin.closed:
-            print("Can't run interactive shell: sys.stdin closed", file=sys.stderr)
-            code = 1
-        else:
-            code = pys_shell(
-                globals=result.context.symbol_table,
-                flags=result.context.flags | DONT_SHOW_BANNER_ON_SHELL,
-                parser_flags=result.parser_flags
-            )
+    code = execute(PysFileBuffer(args.command, '<arg-command>'))
 
 else:
     code = pys_shell(

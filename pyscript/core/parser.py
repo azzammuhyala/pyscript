@@ -16,9 +16,9 @@ from types import MappingProxyType
 from typing import Any, Callable, Optional
 
 SEQUENCES_MAP = MappingProxyType({
-    'dict': (TOKENS['LEFT_CURLY'], PysDictionaryNode),
-    'set': (TOKENS['LEFT_CURLY'], PysSetNode),
-    'list': (TOKENS['LEFT_SQUARE'], PysListNode),
+    'dict':  (TOKENS['LEFT_CURLY'],       PysDictionaryNode),
+    'set':   (TOKENS['LEFT_CURLY'],       PysSetNode),
+    'list':  (TOKENS['LEFT_SQUARE'],      PysListNode),
     'tuple': (TOKENS['LEFT_PARENTHESIS'], PysTupleNode)
 })
 

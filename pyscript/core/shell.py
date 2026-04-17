@@ -217,7 +217,7 @@ try:
 
     HISTORY_PATH = os.environ.get(ENV_PYSCRIPT_HISTORY_PATH, os.path.join(os.path.expanduser('~'), '.pyscript_history'))
     if HISTORY_PATH and HISTORY_PATH != '<none>':
-        HISTORY_PATH = normpath(HISTORY_PATH, absolute=False)
+        HISTORY_PATH = normpath(HISTORY_PATH)
         USE_FILE_HISTORY = True
     else:
         HISTORY_PATH = '<none>'
@@ -240,62 +240,55 @@ try:
                 return super().__new__(cls)
             raise NotImplementedError('not using file history')
 
-        def __init__(self) -> None:
-            from threading import RLock
-            super().__init__()
-            self.lock = RLock()
-
         def update_history(self, append_string: Optional[str] = None) -> list[str]:
             try:
 
-                with self.lock:
+                if MAXIMUM_HISTORY_LINE == 0:
+                    with open(HISTORY_PATH, 'w', encoding='utf-8') as file:
+                        file.write('')
+                    return []
 
-                    if MAXIMUM_HISTORY_LINE == 0:
-                        with open(HISTORY_PATH, 'w', encoding='utf-8') as file:
-                            file.write('')
-                        return []
+                strings = []
+                lines = []
+                update_history = False
 
-                    strings = []
-                    lines = []
-                    update_history = False
+                if os.path.isfile(HISTORY_PATH):
 
-                    if os.path.isfile(HISTORY_PATH):
+                    def add_to_string():
+                        line = '\n'.join(lines)
+                        if line:
+                            strings.append(line)
+                        lines.clear()
 
-                        def add_to_string():
-                            line = '\n'.join(lines)
-                            if line:
-                                strings.append(line)
-                            lines.clear()
+                    with open(HISTORY_PATH, 'r', encoding='utf-8') as file:
 
-                        with open(HISTORY_PATH, 'r', encoding='utf-8') as file:
-
-                            for line in file:
-                                line = line[:-1]
-                                if line.startswith('\x1e'):
-                                    add_to_string()
-                                    line = line[1:]
-                                if line:
-                                    lines.append(line)
-
-                            if lines:
+                        for line in file:
+                            line = line[:-1]
+                            if line.startswith('\x1e'):
                                 add_to_string()
+                                line = line[1:]
+                            if line:
+                                lines.append(line)
 
-                    else:
-                        update_history = True
+                        if lines:
+                            add_to_string()
 
-                    if append_string is not None:
-                        strings.append(append_string)
-                        update_history = True
+                else:
+                    update_history = True
 
-                    if MAXIMUM_HISTORY_LINE > 0 and len(strings) > MAXIMUM_HISTORY_LINE:
-                        del strings[:-MAXIMUM_HISTORY_LINE]
-                        update_history = True
+                if append_string is not None:
+                    strings.append(append_string)
+                    update_history = True
 
-                    if update_history:
-                        with open(HISTORY_PATH, 'w', encoding='utf-8') as file:
-                            file.writelines(f'\x1e{line}\n' for line in strings)
+                if MAXIMUM_HISTORY_LINE > 0 and len(strings) > MAXIMUM_HISTORY_LINE:
+                    del strings[:-MAXIMUM_HISTORY_LINE]
+                    update_history = True
 
-                    return strings
+                if update_history:
+                    with open(HISTORY_PATH, 'w', encoding='utf-8') as file:
+                        file.writelines(f'\x1e{line}\n' for line in strings)
+
+                return strings
 
             except:
                 return []

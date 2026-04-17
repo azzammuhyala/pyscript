@@ -70,8 +70,6 @@ GET_ACOLOR = {
     'bold-red': acolor('red', style=BOLD)
 }.__getitem__
 
-REVERSE_TOKENS = MappingProxyType({type: name for name, type in TOKENS.items()})
-
 BRACKETS_MAP = MappingProxyType({
     TOKENS['LEFT_PARENTHESIS']: TOKENS['RIGHT_PARENTHESIS'],
     TOKENS['LEFT_SQUARE']: TOKENS['RIGHT_SQUARE'],

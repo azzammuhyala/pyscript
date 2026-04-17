@@ -2,12 +2,12 @@ import os
 import sys
 import explorer
 
-from '_pyscript>utils>module' import get_module_path
-from '_pyscript>utils>path' import normpath, get_name_from_path
+from '_pyscript>utils>module' import get_module_candidate
+from '_pyscript>utils>path' import normpath
 
 func removeduppaths() {
-    known_paths = set()
     path = []
+    known_paths = set()
 
     for (directory of sys.path) {
         directory = normpath(directory)
@@ -22,29 +22,34 @@ func removeduppaths() {
 }
 
 func getsitepackages() {
-    packages = []
-
-    for (package of os.listdir(sys.site_packages_path)) {
-        path = get_module_path(normpath(sys.site_packages_path, package, absolute=False))
-        if (path is not None)
-            packages.append(get_name_from_path(package))
-    }
-
-    return packages
+    return list(
+        comprehension(
+            os.listdir(sys.site_packages_path),
+            func(package) => os.path.splitext(package)[0],
+            func(package) => get_module_candidate(normpath(sys.site_packages_path, package)) is not None
+        )
+    )
 }
 
 func addpackage(path) {
-    path = get_module_path(normpath(path, absolute=False))
-    if (path is None)
-        throw ModuleNotFoundError("module package is invalid")
-    explorer.copy(path, sys.site_packages_path)
+    valid = get_module_candidate(normpath(path))
+    if (valid is None)
+        throw ModuleNotFoundError("invalid module")
+    result = explorer.copy(path, sys.site_packages_path, replace=False, metadata=False)
+    if (!result.success)
+        throw result.exception
 }
 
 func removepackage(name) {
-    path = get_module_path(normpath(sys.site_packages_path, name, absolute=False))
-    if (path is None)
-        throw ModuleNotFoundError("No module named {!r}".format(name))
-    explorer.remove(path)
+    path = normpath(sys.site_packages_path, name)
+    valid = get_module_candidate(path)
+    if (valid is None)
+        throw ModuleNotFoundError("module not found")
+    if (!os.path.exists(path))
+        path += '.pys'
+    result = explorer.remove(path)
+    if (!result.success)
+        throw result.exception
 }
 
 __all__ = (
@@ -53,3 +58,74 @@ __all__ = (
     'addpackage',
     'removepackage'
 )
+
+if (__name__ == '__main__') {
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        prog="{} -m site".format(sys.executable),
+        description="PyScript's site module"
+    )
+
+    parser.add_argument(
+        '-s',
+        action='store_true',
+        help="dont show any information about site packages, just execute the code"
+    )
+
+    parser.add_argument(
+        '-l',
+        action='store_true',
+        help='get the list of site packages'
+    )
+
+    parser.add_argument(
+        '-a',
+        metavar='PATH',
+        help='add a package to site-packages'
+    )
+
+    parser.add_argument(
+        '-r',
+        metavar='NAME',
+        help='remove a package from site-packages'
+    )
+
+    args = parser.parse_args(sys.argv[1:])
+
+    if (args.s) {
+        func info(message);
+        func error(message)
+            sys.exit(1)
+    } else {
+        func info(message)
+            print(message)
+        func error(message) {
+            print(message, file=sys.stderr)
+            sys.exit(1)
+        }
+    }
+
+    if (args.l) {
+        for (i, package of enumerate(sorted(getsitepackages()), start=1))
+            print('{}. {}'.format(i, package))
+    }
+
+    elif (args.a) {
+        try {
+            addpackage(args.a)
+            info('Package added successfully')
+        }
+        catch (e)
+            error('-a: {}: {}'.format(typeof e, e))
+    }
+
+    elif (args.r) {
+        try {
+            removepackage(args.r)
+            info('Package removed successfully')
+        }
+        catch (e)
+            error('-r: {}: {}'.format(typeof e, e))
+    }
+}
