@@ -1,15 +1,16 @@
 from pyscript.core.nodes import *
 from pyscript.core.utils.string import indent
 
+from types import MappingProxyType, NoneType
 from typing import Any, Optional, Sequence
 
-PARENTHESIS_TYPES_MAP = {
+PARENTHESIS_TYPES_MAP = MappingProxyType({
     tuple: '()',
     list: '[]',
     set: '{}',
     dict: '{}',
     slice: ('slice(', ')')
-}
+})
 
 class DumpNode:
 
@@ -21,7 +22,7 @@ class DumpNode:
         show_empty: bool = False
     ) -> None:
 
-        if not isinstance(indent, (type(None), int)):
+        if not isinstance(indent, (NoneType, int)):
             raise TypeError("dump() or DumpNode(): indent is not integer or NoneType")
 
         self.annotate_fields = bool(annotate_fields)

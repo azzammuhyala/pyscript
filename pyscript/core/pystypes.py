@@ -78,13 +78,14 @@ class PysFunction(PysObject):
         parameter_names = []
         keyword_arguments = {}
 
+        b_tuple = tuple
         append_argnames = argument_names.append
         append_keynames = keyword_argument_names.append
         append_paramnames = parameter_names.append
         set_keywordarg = keyword_arguments.__setitem__
 
         for parameter in parameters:
-            if parameter.__class__ is tuple:
+            if parameter.__class__ is b_tuple:
                 arg, value = parameter
                 append_paramnames(arg)
                 append_keynames(arg)
@@ -97,7 +98,7 @@ class PysFunction(PysObject):
         self.__qualname__ = name if qualname is None else f'{qualname}.{name}'
         self.__module__ = 'pyscript'
         self.__code__ = PysCode(
-            parameters=tuple(parameters),
+            parameters=b_tuple(parameters),
             body=body,
             context=context,
             position=position,
@@ -105,9 +106,9 @@ class PysFunction(PysObject):
             closure_symbol_table=context.symbol_table,
             get_visitor=get_visitor,
             parameters_length=len(parameters),
-            argument_names=tuple(argument_names),
-            keyword_argument_names=tuple(keyword_argument_names),
-            parameter_names=tuple(parameter_names),
+            argument_names=b_tuple(argument_names),
+            keyword_argument_names=b_tuple(keyword_argument_names),
+            parameter_names=b_tuple(parameter_names),
             combine_keyword_arguments=keyword_arguments.__or__
         )
 
@@ -120,6 +121,9 @@ class PysFunction(PysObject):
     def __call__(self, *args, **kwargs) -> Any:
         code = self.__code__
 
+        b_zip = zip
+        b_len = len
+
         result = PysRunTimeResult()
         symbol_table = PysSymbolTable(code.closure_symbol_table)
         registered_arguments = set()
@@ -127,14 +131,14 @@ class PysFunction(PysObject):
         set_symbol = symbol_table.set
         add_argument = registered_arguments.add
 
-        for name, arg in zip(code.argument_names, args):
+        for name, arg in b_zip(code.argument_names, args):
             set_symbol(name, arg)
             add_argument(name)
 
         combined_keyword_arguments = code.combine_keyword_arguments(kwargs)
         pop_keyword_arguments = combined_keyword_arguments.pop
 
-        for name, arg in zip(code.keyword_argument_names, args[len(registered_arguments):]):
+        for name, arg in b_zip(code.keyword_argument_names, args[b_len(registered_arguments):]):
             set_symbol(name, arg)
             add_argument(name)
             pop_keyword_arguments(name, None)
@@ -174,12 +178,12 @@ class PysFunction(PysObject):
             add_argument(name)
 
         code_parameters_length = code.parameters_length
-        arguments_length = len(args)
-        total_registered = len(registered_arguments)
+        arguments_length = b_len(args)
+        total_registered = b_len(registered_arguments)
 
         if total_registered < code_parameters_length:
             missing_arguments = [repr(name) for name in code_parameter_names if name not in registered_arguments]
-            total_missing = len(missing_arguments)
+            total_missing = b_len(missing_arguments)
 
             raise PysSignal(
                 result.failure(

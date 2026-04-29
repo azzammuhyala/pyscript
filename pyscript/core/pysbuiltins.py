@@ -11,7 +11,7 @@ from .results import PysRunTimeResult
 from .shell import PysClassicLineShell, PysPromptToolkitLineShell, ADVANCE_LINE_SHELL_SUPPORT
 from .symtab import new_module_namespace
 from .utils.debug import import_readline
-from .utils.generic import dkeys, get_subscript, is_object_of as isobjectof
+from .utils.generic import dkeys, get_sequence, is_object_of as isobjectof
 from .utils.module import find_module_path, set_python_path, remove_python_path
 from .utils.path import base, normpath
 from .utils.string import normstr
@@ -19,7 +19,7 @@ from .utils.string import normstr
 from math import inf, nan, isclose
 from importlib import import_module
 from inspect import signature
-from types import BuiltinFunctionType, BuiltinMethodType, FunctionType, MethodType, ModuleType
+from types import BuiltinFunctionType, BuiltinMethodType, FunctionType, MethodType, ModuleType, NoneType
 from typing import Any, Callable
 
 import builtins
@@ -28,7 +28,7 @@ import sys
 
 real_number = (int, float)
 sequence = (list, tuple, set)
-optional_mapping = (dict, type(None))
+optional_mapping = (dict, NoneType)
 static_wrapper_function = (staticmethod,)
 wrapper_function = (MethodType, PysPythonFunction, classmethod)
 python_function = (BuiltinFunctionType, BuiltinMethodType, FunctionType)
@@ -314,11 +314,11 @@ def breakpoint(pyfunc):
                     show_line()
 
                 elif command in ('q', 'quit', 'exit'):
-                    code = get_subscript(args, 0, '0')
+                    code = get_sequence(args, 0, '0')
                     raise SystemExit(int(code) if code.isdigit() else code)
 
                 elif command in ('u', 'up'):
-                    count = get_subscript(args, 0, '')
+                    count = get_sequence(args, 0, '')
                     for _ in range(int(count) if count.isdigit() else 1):
                         if scopes:
                             symtab = scopes.pop()
@@ -327,7 +327,7 @@ def breakpoint(pyfunc):
                             break
 
                 elif command in ('d', 'down'):
-                    count = get_subscript(args, 0, '')
+                    count = get_sequence(args, 0, '')
                     parent = symtab.parent
                     for _ in range(int(count) if count.isdigit() else 1):
                         if parent is None:
@@ -654,7 +654,6 @@ def comprehension(pyfunc, init, wrap, condition=None):
         init if condition is None else filter(_unpack_comprehension_function(pyfunc, condition), init)
     )
 
-pyrequire = require.__func__
 pyincrement = increment.__func__
 pydecrement = decrement.__func__
 
@@ -664,36 +663,40 @@ pys_builtins = ModuleType(
     "This module provides direct access to all 'built-in' identifiers of PyScript and Python."
 )
 
-pys_builtins.__dict__.update(
-    (name, getattr(builtins, name))
+pys_builtins.__dict__.update({
+    name: getattr(builtins, name)
     for name in pydir(builtins)
     if not (is_private_attribute(name) or is_blacklist_python_builtin(name))
-)
+})
 
-pys_builtins.true = True
-pys_builtins.false = False
-pys_builtins.none = None
-pys_builtins.inf = inf
-pys_builtins.infj = complex(0, inf)
-pys_builtins.nan = nan
-pys_builtins.nanj = complex(0, nan)
-pys_builtins.copyright = copyright
-pys_builtins.credits = credits
-pys_builtins.license = license
-pys_builtins.help = help
-pys_builtins.require = require
-pys_builtins.pyimport = pyimport
-pys_builtins.breakpoint = breakpoint
-pys_builtins.globals = globals
-pys_builtins.locals = locals
-pys_builtins.vars = vars
-pys_builtins.dir = dir
-pys_builtins.exec = exec
-pys_builtins.eval = eval
-pys_builtins.ce = ce
-pys_builtins.nce = nce
-pys_builtins.increment = increment
-pys_builtins.decrement = decrement
-pys_builtins.unpack = unpack
-pys_builtins.comprehension = comprehension
-pys_builtins.isobjectof = isobjectof
+pys_builtins.__dict__.update({
+    'true': True,
+    'false': False,
+    'nil': None,
+    'none': None,
+    'null': None,
+    'inf': inf,
+    'infj': complex(0, inf),
+    'nan': nan,
+    'nanj': complex(0, nan),
+    'copyright': copyright,
+    'credits': credits,
+    'license': license,
+    'help': help,
+    'require': require,
+    'pyimport': pyimport,
+    'breakpoint': breakpoint,
+    'globals': globals,
+    'locals': locals,
+    'vars': vars,
+    'dir': dir,
+    'exec': exec,
+    'eval': eval,
+    'ce': ce,
+    'nce': nce,
+    'increment': increment,
+    'decrement': decrement,
+    'unpack': unpack,
+    'comprehension': comprehension,
+    'isobjectof': isobjectof
+})

@@ -8,7 +8,7 @@ from .utils.generic import setimuattr, dcontains, dgetitem, dsetitem, ddelitem, 
 from .utils.similarity import get_closest
 
 from types import ModuleType
-from typing import Any, Optional
+from typing import Any, Mapping, Optional
 
 @immutable
 class PysSymbolTable(Pys):
@@ -93,7 +93,7 @@ def find_closest(symtab: PysSymbolTable, name: str) -> str | None:
 
 def new_module_namespace(
     *,
-    symbols: PysSymbolTable | None = None,
+    symbols: Mapping | None = None,
     **kwargs
 ) -> tuple[PysSymbolTable, ModuleType | None]:
     symtab = PysSymbolTable()

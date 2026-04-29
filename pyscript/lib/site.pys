@@ -70,7 +70,7 @@ if (__name__ == '__main__') {
     parser.add_argument(
         '-s',
         action='store_true',
-        help="dont show any information about site packages, just execute the code"
+        help="dont show any information, just execute the code"
     )
 
     parser.add_argument(
@@ -106,10 +106,8 @@ if (__name__ == '__main__') {
         }
     }
 
-    if (args.l) {
-        for (i, package of enumerate(sorted(getsitepackages()), start=1))
-            print('{}. {}'.format(i, package))
-    }
+    if (args.l)
+        print('\n'.join(sorted(getsitepackages())))
 
     elif (args.a) {
         try {

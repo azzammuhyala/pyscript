@@ -75,11 +75,7 @@ def visit_IdentifierNode(node: PysIdentifierNode, context: PysContext) -> PysRun
                 PysTraceback(
                     NameError(
                         f"name {name!r} is not defined" +
-                        (
-                            ''
-                            if closest_symbol is None else
-                            f". Did you mean {closest_symbol!r}?"
-                        )
+                        ('' if closest_symbol is None else f". Did you mean {closest_symbol!r}?")
                     ),
                     context,
                     position
@@ -224,12 +220,13 @@ def visit_CallNode(node: PysCallNode, context: PysContext) -> PysRunTimeResult:
     args = []
     kwargs = {}
 
+    b_tuple = tuple
     add_arg = args.append
     add_kwarg = kwargs.__setitem__
 
     for nargument in node.arguments:
 
-        if nargument.__class__ is tuple:
+        if nargument.__class__ is b_tuple:
             keyword, nvalue = nargument
             add_kwarg(keyword.value, register(get_visitor(nvalue.__class__)(nvalue, context)))
             if should_return():
@@ -254,6 +251,7 @@ def visit_ChainOperatorNode(node: PysChainOperatorNode, context: PysContext) -> 
     register = result.register
     should_return = result.should_return
     get_expression = node.expressions.__getitem__
+
     first = get_expression(0)
 
     left = register(get_visitor(first.__class__)(first, context))
@@ -517,9 +515,13 @@ def visit_ImportNode(node: PysImportNode, context: PysContext) -> PysRunTimeResu
                 exported_from = '__dir__()'
                 exported_packages = filter(is_public_attribute, dir(module))
 
+            b_isinstance = isinstance
+            b_getattr = getattr
+            b_str = str
+
             for package in exported_packages:
 
-                if not isinstance(package, str):
+                if not b_isinstance(package, b_str):
                     return result.failure(
                         PysTraceback(
                             TypeError(
@@ -530,17 +532,18 @@ def visit_ImportNode(node: PysImportNode, context: PysContext) -> PysRunTimeResu
                         )
                     )
 
-                set_symbol(package, getattr(module, package))
+                set_symbol(package, b_getattr(module, package))
 
         if should_return():
             return result
 
     elif npackages:
+        b_getattr = getattr
 
         for tpackage, tas_package in npackages:
             result._position = tpackage.position
             with result:
-                set_symbol((tpackage if tas_package is None else tas_package).value, getattr(module, tpackage.value))
+                set_symbol((tpackage if tas_package is None else tas_package).value, b_getattr(module, tpackage.value))
             if should_return():
                 return result
 
@@ -599,9 +602,11 @@ def visit_SwitchNode(node: PysSwitchNode, context: PysContext) -> PysRunTimeResu
         return result
 
     for ncondition, body in node.case_cases:
-        case = register(get_visitor(ncondition.__class__)(ncondition, context))
-        if should_return():
-            return result
+
+        if not fall_through:
+            case = register(get_visitor(ncondition.__class__)(ncondition, context))
+            if should_return():
+                return result
 
         result._position = ncondition.position
         with result:
@@ -690,6 +695,12 @@ def visit_TryNode(node: PysTryNode, context: PysContext) -> PysRunTimeResult:
     if error:
         failure = result.failure
         exception = error.exception
+
+        b_isinstance = isinstance
+        b_issubclass = issubclass
+        b_type = type
+        b_BaseException = BaseException
+
         failure(None)
 
         for (targets, tparameter), body in node.catch_cases:
@@ -706,7 +717,7 @@ def visit_TryNode(node: PysTryNode, context: PysContext) -> PysRunTimeResult:
                         stop = True
                         break
 
-                    if not (isinstance(error_class, type) and issubclass(error_class, BaseException)):
+                    if not (b_isinstance(error_class, b_type) and b_issubclass(error_class, b_BaseException)):
                         failure(
                             PysTraceback(
                                 TypeError("catching classes that do not inherit from BaseException is not allowed"),
@@ -870,13 +881,15 @@ def visit_ForNode(node: PysForNode, context: PysContext) -> PysRunTimeResult:
         if should_return():
             return result
 
+        b_StopIteration = StopIteration
+
         def condition():
             with result:
                 handle_call(next, context, niteration_position)
                 register(visit_declaration_from_AssignmentNode(ndeclaration, context, next()))
             if should_return():
                 error = result.error
-                if error and is_object_of(error.exception, StopIteration):
+                if error and is_object_of(error.exception, b_StopIteration):
                     result.failure(None)
                 return False
             return True
@@ -1163,9 +1176,11 @@ def visit_FunctionNode(node: PysFunctionNode, context: PysContext) -> PysRunTime
     should_return = result.should_return
     add_parameter = parameters.append
 
+    b_tuple = tuple
+
     for nparameter in node.parameters:
 
-        if nparameter.__class__ is tuple:
+        if nparameter.__class__ is b_tuple:
             keyword, nvalue = nparameter
 
             value = register(get_visitor(nvalue.__class__)(nvalue, context))
@@ -1240,7 +1255,9 @@ def visit_ThrowNode(node: PysThrowNode, context: PysContext) -> PysRunTimeResult
     if should_return():
         return result
 
-    if not is_object_of(target, BaseException):
+    b_BaseException = BaseException
+
+    if not is_object_of(target, b_BaseException):
         return result.failure(
             PysTraceback(
                 TypeError("exceptions must derive from BaseException"),
@@ -1256,7 +1273,7 @@ def visit_ThrowNode(node: PysThrowNode, context: PysContext) -> PysRunTimeResult
         if should_return():
             return result
 
-        if not is_object_of(primary, BaseException):
+        if not is_object_of(primary, b_BaseException):
             return result.failure(
                 PysTraceback(
                     TypeError("exceptions must derive from BaseException"),

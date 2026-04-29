@@ -37,7 +37,8 @@ is_blacklist_python_builtin = frozenset([
 ]).__contains__
 
 is_python_extension = frozenset([
-    '.py', '.ipy', '.pyc', '.pyd', '.pyi', '.pyo', '.pyp', '.pyw', '.pyz', '.rpy', '.xpy', '.pyproj'
+    '.cgi', '.fcgi', '.gyp', '.gypi', '.ipy', '.lmi', '.pxd', '.pxi', '.py', '.py3', '.pyc', '.pyd', '.pyde', '.pyi',
+    '.pyo', '.pyp', '.pyproj', '.pyt', '.pyw', '.pyx', '.pyz', '.rpy', '.spec', '.tac', '.wsgi', '.xpy'
 ]).__contains__
 
 is_left_bracket = frozenset(BRACKETS_MAP.keys()).__contains__

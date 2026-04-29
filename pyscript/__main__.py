@@ -9,7 +9,7 @@ from .core.editor.terminal import PysTerminalEditor, TERMINAL_SUPPORT
 from .core.highlight import (
     PYGMENTS, HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight, PygmentsPyScriptStyle, PygmentsPyScriptLexer
 )
-from .core.runner import _normalize_namespace, pys_runner, pys_shell
+from .core.runner import _namespace_to_symbol_table, pys_runner, pys_shell
 from .core.utils.debug import USE_NOTEBOOK
 from .core.utils.generic import is_environ
 from .core.utils.module import find_module_path, remove_python_path
@@ -43,13 +43,14 @@ FORMATER_HIGHLIGHT_MAP = {
 }
 
 EDITOR_MAP = {}
-
 for supported, name, class_editor in [
     (GUI_SUPPORT,      'gui',      PysGUIEditor),
     (TERMINAL_SUPPORT, 'terminal', PysTerminalEditor)
 ]:
     if supported:
         EDITOR_MAP[name] = class_editor
+
+arguments_requiring_value = {'-l', '--highlight', '-r', '--py-recursion'}
 
 parser = ArgumentParser(
     prog=f'{base(sys.executable)} -m pyscript',
@@ -83,6 +84,7 @@ if EDITOR_MAP:
         default=None,
         help="open the editor panel from a 'file'",
     )
+    arguments_requiring_value.update({'-e', '--editor'})
 
 parser.add_argument(
     '-i', '--inspect',
@@ -174,21 +176,28 @@ def argument_error(argument, message):
     parser.exit(2, f"{parser.prog}: error: argument {argument}: {message}\n")
 
 argv = sys.argv[1:]
+argc = len(argv)
+index = 0
+arg_index = -1
 
-file_idx = sum(1 for arg in argv if arg.startswith('-'))
-end_idx  = argv.index('--', 0, file_idx) if '--' in argv[:file_idx] else -1
-end_com  = file_idx if end_idx == -1 else end_idx
-arg_com  = argv[:end_com]
+while index < argc:
+    arg = argv[index]
+    if not arg.startswith('-') or arg == '--':
+        break
 
-com_idx  = argv.index('-c', 0, end_com)        if '-c'        in arg_com else \
-          (argv.index('--command', 0, end_com) if '--command' in arg_com else -1)
-mod_idx  = argv.index('-m', 0, end_com)        if '-m'        in arg_com else \
-          (argv.index('--module', 0, end_com)  if '--module'  in arg_com else -1)
+    if arg in ('-c', '--command'):
+        arg_index = index + 2
+        break
+    elif arg in ('-m', '--module'):
+        arg_index = index + 2
+        break
 
-ofs_idx = max(com_idx, mod_idx)
+    index += 1
+    if arg in arguments_requiring_value:
+        index += 1
 
-args = parser.parse_args(argv if ofs_idx == -1 else argv[:ofs_idx + 2])
-arg  = args.arg if ofs_idx == -1 else argv[ofs_idx + 2:]
+args = parser.parse_args(argv if arg_index == -1 else argv[:arg_index])
+arg  = args.arg               if arg_index == -1 else argv[arg_index:]
 
 if args.terminal:
 
@@ -242,28 +251,27 @@ if args.P:
 
 pys_sys.argv = argv = ['', *arg]
 
-# clean up
-try:
-    if PYGMENTS:
-        del (
-            BBCodeFormatter, HtmlFormatter, LatexFormatter, TerminalFormatter, TerminalTrueColorFormatter,
-            Terminal256Formatter
-        )
+def clean_up() -> None:
+    g = globals()
 
-    del (
-        ENV_PYSCRIPT_NO_COLOR_PROMPT, ENV_PYSCRIPT_CLASSIC_LINE_SHELL, DEFAULT, DEBUG, CLASSIC_LINE_SHELL,
-        NO_COLOR_PROMPT, NOTEBOOK, GUI_SUPPORT, TERMINAL_SUPPORT, PYGMENTS, HLFMT_ANSI, HLFMT_HTML, HLFMT_BBCODE,
-        USE_NOTEBOOK, OPTIONAL, REMAINDER, file_idx, end_idx, end_com, arg_com, com_idx, mod_idx, ofs_idx, arg, pys_sys,
-        __version__, is_environ, remove_python_path, getcwd, base, PysGUIEditor, PysTerminalEditor, ArgumentParser
-    )
+    for name in {
+        'ArgumentParser', 'BBCodeFormatter', 'CLASSIC_LINE_SHELL', 'DEBUG', 'DEFAULT', 'DONT_SHOW_BANNER_ON_SHELL',
+        'EDITOR_MAP', 'ENV_PYSCRIPT_CLASSIC_LINE_SHELL', 'ENV_PYSCRIPT_NO_COLOR_PROMPT', 'FORMATER_HIGHLIGHT_MAP',
+        'FORMATER_PYGMENTS_MAP', 'GUI_SUPPORT', 'HLFMT_ANSI', 'HLFMT_BBCODE', 'HLFMT_HTML', 'HtmlFormatter',
+        'LatexFormatter', 'NOTEBOOK', 'NO_COLOR', 'NO_COLOR_PROMPT', 'OPTIONAL', 'PYGMENTS', 'PygmentsPyScriptLexer',
+        'PygmentsPyScriptStyle', 'PysFileBuffer', 'PysGUIEditor', 'PysTerminalEditor', 'REMAINDER', 'TERMINAL_SUPPORT',
+        'Terminal256Formatter', 'TerminalFormatter', 'TerminalTrueColorFormatter', 'USE_NOTEBOOK', '__version__',
+        '_namespace_to_symbol_table', 'arg', 'arg_index', 'argc', 'args', 'argument_error', 'arguments_requiring_value',
+        'argv', 'base', 'class_editor', 'clean_up', 'condition', 'ctypes', 'execute', 'fd', 'file', 'find_module_path',
+        'flag', 'getcwd', 'highlight', 'i', 'index', 'is_environ', 'kernel32', 'load_file', 'module_path', 'name',
+        'normpath', 'parser', 'pys_highlight', 'pys_sys', 'remove_python_path', 'supported'
+    }:
+        try:
+            del g[name]
+        except:
+            continue
 
-    del (
-        supported, name, class_editor, condition, flag, fd, kernel32, i
-    )
-except:
-    pass
-
-def load_file(path):
+def load_file(path) -> PysFileBuffer:
     file = PysFileBuffer('', path)
     try:
         with open(path, 'r', encoding='utf-8') as file:
@@ -285,30 +293,36 @@ def load_file(path):
         argument_error('file', f"file \"{path}\": Unexpected error: {e}")
     return file
 
-def execute(file):
+def execute(file: PysFileBuffer) -> None:
+    global code
+
+    not_show_banner_flag = DONT_SHOW_BANNER_ON_SHELL
+    inspect = args.inspect
+    symtab = _namespace_to_symbol_table(undefined, file)
+
+    clean_up()
+
     result = pys_runner(
         file=file,
         mode='exec',
-        symbol_table=_normalize_namespace(undefined, file),
+        symbol_table=symtab,
         flags=flags
     )
 
     code, _ = result.end_process()
 
-    if args.inspect:
+    if inspect:
         if sys.stdout.closed or sys.stderr.closed:
-            return 1
+            code = 1
         elif sys.stdin.closed:
             print("Can't run interactive shell: sys.stdin closed", file=sys.stderr)
-            return 1
+            code = 1
         else:
-            return pys_shell(
+            code = pys_shell(
                 globals=result.context.symbol_table,
-                flags=result.context.flags | DONT_SHOW_BANNER_ON_SHELL,
+                flags=result.context.flags | not_show_banner_flag,
                 parser_flags=result.parser_flags
             )
-
-    return code
 
 if args.file is not None:
     argv[0] = args.file
@@ -341,7 +355,7 @@ if args.file is not None:
             argument_error('-l/--highlight', e)
 
     else:
-        code = execute(file)
+        execute(file)
 
 elif args.module is not None:
     _, module_path = find_module_path(None, args.module, '__main__')
@@ -350,13 +364,14 @@ elif args.module is not None:
 
     file = load_file(module_path)
     argv[0] = file.name
-    code = execute(file)
+    execute(file)
 
 elif args.command is not None:
     argv[0] = '-c'
-    code = execute(PysFileBuffer(args.command, '<arg-command>'))
+    execute(PysFileBuffer(args.command, '<arg-command>'))
 
 else:
+    clean_up()
     code = pys_shell(
         globals=undefined,
         flags=flags

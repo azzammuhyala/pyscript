@@ -3,7 +3,6 @@ from ..constants import ENV_PYSCRIPT_NO_TYPECHECK
 from .generic import is_environ
 
 from types import MethodType
-from typing import Callable
 
 class _PysNameSpaceUtilities(Pys):
 
@@ -29,7 +28,7 @@ class _PysNameSpaceUtilities(Pys):
 TYPECHECK_STACK = 0
 BEARTYPE = False
 
-def typecheck(func: Callable, *args, **kwargs):
+def typecheck(func, *args, **kwargs):
     return func
 
 if not is_environ(ENV_PYSCRIPT_NO_TYPECHECK):

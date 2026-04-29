@@ -2,6 +2,7 @@ from .bases import Pys
 from .constants import PYSCRIPT_PATH, CORE_PATH, LIBRARIES_PATH, SITE_PACKAGES_PATH, DEFAULT
 from .utils.debug import print_display, print_traceback, clear_shell
 from .utils.decorators import inheritable, singleton
+from .utils.path import base
 
 from types import ModuleType
 from typing import Literal
@@ -17,7 +18,7 @@ pys_sys = ModuleType(
 
 pys_sys.__running_shell__ = False
 pys_sys.__running_breakpoint__ = False
-pys_sys.path = [SITE_PACKAGES_PATH, LIBRARIES_PATH]
+pys_sys.path = [LIBRARIES_PATH, SITE_PACKAGES_PATH]
 pys_sys.loading_modules = set()
 pys_sys.modules = {}
 pys_sys.singletons = {}
@@ -30,7 +31,7 @@ pys_sys.pyscript_path = PYSCRIPT_PATH
 pys_sys.core_path = CORE_PATH
 pys_sys.libraries_path = LIBRARIES_PATH
 pys_sys.site_packages_path = SITE_PACKAGES_PATH
-pys_sys.executable = f'"{sys.executable}" -m pyscript'
+pys_sys.executable = f'{base(sys.executable)} -m pyscript'
 pys_sys.ps1 = '>>> '
 pys_sys.ps2 = '... '
 

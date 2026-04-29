@@ -29,8 +29,8 @@ ESCAPE_CHARACTERS_MAP = MappingProxyType({
 })
 
 BASE_INTEGER_LITERAL = MappingProxyType({
-    'b': (2, '01'),
-    'o': (8, '01234567'),
+    'b': (2,  '01'),
+    'o': (8,  '01234567'),
     'x': (16, '0123456789abcdefABCDEF')
 })
 

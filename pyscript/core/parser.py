@@ -1374,7 +1374,6 @@ class PysParser(Pys):
 
                 result.register_advancement()
                 self.advance()
-                self.skip(result)
 
                 bracket = False
                 targets = []
@@ -1438,6 +1437,10 @@ class PysParser(Pys):
                         result.register_advancement()
                         self.advance()
                         self.skip_expression(result)
+
+                    elif targets:
+                        targets.insert(0, PysIdentifierNode(parameter))
+                        parameter = None
 
                     else:
                         all_catch_handler = True

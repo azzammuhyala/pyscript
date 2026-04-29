@@ -1,8 +1,10 @@
 from .bases import PysEditor
 from ..buffer import PysFileBuffer
-from ..constants import ICON_PATH
+from ..constants import GUI_GEOMETRY_PATH, ICON_PATH
 from ..highlight import PygmentsPyScriptStyle, PygmentsPyScriptLexer
 from ..version import __version__
+
+import re
 
 try:
     from tkinter import Tk, Scrollbar, Text, messagebox
@@ -15,7 +17,8 @@ try:
             Tk.__init__(self)
 
             def on_save(event=None):
-                self.save(self.text.get('1.0', 'end'))
+                text = self.text.get('1.0', 'end')
+                self.save(text[:-1] if text.endswith(('\r\n', '\r', '\n')) else text)
                 update()
                 return 'break'
 
@@ -29,6 +32,10 @@ try:
                         self.destroy()
                 else:
                     self.destroy()
+
+            def on_configure(event):
+                if event.widget == self:
+                    save_geometry(event.x, event.y, event.width, event.height, self.wm_state() == 'zoomed')
 
             def on_modified(event=None):
                 text = self.text
@@ -69,10 +76,15 @@ try:
                 text.insert('insert', '\n' + line[:len(line) - len(line.lstrip())])
                 return 'break'
 
-            try:
-                self.wm_iconbitmap(ICON_PATH)
-            except:
-                pass
+            def save_geometry(left, top, width, height, zoom):
+                try:
+                    with open(GUI_GEOMETRY_PATH, 'w') as f:
+                        zoom = bool(zoom)
+                        if not zoom:
+                            self.last_geometry = f'{width}x{height}+{left}+{top}'
+                        f.write(f'{self.last_geometry},{int(zoom)}')
+                except:
+                    pass
 
             self.lexer = PygmentsPyScriptLexer()
             self.font = Font(family='Consolas', size=10)
@@ -102,6 +114,7 @@ try:
             self.text.bind('<Prior>', on_page_up)
             self.text.bind('<Next>', on_page_down)
 
+            self.bind('<Configure>', on_configure)
             self.bind_all('<Control-S>', on_save)
             self.bind_all('<Control-s>', on_save)
             self.bind_all('<Control-W>', on_toggle_wrap)
@@ -111,7 +124,29 @@ try:
             self.bind_all('<Control-equal>', on_change_font(1, lambda size : size < 128))
             self.bind_all('<Control-plus>', on_change_font(5, lambda size : size < 128))
 
-            # self.wm_geometry('800x600')
+            try:
+                with open(GUI_GEOMETRY_PATH, 'r') as f:
+                    width, height, left, top, zoom = map(
+                        int,
+                        re.match(r'(\d{1,7})x(\d{1,7})\+(-?\d{1,7})\+(-?\d{1,7}),(0|1)', f.read(64)).groups()
+                    )
+                    self.last_geometry = f'{width}x{height}+{left}+{top}'
+            except:
+                left = self.winfo_screenwidth() // 2 - 250
+                top = self.winfo_screenheight() // 2 - 250
+                zoom = False
+                self.last_geometry = f'500x500+{left}+{top}'
+                save_geometry(left, top, 500, 500, zoom)
+
+            try:
+                self.wm_iconbitmap(ICON_PATH)
+            except:
+                pass
+
+            if zoom:
+                self.wm_state('zoomed')
+
+            self.wm_geometry(self.last_geometry)
             self.wm_minsize(300, 250)
             self.wm_protocol('WM_DELETE_WINDOW', on_close)
 

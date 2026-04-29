@@ -1,6 +1,6 @@
 from inspect import currentframe
 from types import FrameType, UnionType
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 import os
 
@@ -33,8 +33,11 @@ def get_locals(deep: int = 0) -> dict[str, Any]:
         return locals if isinstance(locals, dict) else dict(locals)
     return {}
 
-def get_subscript(object: Any, key: Any, default: Optional[Any] = None) -> Any:
-    return object[key] if 0 <= key < len(object) else default
+def get_sequence(object: Sequence, key: Any, default: Optional[Any] = None) -> Any:
+    try:
+        return object[key]
+    except LookupError:
+        return default
 
 def is_environ(key: str) -> bool:
     return os.environ.get(key) is not None

@@ -9,7 +9,7 @@ with open('./README.md', 'r', encoding='utf-8') as file:
 
 setup(
     name='pyscript-programming-language',
-    version='1.12.11',
+    version='1.12.12',
     description='PyScript Programming Language',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -17,9 +17,12 @@ setup(
     author_email='azzammuhyala@gmail.com',
     url='https://azzammuhyala.github.io/pyscript',
     project_urls={
+        'Documentation': 'https://azzammuhyala.github.io/pyscript',
         'Source': 'https://github.com/azzammuhyala/pyscript',
+        'Releases': 'https://github.com/azzammuhyala/pyscript/releases',
+        'Change Log': 'https://github.com/azzammuhyala/pyscript/blob/main/changelog.md',
         'Bug Tracker': 'https://github.com/azzammuhyala/pyscript/issues',
-        'Change Log': 'https://github.com/azzammuhyala/pyscript/blob/main/changelog.md'
+        'PyPi Stats': 'https://pepy.tech/projects/pyscript-programming-language'
     },
     extras_require={
         'other': ['beartype', 'pygments', 'prompt_toolkit']

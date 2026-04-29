@@ -4,6 +4,7 @@ with open('./test.pys', 'r') as file:
 import pyscript
 import sys
 
+import pprint
 import subprocess
 import pygments
 import pygments.formatters as formatters

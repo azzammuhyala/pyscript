@@ -60,7 +60,7 @@ class PysRunTimeResult(PysResult):
         '_context', '_position'
     )
 
-    def reset(self) -> bool:
+    def reset(self) -> None:
         self.should_continue = False
         self.should_break = False
         self.func_should_return = False
@@ -71,11 +71,11 @@ class PysRunTimeResult(PysResult):
     __init__ = reset
 
     def register(self, result: 'PysRunTimeResult') -> Any:
-        self.error = result.error
         self.should_continue = result.should_continue
         self.should_break = result.should_break
         self.func_should_return = result.func_should_return
         self.func_return_value = result.func_return_value
+        self.error = result.error
         return result.value
 
     def success(self, value: Any) -> 'PysRunTimeResult':
@@ -107,9 +107,9 @@ class PysRunTimeResult(PysResult):
     def should_return(self) -> bool:
         return (
             self.error or
-            self.func_should_return or
             self.should_continue or
-            self.should_break
+            self.should_break or
+            self.func_should_return
         )
 
     # --- HANDLE EXCEPTION ---
@@ -164,11 +164,9 @@ class PysExecuteResult(PysResult):
 
     def end_process(self) -> tuple[int | Any, bool]:
         result = PysRunTimeResult()
-        context = self.context
-        position = PysPosition(self.context.file, -1, -1)
 
-        result._context = context
-        result._position = position
+        result._context = context = self.context
+        result._position = position = PysPosition(self.context.file, -1, -1)
         with result:
 
             if self.error:

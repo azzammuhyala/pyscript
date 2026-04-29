@@ -6,6 +6,8 @@ LIBRARIES_PATH = os.path.join(PYSCRIPT_PATH, 'lib')
 OTHER_PATH = os.path.join(PYSCRIPT_PATH, 'other')
 SITE_PACKAGES_PATH = os.path.join(PYSCRIPT_PATH, 'site-packages')
 ICON_PATH = os.path.join(OTHER_PATH, 'PyScript.ico')
+GLOBAL_HISTORY_PATH = os.path.join(os.path.expanduser('~'), '.pyscript_history')
+GUI_GEOMETRY_PATH = os.path.join(OTHER_PATH, 'gui_geometry.txt')
 
 ENV_PYSCRIPT_NO_EXCEPTHOOK = 'PYSCRIPT_NO_EXCEPTHOOK'
 ENV_PYSCRIPT_NO_GIL = 'PYSCRIPT_NO_GIL'

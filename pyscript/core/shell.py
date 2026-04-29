@@ -1,6 +1,6 @@
 from .bases import Pys
 from .cache import pys_sys
-from .constants import ENV_PYSCRIPT_HISTORY_PATH, ENV_PYSCRIPT_MAXIMUM_HISTORY_LINE
+from .constants import GLOBAL_HISTORY_PATH, ENV_PYSCRIPT_HISTORY_PATH, ENV_PYSCRIPT_MAXIMUM_HISTORY_LINE
 from .exceptions import PysSignal
 from .mapping import BRACKETS_MAP
 from .utils.debug import print_traceback
@@ -215,7 +215,7 @@ try:
     from prompt_toolkit.shortcuts.prompt import PromptSession
     from prompt_toolkit.styles.pygments import style_from_pygments_cls
 
-    HISTORY_PATH = os.environ.get(ENV_PYSCRIPT_HISTORY_PATH, os.path.join(os.path.expanduser('~'), '.pyscript_history'))
+    HISTORY_PATH = os.environ.get(ENV_PYSCRIPT_HISTORY_PATH, GLOBAL_HISTORY_PATH)
     if HISTORY_PATH and HISTORY_PATH != '<none>':
         HISTORY_PATH = normpath(HISTORY_PATH)
         USE_FILE_HISTORY = True

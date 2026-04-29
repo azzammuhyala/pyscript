@@ -1,13 +1,10 @@
 # Change Log
 
-## [1.12.11] - 11/04/2026
+## [1.12.12] - 29/04/2026
 
 ### Added
-- New `-m` / `--module` argument.
-- _etc._
+- Saves screen geometry in gui editor.
 
 ### Fixed
 - Fixed some bugs.
-- Improved and added modules in `sys`.
-- Improved runtime interpreter.
 - _etc._

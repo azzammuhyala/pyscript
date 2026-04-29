@@ -28,15 +28,20 @@ from typing import Any, Literal, Optional
 import os
 import sys
 
-def _normalize_namespace(namespace: PysUndefined | PysSymbolTable | dict | None, file: PysFileBuffer) -> PysSymbolTable:
+def _namespace_to_symbol_table(
+    namespace: PysUndefined | PysSymbolTable | dict | None,
+    file: PysFileBuffer
+) -> PysSymbolTable:
     if namespace is None:
         symtab, _ = new_module_namespace(symbols=get_locals(2 + TYPECHECK_STACK))
     elif namespace is undefined:
         symtab, _ = new_module_namespace(file=file.name, name='__main__')
     elif isinstance(namespace, dict):
         symtab, _ = new_module_namespace(symbols=namespace)
-    else:
+    elif isinstance(namespace, PysSymbolTable) or TYPECHECK_STACK < 1:
         symtab = namespace
+    else:
+        raise TypeError('non-namespace object')
     return symtab
 
 @typecheck
@@ -94,10 +99,9 @@ def pys_runner(
 
     result = PysExecuteResult(context, parser_flags)
     runtime_result = PysRunTimeResult()
-    position = PysPosition(file, -1, -1)
 
     runtime_result._context = context
-    runtime_result._position = position
+    runtime_result._position = position = PysPosition(file, -1, -1)
     with runtime_result:
 
         try:
@@ -195,7 +199,7 @@ def pys_exec(
     result = pys_runner(
         file=file,
         mode='exec',
-        symbol_table=_normalize_namespace(globals, file),
+        symbol_table=_namespace_to_symbol_table(globals, file),
         flags=flags,
         parser_flags=parser_flags
     )
@@ -241,7 +245,7 @@ def pys_eval(
     result = pys_runner(
         file=file,
         mode='eval',
-        symbol_table=_normalize_namespace(globals, file),
+        symbol_table=_namespace_to_symbol_table(globals, file),
         flags=flags,
         parser_flags=parser_flags
     )
@@ -306,7 +310,7 @@ def pys_shell(
     line = 0
     default_parser_flags = parser_flags
     file = PysFileBuffer('', '<pyscript-shell>')
-    symtab = _normalize_namespace(globals, file)
+    symtab = _namespace_to_symbol_table(globals, file)
     colored = not (flags & NO_COLOR)
     colored_prompt = not (flags & NO_COLOR_PROMPT)
     shell = (
@@ -357,7 +361,7 @@ def pys_shell(
                 if text == 0:
                     return 0
                 elif text == 1:
-                    symtab = _normalize_namespace(undefined, file)
+                    symtab = _namespace_to_symbol_table(undefined, file)
                     parser_flags = default_parser_flags
                     line = 0
                     continue

@@ -272,7 +272,7 @@ try:
 
             'string-escapes': [
                 (rf'\\([nrtbfav\'"\\]|{_newlines})', String.Escape),
-                (r'\\[0-7]{1,3}}', String.Escape.Oct),
+                (r'\\[0-7]{1,3}', String.Escape.Oct),
                 (r'\\x[0-9A-Fa-f]{2}', String.Escape.Hex),
                 (r'\\u[0-9A-Fa-f]{4}', String.Escape.Uni),
                 (r'\\U[0-9A-Fa-f]{8}', String.Escape.Uni),
@@ -485,47 +485,58 @@ def pys_highlight(
     last_index = 0
     brackets_stack = []
 
+    T_NULL = TOKENS['NULL']
+    T_KEYWORD = TOKENS['KEYWORD']
+    T_IDENTIFIER = TOKENS['IDENTIFIER']
+    T_NUMBER = TOKENS['NUMBER']
+    T_STRING = TOKENS['STRING']
+    T_NEWLINE = TOKENS['NEWLINE']
+    T_COMMENT = TOKENS['COMMENT']
+    T_LEFT_PARENTHESIS = TOKENS['LEFT_PARENTHESIS']
+    T_NONE = TOKENS['NONE']
+    T_WHITESPACES = frozenset([T_NEWLINE, T_COMMENT])
+
     for i, token in enumerate(tokens):
         ttype = token.type
         tvalue = token.value
 
-        if ttype == TOKENS['NULL']:
+        if ttype == T_NULL:
             type_format = 'end'
 
-        elif ttype == TOKENS['KEYWORD']:
+        elif ttype == T_KEYWORD:
             type_format = 'keyword-constant' if is_constant_keyword(tvalue) else 'keyword'
 
-        elif ttype == TOKENS['IDENTIFIER']:
+        elif ttype == T_IDENTIFIER:
             if tvalue in BUILTIN_TYPES:
                 type_format = 'identifier-type'
             elif tvalue in BUILTIN_FUNCTIONS:
                 type_format = 'identifier-function'
             else:
                 j = i - 1
-                while j > 0 and tokens[j].type in (TOKENS['NEWLINE'], TOKENS['COMMENT']):
+                while j > 0 and tokens[j].type in T_WHITESPACES:
                     j -= 1
-                previous_token = tokens[j]
-                if previous_token.match(TOKENS['KEYWORD'], 'class'):
+                last_is = tokens[j].match
+                if last_is(T_KEYWORD, 'class'):
                     type_format = 'identifier-type'
-                elif previous_token.match(TOKENS['KEYWORD'], 'func', 'function'):
+                elif last_is(T_KEYWORD, 'func', 'function'):
                     type_format = 'identifier-function'
                 else:
                     j = i + 1
-                    if (j < len(tokens) and tokens[j].type == TOKENS['LEFT_PARENTHESIS']):
+                    if (j < len(tokens) and tokens[j].type == T_LEFT_PARENTHESIS):
                         type_format = 'identifier-function'
                     else:
                         type_format = 'identifier-constant' if tvalue.isupper() else 'identifier'
 
-        elif ttype == TOKENS['NUMBER']:
+        elif ttype == T_NUMBER:
             type_format = 'number'
 
-        elif ttype == TOKENS['STRING']:
+        elif ttype == T_STRING:
             type_format = 'string'
 
-        elif ttype == TOKENS['NEWLINE']:
+        elif ttype == T_NEWLINE:
             type_format = 'newline'
 
-        elif ttype == TOKENS['COMMENT']:
+        elif ttype == T_COMMENT:
             type_format = 'comment'
 
         elif is_bracket(ttype):
@@ -537,7 +548,7 @@ def pys_highlight(
             else:
                 type_format = f'brackets-{len(brackets_stack) % max_bracket_level}'
 
-        elif ttype == TOKENS['NONE']:
+        elif ttype == T_NONE:
             type_format = 'invalid'
 
         else:
@@ -547,7 +558,7 @@ def pys_highlight(
             result += formatter('default', PysPosition(file, last_index, token.position.start), space)
         result += formatter(type_format, token.position, text[token.position.start:token.position.end])
 
-        if ttype == TOKENS['NULL']:
+        if ttype == T_NULL:
             break
 
         last_index = token.position.end
