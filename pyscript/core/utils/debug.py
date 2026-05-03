@@ -33,7 +33,6 @@ USE_NOTEBOOK = False
 
 try:
     from IPython import get_ipython
-
     if type(get_ipython()).__name__ in (
         'ZMQInteractiveShell',     # Jupyter Notebook / Lab
         'Shell',                   # Google Colab
@@ -43,7 +42,6 @@ try:
         def clear_shell() -> None:
             clear_output()
         USE_NOTEBOOK = True
-
 except:
     pass
 

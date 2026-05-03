@@ -5,7 +5,8 @@ from .nodes import PysNode
 from .position import PysPosition
 from .results import PysRunTimeResult
 from .symtab import PysSymbolTable
-from .utils.generic import dinit, drepr, dor, dsetitem, ddelitem, ditems
+from .utils.decorators import immutable
+from .utils.generic import setimuattr, dinit, drepr, dor, dsetitem, ddelitem, ditems
 from .utils.similarity import get_closest
 from .utils.string import join
 
@@ -120,6 +121,8 @@ class PysFunction(PysObject):
 
     def __call__(self, *args, **kwargs) -> Any:
         code = self.__code__
+        context = code.context
+        position = code.position
 
         b_zip = zip
         b_len = len
@@ -152,8 +155,8 @@ class PysFunction(PysObject):
                     result.failure(
                         PysTraceback(
                             TypeError(f"{self.__qualname__}() got multiple values for argument {name!r}"),
-                            code.context,
-                            code.position
+                            context,
+                            position
                         )
                     )
                 )
@@ -168,8 +171,8 @@ class PysFunction(PysObject):
                             TypeError(
                                 f"{self.__qualname__}() got an unexpected keyword argument {name!r}{hint_message}"
                             ),
-                            code.context,
-                            code.position
+                            context,
+                            position
                         )
                     )
                 )
@@ -192,8 +195,8 @@ class PysFunction(PysObject):
                             f"{self.__qualname__}() missing {total_missing} required positional argument"
                             f"{'' if total_missing == 1 else 's'}: {join(missing_arguments, conjunction='and')}"
                         ),
-                        code.context,
-                        code.position
+                        context,
+                        position
                     )
                 )
             )
@@ -211,8 +214,8 @@ class PysFunction(PysObject):
                             f"{self.__qualname__}() takes {code_parameters_length} positional argument"
                             f"{'' if code_parameters_length == 1 else 's'} but {given_arguments} were given"
                         ),
-                        code.context,
-                        code.position
+                        context,
+                        position
                     )
                 )
             )
@@ -227,8 +230,8 @@ class PysFunction(PysObject):
                     name=self.__name__,
                     qualname=self.__qualname__,
                     symbol_table=symbol_table,
-                    parent=code.context,
-                    parent_entry_position=code.position
+                    parent=context,
+                    parent_entry_position=position
                 )
             )
         )
@@ -238,30 +241,37 @@ class PysFunction(PysObject):
                 return result.func_return_value
             raise PysSignal(result)
 
+@immutable
 class PysPythonFunction(PysFunction):
 
     def __init__(self, func: Callable) -> None:
         # circular import problem solved
         from .handlers import handle_call
 
-        self.__func__ = func
-        self.__name__ = getattr(func, '__name__', '<function>')
-        self.__qualname__ = getattr(func, '__qualname__', '<function>')
-        self.__module__ = getattr(func, '__module__', 'pyscript')
-        self.__doc__ = getattr(func, '__doc__', None)
-        self.__code__ = PysCode(
+        setimuattr(self, '__func__',     func)
+        setimuattr(self, '__name__',     getattr(func, '__name__',     '<function>'))
+        setimuattr(self, '__qualname__', getattr(func, '__qualname__', '<function>'))
+        setimuattr(self, '__module__',   getattr(func, '__module__',   'pyscript'))
+        setimuattr(self, '__doc__',      getattr(func, '__doc__',      None))
+        setimuattr(self, '__code__',     PysCode(
             context=None,
             position=None,
             handle_call=handle_call
-        )
+        ))
 
     def __repr__(self) -> str:
         return f'<python function {self.__qualname__} at 0x{id(self):016X}>'
 
+    def __get__(self, instance: Any | None, owner: type) -> 'PysPythonFunction':
+        return self
+
     def __call__(self, *args, **kwargs) -> Any:
-        func = self.__func__
         code = self.__code__
-        code.handle_call(func, code.context, code.position)
+        context = code.context
+        position = code.position
+
+        func = self.__func__
+        code.handle_call(func, context, position)
         return func(self, *args, **kwargs)
 
 class PysBuiltinFunction(PysPythonFunction):

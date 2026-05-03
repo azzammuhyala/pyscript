@@ -255,9 +255,7 @@ try:
                 if os.path.isfile(HISTORY_PATH):
 
                     def add_to_string():
-                        line = '\n'.join(lines)
-                        if line:
-                            strings.append(line)
+                        strings.append('\n'.join(lines))
                         lines.clear()
 
                     with open(HISTORY_PATH, 'r', encoding='utf-8') as file:
@@ -267,8 +265,7 @@ try:
                             if line.startswith('\x1e'):
                                 add_to_string()
                                 line = line[1:]
-                            if line:
-                                lines.append(line)
+                            lines.append(line)
 
                         if lines:
                             add_to_string()

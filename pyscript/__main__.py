@@ -13,7 +13,7 @@ from .core.runner import _namespace_to_symbol_table, pys_runner, pys_shell
 from .core.utils.debug import USE_NOTEBOOK
 from .core.utils.generic import is_environ
 from .core.utils.module import find_module_path, remove_python_path
-from .core.utils.path import getcwd, base, normpath
+from .core.utils.path import getcwd, base
 from .core.version import __version__
 
 if PYGMENTS:
@@ -42,13 +42,13 @@ FORMATER_HIGHLIGHT_MAP = {
     'bbcode': HLFMT_BBCODE
 }
 
-EDITOR_MAP = {}
-for supported, name, class_editor in [
-    (GUI_SUPPORT,      'gui',      PysGUIEditor),
-    (TERMINAL_SUPPORT, 'terminal', PysTerminalEditor)
-]:
-    if supported:
-        EDITOR_MAP[name] = class_editor
+EDITOR_MAP = {
+    name: cls
+    for support, name, cls in [
+        (GUI_SUPPORT,      'gui',      PysGUIEditor),
+        (TERMINAL_SUPPORT, 'terminal', PysTerminalEditor)
+    ] if support
+}
 
 arguments_requiring_value = {'-l', '--highlight', '-r', '--py-recursion'}
 
@@ -262,9 +262,9 @@ def clean_up() -> None:
         'PygmentsPyScriptStyle', 'PysFileBuffer', 'PysGUIEditor', 'PysTerminalEditor', 'REMAINDER', 'TERMINAL_SUPPORT',
         'Terminal256Formatter', 'TerminalFormatter', 'TerminalTrueColorFormatter', 'USE_NOTEBOOK', '__version__',
         '_namespace_to_symbol_table', 'arg', 'arg_index', 'argc', 'args', 'argument_error', 'arguments_requiring_value',
-        'argv', 'base', 'class_editor', 'clean_up', 'condition', 'ctypes', 'execute', 'fd', 'file', 'find_module_path',
-        'flag', 'getcwd', 'highlight', 'i', 'index', 'is_environ', 'kernel32', 'load_file', 'module_path', 'name',
-        'normpath', 'parser', 'pys_highlight', 'pys_sys', 'remove_python_path', 'supported'
+        'argv', 'base', 'clean_up', 'condition', 'ctypes', 'execute', 'fd', 'file', 'find_module_path', 'flag',
+        'getcwd', 'highlight', 'i', 'index', 'is_environ', 'kernel32', 'load_file', 'module_path', 'parser',
+        'pys_highlight', 'pys_sys', 'remove_python_path'
     }:
         try:
             del g[name]
@@ -272,10 +272,9 @@ def clean_up() -> None:
             continue
 
 def load_file(path) -> PysFileBuffer:
-    file = PysFileBuffer('', path)
     try:
         with open(path, 'r', encoding='utf-8') as file:
-            file = PysFileBuffer(file, path)
+            return PysFileBuffer(file, path)
     except FileNotFoundError:
         if not (EDITOR_MAP and args.editor):
             argument_error('file', f"can't open file \"{path}\": No such file or directory")
@@ -291,7 +290,7 @@ def load_file(path) -> PysFileBuffer:
         argument_error('file', f"can't read file \"{path}\": Bad file")
     except BaseException as e:
         argument_error('file', f"file \"{path}\": Unexpected error: {e}")
-    return file
+    return PysFileBuffer('', path)
 
 def execute(file: PysFileBuffer) -> None:
     global code
@@ -326,7 +325,7 @@ def execute(file: PysFileBuffer) -> None:
 
 if args.file is not None:
     argv[0] = args.file
-    file = load_file(normpath(args.file))
+    file = load_file(args.file)
 
     if EDITOR_MAP and args.editor:
         try:
@@ -348,7 +347,10 @@ if args.file is not None:
                     highlight(
                         code=file.text,
                         lexer=PygmentsPyScriptLexer(),
-                        formatter=FORMATER_PYGMENTS_MAP[args.highlight](style=PygmentsPyScriptStyle, full=True)
+                        formatter=FORMATER_PYGMENTS_MAP[args.highlight](
+                            style=PygmentsPyScriptStyle,
+                            full=True
+                        )
                     )
                 )
         except BaseException as e:

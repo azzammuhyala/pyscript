@@ -1,9 +1,10 @@
 # Change Log
 
-## [1.12.12] - 29/04/2026
+## [1.12.13] - 03/05/2026
 
 ### Added
-- Saves screen geometry in gui editor.
+- `PysPythonFunction` is immutable.
+- _etc._
 
 ### Fixed
 - Fixed some bugs.

@@ -693,13 +693,14 @@ def visit_TryNode(node: PysTryNode, context: PysContext) -> PysRunTimeResult:
     error = result.error
 
     if error:
-        failure = result.failure
-        exception = error.exception
-
         b_isinstance = isinstance
         b_issubclass = issubclass
         b_type = type
         b_BaseException = BaseException
+
+        failure = result.failure
+        exception = error.exception
+        exception_class = exception if b_isinstance(exception, b_type) else b_type(exception)
 
         failure(None)
 
@@ -729,7 +730,7 @@ def visit_TryNode(node: PysTryNode, context: PysContext) -> PysRunTimeResult:
                         stop = True
                         break
 
-                    if is_object_of(exception, error_class):
+                    if b_issubclass(exception_class, error_class):
                         handle_exception = True
                         break
 
@@ -744,7 +745,7 @@ def visit_TryNode(node: PysTryNode, context: PysContext) -> PysRunTimeResult:
                     with result:
                         symbol_table = context.symbol_table
                         parameter = tparameter.value
-                        symbol_table.set(parameter, error.exception)
+                        symbol_table.set(parameter, exception)
                     if should_return():
                         break
 
@@ -755,8 +756,6 @@ def visit_TryNode(node: PysTryNode, context: PysContext) -> PysRunTimeResult:
                 if tparameter:
                     with result:
                         symbol_table.remove(parameter)
-                    if should_return():
-                        break
 
                 break
 

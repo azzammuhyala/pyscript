@@ -1,7 +1,17 @@
-# PyScript 🐍🟨🟦⬛
+# PyScript
 
 <div align="center">
     <img src="https://github.com/azzammuhyala/pyscript/blob/main/PyScript.png?raw=true" alt="PyScript Logo" width="200">
+    <br>
+    <a href="https://pepy.tech/project/pyscript-programming-language">
+        <img src="https://static.pepy.tech/personalized-badge/pyscript-programming-language?period=total&units=NONE&left_color=GRAY&right_color=GREEN&left_text=downloads" alt="PyPI Downloads">
+    </a>
+    <a href="https://en.wikipedia.org/wiki/MIT_License">
+        <img src="https://img.shields.io/badge/license-MIT-orange" alt="License MIT">
+    </a>
+    <a href="https://www.python.org/">
+        <img src="https://img.shields.io/badge/python-3.10-yellow" alt="Python 3.10+">
+    </a>
 </div>
 
 PyScript is a programming language built on top of Python. It combines some syntax from Python and JavaScript, so if

@@ -9,7 +9,7 @@ with open('./README.md', 'r', encoding='utf-8') as file:
 
 setup(
     name='pyscript-programming-language',
-    version='1.12.12',
+    version='1.12.13',
     description='PyScript Programming Language',
     long_description=long_description,
     long_description_content_type='text/markdown',

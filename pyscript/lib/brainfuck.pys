@@ -8,8 +8,9 @@ func default_input() {
 }
 
 func default_output(byte) {
-    sys.stdout.write(chr(byte))
-    sys.stdout.flush()
+    stdout = sys.stdout
+    stdout.write(chr(byte))
+    stdout.flush()
 }
 
 class BFInterpreter {
@@ -40,7 +41,6 @@ class BFInterpreter {
 
         self.running = false
 
-        self._tokenCursor = -1
         self._tokens = tokens = []
         self._bracketMap = {}
 
@@ -129,6 +129,7 @@ class BFInterpreter {
         self.running = true
         self.memory = [0]
         self.pointer = 0
+        self._tokenCursor = -1
 
         if (self.cells is not none)
             self.memory *= self.cells
@@ -204,7 +205,7 @@ class BFInterpreter {
         self.running = false
 
         if (cleanUp)
-            del self.memory, self.pointer
+            del self.memory, self.pointer, self._tokenCursor
     }
 
 }

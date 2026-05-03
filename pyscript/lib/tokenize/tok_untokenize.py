@@ -24,6 +24,14 @@ def untokenize(iterable: Iterable[PysToken]) -> str:
     newline = True
     brackets_stack = 0
 
+    T_NULL = TOKENS['NULL']
+    T_NEWLINE = TOKENS['NEWLINE']
+    T_KEYWORD = TOKENS['KEYWORD']
+    T_IDENTIFIER = TOKENS['IDENTIFIER']
+    T_LITERAL = frozenset([TOKENS['NUMBER'], TOKENS['STRING']])
+    T_COMMENT = TOKENS['COMMENT']
+    T_NONE = TOKENS['NONE']
+
     for i, token in enumerate(iterable):
         type = token.type
         value = token.value
@@ -34,10 +42,10 @@ def untokenize(iterable: Iterable[PysToken]) -> str:
             except:
                 value = token_value_error
 
-        if type == TOKENS['NULL']:
+        if type == T_NULL:
             break
 
-        elif type == TOKENS['NEWLINE']:
+        elif type == T_NEWLINE:
             stack = (
                 brackets_stack - 1
                 if brackets_stack > 0 and is_right_bracket(get_sequence(iterable, i + 1, token).type) else
@@ -48,23 +56,23 @@ def untokenize(iterable: Iterable[PysToken]) -> str:
             add_space = False
             continue
 
-        elif type == TOKENS['KEYWORD']:
+        elif type == T_KEYWORD:
             parts.append(f'{" " if add_space else ""}{value}')
             add_space = True
 
-        elif type == TOKENS['IDENTIFIER']:
+        elif type == T_IDENTIFIER:
             parts.append(f'${value}' if is_keyword(value) else f'{" " if add_space else ""}{value}')
             add_space = True
 
-        elif type in (TOKENS['NUMBER'], TOKENS['STRING']):
+        elif type in T_LITERAL:
             parts.append(f'{" " if add_space else ""}{value!r}')
             add_space = True
 
-        elif type == TOKENS['COMMENT']:
+        elif type == T_COMMENT:
             parts.append(f'{"" if newline else " "}#{value}')
             add_space = False
 
-        elif type == TOKENS['NONE']:
+        elif type == T_NONE:
             parts.append(token.position.file.text[token.position.start:token.position.end])
             add_space = True
 

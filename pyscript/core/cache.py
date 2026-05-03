@@ -34,6 +34,7 @@ pys_sys.site_packages_path = SITE_PACKAGES_PATH
 pys_sys.executable = f'{base(sys.executable)} -m pyscript'
 pys_sys.ps1 = '>>> '
 pys_sys.ps2 = '... '
+pys_sys._is_gil_enabled = lambda : pys_sys.gil
 
 for name in (
     'exit', 'float_info', 'float_repr_style', 'get_int_max_str_digits', 'getdefaultencoding',

@@ -3,9 +3,11 @@ from .buffer import PysFileBuffer
 from .cache import pys_sys
 from .checks import is_blacklist_python_builtin, is_private_attribute
 from .constants import OTHER_PATH, NO_COLOR, CLASSIC_LINE_SHELL, NO_COLOR_PROMPT
+from .context import PysContext
 from .exceptions import PysSignal
 from .handlers import handle_call
 from .mapping import GET_ACOLOR
+from .position import PysPosition
 from .pystypes import PysFunction, PysPythonFunction, PysBuiltinFunction
 from .results import PysRunTimeResult
 from .shell import PysClassicLineShell, PysPromptToolkitLineShell, ADVANCE_LINE_SHELL_SUPPORT
@@ -37,11 +39,17 @@ pyhelp = builtins.help
 pyvars = builtins.vars
 pydir = builtins.dir
 
-def _supported_method(pyfunc: PysPythonFunction, object: Any, name: str, *args, **kwargs) -> tuple[bool, Any]:
+def _supported_method(
+    context: PysContext,
+    position: PysPosition,
+    object: Any,
+    name: str,
+    *args,
+    **kwargs
+) -> tuple[bool, Any]:
     method = getattr(object, name, None)
     if callable(method):
-        code = pyfunc.__code__
-        handle_call(method, code.context, code.position)
+        handle_call(method, context, position)
         try:
             result = method(*args, **kwargs)
             if result is not NotImplemented:
@@ -50,7 +58,7 @@ def _supported_method(pyfunc: PysPythonFunction, object: Any, name: str, *args, 
             pass
     return False, None
 
-def _unpack_comprehension_function(pyfunc: PysPythonFunction, function: Callable) -> Callable:
+def _unpack_comprehension_function(context: PysContext, position: PysPosition, function: Callable) -> Callable:
     check = function
     final = function
     offset = 0
@@ -80,10 +88,32 @@ def _unpack_comprehension_function(pyfunc: PysPythonFunction, function: Callable
             def final(item):
                 return function(*item)
 
-    code = pyfunc.__code__
-    handle_call(function, code.context, code.position)
-
+    handle_call(function, context, position)
     return final
+
+def _pyincrement(context: PysContext, position: PysPosition, object: Any) -> Any:
+    if isinstance(object, real_number):
+        return object + 1
+    elif isinstance(object, sequence):
+        return tuple(_pyincrement(context, position, obj) for obj in object)
+
+    success, result = _supported_method(context, position, object, '__increment__')
+    if not success:
+        raise TypeError(f"bad operand type for unary ++ or increment(): {type(object).__name__!r}")
+
+    return result
+
+def _pydecrement(context: PysContext, position: PysPosition, object: Any) -> Any:
+    if isinstance(object, real_number):
+        return object - 1
+    elif isinstance(object, sequence):
+        return tuple(_pydecrement(context, position, obj) for obj in object)
+
+    success, result = _supported_method(context, position, object, '__decrement__')
+    if not success:
+        raise TypeError(f"bad operand type for unary -- or decrement(): {type(object).__name__!r}")
+
+    return result
 
 class PysPrinter(Pys):
 
@@ -145,9 +175,12 @@ def require(pyfunc, name):
     name: A name or path of the module to be imported.
     """
 
-    name, *other_components = normstr(name).split('>')
     code = pyfunc.__code__
     context = code.context
+    position = code.position
+
+    name, *other_components = normstr(name).split('>')
+
     filename = context.file.name
     path, module_path = find_module_path(filename, name)
 
@@ -202,7 +235,7 @@ def require(pyfunc, name):
                     mode='exec',
                     symbol_table=symtab,
                     context_parent=context,
-                    context_parent_entry_position=code.position
+                    context_parent_entry_position=position
                 )
 
                 if result.error:
@@ -248,14 +281,15 @@ def breakpoint(pyfunc):
     Pauses program execution and enters shell debugging mode.
     """
 
+    code = pyfunc.__code__
+    context = code.context
+    position = code.position
+
     if getattr(pys_sys, '__running_breakpoint__', False):
         raise RuntimeError("another breakpoint is still running")
 
     from .runner import pys_runner
 
-    code = pyfunc.__code__
-    context = code.context
-    position = code.position
     symtab = context.symbol_table
     flags = context.flags
     colored = not (flags & NO_COLOR)
@@ -288,11 +322,8 @@ def breakpoint(pyfunc):
                     print("*** Unable to clean up namespace", file=sys.stderr)
                     continue
 
-                split = ['exit'] if text == 0 else text.split()
-                if split:
-                    command, *args = split
-                else:
-                    command, args = '', ()
+                split = ('exit',) if text == 0 else text.split()
+                command, *args = split if split else ('', ())
 
                 if command in ('c', 'continue'):
                     return
@@ -429,25 +460,21 @@ def exec(pyfunc, source, globals=None):
              local scope will be used.
     """
 
+    code = pyfunc.__code__
+    context = code.context
+    position = code.position
+
     if not isinstance(globals, optional_mapping):
         raise TypeError("exec(): globals must be dict")
-
-    file = PysFileBuffer(source, '<exec>')
-    code = pyfunc.__code__
-
-    if globals is None:
-        symtab = code.context.symbol_table
-    else:
-        symtab, _ = new_module_namespace(symbols=globals)
 
     from .runner import pys_runner
 
     result = pys_runner(
-        file=file,
+        file=PysFileBuffer(source, '<exec>'),
         mode='exec',
-        symbol_table=symtab,
-        context_parent=code.context,
-        context_parent_entry_position=code.position
+        symbol_table=context.symbol_table if globals is None else new_module_namespace(symbols=globals)[0],
+        context_parent=context,
+        context_parent_entry_position=position
     )
 
     if result.error:
@@ -466,25 +493,21 @@ def eval(pyfunc, source, globals=None):
              local scope will be used.
     """
 
+    code = pyfunc.__code__
+    context = code.context
+    position = code.position
+
     if not isinstance(globals, optional_mapping):
         raise TypeError("eval(): globals must be dict")
-
-    file = PysFileBuffer(source, '<eval>')
-    code = pyfunc.__code__
-
-    if globals is None:
-        symtab = code.context.symbol_table
-    else:
-        symtab, _ = new_module_namespace(symbols=globals)
 
     from .runner import pys_runner
 
     result = pys_runner(
-        file=file,
+        file=PysFileBuffer(source, '<eval>'),
         mode='eval',
-        symbol_table=symtab,
-        context_parent=code.context,
-        context_parent_entry_position=code.position
+        symbol_table=context.symbol_table if globals is None else new_module_namespace(symbols=globals)[0],
+        context_parent=context,
+        context_parent_entry_position=position
     )
 
     if result.error:
@@ -508,16 +531,22 @@ def ce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
     abs_tol: maximum difference for being considered "close", regardless of the magnitude of the input values.
     """
 
+    code = pyfunc.__code__
+    context = code.context
+    position = code.position
+
     if isinstance(a, real_number) and isinstance(b, real_number):
         return isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
 
-    success, result = _supported_method(pyfunc, a, '__ce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
+    success, result = _supported_method(context, position, a, '__ce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
     if not success:
-        success, result = _supported_method(pyfunc, b, '__ce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
+        success, result = _supported_method(context, position, b, '__ce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
         if not success:
-            success, result = _supported_method(pyfunc, a, '__nce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
+            success, result = _supported_method(context, position, a, '__nce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
             if not success:
-                success, result = _supported_method(pyfunc, b, '__nce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
+                success, result = _supported_method(
+                    context, position, b, '__nce__', a, rel_tol=rel_tol, abs_tol=abs_tol
+                )
                 if not success:
                     raise TypeError(
                         f"unsupported operand type(s) for ~= or ce(): {type(a).__name__!r} and {type(b).__name__!r}"
@@ -542,16 +571,20 @@ def nce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
     abs_tol: maximum difference for being considered "close", regardless of the magnitude of the input values.
     """
 
+    code = pyfunc.__code__
+    context = code.context
+    position = code.position
+
     if isinstance(a, real_number) and isinstance(b, real_number):
         return not isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
 
-    success, result = _supported_method(pyfunc, a, '__nce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
+    success, result = _supported_method(context, position, a, '__nce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
     if not success:
-        success, result = _supported_method(pyfunc, b, '__nce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
+        success, result = _supported_method(context, position, b, '__nce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
         if not success:
-            success, result = _supported_method(pyfunc, a, '__ce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
+            success, result = _supported_method(context, position, a, '__ce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
             if not success:
-                success, result = _supported_method(pyfunc, b, '__ce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
+                success, result = _supported_method(context, position, b, '__ce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
                 if not success:
                     raise TypeError(
                         f"unsupported operand type(s) for ~! or nce(): {type(a).__name__!r} and {type(b).__name__!r}"
@@ -573,16 +606,8 @@ def increment(pyfunc, object):
     __increment__ method, which if unsuccessful will throw a TypeError.
     """
 
-    if isinstance(object, real_number):
-        return object + 1
-    elif isinstance(object, sequence):
-        return tuple(pyincrement(pyfunc, obj) for obj in object)
-
-    success, result = _supported_method(pyfunc, object, '__increment__')
-    if not success:
-        raise TypeError(f"bad operand type for unary ++ or increment(): {type(object).__name__!r}")
-
-    return result
+    code = pyfunc.__code__
+    return _pyincrement(code.context, code.position, object)
 
 @PysBuiltinFunction
 def decrement(pyfunc, object):
@@ -597,16 +622,8 @@ def decrement(pyfunc, object):
     call the __decrement__ method, which if unsuccessful will throw a TypeError.
     """
 
-    if isinstance(object, real_number):
-        return object - 1
-    elif isinstance(object, sequence):
-        return tuple(pydecrement(pyfunc, obj) for obj in object)
-
-    success, result = _supported_method(pyfunc, object, '__decrement__')
-    if not success:
-        raise TypeError(f"bad operand type for unary -- or decrement(): {type(object).__name__!r}")
-
-    return result
+    code = pyfunc.__code__
+    return _pydecrement(code.context, code.position, object)
 
 @PysBuiltinFunction
 def unpack(pyfunc, function, args=(), kwargs={}):
@@ -644,18 +661,19 @@ def comprehension(pyfunc, init, wrap, condition=None):
     condition: The function that filters the iteration (Unpack per-iteration if parameter is more than 1).
     """
 
+    code = pyfunc.__code__
+    context = code.context
+    position = code.position
+
     if not callable(wrap):
         raise TypeError("comprehension(): wrap must be callable")
     if not (condition is None or callable(condition)):
         raise TypeError("comprehension(): condition must be callable")
 
     return map(
-        _unpack_comprehension_function(pyfunc, wrap),
-        init if condition is None else filter(_unpack_comprehension_function(pyfunc, condition), init)
+        _unpack_comprehension_function(context, position, wrap),
+        init if condition is None else filter(_unpack_comprehension_function(context, position, condition), init)
     )
-
-pyincrement = increment.__func__
-pydecrement = decrement.__func__
 
 pys_builtins = ModuleType(
     'builtins',
