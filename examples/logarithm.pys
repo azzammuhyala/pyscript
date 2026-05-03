@@ -1,29 +1,37 @@
-ITERATIONS = 100_000
+PI = 3.141592653589793
+
+ITERATIONS = 50_000
 
 func definiteIntegral(a, b, f) {
 
-    #                  ITERATIONS - 1
-    #        \ b           <-----\
-    #       /               \
-    #      /                 \     f(x1) + f(x2 + 1)
-    #     /     f(x) dx ~=    >    ----------------- dx
-    #    /                   /             2
-    #   /                   /
-    #  \                   <-----/
-    #    a                   n=0
+    #    _               ITERATIONS
+    #   / \ b              <-----\
+    #   |                   \
+    #   |                    \     f(a + n.dx) + f((a + n.dx) + dx)
+    #   |     f(x) dx ~=      >    -------------------------------- dx
+    #   |                    /                    2
+    #   |                   /
+    # \_/                  <-----/
+    #   a                    n=0
 
     dx = (b - a) / ITERATIONS
-    return sum(map(func(n) {
+    s = 0
+
+    for (n in range(ITERATIONS + 1)) {
         x1 = a + n * dx
         x2 = x1 + dx
-        return (f(x1) + f(x2)) / 2 * dx
-    }, range(ITERATIONS)))
+        s += (f(x1) + f(x2)) / 2 * dx
+    }
+
+    return s
 }
 
 func ln(x) {
-    if (x <= 0)
-        raise ValueError("x must be > 0")
+    if (x == 0)
+        raise ValueError("ln(0) is undefined")
 
+    negative = x < 0
+    x = abs(x)
     k = 0
     while (x > 2) {
         x /= 2
@@ -31,14 +39,16 @@ func ln(x) {
     }
 
     func f(t) => 1/t
-    return k * definiteIntegral(1, 2, f) + definiteIntegral(1, x, f)
+    real = k * definiteIntegral(1, 2, f) + definiteIntegral(1, x, f)
+    return negative ? real + 1j*PI : real
 }
 
-func log(x, base=10) => ln(x)/ln(base)
+func log(x, base=none) => base is none ? ln(x) : ln(x)/ln(base)
 
 if (__name__ == '__main__') {
     import math
 
-    print('a=0, b=PI, f=sin(x)', definiteIntegral(0, math.pi, math.sin))
-    print('log(2^32, base=2)', log(2**32, 2))
+    print('log(-1):', log(-1))
+    print('log(1):', log(1))
+    print('log(2^32, base=2):', log(2**32, 2))
 }

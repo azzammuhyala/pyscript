@@ -3,10 +3,13 @@ func factorial(x) {
         print(1)
         return
     }
+
     result = x
+
     for (i = x - 1; i > 1; i--) {
         result *= i
     }
+
     print(result)
 }
 

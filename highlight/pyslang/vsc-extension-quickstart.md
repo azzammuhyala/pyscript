@@ -33,7 +33,7 @@
 vsce package
 ```
 
-## Test the extension (has compiled)
+## Test the extension (has been compiled)
 ```sh
 code --install-extension pyslang-$VERSION.vsix
 ```

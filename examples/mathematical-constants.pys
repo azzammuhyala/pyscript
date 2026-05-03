@@ -1,0 +1,208 @@
+func factorial(x) {
+    if (x <= 1)
+        return 1
+    elif (x in factorial._cache)
+        return factorial._cache[x]
+
+    result = x
+    for (i of range(x - 1, 1, -1)) {
+        result *= i
+    }
+
+    factorial._cache[x] = result
+    return result
+}
+
+factorial._cache = {}
+
+func getPiFromLeibnizSeries() {
+
+    #             5
+    #           10
+    #         <-----\
+    #          \          n
+    #           \     (-1)
+    # pi ~= 4    >    ------
+    #           /     2n + 1
+    #          /
+    #         <-----/
+    #           n=0
+
+    s = 0
+    for (n in range(100001)) {
+        s += ((-1)**n) / (2*n + 1)
+    }
+
+    return 4 * s
+}
+
+func getPiFromChudnovskyAlgorithm() {
+
+    #            17
+    #          <-----\
+    #           \          k
+    # 1          \     (-1)  (6k)! (545140134k + 13591409)
+    # -- ~= 12    >    -----------------------------------
+    # pi         /                  3         3k + 3/2
+    #           /          (3k)!(k!)  (640320)
+    #          <-----/
+    #            k=0
+
+    # WARNING: This function can cause integer overflow
+
+    s = 0
+    for (k in range(18)) {
+        s += ((-1)**k * factorial(6*k) * (545140134 * k + 13591409)) / \
+             (factorial(3*k) * factorial(k)**3 * 640320**(3*k + 3/2))
+    }
+
+    return 1 / (12 * s)
+}
+
+func getPiFromBaileyBorweinPlouffe() {
+
+    #         10
+    #       <-----\
+    #        \           /                                  \
+    #         \      1  |    4        2        1        1    |
+    # pi ~=    >    --- |  ------ - ------ - ------ - ------ |
+    #         /       k |  8k + 1   8k + 4   8k + 5   8k + 6 |
+    #        /      16   \                                  /
+    #       <-----/
+    #         k=0
+
+    s = 0
+    for (k in range(11)) {
+        a = 8*k
+        s += 1/16**k * (4/(a+1) - 2/(a+4) - 1/(a+5) - 1/(a+6))
+    }
+
+    return s
+}
+
+func getPiFromSrinivasaRamanujan() {
+
+    #               10
+    #             <-----\
+    #          __  \        
+    # 1     2 V 2   \     (4n)! (1103 + 26390n)
+    # -- ~= -----    >    ---------------------
+    # pi    9801    /              4    4n
+    #              /           (n!)  396
+    #             <-----/
+    #               n=0
+
+    s = 0
+    for (n in range(11)) {
+        s += (factorial(4*n) * (1103 + 26390 * n)) / \
+             (factorial(n)**4 * 396**(4*n))
+    }
+
+    return 1 / ((2 * 2**0.5)/9801 * s)
+}
+
+func getPiFromSrinivasaRamanujanApproximation() {
+    #         9801
+    #       --------
+    # pi ~=       __
+    #       2206 V 2
+    return 9801 / (2206 * 2**0.5)
+}
+
+func getPiFromLeonhardEuler() {
+
+    #                  _____________
+    #                 /       5
+    #                /      10
+    #               /     <-----\
+    #              /       \
+    # pi ~=       /         \     1
+    #            /      6    >    --
+    #           /           /      2
+    #          /           /      k
+    #       \ /           <-----/
+    #        V              k=1
+
+    s = 0
+    for (k in range(1, 100001)) {
+        s += 1/k**2
+    }
+
+    return (6 * s)**0.5
+}
+
+func getEulerFromTaylorSeries() {
+
+    #        17
+    #      <-----\
+    #       \
+    #        \     1
+    # e ~=    >    --
+    #        /     n!
+    #       /
+    #      <-----/
+    #        n=0
+
+    s = 0
+    for (n in range(18)) {
+        s += 1/factorial(n)
+    }
+
+    return s
+}
+
+func getPhiFromFibonaci() {
+
+    #                 F
+    #                  n + 1
+    # phi ~=    lim   ------
+    #        n->10000   F
+    #                    n
+
+    a, b = 0, 1
+    for (_ in range(10_000)) {
+        a, b = b, a + b
+    }
+    return b / a
+}
+
+func getPhiFromContinuedFraction() {
+
+    #           1
+    # phi = 1 + --
+    #           phi
+
+    n = 1
+    for (_ in range(10_000)) {
+        n = 1 + 1/n
+    }
+    return n
+}
+
+func getPhiFromNestedRadical() {
+
+    #        ________
+    # phi = V 1 + phi
+
+    n = 1
+    for (_ in range(10_000)) {
+        n = 1 + n**0.5
+    }
+    return n**0.5
+}
+
+print(' PI '.center(50, '='))
+print('Leibniz Series:',                    getPiFromLeibnizSeries())
+print('Chudnovsky Algorithm:',              getPiFromChudnovskyAlgorithm())
+print('Bailey Borwein Plouffe:',            getPiFromBaileyBorweinPlouffe())
+print('Srinivasa Ramanujan:',               getPiFromSrinivasaRamanujan())
+print('Srinivasa Ramanujan Approximation:', getPiFromSrinivasaRamanujanApproximation())
+print('Leonhard Euler:',                    getPiFromLeonhardEuler())
+
+print(' EULER '.center(50, '='))
+print('Taylor Series:', getEulerFromTaylorSeries())
+
+print(' PHI '.center(50, '='))
+print('Fibonaci:',           getPhiFromFibonaci())
+print('Continued Fraction:', getPhiFromContinuedFraction())
+print('Nested Radical:',     getPhiFromNestedRadical())

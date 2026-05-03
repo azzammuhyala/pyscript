@@ -3,37 +3,35 @@ import cv2                    # pip install opencv-python
 from ultralytics import YOLO  # pip install ultralytics
 
 VIDEO_SOURCE = 0
-MODEL_WEIGHTS = 'yolo11l.pt'
-CONFIDENCE_THRESHOLD = 0.1
+MODEL_WEIGHTS = 'yolo11n.pt' # 'yolo11l.pt'
+CONFIDENCE_THRESHOLD = 0.25
 
+print('Opening Video...')
 capture = cv2.VideoCapture(VIDEO_SOURCE)
 if (!capture.isOpened()) {
-    print('Error: Could not open the video capture', file=sys.stderr)
+    print('Error: Could not open the video', file=sys.stderr)
     sys.exit(1)
 }
 
 print('Loading for YOLO model...')
 model = YOLO(MODEL_WEIGHTS)
 
+print('App running')
 while (true) {
     success, frame = capture.read()
     if (!success)
         break
 
-    results = model.predict(
+    for (r in model.predict(
         frame,
         conf=CONFIDENCE_THRESHOLD,
         show=false,
-        verbose=false
-    )
+        verbose=false,
+        stream=True
+    ))
+        cv2.imshow('Object Detection', r.plot())
 
-    for (r in results) {
-        annotated = r.plot()
-        cv2.imshow('Object Detection', annotated)
-    }
-
-    key = cv2.waitKey(1) & 0xFF
-    if (key == ord('q') || key == 27)
+    if (cv2.waitKey(1) & 0xFF == ord('q'))
         break
 }
 
