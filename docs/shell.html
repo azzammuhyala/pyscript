@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>PyScript Shell Web</title>
+        <link rel="icon" type="image/png"
+            href="https://github.com/azzammuhyala/pyscript/blob/main/PyScript.png?raw=true">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
+        <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+        <style>
+            body {
+                margin: 0;
+                padding: 8px;
+                box-sizing: border-box;
+                width: 100vw;
+                height: 100vh;
+                overflow: hidden;
+                background: #1a1a1a;
+            }
+
+            #terminal-container {
+                width: 100%;
+                height: 100%;
+                border-radius: 8px;
+                overflow: hidden;
+                background: #000;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="terminal-container"></div>
+        <script type="module">
+            const dedent = (string) => {
+                const lines = string.replace(/\r\n|\r/g, '\n').split('\n');
+                const indents = lines
+                    .filter(line => line.trim().length > 0)
+                    .map(line => line.match(/^ */)[0].length);
+                const minIndent = indents.length ? Math.min(...indents) : 0;
+                return lines
+                    .map(line => {
+                        if (line.trim().length === 0) return line;
+                        return line.slice(Math.min(minIndent, line.match(/^ */)[0].length));
+                    })
+                    .join('\n');
+            };
+
+            const term = new Terminal({
+                cursorBlink: true,
+                theme: { background: '#1e1e1e' },
+                fontSize: 14,
+                fontFamily: 'ui-monospace, Menlo, Monaco, "Courier New", monospace'
+            });
+
+            const fitAddon = new FitAddon.FitAddon();
+
+            term.loadAddon(fitAddon);
+            term.open(document.getElementById('terminal-container'));
+            fitAddon.fit();
+
+            window.addEventListener('resize', () => {
+                fitAddon.fit();
+            });
+
+            const { loadPyodide } = await import('https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.mjs');
+
+            window.linesBuffer = [];
+            window.term = term;
+            window.exitCode = 0;
+
+            const linesBuffer = window.linesBuffer;
+            const lineBuffer = [];
+            let cursor = 0;
+
+            term.onData(data => {
+                const above = cursor > 0;
+                const below = cursor < lineBuffer.length;
+
+                switch (data) {
+
+                    // Tab
+                    case '\t':
+                        if (below) {
+                            term.write('\x1b[4@');
+                        }
+                        term.write('    ');
+                        lineBuffer.splice(cursor, 0, ...'    ');
+                        cursor += 4;
+                        break;
+
+                    // Enter
+                    case '\r':
+                    case '\n':
+                        term.write('\r\n');
+                        linesBuffer.push(lineBuffer.join(''));
+                        lineBuffer.length = 0;
+                        cursor = 0;
+                        break;
+
+                    // Backspace
+                    case '\x7f':
+                        if (above) {
+                            cursor--;
+                            term.write('\x1b[D\x1b[P');
+                            lineBuffer.splice(cursor, 1);
+                        }
+                        break;
+
+                    // Delete
+                    case '\x1b[3~':
+                        if (below) {
+                            term.write('\x1b[P');
+                            lineBuffer.splice(cursor, 1);
+                        }
+                        break;
+
+                    // Home
+                    case '\x1b[H':
+                        if (above) {
+                            term.write(`\x1b[${cursor}D`);
+                            cursor = 0;
+                        }
+                        break;
+
+                    // End
+                    case '\x1b[F':
+                        if (below) {
+                            term.write(`\x1b[${lineBuffer.length - cursor}C`);
+                            cursor = lineBuffer.length;
+                        }
+                        break;
+
+                    // Right
+                    case '\x1b[C':
+                        if (below) {
+                            term.write(data);
+                            cursor++;
+                        }
+                        break;
+
+                    // Left
+                    case '\x1b[D':
+                        if (above) {
+                            term.write(data);
+                            cursor--;
+                        }
+                        break;
+
+                    default:
+                        let buffer = '';
+                        for (const character of data) {
+                            const code = character.charCodeAt(0);
+                            if (code === 0x09) {
+                                buffer += '    '
+                            }
+                            else if (0x20 <= code && code <= 0x7e) {
+                                buffer += character;
+                            }
+                        }
+                        if (buffer) {
+                            if (below) {
+                                term.write(`\x1b[${buffer.length}@`);
+                            }
+                            term.write(buffer);
+                            lineBuffer.splice(cursor, 0, ...buffer);
+                            cursor += buffer.length;
+                        }
+                        break;
+                }
+            });
+
+            const pyodide = await loadPyodide();
+
+            const newlines = ['\n', '\r'];
+
+            pyodide.setStdout({
+                raw: (characterCode) => {
+                    const character = String.fromCharCode(characterCode);
+                    term.write(newlines.includes(character) ? '\r\n' : character);
+                }
+            });
+
+            pyodide.setStderr({
+                raw: (characterCode) => {
+                    const character = String.fromCharCode(characterCode);
+                    term.write(newlines.includes(character) ? '\r\n' : character);
+                }
+            });
+
+            await pyodide.runPythonAsync(dedent(`
+                async def __async_input(prompt=''):
+                    from js import linesBuffer
+                    from asyncio import sleep
+
+                    if prompt:
+                        print(end=prompt, flush=True)
+
+                    while not linesBuffer:
+                        await sleep(0)
+                    return linesBuffer.shift()
+
+                def __sync_input(prompt=''):
+                    from asyncio import run
+                    return run(__async_input(prompt))
+
+                import builtins
+                builtins.input = __sync_input
+                del builtins, __sync_input
+            `));
+
+            await pyodide.loadPackage('micropip');
+
+            const micropip = pyodide.pyimport('micropip');
+            await micropip.install('pyscript-programming-language');
+
+            await pyodide.runPythonAsync(dedent(`
+                import pyscript
+                import js
+
+                pys_sys = pyscript.pys_require('sys')
+                pys_sys.clearhook = lambda : js.term.clear()
+
+                js.term.clear()
+                js.exitCode = pyscript.pys_shell(pyscript.undefined, pyscript.CLASSIC_LINE_SHELL)
+            `));
+
+            term.write(
+                window.exitCode === 0 ?
+                `\r\n\x1b[36m[Shell finished with exit code 0]\x1b[0m\r\n` :
+                `\r\n\x1b[31m[Shell finished with exit code ${JSON.stringify(window.exitCode)}]\x1b[0m\r\n`
+            );
+        </script>
+    </body>
+</html>
