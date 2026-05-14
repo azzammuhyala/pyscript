@@ -126,4 +126,7 @@ if (__name__ == '__main__') {
         catch (e)
             error('-r: {}: {}'.format(typeof e, e))
     }
+
+    else
+        parser.print_help(sys.stdout)
 }

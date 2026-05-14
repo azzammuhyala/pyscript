@@ -1,5 +1,18 @@
 import _pyscript  # get a PyScript core module (pyscript.core)
 
+# utilities
+func _error(traceback) {
+    exception = traceback.exception
+    position = traceback.position
+    return type(exception)(
+        '{} (ln {}, col {})'.format(
+            exception,
+            position.start_line,
+            position.start_column
+        )
+    )
+}
+
 # tokens offset
 DOUBLE = _pyscript.token.DOUBLE
 TRIPLE = _pyscript.token.TRIPLE
@@ -78,7 +91,7 @@ class Parser {
 
         tokens, error = lexer.make_tokens()
         if (error)
-            throw error.exception
+            throw _error(error)
 
         return tokens
     }
@@ -101,7 +114,7 @@ class Parser {
 
         node, error = parser.parse(mode == 'exec' ? None : parser.expression)
         if (error)
-            throw error.exception
+            throw _error(error)
 
         return node
     }
@@ -116,7 +129,7 @@ class Parser {
 
         error = analyzer.analyze()
         if (error)
-            throw error.exception
+            throw _error(error)
     }
 
     func highlight(self, formatter=None, max_bracket_level=3) {

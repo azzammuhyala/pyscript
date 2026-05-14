@@ -126,14 +126,7 @@ def visit_ChainOperatorNode(node: PysChainOperatorNode) -> str:
 
     for i, operand in enumerate(node.operations, start=1):
         string += ' '
-
-        if operand.match(TOKENS['KEYWORD'], 'in'):
-            string += 'in'
-        elif operand.match(TOKENS['KEYWORD'], 'is'):
-            string += 'is'
-        else:
-            string += SYMBOLS_TOKEN_MAP[operand.type]
-
+        string += SYMBOLS_TOKEN_MAP[operand.type]
         string += ' '
         string += unparse(node.expressions[i])
 
@@ -143,19 +136,10 @@ def visit_TernaryOperatorNode(node: PysTernaryOperatorNode) -> str:
     return f'({unparse(node.condition)} ? {unparse(node.valid)} : {unparse(node.invalid)})'
 
 def visit_BinaryOperatorNode(node: PysBinaryOperatorNode) -> str:
-    if node.operand.match(TOKENS['KEYWORD'], 'and'):
-        operand = 'and'
-    elif node.operand.match(TOKENS['KEYWORD'], 'or'):
-        operand = 'or'
-    else:
-        operand = SYMBOLS_TOKEN_MAP[node.operand.type]
-
-    return f'({unparse(node.left)} {operand} {unparse(node.right)})'
+    return f'({unparse(node.left)} {SYMBOLS_TOKEN_MAP[node.operand.type]} {unparse(node.right)})'
 
 def visit_UnaryOperatorNode(node: PysUnaryOperatorNode) -> str:
-    if node.operand.match(TOKENS['KEYWORD'], 'not'):
-        operand = 'not '
-    elif node.operand.match(TOKENS['KEYWORD'], 'typeof'):
+    if node.operand.type == TOKENS['TYPEOF']:
         operand = 'typeof '
     else:
         operand = SYMBOLS_TOKEN_MAP[node.operand.type]

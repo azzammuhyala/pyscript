@@ -65,7 +65,7 @@ def _unpack_comprehension_function(context: PysContext, position: PysPosition, f
 
     if isinstance(function, wrapper_function):
         check = function.__func__
-        offset += 1
+        offset += 2 if isinstance(function, PysPythonFunction) else 1
     elif isinstance(function, static_wrapper_function):
         check = function.__func__
 
@@ -90,30 +90,6 @@ def _unpack_comprehension_function(context: PysContext, position: PysPosition, f
 
     handle_call(function, context, position)
     return final
-
-def _pyincrement(context: PysContext, position: PysPosition, object: Any) -> Any:
-    if isinstance(object, real_number):
-        return object + 1
-    elif isinstance(object, sequence):
-        return tuple(_pyincrement(context, position, obj) for obj in object)
-
-    success, result = _supported_method(context, position, object, '__increment__')
-    if not success:
-        raise TypeError(f"bad operand type for unary ++ or increment(): {type(object).__name__!r}")
-
-    return result
-
-def _pydecrement(context: PysContext, position: PysPosition, object: Any) -> Any:
-    if isinstance(object, real_number):
-        return object - 1
-    elif isinstance(object, sequence):
-        return tuple(_pydecrement(context, position, obj) for obj in object)
-
-    success, result = _supported_method(context, position, object, '__decrement__')
-    if not success:
-        raise TypeError(f"bad operand type for unary -- or decrement(): {type(object).__name__!r}")
-
-    return result
 
 class PysPrinter(Pys):
 
@@ -165,7 +141,7 @@ except:
 help = PysHelper()
 
 @PysBuiltinFunction
-def require(pyfunc, name):
+def require(context, position, name):
 
     """
     require(name: str | bytes) -> ModuleType | Any
@@ -174,10 +150,6 @@ def require(pyfunc, name):
 
     name: A name or path of the module to be imported.
     """
-
-    code = pyfunc.__code__
-    context = code.context
-    position = code.position
 
     name, *other_components = normstr(name).split('>')
 
@@ -225,7 +197,7 @@ def require(pyfunc, name):
 
                 from .runner import pys_runner
 
-                symtab, module = new_module_namespace(file=module_path, name=base(path))
+                symbol_table, module = new_module_namespace(file=module_path, name=base(path))
 
                 # minimize circular imports (python standard)
                 modules[module_path] = module
@@ -233,7 +205,7 @@ def require(pyfunc, name):
                 result = pys_runner(
                     file=file,
                     mode='exec',
-                    symbol_table=symtab,
+                    symbol_table=symbol_table,
                     context_parent=context,
                     context_parent_entry_position=position
                 )
@@ -257,7 +229,7 @@ def require(pyfunc, name):
     return module
 
 @PysBuiltinFunction
-def pyimport(pyfunc, name):
+def pyimport(context, position, name):
 
     """
     pyimport(name: str | bytes) -> ModuleType
@@ -267,7 +239,7 @@ def pyimport(pyfunc, name):
     name: A name of the module to be imported.
     """
 
-    dirpath = os.path.dirname(pyfunc.__code__.context.file.name)
+    dirpath = os.path.dirname(context.file.name)
     try:
         set_python_path(dirpath)
         return import_module(normstr(name))
@@ -275,23 +247,19 @@ def pyimport(pyfunc, name):
         remove_python_path(dirpath)
 
 @PysBuiltinFunction
-def breakpoint(pyfunc):
+def breakpoint(context, position):
 
     """
     Pauses program execution and enters shell debugging mode.
     """
-
-    code = pyfunc.__code__
-    context = code.context
-    position = code.position
 
     if getattr(pys_sys, '__running_breakpoint__', False):
         raise RuntimeError("another breakpoint is still running")
 
     from .runner import pys_runner
 
-    symtab = context.symbol_table
     flags = context.flags
+    symbol_table = context.symbol_table
     colored = not (flags & NO_COLOR)
     colored_prompt = not (flags & NO_COLOR_PROMPT)
     scopes = []
@@ -352,27 +320,27 @@ def breakpoint(pyfunc):
                     count = get_sequence(args, 0, '')
                     for _ in range(int(count) if count.isdigit() else 1):
                         if scopes:
-                            symtab = scopes.pop()
+                            symbol_table = scopes.pop()
                         else:
                             print('*** Oldest frame')
                             break
 
                 elif command in ('d', 'down'):
                     count = get_sequence(args, 0, '')
-                    parent = symtab.parent
+                    parent = symbol_table.parent
                     for _ in range(int(count) if count.isdigit() else 1):
                         if parent is None:
                             print('*** Newest frame')
                             break
                         else:
-                            scopes.append(symtab)
-                            symtab = parent
+                            scopes.append(symbol_table)
+                            symbol_table = parent
 
                 else:
                     exit_code, exit = pys_runner(
                         file=PysFileBuffer(text, '<breakpoint>'),
                         mode='single',
-                        symbol_table=symtab
+                        symbol_table=symbol_table
                     ).end_process()
 
                     if exit:
@@ -389,7 +357,7 @@ def breakpoint(pyfunc):
         pys_sys.__running_breakpoint__ = False
 
 @PysBuiltinFunction
-def globals(pyfunc):
+def globals(context, position):
 
     """
     Returns a dictionary containing the current global scope of variables.
@@ -398,7 +366,7 @@ def globals(pyfunc):
     this does not apply to local scopes (creating a new dictionary).
     """
 
-    original = pyfunc.__code__.context.symbol_table
+    original = context.symbol_table
     symbol_table = original.parent
 
     if symbol_table:
@@ -413,7 +381,7 @@ def globals(pyfunc):
     return original.symbols
 
 @PysBuiltinFunction
-def locals(pyfunc):
+def locals(context, position):
 
     """
     Returns a dictionary containing the current local scope of variables.
@@ -421,19 +389,19 @@ def locals(pyfunc):
     NOTE: Changing the contents of the dictionary will affect the scope.
     """
 
-    return pyfunc.__code__.context.symbol_table.symbols
+    return context.symbol_table.symbols
 
 @PysBuiltinFunction
-def vars(pyfunc, *args):
+def vars(context, position, *args):
 
     """
     Without arguments, equivalent to locals(). With an argument, equivalent to object.__dict__.
     """
 
-    return pyvars(*args) if args else pyfunc.__code__.context.symbol_table.symbols
+    return pyvars(*args) if args else context.symbol_table.symbols
 
 @PysBuiltinFunction
-def dir(pyfunc, *args):
+def dir(context, position, *args):
 
     """
     If called without an argument, return the names in the current scope. Else, return an alphabetized list of names
@@ -445,10 +413,10 @@ def dir(pyfunc, *args):
             classes.
     """
 
-    return pydir(*args) if args else list(dkeys(pyfunc.__code__.context.symbol_table.symbols))
+    return pydir(*args) if args else list(dkeys(context.symbol_table.symbols))
 
 @PysBuiltinFunction
-def exec(pyfunc, source, globals=None):
+def exec(context, position, source, globals=None):
 
     """
     exec(source: str | bytes, globals: Optional[dict]) -> None
@@ -459,10 +427,6 @@ def exec(pyfunc, source, globals=None):
     globals: The namespace scope for the code that can be accessed, modified, and deleted. If not provided, the current
              local scope will be used.
     """
-
-    code = pyfunc.__code__
-    context = code.context
-    position = code.position
 
     if not isinstance(globals, optional_mapping):
         raise TypeError("exec(): globals must be dict")
@@ -481,7 +445,7 @@ def exec(pyfunc, source, globals=None):
         raise PysSignal(PysRunTimeResult().failure(result.error))
 
 @PysBuiltinFunction
-def eval(pyfunc, source, globals=None):
+def eval(context, position, source, globals=None):
 
     """
     eval(source: str | bytes, globals: Optional[dict]) -> None
@@ -492,10 +456,6 @@ def eval(pyfunc, source, globals=None):
     globals: The namespace scope for the code that can be accessed, modified, and deleted. If not provided, the current
              local scope will be used.
     """
-
-    code = pyfunc.__code__
-    context = code.context
-    position = code.position
 
     if not isinstance(globals, optional_mapping):
         raise TypeError("eval(): globals must be dict")
@@ -516,7 +476,7 @@ def eval(pyfunc, source, globals=None):
     return result.value
 
 @PysBuiltinFunction
-def ce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
+def ce(context, position, a, b, *, rel_tol=1e-9, abs_tol=0):
 
     """
     ce(a: Any, b: Any, *, rel_tol: Any = 1e-9, abs_tol: Any = 0) -> Any
@@ -530,10 +490,6 @@ def ce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
     rel_tol: maximum difference for being considered "close", relative to the magnitude of the input values.
     abs_tol: maximum difference for being considered "close", regardless of the magnitude of the input values.
     """
-
-    code = pyfunc.__code__
-    context = code.context
-    position = code.position
 
     if isinstance(a, real_number) and isinstance(b, real_number):
         return isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
@@ -556,7 +512,7 @@ def ce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
     return result
 
 @PysBuiltinFunction
-def nce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
+def nce(context, position, a, b, *, rel_tol=1e-9, abs_tol=0):
 
     """
     nce(a: Any, b: Any, *, rel_tol: Any = 1e-9, abs_tol: Any = 0) -> Any
@@ -570,10 +526,6 @@ def nce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
     rel_tol: maximum difference for being considered "close", relative to the magnitude of the input values.
     abs_tol: maximum difference for being considered "close", regardless of the magnitude of the input values.
     """
-
-    code = pyfunc.__code__
-    context = code.context
-    position = code.position
 
     if isinstance(a, real_number) and isinstance(b, real_number):
         return not isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
@@ -594,7 +546,7 @@ def nce(pyfunc, a, b, *, rel_tol=1e-9, abs_tol=0):
     return result
 
 @PysBuiltinFunction
-def increment(pyfunc, object):
+def increment(context, position, object):
 
     """
     increment(object: Any) -> Any
@@ -606,11 +558,19 @@ def increment(pyfunc, object):
     __increment__ method, which if unsuccessful will throw a TypeError.
     """
 
-    code = pyfunc.__code__
-    return _pyincrement(code.context, code.position, object)
+    if isinstance(object, real_number):
+        return object + 1
+    elif isinstance(object, sequence):
+        return tuple(_pyincrement(context, position, obj) for obj in object)
+
+    success, result = _supported_method(context, position, object, '__increment__')
+    if not success:
+        raise TypeError(f"bad operand type for unary ++ or increment(): {type(object).__name__!r}")
+
+    return result
 
 @PysBuiltinFunction
-def decrement(pyfunc, object):
+def decrement(context, position, object):
 
     """
     decrement(object: Any) -> Any
@@ -622,11 +582,19 @@ def decrement(pyfunc, object):
     call the __decrement__ method, which if unsuccessful will throw a TypeError.
     """
 
-    code = pyfunc.__code__
-    return _pydecrement(code.context, code.position, object)
+    if isinstance(object, real_number):
+        return object - 1
+    elif isinstance(object, sequence):
+        return tuple(_pydecrement(context, position, obj) for obj in object)
+
+    success, result = _supported_method(context, position, object, '__decrement__')
+    if not success:
+        raise TypeError(f"bad operand type for unary -- or decrement(): {type(object).__name__!r}")
+
+    return result
 
 @PysBuiltinFunction
-def unpack(pyfunc, function, args=(), kwargs={}):
+def unpack(context, position, function, args=(), kwargs={}):
 
     """
     unpack(function: Callable, args: Iterable = (), kwargs: Mapping = {}) -> Any
@@ -639,12 +607,11 @@ def unpack(pyfunc, function, args=(), kwargs={}):
     kwargs: keyword arguments (mapping object).
     """
 
-    code = pyfunc.__code__
-    handle_call(function, code.context, code.position)
+    handle_call(function, context, position)
     return function(*args, **kwargs)
 
 @PysBuiltinFunction
-def comprehension(pyfunc, init, wrap, condition=None):
+def comprehension(context, position, init, wrap, condition=None):
 
     """
     comprehension(
@@ -661,10 +628,6 @@ def comprehension(pyfunc, init, wrap, condition=None):
     condition: The function that filters the iteration (Unpack per-iteration if parameter is more than 1).
     """
 
-    code = pyfunc.__code__
-    context = code.context
-    position = code.position
-
     if not callable(wrap):
         raise TypeError("comprehension(): wrap must be callable")
     if not (condition is None or callable(condition)):
@@ -674,6 +637,9 @@ def comprehension(pyfunc, init, wrap, condition=None):
         _unpack_comprehension_function(context, position, wrap),
         init if condition is None else filter(_unpack_comprehension_function(context, position, condition), init)
     )
+
+_pyincrement = increment.__func__
+_pydecrement = decrement.__func__
 
 pys_builtins = ModuleType(
     'builtins',

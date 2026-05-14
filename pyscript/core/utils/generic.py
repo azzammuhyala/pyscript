@@ -14,6 +14,7 @@ dcontains = dict.__contains__
 dgetitem = dict.__getitem__
 dsetitem = dict.__setitem__
 ddelitem = dict.__delitem__
+dclear = dict.clear
 dget = dict.get
 dkeys = dict.keys
 ditems = dict.items

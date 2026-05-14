@@ -6,8 +6,8 @@ func istraceback(object) => isinstance(object, _pyscript.exceptions.PysTraceback
 func iscode(object) => isinstance(object, _pyscript.pystypes.PysCode)
 func isfunction(object) => isinstance(object, _pyscript.pystypes.PysFunction)
 
-getcontext = _pyscript.pystypes.PysPythonFunction(func(pyfunc) => pyfunc.__code__.context)
-getsymtab = _pyscript.pystypes.PysPythonFunction(func(pyfunc) => pyfunc.__code__.context.symbol_table)
+getcontext = _pyscript.pystypes.PysPythonFunction(func(context, position) => context)
+getsymtab = _pyscript.pystypes.PysPythonFunction(func(context, position) => context.symbol_table)
 
 func getcode(fn) {
     if (!isfunction(fn)) throw TypeError("getcode(): fn must be derived from PysFunction")

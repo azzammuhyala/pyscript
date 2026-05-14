@@ -45,6 +45,7 @@ for name in (
     if hasattr(sys, name):
         setattr(pys_sys, name, getattr(sys, name))
 
+# sentinel
 @singleton
 @inheritable
 class PysUndefined(Pys):

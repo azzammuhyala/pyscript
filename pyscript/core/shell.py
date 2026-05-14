@@ -152,7 +152,7 @@ class PysLineShell(PysIncompleteHandler):
             except:
                 try:
                     exc_type, exc_value, exc_tb = sys.exc_info()
-                    print('An exception occurred while calling clearhook function:', file=sys.stderr)
+                    print('An exception occurred while calling sys.clearhook function:', file=sys.stderr)
                     if exc_type is PysSignal and (exc_tb := exc_value.result.error) is not None:
                         print_traceback(None, None, exc_tb)
                     else:

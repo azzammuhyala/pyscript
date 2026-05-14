@@ -14,15 +14,13 @@ from .results import PysRunTimeResult
 from .symtab import PysClassSymbolTable, find_closest
 from .token import TOKENS
 from .utils.debug import get_traceback_info
-from .utils.generic import getattribute, setimuattr, dkeys, is_object_of
+from .utils.generic import getattribute, setimuattr, dget, dkeys, is_object_of
 from .utils.similarity import get_closest
 
 from collections.abc import Iterable
 from typing import Any, Callable
 
-T_KEYWORD = TOKENS['KEYWORD']
 T_STRING = TOKENS['STRING']
-T_NOT = TOKENS['EXCLAMATION']
 T_AND = TOKENS['DOUBLE_AMPERSAND']
 T_NULLISH = TOKENS['DOUBLE_QUESTION']
 T_OR = TOKENS['DOUBLE_PIPE']
@@ -270,13 +268,7 @@ def visit_ChainOperatorNode(node: PysChainOperatorNode, context: PysContext) -> 
             if should_return():
                 return result
 
-            if otype == T_KEYWORD:
-                ovalue = toperand.value
-                if ovalue == 'in':
-                    value = left in right
-                elif ovalue == 'is':
-                    value = left is right
-            elif otype == T_CE:
+            if otype == T_CE:
                 handle_call(ce, context, nposition)
                 value = ce(left, right)
             elif otype == T_NCE:
@@ -337,13 +329,7 @@ def visit_BinaryOperatorNode(node: PysBinaryOperatorNode, context: PysContext) -
     with result:
         return_right = True
 
-        if otype == T_KEYWORD:
-            ovalue = toperand.value
-            if ovalue == 'and':
-                if not left: return result.success(left)
-            elif ovalue == 'or':
-                if left: return result.success(left)
-        elif otype == T_AND:
+        if otype == T_AND:
             if not left: return result.success(left)
         elif otype == T_OR:
             if left: return result.success(left)
@@ -377,14 +363,6 @@ def visit_UnaryOperatorNode(node: PysUnaryOperatorNode, context: PysContext) -> 
     result._context = context
     result._position = node.position
     with result:
-
-        if otype == T_KEYWORD:
-            ovalue = toperand.value
-            if ovalue == 'not':
-                return result.success(not value)
-            elif ovalue == 'typeof':
-                return result.success(type(value).__name__)
-
         return result.success(GET_UNARY_FUNCTION(otype)(value))
 
     return result
@@ -423,17 +401,8 @@ def visit_StatementsNode(node: PysStatementsNode, context: PysContext) -> PysRun
 
     register = result.register
     should_return = result.should_return
-    body = node.body
 
-    if len(body) == 1:
-        nvalue = body[0]
-        value = register(get_visitor(nvalue.__class__)(nvalue, context))
-        if should_return():
-            return result
-
-        return result.success(value)
-
-    for nelement in body:
+    for nelement in node.body:
         register(get_visitor(nelement.__class__)(nelement, context))
         if should_return():
             return result
@@ -461,8 +430,17 @@ def visit_ImportNode(node: PysImportNode, context: PysContext) -> PysRunTimeResu
     result = PysRunTimeResult()
 
     symbol_table = context.symbol_table
-    get_symbol = symbol_table.get
     tname, tas_name = node.name
+
+    b_getattr = getattr
+
+    symtab = symbol_table
+    parent = symbol_table.parent
+    while parent:
+        symtab = parent
+        parent = parent.parent
+    builtins = b_getattr(symtab, 'builtins', undefined)
+    get_builtin = lambda name : undefined if builtins is undefined else dget(builtins, name, undefined)
 
     result._context = context
     result._position = name_position = tname.position
@@ -470,7 +448,7 @@ def visit_ImportNode(node: PysImportNode, context: PysContext) -> PysRunTimeResu
         name_module = tname.value
         use_python_package = False
 
-        require = get_symbol('require')
+        require = get_builtin('require')
 
         if require is undefined:
             use_python_package = True
@@ -482,10 +460,10 @@ def visit_ImportNode(node: PysImportNode, context: PysContext) -> PysRunTimeResu
                 use_python_package = True
 
         if use_python_package:
-            pyimport = get_symbol('pyimport')
+            pyimport = get_builtin('pyimport')
 
             if pyimport is undefined:
-                pyimport = get_symbol('__import__')
+                pyimport = get_builtin('__import__')
 
                 if pyimport is undefined:
                     return result.failure(
@@ -510,13 +488,12 @@ def visit_ImportNode(node: PysImportNode, context: PysContext) -> PysRunTimeResu
 
         with result:
             exported_from = '__all__'
-            exported_packages = getattr(module, exported_from, undefined)
+            exported_packages = b_getattr(module, exported_from, undefined)
             if exported_packages is undefined:
                 exported_from = '__dir__()'
                 exported_packages = filter(is_public_attribute, dir(module))
 
             b_isinstance = isinstance
-            b_getattr = getattr
             b_str = str
 
             for package in exported_packages:
@@ -538,7 +515,6 @@ def visit_ImportNode(node: PysImportNode, context: PysContext) -> PysRunTimeResu
             return result
 
     elif npackages:
-        b_getattr = getattr
 
         for tpackage, tas_package in npackages:
             result._position = tpackage.position

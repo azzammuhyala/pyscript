@@ -117,7 +117,7 @@ class PysParser(Pys):
         self.bracket_level = bracket_level
 
         return result.success(
-            PysStatementsNode(
+            statements[0] if len(statements) == 1 else PysStatementsNode(
                 statements,
                 PysPosition(
                     self.current_token.position.file,
@@ -272,12 +272,12 @@ class PysParser(Pys):
         if self.current_token.match(TOKENS['KEYWORD'], 'match'):
             return self.match_expression()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], 'def', 'define', 'func', 'function', 'constructor'):
+        elif self.current_token.match(TOKENS['KEYWORD'], 'func', 'function', 'constructor'):
             return self.func_expression()
 
         elif self.current_token.match(TOKENS['KEYWORD'], 'typeof'):
-            operand = self.current_token
             result = PysParserResult()
+            operand = PysToken(TOKENS['TYPEOF'], self.current_token.position)
 
             result.register_advancement()
             self.advance()
@@ -367,7 +367,8 @@ class PysParser(Pys):
             self.member,
             (TOKENS['KEYWORD'], 'and'),
             (TOKENS['KEYWORD'], 'or'),
-            TOKENS['DOUBLE_AMPERSAND'], TOKENS['DOUBLE_PIPE']
+            TOKENS['DOUBLE_AMPERSAND'], TOKENS['DOUBLE_PIPE'],
+            logic=True
         )
 
     def member(self) -> PysParserResult:
@@ -396,6 +397,8 @@ class PysParser(Pys):
 
             return result.success(
                 PysUnaryOperatorNode(
+                    PysToken(TOKENS['EXCLAMATION'], token.position)
+                    if token.match(TOKENS['KEYWORD'], 'not') else
                     token,
                     node
                 )
@@ -478,7 +481,7 @@ class PysParser(Pys):
             self.advance()
             self.skip_expression(result)
 
-            node = result.register(self.primary())
+            node = result.register(self.instanceof())
             if result.error:
                 return result
 
@@ -490,7 +493,7 @@ class PysParser(Pys):
                 )
             )
 
-        node = result.register(self.primary())
+        node = result.register(self.instanceof())
         if result.error:
             return result
 
@@ -508,6 +511,9 @@ class PysParser(Pys):
             )
 
         return result.success(node)
+
+    def instanceof(self) -> PysParserResult:
+        return self.binary_operator(self.primary, (TOKENS['KEYWORD'], 'instanceof'), instanceof=True)
 
     def primary(self) -> PysParserResult:
         result = PysParserResult()
@@ -1283,7 +1289,7 @@ class PysParser(Pys):
 
         while not is_right_bracket(self.current_token.type):
 
-            if self.current_token.match(TOKENS['KEYWORD'], 'default'):
+            if self.current_token.match(TOKENS['KEYWORD'], 'default', 'else'):
                 result.register_advancement()
                 self.advance()
                 self.skip(result)
@@ -1459,7 +1465,13 @@ class PysParser(Pys):
 
                 catch_body = result.register(self.block_statements(), True)
                 if result.error:
-                    return result
+                    return result.failure(
+                        self.new_error(
+                            "expected statement, expression, '{', or ';'"
+                            if bracket or targets or parameter else
+                            "expected statement, expression, identifier, '(', '{', or ';'"
+                        )
+                    )
 
                 catch_cases.append(((tuple(targets), parameter), catch_body))
                 advance_count = self.skip(result)
@@ -2031,7 +2043,7 @@ class PysParser(Pys):
                     self.new_error(
                         "expected statement, expression, '{', or ';'"
                         if constructor else
-                        "expected statement, expression, '{', ';', or '=>'"
+                        "expected statement, expression, '=>', '{', or ';'"
                     )
                 )
 
@@ -2355,6 +2367,9 @@ class PysParser(Pys):
         self,
         function: Callable[[], PysParserResult],
         *operators: int | tuple[int, Any],
+
+        # flags that specify a special parsing method for a particular operation
+        # (there should not be 2 or more True conditions)
         membership: bool = False
     ) -> PysParserResult:
         result = PysParserResult()
@@ -2366,11 +2381,19 @@ class PysParser(Pys):
         if result.error:
             return result
 
-        while self.current_token.type in operators or (self.current_token.type, self.current_token.value) in operators:
-            operations.append(self.current_token)
+        while (token := self.current_token).type in operators or (token.type, token.value) in operators:
+            operations.append(
+                PysToken(
+                    TOKENS['MINUS_GREATER_THAN' if token.value == 'in' else 'IS'],
+                    token.position
+                )
+                if membership and token.match(TOKENS['KEYWORD'], 'in', 'is') else
+                token
+            )
+
             expressions.append(expression)
 
-            if membership and self.current_token.match(TOKENS['KEYWORD'], 'not'):
+            if membership and token.match(TOKENS['KEYWORD'], 'not'):
                 result.register_advancement()
                 self.advance()
                 self.skip_expression(result)
@@ -2379,9 +2402,8 @@ class PysParser(Pys):
                     return result.failure(self.new_error("expected 'in'"))
 
                 operations[-1] = PysToken(
-                    TOKENS['NOT_IN'],
-                    self.current_token.position,
-                    'not in'
+                    TOKENS['EXCLAMATION_GREATER_THAN'],
+                    self.current_token.position
                 )
 
             last_token = self.current_token
@@ -2397,8 +2419,7 @@ class PysParser(Pys):
             ):
                 operations[-1] = PysToken(
                     TOKENS['IS_NOT'],
-                    self.current_token.position,
-                    'is not'
+                    self.current_token.position
                 )
 
                 result.register_advancement()
@@ -2422,7 +2443,12 @@ class PysParser(Pys):
     def binary_operator(
         self,
         function: Callable[[], PysParserResult],
-        *operators: int | tuple[int, Any]
+        *operators: int | tuple[int, Any],
+
+        # flags that specify a special parsing method for a particular operation
+        # (there should not be 2 or more True conditions)
+        instanceof: bool = False,
+        logic: bool = False
     ) -> PysParserResult:
         result = PysParserResult()
 
@@ -2430,8 +2456,19 @@ class PysParser(Pys):
         if result.error:
             return result
 
-        while self.current_token.type in operators or (self.current_token.type, self.current_token.value) in operators:
-            operand = self.current_token
+        while (token := self.current_token).type in operators or (token.type, token.value) in operators:
+            if logic and token.match(TOKENS['KEYWORD'], 'and', 'or'):
+                operand = PysToken(
+                    TOKENS['DOUBLE_AMPERSAND' if token.value == 'and' else 'DOUBLE_PIPE'],
+                    token.position
+                )
+            elif instanceof:
+                operand = PysToken(
+                    TOKENS['INSTANCEOF'],
+                    token.position
+                )
+            else:
+                operand = token
 
             result.register_advancement()
             self.advance()

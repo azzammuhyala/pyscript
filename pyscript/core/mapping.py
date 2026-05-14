@@ -2,21 +2,21 @@ from .token import TOKENS
 from .utils.ansi import BOLD, acolor
 
 from operator import (
-    not_, is_not, eq, ne, lt, gt, le, ge, add, sub, mul, truediv, floordiv, pow, matmul, mod, and_, or_, xor, lshift,
+    not_, is_, is_not, eq, ne, lt, gt, le, ge, add, sub, mul, truediv, floordiv, pow, matmul, mod, and_, or_, xor, lshift,
     rshift, iadd, isub, imul, itruediv, ifloordiv, ipow, imatmul, imod, iand, ior, ixor, ilshift, irshift, pos, neg, inv
 )
 from types import MappingProxyType
 
-contains = lambda a, b: a in b
+contains     = lambda a, b : a in b
 not_contains = lambda a, b : a not in b
-and_op = lambda a, b : a and b
-or_op = lambda a, b : a or b
-
-EMPTY_MAP = {}
+and_op       = lambda a, b : a and b
+or_op        = lambda a, b : a or b
+typeof       = lambda a : type(a).__name__
 
 GET_BINARY_FUNCTION = {
-    TOKENS['NOT_IN']: not_contains,
+    TOKENS['IS']: is_,
     TOKENS['IS_NOT']: is_not,
+    TOKENS['INSTANCEOF']: isinstance,
     TOKENS['PERCENT']: mod,
     TOKENS['AMPERSAND']: and_,
     TOKENS['STAR']: mul,
@@ -57,6 +57,7 @@ GET_BINARY_FUNCTION = {
 }.__getitem__
 
 GET_UNARY_FUNCTION = {
+    TOKENS['TYPEOF']: typeof,
     TOKENS['EXCLAMATION']: not_,
     TOKENS['PLUS']: pos,
     TOKENS['MINUS']: neg,
@@ -77,9 +78,11 @@ BRACKETS_MAP = MappingProxyType({
 })
 
 SYMBOLS_TOKEN_MAP = MappingProxyType({
-    TOKENS['NOT_IN']: 'not in',
-    TOKENS['IS_NOT']: 'is not',
     TOKENS['NULL']: '\0',
+    TOKENS['IS']: 'is',
+    TOKENS['IS_NOT']: 'is not',
+    TOKENS['TYPEOF']: 'typeof',
+    TOKENS['INSTANCEOF']: 'instanceof',
     TOKENS['NEWLINE']: '\n',
     TOKENS['EXCLAMATION']: '!',
     TOKENS['COMMENT']: '#',

@@ -46,6 +46,6 @@ def join(sequence: Sequence[str], conjunction: str = 'and') -> str:
         return f'{sequence[0]} {conjunction} {sequence[1]}'
     return f'{", ".join(sequence[:-1])}, {conjunction} {sequence[-1]}'
 
-def indent(string: str, length: int) -> str:
-    prefix = ' ' * length
-    return '\n'.join(prefix + line for line in normstr(string).splitlines())
+def indent(string: str, length: int, indent: str = ' ') -> str:
+    prefix = indent * length
+    return prefix + normstr(string).replace('\n', '\n' + prefix)

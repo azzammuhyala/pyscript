@@ -9,11 +9,11 @@ with open('./README.md', 'r', encoding='utf-8') as file:
 
 setup(
     name='pyscript-programming-language',
-    version='1.12.13',
+    version='1.13.0',
     description='PyScript Programming Language',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    author='azzammuhyala',
+    author='Azzam Muhyala',
     author_email='azzammuhyala@gmail.com',
     url='https://azzammuhyala.github.io/pyscript',
     project_urls={

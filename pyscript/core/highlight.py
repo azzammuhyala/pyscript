@@ -143,7 +143,7 @@ try:
         name = 'pyscript'
         url = 'https://azzammuhyala.github.io/pyscript'
         aliases = ['pyscript', 'pyslang', 'pyscript-programming-language']
-        filenames = ['*.pys', '.pyscript_history']
+        filenames = ['*.pys']
 
         tokens = {
 
@@ -192,27 +192,27 @@ try:
 
                 # Numbers
                 (
-                    rf'(0[bB])([01](?:_?[01])*)({_imaginary})',
+                    rf'\b(0[bB])([01](?:_?[01])*)({_imaginary})\b',
                     bygroups(Number.Affix, Number.Bin, Number.Affix)
                 ),
                 (
-                    rf'(0[oO])([0-7](?:_?[0-7])*)({_imaginary})',
+                    rf'\b(0[oO])([0-7](?:_?[0-7])*)({_imaginary})\b',
                     bygroups(Number.Affix, Number.Oct, Number.Affix)
                 ),
                 (
-                    rf'(0[xX])([0-9a-fA-F](?:_?[0-9a-fA-F])*)({_imaginary})',
+                    rf'\b(0[xX])([0-9a-fA-F](?:_?[0-9a-fA-F])*)({_imaginary})\b',
                     bygroups(Number.Affix, Number.Hex, Number.Affix)
                 ),
                 (
-                    rf'((?:(?:{_integer})?\.{_integer}|{_integer}\.){_scientific}?)({_imaginary})',
+                    rf'\b((?:(?:{_integer})?\.{_integer}|{_integer}\.){_scientific}?)({_imaginary})\b',
                     bygroups(Number.Float, Number.Affix)
                 ),
                 (
-                    rf'({_integer}{_scientific})({_imaginary})',
+                    rf'\b({_integer}{_scientific})({_imaginary})\b',
                     bygroups(Number.Float, Number.Affix)
                 ),
                 (
-                    rf'({_integer})({_imaginary})',
+                    rf'\b({_integer})({_imaginary})\b',
                     bygroups(Number.Integer, Number.Affix)
                 ),
 
@@ -281,8 +281,7 @@ try:
             ],
 
             'raw-string-escapes': [
-                (rf'\\([\'"]|{_newlines})', String),
-                (r'\\.', String)
+                (rf'\\([\'"\\]|{_newlines})', String)
             ],
 
             'raw-string-apostrophe-triple': [

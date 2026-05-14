@@ -19,7 +19,7 @@ from .shell import PysClassicLineShell, PysPromptToolkitLineShell, ADVANCE_LINE_
 from .symtab import PysSymbolTable, new_module_namespace
 from .utils.debug import import_readline
 from .utils.decorators import TYPECHECK_STACK, typecheck
-from .utils.generic import get_frame, get_locals
+from .utils.generic import dclear, get_frame, get_locals
 from .version import version
 
 from types import ModuleType
@@ -33,16 +33,16 @@ def _namespace_to_symbol_table(
     file: PysFileBuffer
 ) -> PysSymbolTable:
     if namespace is None:
-        symtab, _ = new_module_namespace(symbols=get_locals(2 + TYPECHECK_STACK))
+        symbol_table, _ = new_module_namespace(symbols=get_locals(2 + TYPECHECK_STACK))
     elif namespace is undefined:
-        symtab, _ = new_module_namespace(file=file.name, name='__main__')
+        symbol_table, _ = new_module_namespace(file=file.name, name='__main__')
     elif isinstance(namespace, dict):
-        symtab, _ = new_module_namespace(symbols=namespace)
-    elif isinstance(namespace, PysSymbolTable) or TYPECHECK_STACK < 1:
-        symtab = namespace
+        symbol_table, _ = new_module_namespace(symbols=namespace)
+    elif TYPECHECK_STACK < 1 or isinstance(namespace, PysSymbolTable):
+        symbol_table = namespace
     else:
         raise TypeError('non-namespace object')
-    return symtab
+    return symbol_table
 
 @typecheck
 def pys_runner(
@@ -151,6 +151,12 @@ def pys_runner(
 
         result.parser_flags = parser.parser_flags
         pys_sys.flags = context.flags
+
+        try:
+            del file, flags, symbol_table, context_parent, context_parent_entry_position, \
+                lexer, tokens, error, parser, analyzer
+        except:
+            pass
 
         visitor_result = get_visitor(node.__class__)(node, context)
 
@@ -308,9 +314,9 @@ def pys_shell(
         raise RuntimeError("another shell is still running")
 
     line = 0
-    default_parser_flags = parser_flags
+    current_parser_flags = parser_flags
     file = PysFileBuffer('', '<pyscript-shell>')
-    symtab = _namespace_to_symbol_table(globals, file)
+    symbol_table = _namespace_to_symbol_table(globals, file)
     colored = not (flags & NO_COLOR)
     colored_prompt = not (flags & NO_COLOR_PROMPT)
     shell = (
@@ -361,20 +367,21 @@ def pys_shell(
                 if text == 0:
                     return 0
                 elif text == 1:
-                    symtab = _namespace_to_symbol_table(undefined, file)
-                    parser_flags = default_parser_flags
+                    dclear(symbol_table.symbols)
+                    symbol_table = _namespace_to_symbol_table(undefined, file)
+                    current_parser_flags = parser_flags
                     line = 0
                     continue
 
                 result = pys_runner(
                     file=PysFileBuffer(text, f'<pyscript-shell-{line}>'),
                     mode='single',
-                    symbol_table=symtab,
+                    symbol_table=symbol_table,
                     flags=flags,
-                    parser_flags=parser_flags
+                    parser_flags=current_parser_flags
                 )
 
-                parser_flags = result.parser_flags
+                current_parser_flags = result.parser_flags
                 code, exit = result.end_process()
                 if exit:
                     return code

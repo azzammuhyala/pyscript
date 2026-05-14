@@ -1,19 +1,19 @@
 from .bases import Pys
 from .checks import is_equal
 from .cache import PysUndefined, undefined
-from .mapping import GET_BINARY_FUNCTION, EMPTY_MAP
+from .mapping import GET_BINARY_FUNCTION
 from .token import TOKENS
 from .utils.decorators import immutable
 from .utils.generic import setimuattr, dcontains, dgetitem, dsetitem, ddelitem, dget, dkeys
 from .utils.similarity import get_closest
 
 from types import ModuleType
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
 
 @immutable
 class PysSymbolTable(Pys):
 
-    __slots__ = ('parent', 'symbols', 'globals')
+    __slots__ = ('parent', 'symbols', 'globals', 'builtins')
 
     def __init__(self, parent: Optional['PysSymbolTable'] = None) -> None:
         setimuattr(self, 'parent', parent.parent if isinstance(parent, PysClassSymbolTable) else parent)
@@ -21,21 +21,16 @@ class PysSymbolTable(Pys):
         setimuattr(self, 'globals', set())
 
     def get(self, name: str) -> Any | PysUndefined:
-        symbols = self.symbols
-        value = dget(symbols, name, undefined)
+        value = dget(self.symbols, name, undefined)
 
         if value is undefined:
             parent = self.parent
             if parent:
                 return parent.get(name)
 
-            builtins = dget(symbols, '__builtins__', undefined)
+            builtins = getattr(self, 'builtins', undefined)
             if builtins is not undefined:
-                return dget(
-                    builtins if isinstance(builtins, dict) else getattr(builtins, '__dict__', EMPTY_MAP),
-                    name,
-                    undefined
-                )
+                return dget(builtins, name, undefined)
 
         return value
 
@@ -76,38 +71,46 @@ class PysClassSymbolTable(PysSymbolTable):
     def __init__(self, parent: PysSymbolTable) -> None:
         super().__init__(parent)
 
-def find_closest(symtab: PysSymbolTable, name: str) -> str | None:
-    symbols = set(dkeys(symtab.symbols))
+def find_closest(symbol_table: PysSymbolTable, name: str) -> str | None:
+    symbols = set(dkeys(symbol_table.symbols))
     update = symbols.update
 
-    parent = symtab.parent
+    parent = symbol_table.parent
     while parent:
         update(dkeys(parent.symbols))
+        symbol_table = parent
         parent = parent.parent
 
-    builtins = symtab.get('__builtins__')
+    builtins = getattr(symbol_table, 'builtins', undefined)
     if builtins is not undefined:
-        update(dkeys(builtins if isinstance(builtins, dict) else getattr(builtins, '__dict__', EMPTY_MAP)))
+        update(dkeys(builtins))
 
     return get_closest(symbols, name)
 
 def new_module_namespace(
     *,
-    symbols: Mapping | None = None,
+    symbols: dict | None = None,
     **kwargs
 ) -> tuple[PysSymbolTable, ModuleType | None]:
-    symtab = PysSymbolTable()
+
+    # circular import problem solved
+    from .pysbuiltins import pys_builtins
+
+    dict_builtins = pys_builtins.__dict__
+    symbol_table = PysSymbolTable()
 
     if symbols is None:
         module = ModuleType(kwargs['name'], kwargs.get('doc'))
-        setimuattr(symtab, 'symbols', module.__dict__)
-        symtab.set('__file__', kwargs['file'])
+        setimuattr(symbol_table, 'symbols', module.__dict__)
+        setimuattr(symbol_table, 'builtins', dict_builtins)
+        symbol_table.set('__file__', kwargs['file'])
     else:
         module = None
-        setimuattr(symtab, 'symbols', symbols)
+        builtins = dget(symbols, '__builtins__', dict_builtins)
+        setimuattr(symbol_table, 'symbols', symbols)
+        setimuattr(
+            symbol_table, 'builtins',
+            builtins if isinstance(builtins, dict) else getattr(builtins, '__dict__', dict_builtins)
+        )
 
-    if symtab.get('__builtins__') is undefined:
-        from .pysbuiltins import pys_builtins
-        symtab.set('__builtins__', pys_builtins.__dict__)
-
-    return symtab, module
+    return symbol_table, module

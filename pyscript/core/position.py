@@ -26,13 +26,14 @@ class PysPosition(Pys):
         is_positionless = start < 0 or end < 0 or start > end or end > len(file.text) + 1
 
         setimuattr(self, 'file', file)
-        setimuattr(self, 'start', -1 if is_positionless else start)
-        setimuattr(self, 'end', -1 if is_positionless else end)
-        setimuattr(self, 'start_line', -1 if is_positionless else file.text.count('\n', 0, start) + 1)
-        setimuattr(self, 'start_column', -1 if is_positionless else start - file.text.rfind('\n', 0, start))
-        setimuattr(self, 'end_line', -1 if is_positionless else file.text.count('\n', 0, end) + 1)
-        setimuattr(self, 'end_column', -1 if is_positionless else end - file.text.rfind('\n', 0, end))
         setimuattr(self, 'is_positionless', is_positionless)
+
+        setimuattr(self, 'start',        -1 if is_positionless else start)
+        setimuattr(self, 'end',          -1 if is_positionless else end)
+        setimuattr(self, 'start_line',   -1 if is_positionless else file.text.count('\n', 0, start) + 1)
+        setimuattr(self, 'start_column', -1 if is_positionless else start - file.text.rfind('\n', 0, start))
+        setimuattr(self, 'end_line',     -1 if is_positionless else file.text.count('\n', 0, end) + 1)
+        setimuattr(self, 'end_column',   -1 if is_positionless else end - file.text.rfind('\n', 0, end))
 
     def __repr__(self) -> str:
         return f'<Position({self.start!r}, {self.end!r}) from {self.file.name!r}>'
@@ -59,7 +60,7 @@ def format_error_arrow(position: PysPosition, colored: bool = True) -> str:
     if end == -1:
         end = len(text)
 
-    if text[position.start:position.end] in {'', '\n'}:
+    if text[position.start:position.end] in ('', '\n'):
         if position.start > start:
             line = text[start:end].lstrip().replace('\t', ' ').replace('\v', ' ')
             return f'{line}\n{bred}{" " * len(line)}^{reset}'

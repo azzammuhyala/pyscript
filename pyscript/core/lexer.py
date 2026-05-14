@@ -62,7 +62,6 @@ class PysLexer(Pys):
     def make_tokens(self) -> tuple[tuple[PysToken, ...] | tuple[PysToken], None] | tuple[None, PysTraceback]:
         self.index = 0
         self.tokens = []
-        self.warnings = set()
         self.error = None
 
         self.update_current_character()
@@ -232,9 +231,8 @@ class PysLexer(Pys):
             )
 
     def warning(self, message: str) -> None:
-        if not (self.flags & SILENT or self.parser_flags & LEXER_HIGHLIGHT or message in self.warnings):
+        if not (self.flags & SILENT or self.parser_flags & LEXER_HIGHLIGHT):
             print(message, file=sys.stderr)
-            self.warnings.add(message)
 
     def throw(self, start: int, end: int, message: str, add_token: bool = True) -> None:
         if self.error is None:

@@ -22,13 +22,14 @@ ENV_PYSCRIPT_MAXIMUM_HISTORY_LINE = 'PYSCRIPT_MAXIMUM_HISTORY_LINE'
 KEYWORDS = (
     '__debug__', 'False', 'None', 'True', 'and', 'as', 'assert', 'break', 'case', 'catch', 'class', 'constructor',
     'continue', 'default', 'del', 'delete', 'do', 'elif', 'else', 'elseif', 'except', 'extends', 'false', 'finally',
-    'for', 'from', 'func', 'function', 'global', 'if', 'import', 'in', 'is', 'match', 'nil', 'none', 'null', 'not',
-    'true', 'typeof', 'of', 'or', 'raise', 'repeat', 'return', 'switch', 'throw', 'try', 'until', 'while', 'with'
+    'for', 'from', 'func', 'function', 'global', 'if', 'import', 'in', 'instanceof', 'is', 'match', 'nil', 'none',
+    'null', 'not', 'true', 'typeof', 'of', 'or', 'raise', 'repeat', 'return', 'switch', 'throw', 'try', 'until',
+    'while', 'with'
 )
 
 CONSTANT_KEYWORDS = (
     '__debug__', 'False', 'None', 'True', 'and', 'class', 'constructor', 'extends', 'func', 'function', 'false',
-    'global', 'in', 'is', 'not', 'nil', 'none', 'null', 'of', 'or', 'true', 'typeof'
+    'global', 'in', 'instanceof', 'is', 'not', 'nil', 'none', 'null', 'of', 'or', 'true', 'typeof'
 )
 
 DEFAULT = 0

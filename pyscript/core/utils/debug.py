@@ -14,8 +14,7 @@ def print_display(value: Any) -> None:
         print(repr(value))
 
 def print_traceback(exc_type: type[BaseException], exc_value: BaseException | None, exc_tb: PysTraceback) -> None:
-    for line in exc_tb.string_traceback().splitlines():
-        print(line, file=sys.stderr)
+    print(exc_tb.string_traceback(), file=sys.stderr)
 
 def sys_excepthook(exc_type: type[BaseException], exc_value: BaseException | None, exc_tb: TracebackType) -> None:
     if exc_type is PysSignal and (traceback := exc_value.result.error) is not None:

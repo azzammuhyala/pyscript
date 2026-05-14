@@ -15,12 +15,15 @@ SPECIAL = 2**11
 
 TOKENS = MappingProxyType({
     'NULL': ord('\0'),
-    'KEYWORD': 0x01,
-    'IDENTIFIER': 0x02,
-    'NUMBER': 0x03,
-    'STRING': 0x04,
-    'NOT_IN': 0x05,
-    'IS_NOT': 0x06,
+    'NONE': 0x01,
+    'KEYWORD': 0x02,
+    'IDENTIFIER': 0x03,
+    'NUMBER': 0x04,
+    'STRING': 0x05,
+    'IS': 0x06,
+    'IS_NOT': 0x07,
+    'TYPEOF': 0x08,
+    'INSTANCEOF': 0x09,
     'NEWLINE': ord('\n'),
     'EXCLAMATION': ord('!'),
     'COMMENT': ord('#'),
@@ -77,12 +80,13 @@ TOKENS = MappingProxyType({
     'EQUAL_DOUBLE_SLASH': ord('/') + DOUBLE + WITH_EQUAL,
     'EQUAL_DOUBLE_LESS_THAN': ord('<') + DOUBLE + WITH_EQUAL,
     'EQUAL_DOUBLE_GREATER_THAN': ord('>') + DOUBLE + WITH_EQUAL,
-    'NONE': SPECIAL,
     'MINUS_GREATER_THAN': ord('-') + SPECIAL,
     'EQUAL_ARROW': ord('>') + SPECIAL,
     'EXCLAMATION_GREATER_THAN': ord('!') + SPECIAL,
     'EXCLAMATION_TILDE': ord('~') + SPECIAL,
-    'LESS_THAN_GREATER_THAN': ord('<') + SPECIAL
+    'LESS_THAN_GREATER_THAN': ord('<') + SPECIAL,
+    'KEYWORD_TYPEOF': ord('t') + SPECIAL,
+    'KEYWORD_INSTANCEOF': ord('i') + SPECIAL
 })
 
 REVERSE_TOKENS = MappingProxyType({type: name for name, type in TOKENS.items()})

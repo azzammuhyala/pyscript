@@ -25,12 +25,12 @@ def untokenize(iterable: Iterable[PysToken]) -> str:
     brackets_stack = 0
 
     T_NULL = TOKENS['NULL']
-    T_NEWLINE = TOKENS['NEWLINE']
+    T_NONE = TOKENS['NONE']
     T_KEYWORD = TOKENS['KEYWORD']
     T_IDENTIFIER = TOKENS['IDENTIFIER']
     T_LITERAL = frozenset([TOKENS['NUMBER'], TOKENS['STRING']])
+    T_NEWLINE = TOKENS['NEWLINE']
     T_COMMENT = TOKENS['COMMENT']
-    T_NONE = TOKENS['NONE']
 
     for i, token in enumerate(iterable):
         type = token.type

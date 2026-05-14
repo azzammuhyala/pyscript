@@ -244,6 +244,8 @@ class PysFunction(PysObject):
 @immutable
 class PysPythonFunction(PysFunction):
 
+    __slots__ = ()
+
     def __init__(self, func: Callable) -> None:
         # circular import problem solved
         from .handlers import handle_call
@@ -269,12 +271,14 @@ class PysPythonFunction(PysFunction):
         code = self.__code__
         context = code.context
         position = code.position
-
         func = self.__func__
+
         code.handle_call(func, context, position)
-        return func(self, *args, **kwargs)
+        return func(context, position, *args, **kwargs)
 
 class PysBuiltinFunction(PysPythonFunction):
+
+    __slots__ = ()
 
     def __repr__(self) -> str:
         return f'<built-in function {self.__qualname__}>'
