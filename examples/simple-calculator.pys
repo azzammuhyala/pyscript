@@ -1,7 +1,7 @@
 # get a number and operator with input()
 a = float(input("Enter a first number : "))
 b = float(input("Enter a second number: "))
-op = input("Enter an operation (+, -, *, /): ")
+operation = input("Enter an operation (+, -, *, /): ")
 
 # define a functions
 func add(a, b) {
@@ -18,30 +18,33 @@ func mul(a, b) {
 
 func floordiv(a, b) {
     # check b is zero
-    return b != 0 ? a / b : "Cannot be divided by 0!"
+    return b != 0 ? a / b : none
 }
 
 # operation matching
-switch (op.strip())
+switch (operation.strip())
 {
     case '+':
         result = add(a, b)
-        print("Result of {} + {} = {}".format(a, b, result))
+        print("Result of {:,} + {:,} = {:,}".format(a, b, result))
         break
 
     case '-':
         result = sub(a, b)
-        print("Result of {} - {} = {}".format(a, b, result))
+        print("Result of {:,} - {:,} = {:,}".format(a, b, result))
         break
 
     case '*':
         result = mul(a, b)
-        print("Result of {} * {} = {}".format(a, b, result))
+        print("Result of {:,} * {:,} = {:,}".format(a, b, result))
         break
 
     case '/':
         result = floordiv(a, b)
-        print("Result of {} / {} = {}".format(a, b, result))
+        print("Result of {:,} / {:,} = {}".format(
+            a, b,
+            result is not none ? format(result, ',') : "Cannot be divided by 0")
+        )
         break
 
     default:

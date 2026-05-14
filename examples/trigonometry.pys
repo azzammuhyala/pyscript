@@ -91,7 +91,7 @@ func _exponentialSine(x) {
 
 func radians(deg) => deg * PI/180
 
-sin = _taylorSeries
+sin = _exponentialSine
 
 func cos(x) => sin(x + PI/2)
 func tan(x) => sin(x)/cos(x)

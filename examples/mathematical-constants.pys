@@ -84,7 +84,7 @@ func getPiFromSrinivasaRamanujan() {
 
     #               10
     #             <-----\
-    #          __  \        
+    #          __  \
     # 1     2 V 2   \     (4n)! (1103 + 26390n)
     # -- ~= -----    >    ---------------------
     # pi    9801    /              4    4n
@@ -131,6 +131,195 @@ func getPiFromLeonhardEuler() {
     return (6 * s)**0.5
 }
 
+func getPiFromWallisProduct() {
+
+    #             5
+    #           10
+    #         _______
+    #          |   |      2
+    #          |   |    4n
+    # pi ~= 2  |   |  -------
+    #          |   |    2
+    #          |   |  4n  - 1
+    #         --- ---
+    #           n=1
+
+    m = 1
+    for (n in range(1, 100001)) {
+        m *= (4 * n**2) / (4 * n**2 - 1)
+    }
+
+    return 2 * m
+}
+
+func getPiFromMachin() {
+
+    #           1000                           1000
+    #          <-----\                        <-----\
+    #           \               n              \                 n
+    #            \          (-1)                \            (-1)
+    # pi ~= 16    >    ----------------  -  4    >    ------------------
+    #            /               2n + 1         /                 2n + 1
+    #           /      (2n + 1) 5              /      (2n + 1) 239
+    #          <-----/                        <-----/
+    #            n=0                            n=0
+
+    s1 = 0
+    for (n in range(1001)) {
+        a = 2*n + 1
+        s1 += (-1)**n / (a * 5**a)
+    }
+
+    s2 = 0
+    for (n in range(1001)) {
+        a = 2*n + 1
+        s2 += (-1)**n / (a * 239**a)
+    }
+
+    return 16*s1 - 4*s2
+}
+
+
+func getPiFromCollisionSimulation() {
+
+    # Source: GEMINI
+
+    DIGITS = 4
+    MASS_RATIO = 100**(DIGITS - 1)
+
+    if (DIGITS < 1 or MASS_RATIO < 1) {
+        throw ValueError("invalid value of digits or mass ratio")
+    }
+
+    import sys
+    import os
+
+    os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+
+    try {
+        # pip install pygame
+        import pygame
+    } catch {
+        return nan
+    }
+
+    pygame.init()
+
+    WIDTH, HEIGHT = 1000, 400
+    STEPS_PER_FRAME = 500
+    FPS = 60
+    WHITE = (255, 255, 255)
+    BLACK = (0, 0, 0)
+    RED = (255, 50, 50)
+    BLUE = (50, 50, 255)
+    GREEN = (0, 150, 0)
+
+    massFont = pygame.font.SysFont('Arial', 16, bold=True)
+    collisionsFont = pygame.font.SysFont('Courier', 30, bold=True)
+
+    class Block {
+
+        constructor(x, width, mass, velocity, color) {
+            self.x = x
+            self.y = HEIGHT - width - 50
+            self.width = width
+            self.mass = mass
+            self.velocity = velocity
+            self.color = color
+        }
+
+        func update(self) {
+            self.x += self.velocity
+        }
+
+        func draw(self, screen) {
+            pygame.draw.rect(screen, self.color, (self.x, self.y, self.width, self.width))
+            if (-200 < self.x < WIDTH) {
+                text = massFont.render('{:,} kg'.format(self.mass), True, BLACK)
+                screen.blit(text, (self.x + (self.width - text.get_width()) / 2, self.y - text.get_height() - 5))
+            }
+        }
+
+    }
+
+    func solveCollision(b1, b2) {
+        m1, m2 = b1.mass, b2.mass
+        v1, v2 = b1.velocity, b2.velocity
+        new_v1 = ((m1 - m2) / (m1 + m2)) * v1 + (2 * m2 / (m1 + m2)) * v2
+        new_v2 = ((2 * m1) / (m1 + m2)) * v1 + (m2 - m1) / (m1 + m2) * v2
+        return new_v1, new_v2
+    }
+
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+
+    pygame.display.set_caption('Collision Simulation')
+
+    clock = pygame.time.Clock()
+
+    block1 = Block(100, 30, 1, 0, RED)
+    block2 = Block(200, min(300, max(30, MASS_RATIO)), MASS_RATIO, -1 / STEPS_PER_FRAME, BLUE)
+
+    collisionCount = 0
+    wallX = 50
+
+    finished = False
+    running = True
+
+    while (running) {
+        for (event in pygame.event.get()) {
+            if (event.type == pygame.QUIT) {
+                running = False
+                collisionCount = nan
+            }
+        }
+
+        for (_ in range(STEPS_PER_FRAME)) {
+            block1.update()
+            block2.update()
+
+            if (block1.x <= wallX) {
+                block1.x = wallX
+                block1.velocity *= -1
+                collisionCount += 1
+            }
+
+            if (block1.x + block1.width >= block2.x) {
+                block1.x = block2.x - block1.width
+                block1.velocity, block2.velocity = solveCollision(block1, block2)
+                collisionCount += 1
+            }
+        }
+
+        if (block1.velocity >= 0 and block2.velocity > block1.velocity) {
+            running = False
+        }
+
+        screen.fill(WHITE)
+
+        pygame.draw.line(screen, BLACK, (0, HEIGHT - 50), (WIDTH, HEIGHT - 50), 5)
+        pygame.draw.line(screen, BLACK, (wallX, 0), (wallX, HEIGHT - 50), 5)
+
+        block1.draw(screen)
+        block2.draw(screen)
+
+        countText = collisionsFont.render('Collisions: {:,}'.format(collisionCount), True, BLACK)
+        screen.blit(countText, (10, HEIGHT - countText.get_height() - 10))
+
+        pygame.display.flip()
+        clock.tick(FPS)
+    }
+
+    pygame.quit()
+
+    if (collisionCount is nan) {
+        return nan
+    }
+
+    s = str(collisionCount)
+    result = float(collisionCount if len(s) == 1 else s[0] + '.' + s[1:])
+    return result
+}
+
 func getEulerFromTaylorSeries() {
 
     #        17
@@ -151,6 +340,17 @@ func getEulerFromTaylorSeries() {
     return s
 }
 
+func getEulerFromGrowthLimits() {
+
+    #              /     1 \ n
+    # e ~=  lim   |  1 + -  |
+    #           6  \     n /
+    #      n->10
+
+    n = 1000000
+    return (1 + 1/n)**n
+}
+
 func getPhiFromFibonaci() {
 
     #                 F
@@ -160,7 +360,7 @@ func getPhiFromFibonaci() {
     #                    n
 
     a, b = 0, 1
-    for (_ in range(10_000)) {
+    for (_ in range(10000)) {
         a, b = b, a + b
     }
     return b / a
@@ -168,12 +368,12 @@ func getPhiFromFibonaci() {
 
 func getPhiFromContinuedFraction() {
 
-    #           1
-    # phi = 1 + --
+    #            1
+    # phi = 1 + ---
     #           phi
 
     n = 1
-    for (_ in range(10_000)) {
+    for (_ in range(10000)) {
         n = 1 + 1/n
     }
     return n
@@ -185,24 +385,39 @@ func getPhiFromNestedRadical() {
     # phi = V 1 + phi
 
     n = 1
-    for (_ in range(10_000)) {
+    for (_ in range(10000)) {
         n = 1 + n**0.5
     }
     return n**0.5
 }
 
-print(' PI '.center(50, '='))
+func getPhi() {
+
+    #            __
+    #       1 + V 5
+    # phi = -------
+    #          2
+
+    return (1 + 5**0.5)/2
+}
+
+print(' PI '.center(60, '='))
 print('Leibniz Series:',                    getPiFromLeibnizSeries())
 print('Chudnovsky Algorithm:',              getPiFromChudnovskyAlgorithm())
 print('Bailey Borwein Plouffe:',            getPiFromBaileyBorweinPlouffe())
 print('Srinivasa Ramanujan:',               getPiFromSrinivasaRamanujan())
 print('Srinivasa Ramanujan Approximation:', getPiFromSrinivasaRamanujanApproximation())
 print('Leonhard Euler:',                    getPiFromLeonhardEuler())
+print('Wallis Product:',                    getPiFromWallisProduct())
+print('Machin:',                            getPiFromMachin())
+print('Collision Simulation:',              getPiFromCollisionSimulation())
 
-print(' EULER '.center(50, '='))
+print(' EULER '.center(60, '='))
 print('Taylor Series:', getEulerFromTaylorSeries())
+print('Growth Limits:', getEulerFromGrowthLimits())
 
-print(' PHI '.center(50, '='))
-print('Fibonaci:',           getPhiFromFibonaci())
-print('Continued Fraction:', getPhiFromContinuedFraction())
-print('Nested Radical:',     getPhiFromNestedRadical())
+print(' PHI '.center(60, '='))
+print('Phi ((1+sqrt(5))/2):', getPhi())
+print('Fibonaci:',            getPhiFromFibonaci())
+print('Continued Fraction:',  getPhiFromContinuedFraction())
+print('Nested Radical:',      getPhiFromNestedRadical())
