@@ -1,9 +1,9 @@
 # PyScript - Syntax Highlighting - Nano for Linux
 
-## How to install
+## How to install?
 1. Download the `pyscript.nanorc` file in this repository folder.
 
-2. Copy the file to the nano highlight system folder:
+2. Copy the `pyscript.nanorc` file to the nano highlight system folder:
 ```sh
 cp pyscript.nanorc /usr/share/nano
 ```
