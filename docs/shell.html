@@ -18,7 +18,7 @@
                 width: 100vw;
                 height: 100vh;
                 overflow: hidden;
-                background: #1a1a1a;
+                background: #2a2a2a;
             }
 
             #terminal-container {
@@ -26,7 +26,7 @@
                 height: 100%;
                 border-radius: 8px;
                 overflow: hidden;
-                background: #000;
+                background: #000000;
             }
         </style>
     </head>
@@ -34,67 +34,72 @@
     <body>
         <div id="terminal-container"></div>
         <script type="module">
+            const pyodideURL = 'https://cdn.jsdelivr.net/pyodide/v0.29.4/full';
+
+            const bind = (object, methodName) => object[methodName].bind(object);
             const dedent = (string) => {
                 const lines = string.replace(/\r\n|\r/g, '\n').split('\n');
-                const indents = lines
-                    .filter(line => line.trim().length > 0)
-                    .map(line => line.match(/^ */)[0].length);
-                const minIndent = indents.length ? Math.min(...indents) : 0;
-                return lines
-                    .map(line => {
-                        if (line.trim().length === 0) return line;
-                        return line.slice(Math.min(minIndent, line.match(/^ */)[0].length));
-                    })
-                    .join('\n');
+                const indents = lines.filter(line => line.trim().length > 0)
+                                     .map(   line => line.match(/^ */)[0].length);
+                const minimumIndent = indents.length ? Math.min(...indents) : 0;
+                return lines.map(line => {
+                    if (line.trim().length === 0) return line;
+                    return line.slice(Math.min(minimumIndent, line.match(/^ */)[0].length));
+                }).join('\n');
             };
 
-            const term = new Terminal({
+            const terminal = new Terminal({
                 cursorBlink: true,
-                theme: { background: '#1e1e1e' },
-                fontSize: 14,
-                fontFamily: 'ui-monospace, Menlo, Monaco, "Courier New", monospace'
+                theme: { background: '#000000' },
+                fontSize: 15,
+                fontFamily: 'Consolas, Menlo, Monaco, "Courier New", monospace'
             });
-
             const fitAddon = new FitAddon.FitAddon();
 
-            term.loadAddon(fitAddon);
-            term.open(document.getElementById('terminal-container'));
+            terminal.loadAddon(fitAddon);
+            terminal.open(document.getElementById('terminal-container'));
             fitAddon.fit();
-
-            window.addEventListener('resize', () => {
-                fitAddon.fit();
-            });
-
-            const { loadPyodide } = await import('https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.mjs');
+            window.addEventListener('resize', bind(fitAddon, 'fit'));
 
             window.linesBuffer = [];
-            window.term = term;
+            window.terminal = terminal;
             window.exitCode = 0;
+
+            const isNewline = bind(['\n', '\r'], 'includes');
 
             const linesBuffer = window.linesBuffer;
             const lineBuffer = [];
             let cursor = 0;
 
-            term.onData(data => {
-                const above = cursor > 0;
-                const below = cursor < lineBuffer.length;
+            terminal.onData(data => {
+                const above = () => cursor > 0;
+                const below = () => cursor < lineBuffer.length;
 
                 switch (data) {
 
-                    // Tab
-                    case '\t':
-                        if (below) {
-                            term.write('\x1b[4@');
-                        }
-                        term.write('    ');
-                        lineBuffer.splice(cursor, 0, ...'    ');
-                        cursor += 4;
+                    // Ctrl + C (INT)
+                    case '\x03':
+                        terminal.write('\r\n');
+                        linesBuffer.length = 0;
+                        lineBuffer.length = 0;
+                        linesBuffer.push('\x03');
+                        cursor = 0;
+                        break;
+
+                    // Ctrl + D/Z (EOF)
+                    case '\x04':
+                    case '\x1a':
+                        terminal.write('\r\n');
+                        linesBuffer.length = 0;
+                        lineBuffer.length = 0;
+                        linesBuffer.push('\x1a');
+                        cursor = 0;
                         break;
 
                     // Enter
-                    case '\r':
                     case '\n':
-                        term.write('\r\n');
+                    case '\r':
+                        terminal.write('\r\n');
                         linesBuffer.push(lineBuffer.join(''));
                         lineBuffer.length = 0;
                         cursor = 0;
@@ -102,49 +107,49 @@
 
                     // Backspace
                     case '\x7f':
-                        if (above) {
+                        if (above()) {
                             cursor--;
-                            term.write('\x1b[D\x1b[P');
+                            terminal.write('\x1b[D\x1b[P');
                             lineBuffer.splice(cursor, 1);
                         }
                         break;
 
                     // Delete
                     case '\x1b[3~':
-                        if (below) {
-                            term.write('\x1b[P');
+                        if (below()) {
+                            terminal.write('\x1b[P');
                             lineBuffer.splice(cursor, 1);
                         }
                         break;
 
                     // Home
                     case '\x1b[H':
-                        if (above) {
-                            term.write(`\x1b[${cursor}D`);
+                        if (above()) {
+                            terminal.write(`\x1b[${cursor}D`);
                             cursor = 0;
                         }
                         break;
 
                     // End
                     case '\x1b[F':
-                        if (below) {
-                            term.write(`\x1b[${lineBuffer.length - cursor}C`);
+                        if (below()) {
+                            terminal.write(`\x1b[${lineBuffer.length - cursor}C`);
                             cursor = lineBuffer.length;
                         }
                         break;
 
                     // Right
                     case '\x1b[C':
-                        if (below) {
-                            term.write(data);
+                        if (below()) {
+                            terminal.write(data);
                             cursor++;
                         }
                         break;
 
                     // Left
                     case '\x1b[D':
-                        if (above) {
-                            term.write(data);
+                        if (above()) {
+                            terminal.write(data);
                             cursor--;
                         }
                         break;
@@ -153,18 +158,21 @@
                         let buffer = '';
                         for (const character of data) {
                             const code = character.charCodeAt(0);
-                            if (code === 0x09) {
-                                buffer += '    '
+                            if (isNewline(character)) {
+                                buffer += ';';
+                            }
+                            else if (code === 0x09) {
+                                buffer += '    ';
                             }
                             else if (0x20 <= code && code <= 0x7e) {
                                 buffer += character;
                             }
                         }
                         if (buffer) {
-                            if (below) {
-                                term.write(`\x1b[${buffer.length}@`);
+                            if (below()) {
+                                terminal.write(`\x1b[${buffer.length}@`);
                             }
-                            term.write(buffer);
+                            terminal.write(buffer);
                             lineBuffer.splice(cursor, 0, ...buffer);
                             cursor += buffer.length;
                         }
@@ -172,62 +180,80 @@
                 }
             });
 
+            terminal.write('Loading pyodide\r\n');
+
+            const { loadPyodide } = await import(`${pyodideURL}/pyodide.mjs`);
             const pyodide = await loadPyodide();
 
-            const newlines = ['\n', '\r'];
+            window.pyodide = pyodide;
 
             pyodide.setStdout({
                 raw: (characterCode) => {
                     const character = String.fromCharCode(characterCode);
-                    term.write(newlines.includes(character) ? '\r\n' : character);
+                    terminal.write(isNewline(character) ? '\r\n' : character);
                 }
             });
 
             pyodide.setStderr({
                 raw: (characterCode) => {
                     const character = String.fromCharCode(characterCode);
-                    term.write(newlines.includes(character) ? '\r\n' : character);
+                    terminal.write(isNewline(character) ? '\r\n' : character);
                 }
             });
 
             await pyodide.runPythonAsync(dedent(`
-                async def __async_input(prompt=''):
-                    from js import linesBuffer
-                    from asyncio import sleep
+                from js import linesBuffer
+                from asyncio import sleep
+                from pyodide.ffi import run_sync as run
+                # from asyncio import run
 
-                    if prompt:
-                        print(end=prompt, flush=True)
+                import sys
+                import builtins
 
+                signals = {
+                    '\\x03': KeyboardInterrupt,
+                    '\\x1a': EOFError
+                }
+
+                async def async_readline():
                     while not linesBuffer:
-                        await sleep(0)
+                        await sleep(0.1)
                     return linesBuffer.shift()
 
-                def __sync_input(prompt=''):
-                    from asyncio import run
-                    return run(__async_input(prompt))
+                def readline(*args, **kwargs):
+                    line = run(async_readline(*args, **kwargs))
+                    if line in signals:
+                        raise signals[line]
+                    return line
 
-                import builtins
-                builtins.input = __sync_input
-                del builtins, __sync_input
-            `));
+                def input(prompt=''):
+                    if prompt:
+                        print(end=prompt, flush=True)
+                    return readline()
+
+                sys.stdin.readline = readline
+                builtins.input = input
+            `), { globals: pyodide.globals.get('dict')() });
 
             await pyodide.loadPackage('micropip');
-
             const micropip = pyodide.pyimport('micropip');
+
+            terminal.write('Loading pyscript\r\n');
             await micropip.install('pyscript-programming-language');
 
             await pyodide.runPythonAsync(dedent(`
-                import pyscript
                 import js
+                import pyscript
 
                 pys_sys = pyscript.pys_require('sys')
-                pys_sys.clearhook = lambda : js.term.clear()
+                pys_sys.clearhook = lambda : js.terminal.clear()
 
-                js.term.clear()
+                js.terminal.clear()
+                print(f'Welcome to the PyScript shell using Pyodide {js.pyodide.version}')
                 js.exitCode = pyscript.pys_shell(pyscript.undefined, pyscript.CLASSIC_LINE_SHELL)
             `));
 
-            term.write(
+            terminal.write(
                 window.exitCode === 0 ?
                 `\r\n\x1b[36m[Shell finished with exit code 0]\x1b[0m\r\n` :
                 `\r\n\x1b[31m[Shell finished with exit code ${JSON.stringify(window.exitCode)}]\x1b[0m\r\n`
