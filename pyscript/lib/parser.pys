@@ -4,11 +4,20 @@ import _pyscript  # get a PyScript core module (pyscript.core)
 func _error(traceback) {
     exception = traceback.exception
     position = traceback.position
-    return type(exception)(
-        '{} (ln {}, col {})'.format(
-            exception,
-            position.start_line,
-            position.start_column
+    return (
+        exception instanceof type ?
+        exception(
+            '(ln {}, col {})'.format(
+                position.start_line,
+                position.start_column
+            )
+        ) :
+        type(exception)(
+            '{} (ln {}, col {})'.format(
+                exception,
+                position.start_line,
+                position.start_column
+            )
         )
     )
 }
@@ -42,12 +51,12 @@ class Parser {
     func __init__(self, source, flags=DEFAULT) {
 
         # source is a list of tokens
-        if (isinstance(source, tuple)) {
+        if (source instanceof tuple) {
             if (!source)
                 throw ValueError("Parser(): source got empty tuple")
 
             for (i, token of enumerate(source)) {
-                if (!isinstance(token, _pyscript.token.PysToken))
+                if (!(token instanceof _pyscript.token.PysToken))
                     throw TypeError("Parser(): source must be tuple of tokens")
                 if (token.type in (TOKENS['COMMENT'], TOKENS['NONE']))
                     throw ValueError("Parser(): source token with comment or none token is invalid")
@@ -58,7 +67,7 @@ class Parser {
         }
 
         # source is an AST
-        elif (isinstance(source, _pyscript.nodes.PysNode)) {
+        elif (source instanceof _pyscript.nodes.PysNode) {
             file = source.position.file
             compiled = 'ast'
         }
@@ -69,7 +78,7 @@ class Parser {
             compiled = 'none'
         }
 
-        if (!isinstance(flags, int))
+        if (!(flags instanceof int))
             throw TypeError("Parser(): flags must be integer")
 
         _pyscript.utils.generic.setimuattr(self, 'source', source)

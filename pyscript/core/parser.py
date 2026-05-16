@@ -405,11 +405,14 @@ class PysParser(Pys):
             )
 
         return self.chain_operator(
-            self.bitwise,
+            self.instanceof,
             TOKENS['DOUBLE_EQUAL'], TOKENS['EQUAL_EXCLAMATION'], TOKENS['EQUAL_TILDE'], TOKENS['EXCLAMATION_TILDE'],
             TOKENS['LESS_THAN'], TOKENS['GREATER_THAN'], TOKENS['EQUAL_LESS_THAN'], TOKENS['EQUAL_GREATER_THAN'],
             TOKENS['LESS_THAN_GREATER_THAN']
         )
+
+    def instanceof(self) -> PysParserResult:
+        return self.binary_operator(self.bitwise, (TOKENS['KEYWORD'], 'instanceof'), instanceof=True)
 
     def bitwise(self) -> PysParserResult:
         return self.binary_operator(
@@ -481,7 +484,7 @@ class PysParser(Pys):
             self.advance()
             self.skip_expression(result)
 
-            node = result.register(self.instanceof())
+            node = result.register(self.primary())
             if result.error:
                 return result
 
@@ -493,7 +496,7 @@ class PysParser(Pys):
                 )
             )
 
-        node = result.register(self.instanceof())
+        node = result.register(self.primary())
         if result.error:
             return result
 
@@ -511,9 +514,6 @@ class PysParser(Pys):
             )
 
         return result.success(node)
-
-    def instanceof(self) -> PysParserResult:
-        return self.binary_operator(self.primary, (TOKENS['KEYWORD'], 'instanceof'), instanceof=True)
 
     def primary(self) -> PysParserResult:
         result = PysParserResult()

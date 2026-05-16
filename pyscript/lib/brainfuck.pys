@@ -25,7 +25,7 @@ class BFInterpreter {
         fin = fin ?? default_input
         fout = fout ?? default_output
 
-        if (!isinstance(cells, (int, type(none))))
+        if (!(cells instanceof (int, type(none))))
             throw TypeError("BFInterpreter() cells must be integer or none")
         if (!callable(fin))
             throw TypeError("BFInterpreter() fin must be callable")
@@ -174,7 +174,7 @@ class BFInterpreter {
 
             case ',':
                 new = self.fin()
-                if (!(isinstance(new, int) && 0 <= new <= 255))
+                if (!(new instanceof int && 0 <= new <= 255))
                     throw TypeError("BFInterpreter() fin must be returns unsigned 8-bit integer")
                 memory[pointer] = new
                 break

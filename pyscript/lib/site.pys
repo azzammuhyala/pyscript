@@ -70,7 +70,7 @@ if (__name__ == '__main__') {
     parser.add_argument(
         '-s',
         action='store_true',
-        help="dont show any information, just execute the code"
+        help="dont show any information, just do it"
     )
 
     parser.add_argument(

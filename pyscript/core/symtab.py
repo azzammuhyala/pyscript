@@ -103,14 +103,20 @@ def new_module_namespace(
         module = ModuleType(kwargs['name'], kwargs.get('doc'))
         setimuattr(symbol_table, 'symbols', module.__dict__)
         setimuattr(symbol_table, 'builtins', dict_builtins)
+        symbol_table.set('__builtins__', pys_builtins)
         symbol_table.set('__file__', kwargs['file'])
+
     else:
         module = None
-        builtins = dget(symbols, '__builtins__', dict_builtins)
+        builtins = dget(symbols, '__builtins__', undefined)
         setimuattr(symbol_table, 'symbols', symbols)
-        setimuattr(
-            symbol_table, 'builtins',
-            builtins if isinstance(builtins, dict) else getattr(builtins, '__dict__', dict_builtins)
-        )
+        if builtins is undefined:
+            setimuattr(symbol_table, 'builtins', dict_builtins)
+            symbol_table.set('__builtins__', dict_builtins)
+        else:
+            setimuattr(
+                symbol_table, 'builtins',
+                builtins if isinstance(builtins, dict) else getattr(builtins, '__dict__', dict_builtins)
+            )
 
     return symbol_table, module

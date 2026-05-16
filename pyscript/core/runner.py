@@ -85,7 +85,7 @@ def pys_runner(
     error, and the context after execution.
     """
 
-    if (context_parent is None) != (context_parent_entry_position is None):
+    if TYPECHECK_STACK > 0 and (context_parent is None) != (context_parent_entry_position is None):
         raise TypeError("context_parent and context_parent_entry_position both must be filled in")
 
     context = PysContext(

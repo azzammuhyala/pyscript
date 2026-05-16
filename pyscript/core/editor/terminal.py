@@ -22,11 +22,13 @@ try:
         def __init__(self, file: PysFileBuffer, colored: bool = True) -> None:
             PysEditor.__init__(self, file, colored)
 
+            self.load_configuration()
+
             self.show_exit_window = False
 
             on_edit = Condition(lambda: not self.show_exit_window)
             on_exit = Condition(lambda: self.show_exit_window)
-            on_wrap = Condition(lambda: self.wrapped)
+            on_wrap = Condition(lambda: self.get_configuration('wrap', True))
 
             def on_change(buffer):
                 self.modified = True
@@ -125,7 +127,7 @@ try:
 
             @key_bindings.add('c-w', filter=on_edit, eager=True)
             def _(event):
-                self.wrapped = not self.wrapped
+                self.set_configuration('wrap', not self.get_configuration('wrap', False))
 
             @key_bindings.add('c-y', filter=on_edit, eager=True)
             def _(event):
@@ -147,17 +149,20 @@ try:
                     self.output.hide_cursor()
                     self.layout.focus(self.close_window)
                 else:
+                    self.save_configuration()
                     self.exit()
 
             @key_bindings.add('y', filter=on_exit)
             def _(event):
                 self.save(self.text.buffer.text)
                 self.show_exit_window = False
+                self.save_configuration()
                 self.exit()
 
             @key_bindings.add('n', filter=on_exit)
             def _(event):
                 self.show_exit_window = False
+                self.save_configuration()
                 self.exit()
 
             @key_bindings.add('c', filter=on_exit)

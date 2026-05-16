@@ -1,10 +1,10 @@
 import _pyscript
 
-func iscontext(object) => isinstance(object, _pyscript.context.PysContext)
-func issymtab(object) => isinstance(object, _pyscript.symtab.PysSymbolTable)
-func istraceback(object) => isinstance(object, _pyscript.exceptions.PysTraceback)
-func iscode(object) => isinstance(object, _pyscript.pystypes.PysCode)
-func isfunction(object) => isinstance(object, _pyscript.pystypes.PysFunction)
+func iscontext(object) => object instanceof _pyscript.context.PysContext
+func issymtab(object) => object instanceof _pyscript.symtab.PysSymbolTable
+func istraceback(object) => object instanceof _pyscript.exceptions.PysTraceback
+func iscode(object) => object instanceof _pyscript.pystypes.PysCode
+func isfunction(object) => object instanceof _pyscript.pystypes.PysFunction
 
 getcontext = _pyscript.pystypes.PysPythonFunction(func(context, position) => context)
 getsymtab = _pyscript.pystypes.PysPythonFunction(func(context, position) => context.symbol_table)

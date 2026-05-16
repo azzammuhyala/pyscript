@@ -255,8 +255,8 @@ def clean_up() -> None:
     g = globals()
 
     for name in {
-        'ArgumentParser', 'BBCodeFormatter', 'CLASSIC_LINE_SHELL', 'DEBUG', 'DEFAULT', 'DONT_SHOW_BANNER_ON_SHELL',
-        'EDITOR_MAP', 'ENV_PYSCRIPT_CLASSIC_LINE_SHELL', 'ENV_PYSCRIPT_NO_COLOR_PROMPT', 'FORMATER_HIGHLIGHT_MAP',
+        'ArgumentParser', 'BBCodeFormatter', 'CLASSIC_LINE_SHELL', 'DEBUG', 'DEFAULT', 'EDITOR_MAP',
+        'ENV_PYSCRIPT_CLASSIC_LINE_SHELL', 'ENV_PYSCRIPT_NO_COLOR_PROMPT', 'FORMATER_HIGHLIGHT_MAP',
         'FORMATER_PYGMENTS_MAP', 'GUI_SUPPORT', 'HLFMT_ANSI', 'HLFMT_BBCODE', 'HLFMT_HTML', 'HtmlFormatter',
         'LatexFormatter', 'NOTEBOOK', 'NO_COLOR', 'NO_COLOR_PROMPT', 'OPTIONAL', 'PYGMENTS', 'PygmentsPyScriptLexer',
         'PygmentsPyScriptStyle', 'PysFileBuffer', 'PysGUIEditor', 'PysTerminalEditor', 'REMAINDER', 'TERMINAL_SUPPORT',
@@ -295,7 +295,6 @@ def load_file(path) -> PysFileBuffer:
 def execute(file: PysFileBuffer) -> None:
     global code
 
-    not_show_banner_flag = DONT_SHOW_BANNER_ON_SHELL
     inspect = args.inspect
     symtab = _namespace_to_symbol_table(undefined, file)
 
@@ -319,7 +318,7 @@ def execute(file: PysFileBuffer) -> None:
         else:
             code = pys_shell(
                 globals=result.context.symbol_table,
-                flags=result.context.flags | not_show_banner_flag,
+                flags=result.context.flags | DONT_SHOW_BANNER_ON_SHELL,
                 parser_flags=result.parser_flags
             )
 

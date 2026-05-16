@@ -10,7 +10,7 @@
         <img src="https://img.shields.io/badge/license-MIT-orange" alt="License MIT">
     </a>
     <a href="https://www.python.org/">
-        <img src="https://img.shields.io/badge/python-3.10-yellow" alt="Python 3.10+">
+        <img src="https://img.shields.io/badge/python-3.10+-yellow" alt="Python 3.10+">
     </a>
 </div>
 
@@ -112,12 +112,12 @@ Familiar? There it is!
                           import it.
 - **optional**: Not required, but if it is present, some features can be used without issue.
 
-## Highlights
-- [PyScript plugin for Acode](https://acode.app/plugin/acode.plugin.pyscript)
+## Highlights 🎨
+- [PyScript plugin for Acode (Ace Editor)](https://github.com/azzammuhyala/pyscript/releases/download/v1.13.1/plugin.zip)
 - [PyScript nano for Linux](https://github.com/azzammuhyala/pyscript/tree/main/highlight/nano)
 - [PyScript extension for VSCode](https://marketplace.visualstudio.com/items?itemName=azzammuhyala.pyslang)
 
-## Behind it 🕰️
+## Behind It 🕰️
 This language created from based up on a
 [YouTube tutorial](https://www.youtube.com/playlist?list=PLZQftyCk7_SdoVexSmwy_tBgs7P0b97yD) (check more on GitHub
 [here](https://github.com/davidcallanan/py-myopl-code) by **@davidcallanan**). At least, it takes about 6 months to

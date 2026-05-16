@@ -4,6 +4,7 @@ from pyscript.core.nodes import (
     PysNode, PysNumberNode, PysStringNode, PysKeywordNode, PysIdentifierNode, PysDictionaryNode, PysSetNode,
     PysListNode, PysTupleNode, PysCallNode, PysUnaryOperatorNode, PysBinaryOperatorNode, PysEllipsisNode
 )
+from pyscript.core.position import PysPosition
 from pyscript.core.pysbuiltins import pys_builtins
 from pyscript.core.token import TOKENS, REVERSE_TOKENS
 
@@ -21,13 +22,11 @@ get_identifier = {
     'nanj': pys_builtins.nanj
 }.get
 
-def _error(exception, position):
-    return type(exception)(
-        '{} (ln {}, col {})'.format(
-            exception,
-            position.start_line,
-            position.start_column
-        )
+def _error(exception: type[BaseException] | BaseException, position: PysPosition) -> BaseException:
+    return (
+        exception(f'(ln {position.start_line}, col {position.start_column})')
+        if isinstance(exception, type) else
+        type(exception)(f'{exception} (ln {position.start_line}, col {position.start_column})')
     )
 
 def visit(node: PysNode) -> Any:

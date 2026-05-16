@@ -1,8 +1,11 @@
-s = """PyScript - AzzamMuhyala
+s = """PyScript - Azzam Muhyala
 
-Code won't be completed without hard work.
-Python can't be fast enough.
-If it's too slow, it's probably of the algorithm code.
-Large projects can be achieved by small teams."""
+Work won't get done without that grind.
+Digital snake is not as fast as California.
+Big projects can happen with a tiny crew.
+Too much yapping makes it hard to read.
+If it works, don't touch it.
+Optimization is key.
+Copy and paste."""
 
 print(s)

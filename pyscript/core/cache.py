@@ -1,5 +1,5 @@
 from .bases import Pys
-from .constants import PYSCRIPT_PATH, CORE_PATH, LIBRARIES_PATH, SITE_PACKAGES_PATH, DEFAULT
+from .constants import PYSCRIPT_PATH, CORE_PATH, LIBRARIES_PATH, SITE_PACKAGES_PATH, CONFIGURATIONS_PATH, DEFAULT
 from .utils.debug import print_display, print_traceback, clear_shell
 from .utils.decorators import inheritable, singleton
 from .utils.path import base
@@ -31,6 +31,7 @@ pys_sys.pyscript_path = PYSCRIPT_PATH
 pys_sys.core_path = CORE_PATH
 pys_sys.libraries_path = LIBRARIES_PATH
 pys_sys.site_packages_path = SITE_PACKAGES_PATH
+pys_sys.configurations_path = CONFIGURATIONS_PATH
 pys_sys.executable = f'{base(sys.executable)} -m pyscript'
 pys_sys.ps1 = '>>> '
 pys_sys.ps2 = '... '

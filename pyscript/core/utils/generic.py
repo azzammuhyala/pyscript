@@ -40,6 +40,9 @@ def get_sequence(object: Sequence, key: Any, default: Optional[Any] = None) -> A
     except LookupError:
         return default
 
+def boundary(value: Any, min_value: Any, max_value: Any) -> Any:
+    return max(min_value, min(max_value, value))
+
 def is_environ(key: str) -> bool:
     return os.environ.get(key) is not None
 

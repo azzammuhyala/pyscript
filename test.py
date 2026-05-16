@@ -1,11 +1,9 @@
 with open('./test.pys', 'r') as file:
     source = file.read()
 
-import pyscript
 import sys
-
-import pprint
 import subprocess
+import pyscript
 import pygments
 import pygments.formatters as formatters
 
@@ -40,15 +38,13 @@ def update_snippets():
         content = []
 
         for name, snippet in data.items():
+            type = name.split(' - ')[0].lower()
             prefix = snippet['prefix']
             body = snippet['body']
             if isinstance(body, list):
                 body = '\n'.join(body)
             body = pyscript.core.utils.string.indent(body, 1, '\t')
-            # type = name.split(' - ')[0].lower()
             content.append(f'snippet {prefix}\n{body}')
 
         content = '\n\n'.join(content) + '\n'
         file.write(f'export const snippets = {content!r};')
-
-update_snippets()

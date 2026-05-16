@@ -1,10 +1,9 @@
 from .bases import PysEditor
 from ..buffer import PysFileBuffer
-from ..constants import GUI_GEOMETRY_PATH, ICON_PATH
+from ..constants import ICON_PATH
 from ..highlight import PygmentsPyScriptStyle, PygmentsPyScriptLexer
+from ..utils.generic import boundary
 from ..version import __version__
-
-import re
 
 try:
     from tkinter import Tk, Scrollbar, Text, messagebox
@@ -15,6 +14,8 @@ try:
         def __init__(self, file: PysFileBuffer, colored: bool = True) -> None:
             PysEditor.__init__(self, file, colored)
             Tk.__init__(self)
+
+            self.load_configuration()
 
             def on_save(event=None):
                 text = self.text.get('1.0', 'end')
@@ -27,15 +28,24 @@ try:
                     answer = messagebox.askyesnocancel('Unsaved changes', 'File has been modified. Save before exit?')
                     if answer is True:
                         on_save()
+                        self.save_configuration()
                         self.destroy()
                     elif answer is False:
+                        self.save_configuration()
                         self.destroy()
                 else:
+                    self.save_configuration()
                     self.destroy()
 
             def on_configure(event):
                 if event.widget == self:
-                    save_geometry(event.x, event.y, event.width, event.height, self.wm_state() == 'zoomed')
+                    zoom = self.wm_state() == 'zoomed'
+                    self.set_configuration('zoom', zoom)
+                    if not zoom:
+                        self.set_configuration(
+                            'gui-geometry',
+                            f'{event.width}x{event.height}+{event.x}+{event.y}'
+                        )
 
             def on_modified(event=None):
                 text = self.text
@@ -44,18 +54,19 @@ try:
                     update()
                     text.edit_modified(False)
 
-            def on_change_font(value, limit):
+            def on_change_font(value):
                 def wrapper(event=None):
                     font = self.font
-                    size = font.cget('size')
-                    if limit(size):
-                        font.config(size=size + value)
+                    size = boundary(font.cget('size') + value, 1, 127)
+                    font.config(size=size)
+                    self.set_configuration('gui-size-font', size)
                     return 'break'
                 return wrapper
 
             def on_toggle_wrap(event=None):
-                self.wrapped = not self.wrapped
-                self.text.configure(wrap='char' if self.wrapped else 'none')
+                wrap = self.text.cget('wrap') != 'char'
+                self.text.configure(wrap='char' if wrap else 'none')
+                self.set_configuration('wrap', wrap)
                 return 'break'
 
             def on_page_up(event=None):
@@ -76,27 +87,17 @@ try:
                 text.insert('insert', '\n' + line[:len(line) - len(line.lstrip())])
                 return 'break'
 
-            def save_geometry(left, top, width, height, zoom):
-                try:
-                    with open(GUI_GEOMETRY_PATH, 'w') as f:
-                        zoom = bool(zoom)
-                        if not zoom:
-                            self.last_geometry = f'{width}x{height}+{left}+{top}'
-                        f.write(f'{self.last_geometry},{int(zoom)}')
-                except:
-                    pass
-
             self.lexer = PygmentsPyScriptLexer()
-            self.font = Font(family='Consolas', size=10)
+            self.font = Font(family='Consolas', size=boundary(self.get_configuration('gui-size-font', 10), 1, 127))
             self.scrollbar = Scrollbar(self)
             self.text = Text(
                 self,
                 undo=True,
                 width=120,
                 font=self.font,
-                wrap='char',
-                bg='#171717',
-                fg='#f1f1f1',
+                wrap='char' if self.get_configuration('wrap', True) else 'none',
+                bg='#000000',
+                fg='#ffffff',
                 insertbackground='white',
                 yscrollcommand=self.scrollbar.set
             )
@@ -119,34 +120,26 @@ try:
             self.bind_all('<Control-s>', on_save)
             self.bind_all('<Control-W>', on_toggle_wrap)
             self.bind_all('<Control-w>', on_toggle_wrap)
-            self.bind_all('<Control-minus>', on_change_font(-1, lambda size : size > 1))
-            self.bind_all('<Control-underscore>', on_change_font(-5, lambda size : size > 1))
-            self.bind_all('<Control-equal>', on_change_font(1, lambda size : size < 128))
-            self.bind_all('<Control-plus>', on_change_font(5, lambda size : size < 128))
-
-            try:
-                with open(GUI_GEOMETRY_PATH, 'r') as f:
-                    width, height, left, top, zoom = map(
-                        int,
-                        re.match(r'(\d{1,7})x(\d{1,7})\+(-?\d{1,7})\+(-?\d{1,7}),(0|1)', f.read(64)).groups()
-                    )
-                    self.last_geometry = f'{width}x{height}+{left}+{top}'
-            except:
-                left = self.winfo_screenwidth() // 2 - 250
-                top = self.winfo_screenheight() // 2 - 250
-                zoom = False
-                self.last_geometry = f'500x500+{left}+{top}'
-                save_geometry(left, top, 500, 500, zoom)
+            self.bind_all('<Control-minus>', on_change_font(-1))
+            self.bind_all('<Control-underscore>', on_change_font(-5))
+            self.bind_all('<Control-equal>', on_change_font(1))
+            self.bind_all('<Control-plus>', on_change_font(5))
 
             try:
                 self.wm_iconbitmap(ICON_PATH)
             except:
                 pass
 
-            if zoom:
+            if self.get_configuration('zoom', False):
                 self.wm_state('zoomed')
 
-            self.wm_geometry(self.last_geometry)
+            self.wm_geometry(
+                self.get_configuration(
+                    'gui-geometry',
+                    f'500x500+{self.winfo_screenwidth() // 2 - 250}+{self.winfo_screenheight() // 2 - 250}'
+                )
+            )
+
             self.wm_minsize(300, 250)
             self.wm_protocol('WM_DELETE_WINDOW', on_close)
 

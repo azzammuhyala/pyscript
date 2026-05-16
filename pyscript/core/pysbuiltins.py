@@ -115,7 +115,7 @@ class PysHelper(PysPrinter):
         if not (args or kwargs):
             print(
                 "Welcome to the PyScript programming language! "
-                "This is the help utility directly to the Python help.\n\n"
+                "This is the help utility directly to the Python's help.\n\n"
                 "To get help on a specific object, type 'help(object)'.\n"
                 "To get the list of builtin functions, types, exceptions, and other objects, type 'help(\"builtins\")'."
             )
