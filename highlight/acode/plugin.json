@@ -3,7 +3,7 @@
   "id": "acode.plugin.pyscript",
   "name": "PyScript",
   "main": "src/main.js",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "repository": "https://github.com/azzammuhyala/pyscript",
   "icon": "PyScript.png",
   "minVersionCode": 290,

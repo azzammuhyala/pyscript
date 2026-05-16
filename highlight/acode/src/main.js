@@ -2,14 +2,30 @@ import { extensions, highlightRules } from './highlight';
 import { snippets } from './snippets';
 import plugin from '../plugin.json';
 
-const url = acode.require('url');
-const aceModes = acode.require('aceModes');
-const snippetManager = ace.require('ace/snippets').snippetManager;
-
 class PyScriptPlugin {
 
     async init(baseUrl, $page, options) {
+        if (!options.firstInit) return;
+
+        this.destroyed = false;
         $page.id = plugin.id;
+
+        // icon
+
+        const iconPath = baseUrl + 'PyScript.png';
+        acode.addIcon('pyscript-icon', iconPath);
+        this.iconStyle = document.createElement('style');
+        this.iconStyle.textContent = `
+        .file_type_pyscript::before {
+            display: inline-block;
+            content: '';
+            background-image: url(${iconPath});
+            background-size: contain;
+            background-repeat: no-repeat;
+            height: 1em;
+            width: 1em;
+        }`;
+        document.head.append(this.iconStyle);
 
         // highlight
 
@@ -81,9 +97,8 @@ class PyScriptPlugin {
 
                 tokenizer.getLineTokens = function(line, state) {
                     const result = originalGetLineTokens(line, state);
-                    if (singleStringStates.includes(result.state) && !line.endsWith('\\')) {
+                    if (singleStringStates.includes(result.state) && !line.endsWith('\\'))
                         result.state = 'start';
-                    }
                     return result;
                 };
             };
@@ -93,23 +108,6 @@ class PyScriptPlugin {
         });
 
         aceModes.addMode('pyscript', extensions, 'PyScript');
-
-        // icon
-
-        const iconPath = baseUrl + 'PyScript.png';
-        acode.addIcon('pyscript-icon', iconPath);
-        this.iconStyle = document.createElement('style');
-        this.iconStyle.textContent = `
-        .file_type_pyscript::before {
-            display: inline-block;
-            content: '';
-            background-image: url(${iconPath});
-            background-size: contain;
-            background-repeat: no-repeat;
-            height: 1em;
-            width: 1em;
-        }`;
-        document.head.append(this.iconStyle);
 
         // snippet
 
@@ -125,23 +123,22 @@ class PyScriptPlugin {
     }
 
     async destroy() {
-        this.iconStyle.remove();
-        snippetManager.unregister(this.snippet, 'pyscript');
         this.updateSession('text');
+        this.iconStyle.remove();
         aceModes.removeMode('pyscript');
+        snippetManager.unregister(this.snippet, 'pyscript');
+        this.destroyed = true;
     }
 
     applyPluginToFile(file) {
-        if (url.extname(file.name) === '.pys') {
+        if (url.extname(file.name) === '.pys')
             file.session.setMode(`ace/mode/pyscript`);
-        }
     }
 
     updateSession(mode) {
+        if (this.destroyed) return;
         for (const file of editorManager.files) {
-            if (!file || !file.name) {
-                continue
-            }
+            if (!file || !file.name) continue;
             this.applyPluginToFile(file);
         }
         editorManager.emit('update');
@@ -152,29 +149,32 @@ class PyScriptPlugin {
 const waitForAcodeReady = async () => {
     while (
         !window.acode ||
-        !window.acode.setPluginInit ||
+        !window.ace ||
         !window.editorManager ||
+        !window.acode.setPluginInit ||
+        !window.acode.setPluginUnmount ||
         !window.acode.require ||
+        !window.ace.require ||
         document.readyState === 'loading'
-    ) {
-        await new Promise((resolve) => setTimeout(resolve, 250));
-    }
+    ) await new Promise((resolve) => setTimeout(resolve, 250));
 };
 
-if (window.acode) {
-    waitForAcodeReady().then(() => {
-        const pyScriptPlugin = new PyScriptPlugin();
+waitForAcodeReady().then(() => {
+    window.url = acode.require('url');
+    window.aceModes = acode.require('aceModes');
+    window.snippetManager = ace.require('ace/snippets').snippetManager;
 
-        acode.setPluginInit(plugin.id, async (baseUrl, $page, options) => {
-            await pyScriptPlugin.init(
-                baseUrl.endsWith('/') ? baseUrl : baseUrl + '/',
-                $page,
-                options
-            );
-        });
+    const pyScriptPlugin = new PyScriptPlugin();
 
-        acode.setPluginUnmount(plugin.id, () => {
-            pyScriptPlugin.destroy();
-        });
+    acode.setPluginInit(plugin.id, async (baseUrl, $page, options) => {
+        await pyScriptPlugin.init(
+            baseUrl.endsWith('/') ? baseUrl : baseUrl + '/',
+            $page,
+            options
+        );
     });
-}
+
+    acode.setPluginUnmount(plugin.id, () => {
+        pyScriptPlugin.destroy();
+    });
+});

@@ -8,4 +8,9 @@ This is a syntax highlighting for PyScript programming language! See more about 
 > NOTE: I didn't find a way to fix the problem of the plugin not being active in a previously opened pyscript file when
 you first start the application. Instead, you'll need to reopen the pyscript file to activate the plugin.
 
+> NOTE: This plugin has been rejected by Acode because it uses the Ace Editor engine, which they abandoned and switched
+to CodeMirror. I've tried to adapt it to CodeMirror compatibility, but unfortunately, i'm running into a lot of
+debugging issues. I've decided to discontinue this project. You can download the last final zip file from this
+[GitHub](https://github.com/azzammuhyala/pyscript/releases/download/v1.13.1/plugin.zip).
+
 <!-- Compile the plugin: `npm run build` -->
