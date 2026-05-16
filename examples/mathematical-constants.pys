@@ -179,6 +179,97 @@ func getPiFromMachin() {
     return 16*s1 - 4*s2
 }
 
+func getPiFromNilakanthaSeries() {
+
+    #                5
+    #              10
+    #            <-----\
+    #             \
+    #              \         n + 1           4
+    # pi ~= 3 +     >    (-1)      --------------------
+    #              /               2n (2n + 1) (2n + 2)
+    #             /
+    #            <-----/
+    #              n=1
+
+    s = 3
+    for (n in range(1, 100001)) {
+        a = 2*n
+        s += (-1)**(n - 1) * 4/(a * (a + 1) * (a + 2))
+    }
+
+    return s
+}
+
+func getPiFromVietesFormula() {
+
+    #         100
+    #       _______
+    #        |   |  a
+    # 2      |   |   n
+    # -- ~=  |   |  --
+    # pi     |   |  2
+    #        |   |
+    #       --- ---
+    #         n=1
+
+    # Where:
+
+    # a     __
+    #  1 = V 2
+
+    # a         ___
+    #  n + 1 = V 2
+    #             n
+
+    m = 1
+    for (n in range(1, 101)) {
+        a = 2**0.5
+        for (_ in range(n - 1)) {
+            a = (2 + a)**0.5
+        }
+        m *= a / 2
+    }
+
+    return 2 / m
+}
+
+func getPiFromArctangentIdentity() {
+
+    #           4                 4                          4
+    #         10                10                         10
+    #       <-----\           <-----\                    <-----\
+    #        \          n      \               n          \               n
+    # pi      \     (-1)        \          (-1)            \          (-1)
+    # -- ~=    >    ------ +     >    ---------------- +    >    ----------------
+    # 2       /     2n + 1      /               2n + 1     /               2n + 1
+    #        /                 /      (2n + 1) 2          /      (2n + 1) 3
+    #       <-----/           <-----/                    <-----/
+    #         n=0               n=0                        n=0
+
+    # From:
+
+    # arctan(1) + arctan(2) + artan(3) = pi
+
+    s1 = 0
+    for (n in range(10001)) {
+        s1 += ((-1)**n) / (2*n + 1)
+    }
+
+    s2 = 0
+    for (n in range(10001)) {
+        a = 2*n + 1
+        s2 += ((-1)**n) / (a * 2**a)
+    }
+
+    s3 = 0
+    for (n in range(10001)) {
+        a = 2*n + 1
+        s3 += ((-1)**n) / (a * 3**a)
+    }
+
+    return 2*(s1 + s2 + s3)
+}
 
 func getPiFromCollisionSimulation() {
 
@@ -191,7 +282,6 @@ func getPiFromCollisionSimulation() {
         throw ValueError("invalid value of digits or mass ratio")
     }
 
-    import sys
     import os
 
     os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
@@ -320,6 +410,109 @@ func getPiFromCollisionSimulation() {
     return result
 }
 
+func getPiFromDartSimulation() {
+
+    # Source: me..
+
+    THROWS = 1_000
+
+    if (THROWS < 1) {
+        throw ValueError("invalid value of throws")
+    }
+
+    import random
+    import os
+
+    os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+
+    try {
+        # pip install pygame
+        import pygame
+    } catch {
+        return nan
+    }
+
+    pygame.init()
+
+    SIZE = 500
+    FPS = 60
+
+    RADIUS = SIZE / 2
+
+    BLACK = (0, 0, 0)
+    GRAY = (100, 100, 100)
+    WHITE = (255, 255, 255)
+    RED = (255, 0, 0)
+    GREEN = (0, 255, 0)
+    BLUE = (0, 0, 255)
+
+    screen = pygame.display.set_mode((SIZE, SIZE))
+
+    pygame.display.set_caption('Dart Simulation')
+
+    font = pygame.font.SysFont('Arial', 30)
+    clock = pygame.time.Clock()
+
+    dartSurface = pygame.Surface(screen.get_size())
+    dartSurface.fill(GRAY)
+    pygame.draw.circle(dartSurface, BLACK, (RADIUS, RADIUS), RADIUS)
+
+    result = nan
+    landOnCircle = 0
+    landOnRectagle = 0
+
+    running = True
+
+    while (running) {
+
+        for (event in pygame.event.get()) {
+            if (event.type == pygame.QUIT) {
+                running = False
+                result = nan
+            }
+        }
+
+        x = random.randint(0, SIZE)
+        y = random.randint(0, SIZE)
+
+        dx = x - RADIUS
+        dy = y - RADIUS
+
+        landOnRectagle += 1
+        if (dx * dx + dy * dy <= RADIUS * RADIUS) {
+            landOnCircle += 1
+            color = GREEN
+        } else {
+            color = RED
+        }
+
+        result = (4 * landOnCircle) / landOnRectagle
+
+        dartSurface.set_at((x, y), color)
+        screen.blit(dartSurface)
+        screen.blit(
+            font.render(
+                'C: {:,}, R: {:,}, pi: {}'.format(
+                    landOnCircle,
+                    landOnRectagle,
+                    result
+                ),
+                True, WHITE
+            )
+        )
+
+        pygame.display.flip()
+        clock.tick(FPS)
+
+        if (landOnRectagle >= THROWS) {
+            running = False
+        }
+    }
+
+    pygame.quit()
+    return result
+}
+
 func getEulerFromTaylorSeries() {
 
     #        17
@@ -349,6 +542,16 @@ func getEulerFromGrowthLimits() {
 
     n = 1000000
     return (1 + 1/n)**n
+}
+
+func getPhi() {
+
+    #            __
+    #       1 + V 5
+    # phi = -------
+    #          2
+
+    return (1 + 5**0.5)/2
 }
 
 func getPhiFromFibonaci() {
@@ -391,17 +594,7 @@ func getPhiFromNestedRadical() {
     return n**0.5
 }
 
-func getPhi() {
-
-    #            __
-    #       1 + V 5
-    # phi = -------
-    #          2
-
-    return (1 + 5**0.5)/2
-}
-
-print(' PI '.center(60, '='))
+print(' PI '.center(50, '='))
 print('Leibniz Series:',                    getPiFromLeibnizSeries())
 print('Chudnovsky Algorithm:',              getPiFromChudnovskyAlgorithm())
 print('Bailey Borwein Plouffe:',            getPiFromBaileyBorweinPlouffe())
@@ -410,13 +603,17 @@ print('Srinivasa Ramanujan Approximation:', getPiFromSrinivasaRamanujanApproxima
 print('Leonhard Euler:',                    getPiFromLeonhardEuler())
 print('Wallis Product:',                    getPiFromWallisProduct())
 print('Machin:',                            getPiFromMachin())
+print('Nilakantha Series:',                 getPiFromNilakanthaSeries())
+print('Vietes Formula:',                    getPiFromVietesFormula())
+print('Arctangent Identity:',               getPiFromArctangentIdentity())
 print('Collision Simulation:',              getPiFromCollisionSimulation())
+print('Dart Simulation:',                   getPiFromDartSimulation())
 
-print(' EULER '.center(60, '='))
+print(' EULER '.center(50, '='))
 print('Taylor Series:', getEulerFromTaylorSeries())
 print('Growth Limits:', getEulerFromGrowthLimits())
 
-print(' PHI '.center(60, '='))
+print(' PHI '.center(50, '='))
 print('Phi ((1+sqrt(5))/2):', getPhi())
 print('Fibonaci:',            getPhiFromFibonaci())
 print('Continued Fraction:',  getPhiFromContinuedFraction())
