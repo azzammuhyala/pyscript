@@ -4,12 +4,12 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>PyScript Shell Web</title>
+        <title>PyScript Shell</title>
         <link rel="icon" type="image/png"
             href="https://github.com/azzammuhyala/pyscript/blob/main/PyScript.png?raw=true">
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
-        <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.min.css">
+        <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
         <style>
             body {
                 margin: 0;
@@ -34,7 +34,7 @@
     <body>
         <div id="terminal-container"></div>
         <script type="module">
-            const pyodideURL = 'https://cdn.jsdelivr.net/pyodide/v0.29.4/full';
+            const pyodideURL = 'https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.mjs';
 
             const bind = (object, methodName) => object[methodName].bind(object);
             const dedent = (string) => {
@@ -70,10 +70,10 @@
             const linesBuffer = window.linesBuffer;
             const lineBuffer = [];
             let cursor = 0;
+            const above = () => cursor > 0;
+            const below = () => cursor < lineBuffer.length;
 
             terminal.onData(data => {
-                const above = () => cursor > 0;
-                const below = () => cursor < lineBuffer.length;
 
                 switch (data) {
 
@@ -182,7 +182,7 @@
 
             terminal.write('Loading pyodide\r\n');
 
-            const { loadPyodide } = await import(`${pyodideURL}/pyodide.mjs`);
+            const { loadPyodide } = await import(pyodideURL);
             const pyodide = await loadPyodide();
 
             window.pyodide = pyodide;
@@ -249,14 +249,14 @@
                 pys_sys.clearhook = lambda : js.terminal.clear()
 
                 js.terminal.clear()
-                print(f'Welcome to the PyScript shell using Pyodide {js.pyodide.version}')
+                print(f'Welcome to the PyScript Shell using Xterm.js and Pyodide {js.pyodide.version}')
                 js.exitCode = pyscript.pys_shell(pyscript.undefined, pyscript.CLASSIC_LINE_SHELL)
             `));
 
             terminal.write(
                 window.exitCode === 0 ?
-                `\r\n\x1b[36m[Shell finished with exit code 0]\x1b[0m\r\n` :
-                `\r\n\x1b[31m[Shell finished with exit code ${JSON.stringify(window.exitCode)}]\x1b[0m\r\n`
+                `\r\n\x1b[36m** Process exited - Return Code: 0 **\x1b[0m\r\n` :
+                `\r\n\x1b[31m** Process exited - Return Code: ${JSON.stringify(window.exitCode)} **\x1b[0m\r\n`
             );
         </script>
     </body>
