@@ -1,12 +1,7 @@
 # Change Logs
 
-## [1.13.1] - 16/05/2026
-
-### Added
-- `__builtins__` is available in the module namespace.
-- The editor can save multiple configurations.
+## [1.13.2] - 27/05/2026
 
 ### Fixed
-- Changed the order of `instanceof` operation.
 - Fixed some bugs.
 - _etc._

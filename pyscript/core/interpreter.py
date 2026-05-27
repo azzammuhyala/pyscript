@@ -22,15 +22,11 @@ from typing import Any, Callable
 
 T_STRING = TOKENS['STRING']
 T_AND = TOKENS['DOUBLE_AMPERSAND']
+T_INCREMENT = TOKENS['DOUBLE_PLUS']
 T_NULLISH = TOKENS['DOUBLE_QUESTION']
 T_OR = TOKENS['DOUBLE_PIPE']
 T_CE = TOKENS['EQUAL_TILDE']
 T_NCE = TOKENS['EXCLAMATION_TILDE']
-
-get_incremental_function = {
-    TOKENS['DOUBLE_PLUS']: increment,
-    TOKENS['DOUBLE_MINUS']: decrement
-}.__getitem__
 
 get_value_from_keyword = {
     'True': True,
@@ -381,18 +377,15 @@ def visit_IncrementalNode(node: PysIncrementalNode, context: PysContext) -> PysR
     result._context = context
     result._position = nposition = node.position
     with result:
-        function = get_incremental_function(node.operand.type)
+        function = increment if node.operand.type == T_INCREMENT else decrement
         handle_call(function, context, nposition)
         increast_value = function(value)
-
-        if node.operand_position == 'left':
-            value = increast_value
 
         register(visit_declaration_from_AssignmentNode(ntarget, context, increast_value))
         if should_return():
             return result
 
-        return result.success(value)
+        return result.success(increast_value if node.operand_position == 'left' else value)
 
     return result
 

@@ -2,8 +2,9 @@ from .token import TOKENS
 from .utils.ansi import BOLD, acolor
 
 from operator import (
-    not_, is_, is_not, eq, ne, lt, gt, le, ge, add, sub, mul, truediv, floordiv, pow, matmul, mod, and_, or_, xor, lshift,
-    rshift, iadd, isub, imul, itruediv, ifloordiv, ipow, imatmul, imod, iand, ior, ixor, ilshift, irshift, pos, neg, inv
+    not_, is_, is_not, eq, ne, lt, gt, le, ge, add, sub, mul, truediv, floordiv, pow, matmul, mod, and_, or_, xor,
+    lshift, rshift, iadd, isub, imul, itruediv, ifloordiv, ipow, imatmul, imod, iand, ior, ixor, ilshift, irshift, pos,
+    neg, inv
 )
 from types import MappingProxyType
 

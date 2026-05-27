@@ -7,6 +7,7 @@ from .utils.string import indent
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
+    # circular import problem solved
     from .context import PysContext
     from .position import PysPosition
     from .results import PysRunTimeResult

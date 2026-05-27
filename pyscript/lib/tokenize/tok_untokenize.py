@@ -10,14 +10,14 @@ from typing import Iterable
 @inheritable
 @singleton
 class TokenValueError:
-
     def __repr__(self):
         return '\\ERROR'
 
 token_value_error = TokenValueError()
 
-def untokenize(iterable: Iterable[PysToken]) -> str:
+def untokenize(iterable: Iterable[PysToken], *, indent: int = 4) -> str:
     iterable = tuple(iterable)
+    indent_character =  ' ' * indent
 
     parts = []
     add_space = False
@@ -51,7 +51,7 @@ def untokenize(iterable: Iterable[PysToken]) -> str:
                 if brackets_stack > 0 and is_right_bracket(get_sequence(iterable, i + 1, token).type) else
                 brackets_stack
             )
-            parts.append(f'\n{"    " * stack}')
+            parts.append(f'\n{indent_character * stack}')
             newline = True
             add_space = False
             continue

@@ -255,6 +255,8 @@ try:
                 if os.path.isfile(HISTORY_PATH):
 
                     def add_to_string():
+                        if not lines:
+                            return
                         strings.append('\n'.join(lines))
                         lines.clear()
 
@@ -267,8 +269,7 @@ try:
                                 line = line[1:]
                             lines.append(line)
 
-                        if lines:
-                            add_to_string()
+                        add_to_string()
 
                 else:
                     update_history = True

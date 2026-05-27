@@ -195,6 +195,7 @@ def require(context, position, name):
                 except BaseException as e:
                     raise ImportError(f"Cannot import module named {name!r}: {e}") from e
 
+                # circular import problem solved
                 from .runner import pys_runner
 
                 symbol_table, module = new_module_namespace(file=module_path, name=base(path))
@@ -256,6 +257,7 @@ def breakpoint(context, position):
     if getattr(pys_sys, '__running_breakpoint__', False):
         raise RuntimeError("another breakpoint is still running")
 
+    # circular import problem solved
     from .runner import pys_runner
 
     flags = context.flags
@@ -373,7 +375,7 @@ def globals(context, position):
         result = {}
 
         while symbol_table:
-            result |= symbol_table.symbols
+            result = symbol_table.symbols | result
             symbol_table = symbol_table.parent
 
         return result
@@ -431,6 +433,7 @@ def exec(context, position, source, globals=None):
     if not isinstance(globals, optional_mapping):
         raise TypeError("exec(): globals must be dict")
 
+    # circular import problem solved
     from .runner import pys_runner
 
     result = pys_runner(
@@ -460,6 +463,7 @@ def eval(context, position, source, globals=None):
     if not isinstance(globals, optional_mapping):
         raise TypeError("eval(): globals must be dict")
 
+    # circular import problem solved
     from .runner import pys_runner
 
     result = pys_runner(

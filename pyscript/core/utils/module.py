@@ -1,4 +1,3 @@
-from ..cache import pys_sys
 from .path import getcwd, extension, normpath
 
 import os
@@ -20,6 +19,9 @@ def get_module_candidate(path: str, entry: str = '__init__') -> str | None:
         return candidate
 
 def find_module_path(filename: str | None, name: str, entry: str = '__init__') -> tuple[str | None, str | None]:
+    # circular import problem solved
+    from ..cache import pys_sys
+
     for path in pys_sys.path:
         path = normpath(path, name)
         module_path = get_module_candidate(path, entry)

@@ -7,6 +7,7 @@ from .utils.generic import setimuattr
 from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
+    # circular import problem solved
     from .pystypes import jsdict
 
 @immutable

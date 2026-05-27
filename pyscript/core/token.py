@@ -6,6 +6,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
+    # circular import problem solved
     from .position import PysPosition
 
 DOUBLE = 2**8
@@ -102,7 +103,7 @@ class PysToken(Pys):
         if TYPECHECK_STACK > 0:
             if not isinstance(type, int):
                 raise TypeError('type must be integer')
-            # circular import solved
+            # circular import problem solved
             from .position import PysPosition
             if not isinstance(position, PysPosition):
                 raise TypeError('position must be pyscript.core.position.PysPosition')

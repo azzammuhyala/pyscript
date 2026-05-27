@@ -14,7 +14,7 @@ def pyscript_tester():
         sys.exit(code)
 
 def pyscript_highlight_tester():
-    lexer = pyscript.PygmentsPyScriptShellLexer()
+    lexer = pyscript.PygmentsPyScriptLexer()
     formatter = formatters.TerminalTrueColorFormatter(style=pyscript.PygmentsPyScriptStyle, full=True)
     result = pygments.highlight(source, lexer, formatter)
     sys.stdout.write(result)
@@ -38,7 +38,7 @@ def update_snippets():
         content = []
 
         for name, snippet in data.items():
-            type = name.split(' - ')[0].lower()
+            # type = name.split(' - ')[0].lower()
             prefix = snippet['prefix']
             body = snippet['body']
             if isinstance(body, list):

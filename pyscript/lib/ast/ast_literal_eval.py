@@ -1,5 +1,4 @@
 from pyscript.core.interpreter import get_value_from_keyword
-from pyscript.core.mapping import GET_BINARY_FUNCTION, GET_UNARY_FUNCTION
 from pyscript.core.nodes import (
     PysNode, PysNumberNode, PysStringNode, PysKeywordNode, PysIdentifierNode, PysDictionaryNode, PysSetNode,
     PysListNode, PysTupleNode, PysCallNode, PysUnaryOperatorNode, PysBinaryOperatorNode, PysEllipsisNode
@@ -11,7 +10,8 @@ from pyscript.core.token import TOKENS, REVERSE_TOKENS
 from types import EllipsisType
 from typing import Any, Callable
 
-is_arithmetic = frozenset([TOKENS['PLUS'], TOKENS['MINUS']]).__contains__
+T_ADD = TOKENS['PLUS']
+T_SUB = TOKENS['MINUS']
 
 get_identifier = {
     'Ellipsis': pys_builtins.Ellipsis,
@@ -72,14 +72,18 @@ def visit_CallNode(node: PysCallNode) -> set:
 
 def visit_UnaryOperatorNode(node: PysUnaryOperatorNode) -> Any:
     operand = node.operand.type
-    if is_arithmetic(operand):
-        return GET_UNARY_FUNCTION(operand)(visit(node.value))
+    if operand == T_SUB:
+        return -visit(node.value)
+    elif operand == T_ADD:
+        return +visit(node.value)
     raise _error(ValueError(f"invalid unary operator node: {REVERSE_TOKENS[operand]}"), node.position)
 
 def visit_BinaryOperatorNode(node: PysBinaryOperatorNode) -> Any:
     operand = node.operand.type
-    if is_arithmetic(operand):
-        return GET_BINARY_FUNCTION(operand)(visit(node.left), visit(node.right))
+    if operand == T_ADD:
+        return visit(node.left) + visit(node.right)
+    elif operand == T_SUB:
+        return visit(node.left) - visit(node.right)
     raise _error(ValueError(f"invalid binary operator node: {REVERSE_TOKENS[operand]}"), node.position)
 
 def visit_EllipsisNode(node: PysEllipsisNode) -> EllipsisType:

@@ -175,6 +175,7 @@ class PysExecuteResult(PysResult):
                 elif type(self.error.exception) is SystemExit:
                     return self.error.exception.code, True
                 elif (excepthook := pys_sys.excepthook) is not None:
+                    # circular import problem solved
                     from .handlers import handle_call
                     handle_call(excepthook, context, position)
                     excepthook(*get_traceback_info(self.error))
