@@ -535,10 +535,9 @@ func getEulerFromTaylorSeries() {
 
 func getEulerFromGrowthLimits() {
 
-    #              /     1 \ n
-    # e ~=  lim   |  1 + -  |
-    #           6  \     n /
-    #      n->10
+    #            6    /     1 \ n
+    # e ~= n = 10  : |  1 + -  |
+    #                 \     n /
 
     n = 1000000
     return (1 + 1/n)**n
@@ -556,11 +555,11 @@ func getPhi() {
 
 func getPhiFromFibonaci() {
 
-    #                 F
-    #                  n + 1
-    # phi ~=    lim   ------
-    #        n->10000   F
-    #                    n
+    #                    F
+    #                     n + 1
+    # phi ~= n = 10000 : ------
+    #                      F
+    #                       n
 
     a, b = 0, 1
     for (_ in range(10000)) {
