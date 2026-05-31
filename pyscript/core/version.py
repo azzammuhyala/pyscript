@@ -6,9 +6,9 @@ from types import MappingProxyType
 
 import re
 
-__version__ = '1.13.2'
-__date__ = '27 May 2026, 12:30 UTC+7'
-__author__ = ('Azzam Muhyala',)
+__version__ = '1.13.3'
+__date__ = '31 May 2026, 22:30 UTC+7'
+__author__ = ('AzzamMuhyala',)
 
 version = pys_sys.version = f'{__version__} ({__date__})'
 

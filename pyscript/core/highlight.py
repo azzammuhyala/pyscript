@@ -204,7 +204,7 @@ try:
                     bygroups(Number.Affix, Number.Hex, Number.Affix)
                 ),
                 (
-                    rf'\b((?:(?:{_integer})?\.{_integer}|{_integer}\.){_scientific}?)({_imaginary})\b',
+                    rf'(?<![\w.])((?:(?:{_integer})?\.{_integer}|{_integer}\.){_scientific}?)({_imaginary})(?![\w.])',
                     bygroups(Number.Float, Number.Affix)
                 ),
                 (

@@ -113,7 +113,7 @@ Familiar? There it is!
 - **optional**: Not required, but if it is present, some features can be used without issue.
 
 ## Highlights 🎨
-- [PyScript plugin for Acode (Ace Editor)](https://github.com/azzammuhyala/pyscript/releases/download/v1.13.1/plugin.zip)
+- [PyScript plugin for Acode (Ace Editor)](https://github.com/azzammuhyala/pyscript/releases/download/v1.13.3/plugin-1.0.2.zip)
 - [PyScript nano for Linux](https://github.com/azzammuhyala/pyscript/tree/main/highlight/nano)
 - [PyScript extension for VSCode](https://marketplace.visualstudio.com/items?itemName=azzammuhyala.pyslang)
 

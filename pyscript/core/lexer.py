@@ -1,5 +1,6 @@
 from .bases import Pys
 from .buffer import PysFileBuffer
+from .cache import intern_object
 from .checks import is_keyword
 from .constants import DEFAULT, SILENT, LEXER_HIGHLIGHT, NO_COLOR
 from .context import PysContext
@@ -299,6 +300,7 @@ class PysLexer(Pys):
             if self.current_character == '_':
                 is_underscore = True
                 self.advance()
+                continue
 
             elif self.current_character == '.' and not is_scientific and format is int:
                 format = float
@@ -334,7 +336,7 @@ class PysLexer(Pys):
 
                 break
 
-            elif self.character_in('eE') and not is_scientific:
+            if self.character_in('eE') and not is_scientific:
                 format = float
                 is_scientific = True
 
@@ -382,20 +384,23 @@ class PysLexer(Pys):
             elif format is int:
                 result = int(number)
 
-            self.add_token(TOKENS['NUMBER'], start, complex(0, result) if is_complex else result)
+            self.add_token(TOKENS['NUMBER'], start, intern_object(complex(0, result) if is_complex else result))
 
         except (ValueError, OverflowError):
-            integer_to_string_limit = (
-                f'({sys.get_int_max_str_digits()} digits) '
+            integer_to_string_limit, other_message = (
+                (
+                    f"({sys.get_int_max_str_digits()} digits) ",
+                    "; use sys.set_int_max_str_digits() to increase the limit - Consider hexadecimal for huge integer "
+                    "literals to avoid decimal conversion limits"
+                )
                 if hasattr(sys, 'get_int_max_str_digits') else
-                ''
+                ('', '')
             )
 
             self.throw(
                 start, self.index,
                 f"Exceeds the limit {integer_to_string_limit}for integer string conversion: "
-                f"value has {len(number)} digits; use sys.set_int_max_str_digits() to increase the limit - "
-                "Consider hexadecimal for huge integer literals to avoid decimal conversion limits."
+                f"value has {len(number)} digits{other_message}."
             )
 
     def make_string(self) -> None:
@@ -560,7 +565,7 @@ class PysLexer(Pys):
 
                         string += '\\' + character
                         self.warning(
-                            f"{self.file.name}:{position.start_line}:{position.start_column + 1}: "
+                            f"{self.file.name}:{position.start_line}:{position.start_column}: "
                             f"SyntaxWarning: \"\\{character}\" "
                             "is an invalid escape sequence. Such sequences will not work in the future. Did you mean "
                             f"\"\\\\{character}\"? A raw string is also an option.\n" +
@@ -602,7 +607,7 @@ class PysLexer(Pys):
                 except UnicodeEncodeError:
                     self.throw(start, self.index, "bytes can only contain ASCII literal characters", add_token=False)
 
-        self.add_token(TOKENS['STRING'], start, string)
+        self.add_token(TOKENS['STRING'], start, intern_object(string))
 
     def make_identifier(self) -> None:
         start = self.index
@@ -629,7 +634,7 @@ class PysLexer(Pys):
         self.add_token(
             TOKENS['KEYWORD'] if not identifier and is_keyword(name) else TOKENS['IDENTIFIER'],
             start,
-            name
+            intern_object(name)
         )
 
     def make_plus(self) -> None:

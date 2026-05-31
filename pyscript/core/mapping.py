@@ -65,6 +65,17 @@ GET_UNARY_FUNCTION = {
     TOKENS['TILDE']: inv
 }.__getitem__
 
+GET_VALUE_FROM_CONSTANT_KEYWORDS = {
+    'True': True,
+    'False': False,
+    'None': None,
+    'true': True,
+    'false': False,
+    'nil': None,
+    'none': None,
+    'null': None
+}.__getitem__
+
 GET_ACOLOR = {
     'reset': acolor('reset'),
     'magenta': acolor('magenta'),

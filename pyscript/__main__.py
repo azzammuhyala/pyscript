@@ -13,7 +13,7 @@ from .core.runner import _namespace_to_symbol_table, pys_runner, pys_shell
 from .core.utils.debug import USE_NOTEBOOK
 from .core.utils.generic import is_environ
 from .core.utils.module import find_module_path, remove_python_path
-from .core.utils.path import getcwd, base
+from .core.utils.path import getcwd, base, normpath
 from .core.version import __version__
 
 if PYGMENTS:
@@ -272,24 +272,25 @@ def clean_up() -> None:
             continue
 
 def load_file(path) -> PysFileBuffer:
+    normalized = normpath(path)
     try:
-        with open(path, 'r', encoding='utf-8') as file:
-            return PysFileBuffer(file, path)
+        with open(normalized, 'r', encoding='utf-8') as file:
+            return PysFileBuffer(file, normalized)
     except FileNotFoundError:
         if not (EDITOR_MAP and args.editor):
-            argument_error('file', f"can't open file \"{path}\": No such file or directory")
+            argument_error('file', f"can't open file \"{normalized}\": No such file or directory")
     except PermissionError:
-        argument_error('file', f"can't open file \"{path}\": Permission denied")
+        argument_error('file', f"can't open file \"{normalized}\": Permission denied")
     except IsADirectoryError:
-        argument_error('file', f"can't open file \"{path}\": Path is not a file")
+        argument_error('file', f"can't open file \"{normalized}\": Path is not a file")
     except NotADirectoryError:
-        argument_error('file', f"can't open file \"{path}\": Attempting to access directory from file")
+        argument_error('file', f"can't open file \"{normalized}\": Attempting to access directory from file")
     except (OSError, IOError):
-        argument_error('file', f"can't open file \"{path}\": Attempting to access a system directory or file")
+        argument_error('file', f"can't open file \"{normalized}\": Attempting to access a system directory or file")
     except UnicodeDecodeError:
-        argument_error('file', f"can't read file \"{path}\": Bad file")
+        argument_error('file', f"can't read file \"{normalized}\": Bad file")
     except BaseException as e:
-        argument_error('file', f"file \"{path}\": Unexpected error: {e}")
+        argument_error('file', f"file \"{normalized}\": Unexpected error: {e}")
     return PysFileBuffer('', path)
 
 def execute(file: PysFileBuffer) -> None:

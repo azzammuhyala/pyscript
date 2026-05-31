@@ -1,19 +1,23 @@
 from .bases import Pys
-from .checks import is_sequence, is_left_bracket, is_right_bracket
-from .constants import DEFAULT, DICT_TO_JSDICT
+from .cache import intern_object
+from .checks import is_sequence, is_literal, is_left_bracket, is_right_bracket
+from .constants import DEFAULT, NO_COLOR, SILENT, DICT_TO_JSDICT
 from .context import PysContext
 from .exceptions import PysTraceback
 from .mapping import BRACKETS_MAP
 from .nodes import *
-from .position import PysPosition
+from .position import PysPosition, format_error_arrow
 from .pystypes import jsdict
 from .results import PysParserResult
 from .token import TOKENS, PysToken
 from .utils.decorators import typecheck
 from .utils.generic import setimuattr
+from .utils.string import indent
 
 from types import MappingProxyType
 from typing import Any, Callable, Optional
+
+import sys
 
 SEQUENCES_MAP = MappingProxyType({
     'dict':  (TOKENS['LEFT_CURLY'],       PysDictionaryNode),
@@ -72,6 +76,10 @@ class PysParser(Pys):
     def reverse(self, amount: int = 1) -> None:
         self.token_index -= amount
         self.update_current_token()
+
+    def warning(self, message: str) -> None:
+        if not (self.flags & SILENT):
+            print(message, file=sys.stderr)
 
     def new_error(self, message: str, position: Optional[PysPosition] = None) -> PysTraceback:
         return PysTraceback(
@@ -772,7 +780,7 @@ class PysParser(Pys):
                             token.position.start,
                             end
                         ),
-                        string
+                        intern_object(string)
                     )
                 )
             )
@@ -2403,7 +2411,11 @@ class PysParser(Pys):
 
                 operations[-1] = PysToken(
                     TOKENS['EXCLAMATION_GREATER_THAN'],
-                    self.current_token.position
+                    PysPosition(
+                        self.current_token.position.file,
+                        token.position.start,
+                        self.current_token.position.end
+                    )
                 )
 
             last_token = self.current_token
@@ -2419,7 +2431,11 @@ class PysParser(Pys):
             ):
                 operations[-1] = PysToken(
                     TOKENS['IS_NOT'],
-                    self.current_token.position
+                    PysPosition(
+                        self.current_token.position.file,
+                        last_token.position.start,
+                        self.current_token.position.end
+                    )
                 )
 
                 result.register_advancement()
@@ -2429,6 +2445,21 @@ class PysParser(Pys):
             expression = result.register(function(), True)
             if result.error:
                 return result
+
+            if (
+                membership and
+                (is_literal(type((literal := expressions[-1]))) or is_literal(type((literal := expression)))) and
+                (token := operations[-1]).type in (TOKENS['IS'], TOKENS['IS_NOT'])
+            ):
+                position = token.position
+                equal = token.type == TOKENS['IS']
+                self.warning(
+                    f"{position.file.name}:{position.start_line}:{position.start_column}: "
+                    f"SyntaxWarning: \"{'is' if equal else 'is not'}\" "
+                    f"with '{type(literal.value.value).__name__}' literal. "
+                    f"Did you mean \"{'==' if equal else '!='}\"?\n" +
+                    indent(format_error_arrow(position, not (self.flags & NO_COLOR)), 2)
+                )
 
         if operations:
             expressions.append(expression)

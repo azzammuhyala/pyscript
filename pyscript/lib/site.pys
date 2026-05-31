@@ -82,13 +82,13 @@ if (__name__ == '__main__') {
     parser.add_argument(
         '-a',
         metavar='PATH',
-        help='add a package to site-packages'
+        help='add a package to site packages'
     )
 
     parser.add_argument(
         '-r',
         metavar='NAME',
-        help='remove a package from site-packages'
+        help='remove a package from site packages'
     )
 
     args = parser.parse_args(sys.argv[1:])

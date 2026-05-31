@@ -47,4 +47,5 @@ def update_snippets():
             content.append(f'snippet {prefix}\n{body}')
 
         content = '\n\n'.join(content) + '\n'
-        file.write(f'export const snippets = {content!r};')
+        content = content.replace('\t', '\\t').replace('$', '\\$')
+        file.write(f'export const snippets = `{content}`;')

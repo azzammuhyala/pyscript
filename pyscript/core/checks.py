@@ -20,9 +20,9 @@ is_sequence = frozenset([
     PysSetNode, PysListNode, PysTupleNode
 ]).__contains__
 
-is_constant = frozenset([
-    PysKeywordNode, PysDebugNode
-])
+is_literal = frozenset([
+    PysNumberNode, PysStringNode
+]).__contains__
 
 is_keyword = frozenset(KEYWORDS).__contains__
 is_constant_keyword = frozenset(CONSTANT_KEYWORDS).__contains__

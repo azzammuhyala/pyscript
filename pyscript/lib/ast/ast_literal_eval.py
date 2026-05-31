@@ -1,4 +1,4 @@
-from pyscript.core.interpreter import get_value_from_keyword
+from pyscript.core.mapping import GET_VALUE_FROM_CONSTANT_KEYWORDS
 from pyscript.core.nodes import (
     PysNode, PysNumberNode, PysStringNode, PysKeywordNode, PysIdentifierNode, PysDictionaryNode, PysSetNode,
     PysListNode, PysTupleNode, PysCallNode, PysUnaryOperatorNode, PysBinaryOperatorNode, PysEllipsisNode
@@ -42,8 +42,7 @@ def visit_StringNode(node: PysStringNode) -> str | bytes:
     return node.value.value
 
 def visit_KeywordNode(node: PysKeywordNode) -> bool | None:
-    #      vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv <- always boolean or none
-    return get_value_from_keyword(node.name.value)
+    return GET_VALUE_FROM_CONSTANT_KEYWORDS(node.name.value)
 
 def visit_IdentifierNode(node: PysIdentifierNode) -> Any:
     name = node.name.value

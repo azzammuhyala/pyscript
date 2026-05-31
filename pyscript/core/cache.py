@@ -6,7 +6,7 @@ from .utils.module import get_module_candidate
 from .utils.path import base
 
 from types import ModuleType
-from typing import Literal
+from typing import Any, Literal
 
 import sys
 import os
@@ -28,6 +28,7 @@ pys_sys.builtin_module_names = tuple(
 pys_sys.path = [LIBRARIES_PATH, SITE_PACKAGES_PATH]
 pys_sys.loading_modules = set()
 pys_sys.modules = {}
+pys_sys.interns = {}
 pys_sys.singletons = {}
 pys_sys.argv = ['']
 pys_sys.flags = DEFAULT
@@ -55,6 +56,9 @@ for name in (
 ):
     if hasattr(sys, name):
         setattr(pys_sys, name, getattr(sys, name))
+
+def intern_object(object: Any) -> Any:
+    return pys_sys.interns.setdefault((type(object), object), object)
 
 # sentinel
 @singleton

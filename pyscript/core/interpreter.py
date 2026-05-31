@@ -6,7 +6,7 @@ from .checks import is_sequence, is_equal, is_public_attribute
 from .context import PysContext, PysClassContext
 from .exceptions import PysTraceback
 from .handlers import handle_call
-from .mapping import GET_BINARY_FUNCTION, GET_UNARY_FUNCTION
+from .mapping import GET_BINARY_FUNCTION, GET_UNARY_FUNCTION, GET_VALUE_FROM_CONSTANT_KEYWORDS
 from .nodes import *
 from .pysbuiltins import ce, nce, increment, decrement
 from .pystypes import PysFunction
@@ -28,17 +28,6 @@ T_OR = TOKENS['DOUBLE_PIPE']
 T_CE = TOKENS['EQUAL_TILDE']
 T_NCE = TOKENS['EXCLAMATION_TILDE']
 
-get_value_from_keyword = {
-    'True': True,
-    'False': False,
-    'None': None,
-    'true': True,
-    'false': False,
-    'nil': None,
-    'none': None,
-    'null': None
-}.__getitem__
-
 def visit_NumberNode(node: PysNumberNode, context: PysContext) -> PysRunTimeResult:
     return PysRunTimeResult().success(node.value.value)
 
@@ -46,7 +35,7 @@ def visit_StringNode(node: PysStringNode, context: PysContext) -> PysRunTimeResu
     return PysRunTimeResult().success(node.value.value)
 
 def visit_KeywordNode(node: PysKeywordNode, context: PysContext) -> PysRunTimeResult:
-    return PysRunTimeResult().success(get_value_from_keyword(node.name.value))
+    return PysRunTimeResult().success(GET_VALUE_FROM_CONSTANT_KEYWORDS(node.name.value))
 
 def visit_DebugNode(node: PysDebugNode, context: PysContext) -> PysRunTimeResult:
     return PysRunTimeResult().success(True if context.flags & DEBUG else False)
