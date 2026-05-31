@@ -44,10 +44,6 @@
             const PYODIDE_URL = 'https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.mjs';
             const MAXIMUM_HISTORY_LINE = 1000;
 
-            function bind(object, methodName) {
-                return object[methodName].bind(object)
-            }
-
             function dedent(string) {
                 const lines = string.replace(/\r\n|\r/g, '\n').split('\n');
                 const indents = lines.filter(line => line.trim().length > 0)
@@ -70,27 +66,23 @@
 
             terminal.loadAddon(fitAddon);
             terminal.open(document.getElementById('terminal-container'));
-
-            const fit = bind(fitAddon, 'fit')
-
-            fit();
+            fitAddon.fit();
 
             if (window.visualViewport) {
-
-                function resizeToViewport() {
+    
+                const resizeToViewport = () => {
                     if (window.visualViewport) {
                         const vv = window.visualViewport;
                         document.body.style.height = `${vv.height}px`;
                         document.body.style.top = `${vv.offsetTop}px`;
                     }
-                    fit();
+                    fitAddon.fit();
                 }
 
                 window.visualViewport.addEventListener('resize', resizeToViewport);
                 window.visualViewport.addEventListener('scroll', resizeToViewport);
-            }
-            else {
-                window.addEventListener('resize', fit);
+            } else {
+                window.addEventListener('resize', fitAddon.fit.bind(fitAddon));
             }
 
             let cursor = 0;
@@ -105,21 +97,20 @@
                 history: history,
                 inputQueue: inputQueue,
                 linesQueue: linesQueue,
-                clearHistory: () => {
-                    historyCursor = 0;
-                    history.length = 0;
-                },
+                pushHistory: pushHistory,
+                clearHistory: clearHistory,
                 isWaitingForInput: false,
+                isExited: false,
                 exitCode: 0
             };
 
             window.pyscriptGlobals = pyscriptGlobals;
 
-            const isNewline = bind([10, 13], 'includes');
             const above = () => cursor > 0;
             const below = () => cursor < lineBuffer.length;
 
-            function sendSignal(code) {
+            function sendSignal(code, prefix) {
+                if (typeof prefix === 'string') terminal.write('^' + prefix);
                 cursor = 0;
                 linesQueue.length = 0;
                 lineBuffer.length = 0;
@@ -134,7 +125,7 @@
                 cursor += buffer.length;
             }
 
-            function flushLineHistory() {
+            function flushHistory() {
                 if (above()) {
                     terminal.write(`\x1b[${cursor}D${' '.repeat(lineBuffer.length)}\x1b[${lineBuffer.length}D`);
                     cursor = 0;
@@ -150,41 +141,47 @@
                 cursor += line.length;
             }
 
-            function pushLineHistory(line) {
+            function pushHistory(line) {
                 if (!line.trim() || line === history[history.length - 1]){
                     historyCursor = history.length;
                     return;
                 }
-                if (history.length >= MAXIMUM_HISTORY_LINE) history.shift();
+                if (history.length >= MAXIMUM_HISTORY_LINE)
+                    history.splice(0, history.length - MAXIMUM_HISTORY_LINE + 1);
                 history.push(line);
                 historyCursor = history.length;
+            }
+
+            function clearHistory() {
+                historyCursor = 0;
+                history.length = 0;
             }
 
             function pushLine() {
                 terminal.write('\r\n');
                 const line = lineBuffer.join('');
                 linesQueue.push(line);
-                pushLineHistory(line);
+                pushHistory(line);
                 lineBuffer.length = 0;
                 cursor = 0;
             }
 
             function processInputCharacter(data) {
-                if (!pyscriptGlobals.isWaitingForInput) {
-                    return;
-                }
+                if (!pyscriptGlobals.isWaitingForInput) return;
 
                 switch (data) {
 
                     // Ctrl + C (INT)
                     case '\x03':
-                        sendSignal('\x03');
+                        sendSignal('\x03', 'C');
                         break;
 
                     // Ctrl + D/Z (EOF)
                     case '\x04':
+                        sendSignal('\x1a', 'D');
+                        break;
                     case '\x1a':
-                        sendSignal('\x1a');
+                        sendSignal('\x1a', 'Z');
                         break;
 
                     // Enter
@@ -227,14 +224,14 @@
                     case '\x1b[A':
                         if (history.length <= 0 || historyCursor <= 0) break;
                         historyCursor--;
-                        flushLineHistory();
+                        flushHistory();
                         break;
 
                     // Down
                     case '\x1b[B':
                         if (historyCursor >= history.length) break;
                         historyCursor++;
-                        flushLineHistory();
+                        flushHistory();
                         break;
 
                     // Right
@@ -303,13 +300,13 @@
 
             pyodide.setStdout({
                 raw: (code) => {
-                    terminal.write(isNewline(code) ? '\r\n' : String.fromCharCode(code));
+                    terminal.write(code === 10 ? '\r\n' : String.fromCharCode(code));
                 }
             });
 
             pyodide.setStderr({
                 raw: (code) => {
-                    terminal.write(isNewline(code) ? '\r\n' : String.fromCharCode(code));
+                    terminal.write(code === 10 ? '\r\n' : String.fromCharCode(code));
                 }
             });
 
@@ -331,7 +328,13 @@
                     '\\x1a': EOFError
                 }
 
+                def check_is_exited():
+                    if pyscriptGlobals.isExited:
+                        raise ValueError("I/O operation on closed file.")
+
                 async def async_readline():
+                    check_is_exited()
+
                     inputQueue = pyscriptGlobals.inputQueue
                     linesQueue = pyscriptGlobals.linesQueue
                     processInputCharacter = pyscriptGlobals.processInputCharacter
@@ -339,11 +342,13 @@
                     pyscriptGlobals.isWaitingForInput = True
 
                     while inputQueue.length > 0:
+                        check_is_exited()
                         processInputCharacter(inputQueue.shift())
                         if linesQueue:
                             return linesQueue.shift()
 
                     while not linesQueue:
+                        check_is_exited()
                         await sleep(0.1)
 
                     pyscriptGlobals.isWaitingForInput = False
@@ -377,13 +382,30 @@
                 import pyscript
 
                 pys_sys = pyscript.pys_require('sys')
-                pys_sys.clearhook = lambda : js.pyscriptGlobals.terminal.clear()
-
                 history = pyscript.pys_require('history')
+
+                def set_function(module):
+                    def decorator(function):
+                        setattr(module, function.__name__, function)
+                    return decorator
+
                 history.MAXIMUM_HISTORY_LINE = js.pyscriptGlobals.MAXIMUM_HISTORY_LINE
-                history.load = lambda : list(reversed(js.pyscriptGlobals.history))
-                history.append = lambda string : js.pyscriptGlobals.history.push(string) and None
-                history.clear = lambda : js.pyscriptGlobals.clearHistory() and None
+
+                @set_function(pys_sys)
+                def clearhook():
+                    js.pyscriptGlobals.terminal.clear()
+
+                @set_function(history)
+                def load():
+                    return list(reversed(js.pyscriptGlobals.history))
+
+                @set_function(history)
+                def append(string):
+                    js.pyscriptGlobals.pushHistory(string)
+
+                @set_function(history)
+                def clear():
+                    js.pyscriptGlobals.clearHistory()
             `);
 
             terminal.clear();
@@ -397,6 +419,7 @@
                 js.pyscriptGlobals.exitCode = pyscript.pys_shell(pyscript.undefined, pyscript.CLASSIC_LINE_SHELL)
             `);
 
+            pyscriptGlobals.isExited = true;
             disposable.dispose();
             cursor = 0;
             historyCursor = 0;
@@ -408,7 +431,8 @@
             terminal.write(
                 pyscriptGlobals.exitCode === 0 ?
                 `\r\n\x1b[36m** Process exited - Return Code: 0 **\x1b[0m\r\n` :
-                `\r\n\x1b[31m** Process exited - Return Code: ${JSON.stringify(pyscriptGlobals.exitCode)} **\x1b[0m\r\n`
+                '\r\n\x1b[31m** Process exited - ' +
+                `Return Code: ${pyodide.globals.get('repr')(pyscriptGlobals.exitCode)} **\x1b[0m\r\n`
             );
         </script>
     </body>
