@@ -1,19 +1,27 @@
 {
-  "$schema": "https://acode.app/schema/plugin/v0.1.0.json",
-  "id": "acode.plugin.pyscript",
-  "name": "PyScript",
-  "main": "src/main.js",
-  "version": "1.0.1",
-  "repository": "https://github.com/azzammuhyala/pyscript",
-  "icon": "PyScript.png",
-  "minVersionCode": 290,
-  "license": "MIT",
-  "keywords": ["pyscript", "pyslang", "pys", "programming", "language", "programming language", "highlight"],
-  "price": 0,
-  "permissions": [],
-  "author": {
-    "name": "Azzam Muhyala",
-    "email": "azzammuhyala@gmail.com",
-    "github": "azzammuhyala"
-  }
+    "$schema": "https://acode.app/schema/plugin/v0.1.0.json",
+    "id": "acode.plugin.pyscript",
+    "name": "PyScript",
+    "main": "src/main.js",
+    "version": "1.0.2",
+    "repository": "https://github.com/azzammuhyala/pyscript",
+    "icon": "PyScript.png",
+    "minVersionCode": 290,
+    "license": "MIT",
+    "keywords": [
+        "pyscript",
+        "pyslang",
+        "pys",
+        "programming",
+        "language",
+        "programming language",
+        "highlight"
+    ],
+    "price": 0,
+    "permissions": [],
+    "author": {
+        "name": "AzzamMuhyala",
+        "email": "azzammuhyala@gmail.com",
+        "github": "azzammuhyala"
+    }
 }

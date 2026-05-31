@@ -1,22 +1,22 @@
 {
-  "name": "acode-plugin-pyscript",
-  "version": "1.0.1",
-  "description": "Syntax highlighting for PyScript",
-  "main": "src/main.js",
-  "repository": "https://github.com/azzammuhyala/pyscript",
-  "author": "Azzam Muhyala",
-  "license": "MIT",
-  "dependencies": {
-    "acode-plugin-types": "^1.11.7-patch.2",
-    "html-tag-js": "^2.4.15"
-  },
-  "devDependencies": {
-    "esbuild": "^0.25.8",
-    "jszip": "^3.10.1"
-  },
-  "scripts": {
-    "dev": "node esbuild.config.mjs --serve",
-    "build": "node esbuild.config.mjs"
-  },
-  "browserslist": "cover 100%,not android < 5"
+    "name": "acode-plugin-pyscript",
+    "version": "1.0.2",
+    "description": "Syntax highlighting for PyScript",
+    "main": "src/main.js",
+    "repository": "https://github.com/azzammuhyala/pyscript",
+    "author": "AzzamMuhyala",
+    "license": "MIT",
+    "dependencies": {
+        "acode-plugin-types": "^1.11.7-patch.2",
+        "html-tag-js": "^2.4.15"
+    },
+    "devDependencies": {
+        "esbuild": "^0.25.8",
+        "jszip": "^3.10.1"
+    },
+    "scripts": {
+        "dev": "node esbuild.config.mjs --serve",
+        "build": "node esbuild.config.mjs"
+    },
+    "browserslist": "cover 100%,not android < 5"
 }

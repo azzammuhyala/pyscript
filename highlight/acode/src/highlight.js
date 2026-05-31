@@ -109,7 +109,7 @@ export const highlightRules = {
         },
         {
             token: ['constant.numeric.float', 'storage.type.imaginary.number'],
-            regex: `\\b((?:(?:${integer})?\\.${integer}|${integer}\\.)${scientific}?)(${imaginary})\\b`
+            regex: `(?<![\\w.])((?:(?:${integer})?\\.${integer}|${integer}\\.)${scientific}?)(${imaginary})(?![\\w.])`
         },
         {
             token: ['constant.numeric.float', 'storage.type.imaginary.number'],

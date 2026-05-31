@@ -5,15 +5,14 @@ import plugin from '../plugin.json';
 class PyScriptPlugin {
 
     async init(baseUrl, $page, options) {
-        if (!options.firstInit) return;
-
-        this.destroyed = false;
         $page.id = plugin.id;
 
-        // icon
+        // Icon
 
         const iconPath = baseUrl + 'PyScript.png';
-        acode.addIcon('pyscript-icon', iconPath);
+
+        // This method works, but not when the Acode app is first run on a previously opened file.
+        // The file needs to be reopened.
         this.iconStyle = document.createElement('style');
         this.iconStyle.textContent = `
         .file_type_pyscript::before {
@@ -27,89 +26,76 @@ class PyScriptPlugin {
         }`;
         document.head.append(this.iconStyle);
 
-        // highlight
+        // Highlight
 
         ace.define('ace/mode/pyscript', function (require, exports, module) {
-            const oop = require('ace/lib/oop');
             const TextMode = require('ace/mode/text').Mode;
             const TextHighlightRules = require('ace/mode/text_highlight_rules').TextHighlightRules;
 
-            // means:
-            // class HighlightRules extends TextHighlightRules {
-            //     constructor() {
-            //         this.$rules = highlightRules;
-            //         this.normalizeRules();
-            //     }
-            // }
-            const HighlightRules = function () {
-                this.$rules = highlightRules;
-                this.normalizeRules();
-            };
-            oop.inherits(HighlightRules, TextHighlightRules);
+            class HighlightRules extends TextHighlightRules {
+                constructor() {
+                    super();
+                    this.$rules = highlightRules;
+                    this.normalizeRules();
+                }
+            }
 
-            // means:
-            // class Mode extends TextMode {
-            //     constructor() {
-            //         super();
-            //         this.HighlightRules = HighlightRules;
-            //         ...
-            //     }
-            // }
-            const Mode = function () {
-                TextMode.call(this);
-                this.HighlightRules = HighlightRules;
+            class Mode extends TextMode {
+                constructor() {
+                    super();
+                    this.HighlightRules = HighlightRules;
 
-                // performs additional special parsing for single strings
-                /*
-                    PROBLEM:
-                        When a prefix string (" or ') encounters an EOL instead of at least one other character, the
-                        next line is included in the string that should terminate at the EOL (except for multiline
-                        continuation). This can be seen in the following illustration:
+                    // Performs additional special parsing for single strings
+                    /*
+                        PROBLEM:
+                            When a prefix string (" or ') encounters an EOL instead of at least one other character, the
+                            next line is included in the string that should terminate at the EOL (except for multiline
+                            continuation). This can be seen in the following illustration:
 
-                        CODE:
-                            "string
-                            code
+                            CODE:
+                                "string
+                                code
 
-                        RESULT (pseudocode html) [Status: VALID]:
-                            <string>"string</string>
-                            <identifier>code</identifier>
+                            RESULT (pseudocode html) [Status: VALID]:
+                                <string>"string</string>
+                                <identifier>code</identifier>
 
-                        =============================================
+                            =============================================
 
-                        CODE:
-                            "
-                            code
+                            CODE:
+                                "
+                                code
 
-                        RESULT (pseudocode html) [Status: INVALID]:
-                            <string>"
-                            code</string>
+                            RESULT (pseudocode html) [Status: INVALID]:
+                                <string>"
+                                code</string>
 
-                        To address this, an additional script was created to handle this single string state.
-                */
-                const tokenizer = this.getTokenizer();
-                const originalGetLineTokens = tokenizer.getLineTokens.bind(tokenizer);
-                const singleStringStates = [
-                    'string_apostrophe_single',
-                    'string_quotation_single',
-                    'raw_string_apostrophe_single',
-                    'raw_string_quotation_single'
-                ];
+                            To address this, an additional script was created to handle this single string state.
+                    */
+                    const tokenizer = this.getTokenizer();
+                    const originalGetLineTokens = tokenizer.getLineTokens.bind(tokenizer);
+                    const singleStringStates = [
+                        'string_apostrophe_single',
+                        'string_quotation_single',
+                        'raw_string_apostrophe_single',
+                        'raw_string_quotation_single'
+                    ];
 
-                tokenizer.getLineTokens = function(line, state) {
-                    const result = originalGetLineTokens(line, state);
-                    if (singleStringStates.includes(result.state) && !line.endsWith('\\'))
-                        result.state = 'start';
-                    return result;
-                };
-            };
-            oop.inherits(Mode, TextMode);
+                    tokenizer.getLineTokens = function(line, state) {
+                        const result = originalGetLineTokens(line, state);
+                        if (singleStringStates.includes(result.state) && !line.endsWith('\\'))
+                            result.state = 'start';
+                        return result;
+                    };
+                }
+            }
 
             exports.Mode = Mode;
         });
 
         aceModes.addMode('pyscript', extensions, 'PyScript');
 
-        // snippet
+        // Snippet
 
         this.snippet = snippetManager.parseSnippetFile(snippets);
         snippetManager.register(this.snippet, 'pyscript');
@@ -119,28 +105,40 @@ class PyScriptPlugin {
             enableLiveAutocompletion: true
         });
 
-        this.updateSession('pyscript');
+        // Begin
+
+        this.toPyscript = () => this.updateActiveFile('pyscript');
+        editorManager.on('switch-file', this.toPyscript);
+        editorManager.on('rename-file', this.toPyscript);
+        this.updateAllFiles('pyscript');
     }
 
     async destroy() {
-        this.updateSession('text');
+        editorManager.off('switch-file', this.toPyscript);
+        editorManager.off('rename-file', this.toPyscript);
         this.iconStyle.remove();
+        this.updateAllFiles('text');
         aceModes.removeMode('pyscript');
         snippetManager.unregister(this.snippet, 'pyscript');
-        this.destroyed = true;
     }
 
-    applyPluginToFile(file) {
-        if (url.extname(file.name) === '.pys')
-            file.session.setMode(`ace/mode/pyscript`);
+    applyPluginToFile(file, mode) {
+        if (!file)
+            return;
+
+        const fileExtension = url.extname(file.name);
+        if (extensions.includes(fileExtension.startsWith('.') ? fileExtension.slice(1) : fileExtension))
+            file.session.setMode(`ace/mode/${mode}`);
     }
 
-    updateSession(mode) {
-        if (this.destroyed) return;
-        for (const file of editorManager.files) {
-            if (!file || !file.name) continue;
-            this.applyPluginToFile(file);
-        }
+    updateActiveFile(mode) {
+        this.applyPluginToFile(editorManager.activeFile, mode);
+        editorManager.emit('update');
+    }
+
+    updateAllFiles(mode) {
+        for (const file of editorManager.files)
+            this.applyPluginToFile(file, mode);
         editorManager.emit('update');
     }
 
@@ -174,7 +172,7 @@ waitForAcodeReady().then(() => {
         );
     });
 
-    acode.setPluginUnmount(plugin.id, () => {
-        pyScriptPlugin.destroy();
+    acode.setPluginUnmount(plugin.id, async () => {
+        await pyScriptPlugin.destroy();
     });
 });

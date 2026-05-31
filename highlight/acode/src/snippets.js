@@ -1,1 +1,699 @@
-export const snippets = 'snippet __debug__\n\t__debug__\n\nsnippet False\n\tFalse\n\nsnippet None\n\tNone\n\nsnippet True\n\tTrue\n\nsnippet and\n\tand\n\nsnippet as\n\tas\n\nsnippet assert\n\tassert ${0:condition}\n\nsnippet break\n\tbreak\n\nsnippet case\n\tcase ${1:condition}:\n\t\t${0:# code}\n\nsnippet catch\n\tcatch (${1:e}) {\n\t\t${0:# code}\n\t}\n\nsnippet class\n\tclass ${1:ClassName} {\n\t\tconstructor(${2:parameter}) {\n\t\t\t${0:# code}\n\t\t}\n\t}\n\nsnippet continue\n\tcontinue\n\nsnippet constructor\n\tconstructor(${1:parameter}) {\n\t\t${0:# code}\n\t}\n\nsnippet default\n\tdefault:\n\nsnippet del\n\tdel ${0:target}\n\nsnippet delete\n\tdelete ${0:target}\n\nsnippet do\n\tdo {\n\t\t${0:# code}\n\t} while (${1:condition})\n\nsnippet elif\n\telif (${1:condition}) {\n\t\t${0:# code}\n\t}\n\nsnippet else\n\telse {\n\t\t${0:# code}\n\t}\n\nsnippet elseif\n\telseif (${1:condition}) {\n\t\t${0:# code}\n\t}\n\nsnippet except\n\texcept (${1:e}) {\n\t\t${0:# code}\n\t}\n\nsnippet extends\n\textends ${0:OtherClass}\n\nsnippet false\n\tfalse\n\nsnippet finally\n\tfinally {\n\t\t${0:# code}\n\t}\n\nsnippet for\n\tfor (${1:i = 0; i < 10; i++}) {\n\t\t${0:# code}\n\t}\n\nsnippet from\n\tfrom ${1:moduleName} import ${0:packages}\n\nsnippet func\n\tfunc ${1:functionName}(${2:parameter}) {\n\t\t${0:# code}\n\t}\n\nsnippet function\n\tfunction ${1:functionName}(${2:parameter}) {\n\t\t${0:# code}\n\t}\n\nsnippet global\n\tglobal ${0:variable}\n\nsnippet if\n\tif (${1:condition}) {\n\t\t${0:# code}\n\t}\n\nsnippet import\n\timport ${0:moduleName}\n\nsnippet in\n\tin\n\nsnippet instanceof\n\tinstanceof\n\nsnippet is\n\tis\n\nsnippet match\n\tmatch ${1:target }{\n\t\t${2:condition}: ${3:value}\n\t\tdefault: ${4:defaultValue}\n\t}\n\nsnippet nil\n\tnil\n\nsnippet none\n\tnone\n\nsnippet null\n\tnull\n\nsnippet not\n\tnot $0\n\nsnippet true\n\ttrue\n\nsnippet typeof\n\ttypeof ${0:target}\n\nsnippet of\n\tof\n\nsnippet or\n\tor\n\nsnippet raise\n\traise ${0:Exception}\n\nsnippet repeat\n\trepeat {\n\t\t${0:# code}\n\t} until (${1:condition})\n\nsnippet return\n\treturn\n\nsnippet switch\n\tswitch (${1:target}) {\n\t\tcase ${2:condition}:\n\t\t\t${3:# code}\n\t\tdefault:\n\t\t\t${4:# code}\n\t}\n\nsnippet throw\n\tthrow ${0:Exception}\n\nsnippet try\n\ttry {\n\t\t${1:# code}\n\t} catch (e) {\n\t\t${2:# code}\n\t}\n\nsnippet until\n\tuntil (${0:condition})\n\nsnippet while\n\twhile (${1:condition}) {\n\t\t${0:# code}\n\t}\n\nsnippet with\n\twith (${1:contextObject as context}) {\n\t\t${0:# code}\n\t}\n\nsnippet ArithmeticError\n\tArithmeticError\n\nsnippet AssertionError\n\tAssertionError\n\nsnippet AttributeError\n\tAttributeError\n\nsnippet BaseException\n\tBaseException\n\nsnippet BaseExceptionGroup\n\tBaseExceptionGroup\n\nsnippet BlockingIOError\n\tBlockingIOError\n\nsnippet BrokenPipeError\n\tBrokenPipeError\n\nsnippet BufferError\n\tBufferError\n\nsnippet BytesWarning\n\tBytesWarning\n\nsnippet ChildProcessError\n\tChildProcessError\n\nsnippet ConnectionAbortedError\n\tConnectionAbortedError\n\nsnippet ConnectionError\n\tConnectionError\n\nsnippet ConnectionRefusedError\n\tConnectionRefusedError\n\nsnippet ConnectionResetError\n\tConnectionResetError\n\nsnippet DeprecationWarning\n\tDeprecationWarning\n\nsnippet EOFError\n\tEOFError\n\nsnippet Ellipsis\n\tEllipsis\n\nsnippet EncodingWarning\n\tEncodingWarning\n\nsnippet EnvironmentError\n\tEnvironmentError\n\nsnippet Exception\n\tException\n\nsnippet ExceptionGroup\n\tExceptionGroup\n\nsnippet FileExistsError\n\tFileExistsError\n\nsnippet FileNotFoundError\n\tFileNotFoundError\n\nsnippet FloatingPointError\n\tFloatingPointError\n\nsnippet FutureWarning\n\tFutureWarning\n\nsnippet GeneratorExit\n\tGeneratorExit\n\nsnippet IOError\n\tIOError\n\nsnippet ImportCycleError\n\tImportCycleError\n\nsnippet ImportError\n\tImportError\n\nsnippet ImportWarning\n\tImportWarning\n\nsnippet IndexError\n\tIndexError\n\nsnippet InterruptedError\n\tInterruptedError\n\nsnippet IsADirectoryError\n\tIsADirectoryError\n\nsnippet KeyError\n\tKeyError\n\nsnippet KeyboardInterrupt\n\tKeyboardInterrupt\n\nsnippet LookupError\n\tLookupError\n\nsnippet MemoryError\n\tMemoryError\n\nsnippet ModuleNotFoundError\n\tModuleNotFoundError\n\nsnippet NameError\n\tNameError\n\nsnippet NotADirectoryError\n\tNotADirectoryError\n\nsnippet NotImplemented\n\tNotImplemented\n\nsnippet NotImplementedError\n\tNotImplementedError\n\nsnippet OSError\n\tOSError\n\nsnippet OverflowError\n\tOverflowError\n\nsnippet PendingDeprecationWarning\n\tPendingDeprecationWarning\n\nsnippet PermissionError\n\tPermissionError\n\nsnippet ProcessLookupError\n\tProcessLookupError\n\nsnippet PythonFinalizationError\n\tPythonFinalizationError\n\nsnippet RecursionError\n\tRecursionError\n\nsnippet ReferenceError\n\tReferenceError\n\nsnippet ResourceWarning\n\tResourceWarning\n\nsnippet RuntimeError\n\tRuntimeError\n\nsnippet RuntimeWarning\n\tRuntimeWarning\n\nsnippet StopAsyncIteration\n\tStopAsyncIteration\n\nsnippet StopIteration\n\tStopIteration\n\nsnippet SyntaxError\n\tSyntaxError\n\nsnippet SyntaxWarning\n\tSyntaxWarning\n\nsnippet SystemError\n\tSystemError\n\nsnippet SystemExit\n\tSystemExit\n\nsnippet TimeoutError\n\tTimeoutError\n\nsnippet TypeError\n\tTypeError\n\nsnippet UnboundLocalError\n\tUnboundLocalError\n\nsnippet UnicodeDecodeError\n\tUnicodeDecodeError\n\nsnippet UnicodeEncodeError\n\tUnicodeEncodeError\n\nsnippet UnicodeError\n\tUnicodeError\n\nsnippet UnicodeTranslateError\n\tUnicodeTranslateError\n\nsnippet UnicodeWarning\n\tUnicodeWarning\n\nsnippet UserWarning\n\tUserWarning\n\nsnippet ValueError\n\tValueError\n\nsnippet Warning\n\tWarning\n\nsnippet WindowsError\n\tWindowsError\n\nsnippet ZeroDivisionError\n\tZeroDivisionError\n\nsnippet abs\n\tabs($0)\n\nsnippet aiter\n\taiter($0)\n\nsnippet all\n\tall($0)\n\nsnippet anext\n\tanext($0)\n\nsnippet any\n\tany($0)\n\nsnippet ascii\n\tascii($0)\n\nsnippet bin\n\tbin($0)\n\nsnippet bool\n\tbool\n\nsnippet breakpoint\n\tbreakpoint()\n\nsnippet bytearray\n\tbytearray\n\nsnippet bytes\n\tbytes\n\nsnippet callable\n\tcallable($0)\n\nsnippet ce\n\tce($0)\n\nsnippet chr\n\tchr($0)\n\nsnippet classmethod\n\tclassmethod\n\nsnippet complex\n\tcomplex\n\nsnippet comprehension\n\tcomprehension($0)\n\nsnippet copyright\n\tcopyright()\n\nsnippet credits\n\tcredits()\n\nsnippet decrement\n\tdecrement($0)\n\nsnippet delattr\n\tdelattr($0)\n\nsnippet dict\n\tdict\n\nsnippet dir\n\tdir($0)\n\nsnippet divmod\n\tdivmod($0)\n\nsnippet enumerate\n\tenumerate($0)\n\nsnippet eval\n\teval($0)\n\nsnippet exec\n\texec($0)\n\nsnippet exit\n\texit($0)\n\nsnippet filter\n\tfilter($0)\n\nsnippet float\n\tfloat\n\nsnippet format\n\tformat($0)\n\nsnippet frozenset\n\tfrozenset\n\nsnippet frozendict\n\tfrozendict\n\nsnippet getattr\n\tgetattr($0)\n\nsnippet globals\n\tglobals()\n\nsnippet hasattr\n\thasattr($0)\n\nsnippet hash\n\thash($0)\n\nsnippet help\n\thelp($0)\n\nsnippet hex\n\thex($0)\n\nsnippet id\n\tid($0)\n\nsnippet increment\n\tincrement($0)\n\nsnippet inf\n\tinf\n\nsnippet infj\n\tinfj\n\nsnippet input\n\tinput($0)\n\nsnippet int\n\tint\n\nsnippet isinstance\n\tisinstance($0)\n\nsnippet isobjectof\n\tisobjectof($0)\n\nsnippet issubclass\n\tissubclass($0)\n\nsnippet iter\n\titer($0)\n\nsnippet len\n\tlen($0)\n\nsnippet license\n\tlicense()\n\nsnippet list\n\tlist($0)\n\nsnippet locals\n\tlocals()\n\nsnippet map\n\tmap($0)\n\nsnippet max\n\tmax($0)\n\nsnippet memoryview\n\tmemoryview\n\nsnippet min\n\tmin($0)\n\nsnippet nce\n\tnce($0)\n\nsnippet next\n\tnext($0)\n\nsnippet nan\n\tnan\n\nsnippet nanj\n\tnanj\n\nsnippet object\n\tobject\n\nsnippet oct\n\toct($0)\n\nsnippet open\n\topen($0)\n\nsnippet ord\n\tord($0)\n\nsnippet pow\n\tpow($0)\n\nsnippet print\n\tprint($0)\n\nsnippet property\n\tproperty\n\nsnippet pyimport\n\tpyimport($0)\n\nsnippet quit\n\tquit($0)\n\nsnippet range\n\trange($0)\n\nsnippet repr\n\trepr($0)\n\nsnippet require\n\trequire($0)\n\nsnippet reversed\n\treversed($0)\n\nsnippet round\n\tround($0)\n\nsnippet set\n\tset\n\nsnippet setattr\n\tsetattr($0)\n\nsnippet slice\n\tslice\n\nsnippet sorted\n\tsorted($0)\n\nsnippet staticmethod\n\tstaticmethod\n\nsnippet str\n\tstr\n\nsnippet sum\n\tsum($0)\n\nsnippet super\n\tsuper($0)\n\nsnippet tuple\n\ttuple\n\nsnippet type\n\ttype\n\nsnippet unpack\n\tunpack($0)\n\nsnippet vars\n\tvars($0)\n\nsnippet zip\n\tzip($0)\n\nsnippet fl\n\tfor (i of range($1)) {\n\t\t$0\n\t}\n\nsnippet fe\n\tfor (item of ${1:iterableObject}) {\n\t\t$0\n\t}\n\nsnippet lambda\n\tfunc(${1:parameter}) => ${0:returnValue}\n\nsnippet future\n\tfrom __future__ import ${0:futureName}\n';
+export const snippets = `snippet __debug__
+\t__debug__
+
+snippet False
+\tFalse
+
+snippet None
+\tNone
+
+snippet True
+\tTrue
+
+snippet and
+\tand
+
+snippet as
+\tas
+
+snippet assert
+\tassert \${0:condition}
+
+snippet break
+\tbreak
+
+snippet case
+\tcase \${1:condition}:
+\t\t\${0:# code}
+
+snippet catch
+\tcatch (\${1:e}) {
+\t\t\${0:# code}
+\t}
+
+snippet class
+\tclass \${1:ClassName} {
+\t\tconstructor(\${2:parameter}) {
+\t\t\t\${0:# code}
+\t\t}
+\t}
+
+snippet continue
+\tcontinue
+
+snippet constructor
+\tconstructor(\${1:parameter}) {
+\t\t\${0:# code}
+\t}
+
+snippet default
+\tdefault:
+
+snippet del
+\tdel \${0:target}
+
+snippet delete
+\tdelete \${0:target}
+
+snippet do
+\tdo {
+\t\t\${0:# code}
+\t} while (\${1:condition})
+
+snippet elif
+\telif (\${1:condition}) {
+\t\t\${0:# code}
+\t}
+
+snippet else
+\telse {
+\t\t\${0:# code}
+\t}
+
+snippet elseif
+\telseif (\${1:condition}) {
+\t\t\${0:# code}
+\t}
+
+snippet except
+\texcept (\${1:e}) {
+\t\t\${0:# code}
+\t}
+
+snippet extends
+\textends \${0:OtherClass}
+
+snippet false
+\tfalse
+
+snippet finally
+\tfinally {
+\t\t\${0:# code}
+\t}
+
+snippet for
+\tfor (\${1:i = 0; i < 10; i++}) {
+\t\t\${0:# code}
+\t}
+
+snippet from
+\tfrom \${1:moduleName} import \${0:packages}
+
+snippet func
+\tfunc \${1:functionName}(\${2:parameter}) {
+\t\t\${0:# code}
+\t}
+
+snippet function
+\tfunction \${1:functionName}(\${2:parameter}) {
+\t\t\${0:# code}
+\t}
+
+snippet global
+\tglobal \${0:variable}
+
+snippet if
+\tif (\${1:condition}) {
+\t\t\${0:# code}
+\t}
+
+snippet import
+\timport \${0:moduleName}
+
+snippet in
+\tin
+
+snippet instanceof
+\tinstanceof
+
+snippet is
+\tis
+
+snippet match
+\tmatch \${1:target }{
+\t\t\${2:condition}: \${3:value}
+\t\tdefault: \${4:defaultValue}
+\t}
+
+snippet nil
+\tnil
+
+snippet none
+\tnone
+
+snippet null
+\tnull
+
+snippet not
+\tnot \$0
+
+snippet true
+\ttrue
+
+snippet typeof
+\ttypeof \${0:target}
+
+snippet of
+\tof
+
+snippet or
+\tor
+
+snippet raise
+\traise \${0:Exception}
+
+snippet repeat
+\trepeat {
+\t\t\${0:# code}
+\t} until (\${1:condition})
+
+snippet return
+\treturn
+
+snippet switch
+\tswitch (\${1:target}) {
+\t\tcase \${2:condition}:
+\t\t\t\${3:# code}
+\t\tdefault:
+\t\t\t\${4:# code}
+\t}
+
+snippet throw
+\tthrow \${0:Exception}
+
+snippet try
+\ttry {
+\t\t\${1:# code}
+\t} catch (e) {
+\t\t\${2:# code}
+\t}
+
+snippet until
+\tuntil (\${0:condition})
+
+snippet while
+\twhile (\${1:condition}) {
+\t\t\${0:# code}
+\t}
+
+snippet with
+\twith (\${1:contextObject as context}) {
+\t\t\${0:# code}
+\t}
+
+snippet ArithmeticError
+\tArithmeticError
+
+snippet AssertionError
+\tAssertionError
+
+snippet AttributeError
+\tAttributeError
+
+snippet BaseException
+\tBaseException
+
+snippet BaseExceptionGroup
+\tBaseExceptionGroup
+
+snippet BlockingIOError
+\tBlockingIOError
+
+snippet BrokenPipeError
+\tBrokenPipeError
+
+snippet BufferError
+\tBufferError
+
+snippet BytesWarning
+\tBytesWarning
+
+snippet ChildProcessError
+\tChildProcessError
+
+snippet ConnectionAbortedError
+\tConnectionAbortedError
+
+snippet ConnectionError
+\tConnectionError
+
+snippet ConnectionRefusedError
+\tConnectionRefusedError
+
+snippet ConnectionResetError
+\tConnectionResetError
+
+snippet DeprecationWarning
+\tDeprecationWarning
+
+snippet EOFError
+\tEOFError
+
+snippet Ellipsis
+\tEllipsis
+
+snippet EncodingWarning
+\tEncodingWarning
+
+snippet EnvironmentError
+\tEnvironmentError
+
+snippet Exception
+\tException
+
+snippet ExceptionGroup
+\tExceptionGroup
+
+snippet FileExistsError
+\tFileExistsError
+
+snippet FileNotFoundError
+\tFileNotFoundError
+
+snippet FloatingPointError
+\tFloatingPointError
+
+snippet FutureWarning
+\tFutureWarning
+
+snippet GeneratorExit
+\tGeneratorExit
+
+snippet IOError
+\tIOError
+
+snippet ImportCycleError
+\tImportCycleError
+
+snippet ImportError
+\tImportError
+
+snippet ImportWarning
+\tImportWarning
+
+snippet IndexError
+\tIndexError
+
+snippet InterruptedError
+\tInterruptedError
+
+snippet IsADirectoryError
+\tIsADirectoryError
+
+snippet KeyError
+\tKeyError
+
+snippet KeyboardInterrupt
+\tKeyboardInterrupt
+
+snippet LookupError
+\tLookupError
+
+snippet MemoryError
+\tMemoryError
+
+snippet ModuleNotFoundError
+\tModuleNotFoundError
+
+snippet NameError
+\tNameError
+
+snippet NotADirectoryError
+\tNotADirectoryError
+
+snippet NotImplemented
+\tNotImplemented
+
+snippet NotImplementedError
+\tNotImplementedError
+
+snippet OSError
+\tOSError
+
+snippet OverflowError
+\tOverflowError
+
+snippet PendingDeprecationWarning
+\tPendingDeprecationWarning
+
+snippet PermissionError
+\tPermissionError
+
+snippet ProcessLookupError
+\tProcessLookupError
+
+snippet PythonFinalizationError
+\tPythonFinalizationError
+
+snippet RecursionError
+\tRecursionError
+
+snippet ReferenceError
+\tReferenceError
+
+snippet ResourceWarning
+\tResourceWarning
+
+snippet RuntimeError
+\tRuntimeError
+
+snippet RuntimeWarning
+\tRuntimeWarning
+
+snippet StopAsyncIteration
+\tStopAsyncIteration
+
+snippet StopIteration
+\tStopIteration
+
+snippet SyntaxError
+\tSyntaxError
+
+snippet SyntaxWarning
+\tSyntaxWarning
+
+snippet SystemError
+\tSystemError
+
+snippet SystemExit
+\tSystemExit
+
+snippet TimeoutError
+\tTimeoutError
+
+snippet TypeError
+\tTypeError
+
+snippet UnboundLocalError
+\tUnboundLocalError
+
+snippet UnicodeDecodeError
+\tUnicodeDecodeError
+
+snippet UnicodeEncodeError
+\tUnicodeEncodeError
+
+snippet UnicodeError
+\tUnicodeError
+
+snippet UnicodeTranslateError
+\tUnicodeTranslateError
+
+snippet UnicodeWarning
+\tUnicodeWarning
+
+snippet UserWarning
+\tUserWarning
+
+snippet ValueError
+\tValueError
+
+snippet Warning
+\tWarning
+
+snippet WindowsError
+\tWindowsError
+
+snippet ZeroDivisionError
+\tZeroDivisionError
+
+snippet abs
+\tabs(\$0)
+
+snippet aiter
+\taiter(\$0)
+
+snippet all
+\tall(\$0)
+
+snippet anext
+\tanext(\$0)
+
+snippet any
+\tany(\$0)
+
+snippet ascii
+\tascii(\$0)
+
+snippet bin
+\tbin(\$0)
+
+snippet bool
+\tbool
+
+snippet breakpoint
+\tbreakpoint()
+
+snippet bytearray
+\tbytearray
+
+snippet bytes
+\tbytes
+
+snippet callable
+\tcallable(\$0)
+
+snippet ce
+\tce(\$0)
+
+snippet chr
+\tchr(\$0)
+
+snippet classmethod
+\tclassmethod
+
+snippet complex
+\tcomplex
+
+snippet comprehension
+\tcomprehension(\$0)
+
+snippet copyright
+\tcopyright()
+
+snippet credits
+\tcredits()
+
+snippet decrement
+\tdecrement(\$0)
+
+snippet delattr
+\tdelattr(\$0)
+
+snippet dict
+\tdict
+
+snippet dir
+\tdir(\$0)
+
+snippet divmod
+\tdivmod(\$0)
+
+snippet enumerate
+\tenumerate(\$0)
+
+snippet eval
+\teval(\$0)
+
+snippet exec
+\texec(\$0)
+
+snippet exit
+\texit(\$0)
+
+snippet filter
+\tfilter(\$0)
+
+snippet float
+\tfloat
+
+snippet format
+\tformat(\$0)
+
+snippet frozenset
+\tfrozenset
+
+snippet frozendict
+\tfrozendict
+
+snippet getattr
+\tgetattr(\$0)
+
+snippet globals
+\tglobals()
+
+snippet hasattr
+\thasattr(\$0)
+
+snippet hash
+\thash(\$0)
+
+snippet help
+\thelp(\$0)
+
+snippet hex
+\thex(\$0)
+
+snippet id
+\tid(\$0)
+
+snippet increment
+\tincrement(\$0)
+
+snippet inf
+\tinf
+
+snippet infj
+\tinfj
+
+snippet input
+\tinput(\$0)
+
+snippet int
+\tint
+
+snippet isinstance
+\tisinstance(\$0)
+
+snippet isobjectof
+\tisobjectof(\$0)
+
+snippet issubclass
+\tissubclass(\$0)
+
+snippet iter
+\titer(\$0)
+
+snippet len
+\tlen(\$0)
+
+snippet license
+\tlicense()
+
+snippet list
+\tlist(\$0)
+
+snippet locals
+\tlocals()
+
+snippet map
+\tmap(\$0)
+
+snippet max
+\tmax(\$0)
+
+snippet memoryview
+\tmemoryview
+
+snippet min
+\tmin(\$0)
+
+snippet nce
+\tnce(\$0)
+
+snippet next
+\tnext(\$0)
+
+snippet nan
+\tnan
+
+snippet nanj
+\tnanj
+
+snippet object
+\tobject
+
+snippet oct
+\toct(\$0)
+
+snippet open
+\topen(\$0)
+
+snippet ord
+\tord(\$0)
+
+snippet pow
+\tpow(\$0)
+
+snippet print
+\tprint(\$0)
+
+snippet property
+\tproperty
+
+snippet pyimport
+\tpyimport(\$0)
+
+snippet quit
+\tquit(\$0)
+
+snippet range
+\trange(\$0)
+
+snippet repr
+\trepr(\$0)
+
+snippet require
+\trequire(\$0)
+
+snippet reversed
+\treversed(\$0)
+
+snippet round
+\tround(\$0)
+
+snippet set
+\tset
+
+snippet setattr
+\tsetattr(\$0)
+
+snippet slice
+\tslice
+
+snippet sorted
+\tsorted(\$0)
+
+snippet staticmethod
+\tstaticmethod
+
+snippet str
+\tstr
+
+snippet sum
+\tsum(\$0)
+
+snippet super
+\tsuper(\$0)
+
+snippet tuple
+\ttuple
+
+snippet type
+\ttype
+
+snippet unpack
+\tunpack(\$0)
+
+snippet vars
+\tvars(\$0)
+
+snippet zip
+\tzip(\$0)
+
+snippet fl
+\tfor (i of range(\$1)) {
+\t\t\$0
+\t}
+
+snippet fe
+\tfor (item of \${1:iterableObject}) {
+\t\t\$0
+\t}
+
+snippet lambda
+\tfunc(\${1:parameter}) => \${0:returnValue}
+
+snippet future
+\tfrom __future__ import \${0:futureName}
+`;
