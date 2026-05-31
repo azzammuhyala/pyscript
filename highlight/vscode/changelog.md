@@ -1,10 +1,6 @@
 # Change Logs
 
-## [1.3.4] - 14/05/2026
-
-### Added
-- `instanceof` keyword.
+## [1.3.5] - 31/05/2026
 
 ### Fixed
-- Adding word boundary `'\b'` to number regex.
 - Fixed some bugs.
