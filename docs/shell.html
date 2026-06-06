@@ -1,3 +1,7 @@
+<!--
+    AUTHOR: AzzamMuhyala
+    URL: https://azzammuhyala.github.io/pyscript/shell.html
+-->
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -35,6 +39,32 @@
                 background: #000000;
                 touch-action: pan-y;
             }
+
+            #terminal-container ::-webkit-scrollbar, .xterm-viewport::-webkit-scrollbar {
+                width: 8px;
+                height: 8px;
+            }
+
+            #terminal-container ::-webkit-scrollbar-track, .xterm-viewport::-webkit-scrollbar-track {
+                background: rgba(0, 0, 0, 0.2);
+                border-radius: 4px;
+            }
+
+            #terminal-container ::-webkit-scrollbar-thumb, .xterm-viewport::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 4px;
+                border: 1px solid rgba(0, 0, 0, 0.1);
+                transition: background 0.2s ease;
+            }
+
+            #terminal-container ::-webkit-scrollbar-thumb:hover, .xterm-viewport::-webkit-scrollbar-thumb:hover {
+                background: rgba(255, 255, 255, 0.4);
+            }
+
+            #terminal-container, .xterm-viewport {
+                scrollbar-width: thin;
+                scrollbar-color: rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.2);
+            }
         </style>
     </head>
 
@@ -55,6 +85,7 @@
                 }).join('\n');
             }
 
+            const terminalContainer = document.getElementById('terminal-container');
             const terminal = new Terminal({
                 theme: { background: '#000000' },
                 fontSize: 15,
@@ -65,11 +96,11 @@
             const fitAddon = new FitAddon.FitAddon();
 
             terminal.loadAddon(fitAddon);
-            terminal.open(document.getElementById('terminal-container'));
+            terminal.open(terminalContainer);
             fitAddon.fit();
 
             if (window.visualViewport) {
-    
+
                 const resizeToViewport = () => {
                     if (window.visualViewport) {
                         const vv = window.visualViewport;
@@ -87,6 +118,7 @@
 
             let cursor = 0;
             let historyCursor = 0;
+            let insert = false;
             const history = [];
             const inputQueue = [];
             const linesQueue = [];
@@ -109,9 +141,25 @@
             const above = () => cursor > 0;
             const below = () => cursor < lineBuffer.length;
 
+            function readClipboardThenProcess() {
+                if (!pyscriptGlobals.isWaitingForInput) return;
+                navigator.clipboard.readText().then(text => {
+                    if (text) processInputCharacter(text);
+                }).catch(err => {
+                    console.error('Failed to read clipboard:', err);
+                });
+            }
+
+            function writeClipboard(text) {
+                navigator.clipboard.writeText(text).catch(err => {
+                    console.error('Failed to write clipboard:', err);
+                });
+            }
+
             function sendSignal(code, prefix) {
                 if (typeof prefix === 'string') terminal.write('^' + prefix);
                 cursor = 0;
+                insert = false;
                 linesQueue.length = 0;
                 lineBuffer.length = 0;
                 linesQueue.push(code);
@@ -119,9 +167,9 @@
 
             function pushBuffer(buffer) {
                 if (!buffer) return;
-                if (below()) terminal.write(`\x1b[${buffer.length}@`);
+                if (!insert && below()) terminal.write(`\x1b[${buffer.length}@`);
                 terminal.write(buffer);
-                lineBuffer.splice(cursor, 0, ...buffer);
+                lineBuffer.splice(cursor, insert ? buffer.length : 0, ...buffer);
                 cursor += buffer.length;
             }
 
@@ -130,7 +178,7 @@
                     terminal.write(`\x1b[${cursor}D${' '.repeat(lineBuffer.length)}\x1b[${lineBuffer.length}D`);
                     cursor = 0;
                 }
-                if (historyCursor === history.length) {
+                if (historyCursor >= history.length) {
                     lineBuffer.length = 0;
                     return;
                 }
@@ -138,7 +186,7 @@
                 terminal.write(line);
                 lineBuffer.length = 0;
                 lineBuffer.push(...line);
-                cursor += line.length;
+                cursor = line.length;
             }
 
             function pushHistory(line) {
@@ -164,10 +212,13 @@
                 pushHistory(line);
                 lineBuffer.length = 0;
                 cursor = 0;
+                insert = false;
             }
 
             function processInputCharacter(data) {
                 if (!pyscriptGlobals.isWaitingForInput) return;
+
+                data = data.replace(/\r\n|\r/g, '\n');
 
                 switch (data) {
 
@@ -176,7 +227,12 @@
                         sendSignal('\x03', 'C');
                         break;
 
-                    // Ctrl + D/Z (EOF)
+                    // Ctrl + V (Paste)
+                    case '\x16':
+                        readClipboardThenProcess();
+                        break;
+
+                    // Ctrl + D or Z (EOF)
                     case '\x04':
                         sendSignal('\x1a', 'D');
                         break;
@@ -186,8 +242,6 @@
 
                     // Enter
                     case '\n':
-                    case '\r':
-                    case '\r\n':
                         pushLine();
                         break;
 
@@ -199,11 +253,35 @@
                         lineBuffer.splice(cursor, 1);
                         break;
 
+                    // Insert
+                    case '\x1b[2~':
+                        insert = !insert;
+                        break;
+
                     // Delete
                     case '\x1b[3~':
                         if (!below()) break;
                         terminal.write('\x1b[P');
                         lineBuffer.splice(cursor, 1);
+                        break;
+
+                    // Page Up
+                    case '\x1b[5~':
+                        if (history.length <= 0 || historyCursor <= 0) break;
+                        historyCursor = 0;
+                        flushHistory();
+                        break;
+
+                    // Page Down
+                    case '\x1b[6~':
+                        if (historyCursor >= history.length - 1) break;
+                        historyCursor = history.length - 1;
+                        flushHistory();
+                        break;
+
+                    /* Special Keys (do nothing in input) */
+                    // F11
+                    case '\x1b[23~':
                         break;
 
                     // Home
@@ -256,7 +334,6 @@
                             switch (character) {
 
                                 case '\n':
-                                case '\r':
                                     pushBuffer(buffer);
                                     pushLine();
                                     inputQueue.push(data.slice(index + 1));
@@ -267,6 +344,7 @@
                                     break;
 
                                 case '\x1b':
+                                    buffer += '^[';
                                     break;
 
                                 default:
@@ -289,6 +367,19 @@
                 else inputQueue.push(data);
             });
 
+            terminal.attachCustomKeyEventHandler((event) => {
+                if (
+                    (event.ctrlKey || event.metaKey) &&
+                    event.type === 'keydown' && event.key.toLowerCase() === 'c' &&
+                    terminal.hasSelection()
+                ) {
+                    writeClipboard(terminal.getSelection());
+                    terminal.clearSelection();
+                    return false;
+                }
+                return true;
+            });
+
             terminal.write('Loading pyodide\r\n');
 
             const { loadPyodide } = await import(PYODIDE_URL);
@@ -309,6 +400,13 @@
                     terminal.write(code === 10 ? '\r\n' : String.fromCharCode(code));
                 }
             });
+
+            const handleRightClick = (e) => {
+                e.preventDefault();
+                readClipboardThenProcess();
+            }
+
+            terminalContainer.addEventListener('contextmenu', handleRightClick);
 
             async function runPythonAsync(code) {
                 await pyodide.runPythonAsync(dedent(code), {globals: pyodide.globals.get('dict')()});
@@ -420,20 +518,28 @@
             `);
 
             pyscriptGlobals.isExited = true;
+            terminal.attachCustomKeyEventHandler(() => true);
+            terminalContainer.removeEventListener('contextmenu', handleRightClick);
             disposable.dispose();
             cursor = 0;
             historyCursor = 0;
+            insert = false;
             history.length = 0;
             inputQueue.length = 0;
             linesQueue.length = 0;
             lineBuffer.length = 0;
 
-            terminal.write(
-                pyscriptGlobals.exitCode === 0 ?
-                `\r\n\x1b[36m** Process exited - Return Code: 0 **\x1b[0m\r\n` :
-                '\r\n\x1b[31m** Process exited - ' +
-                `Return Code: ${pyodide.globals.get('repr')(pyscriptGlobals.exitCode)} **\x1b[0m\r\n`
-            );
+            try {
+                terminal.write(
+                    pyscriptGlobals.exitCode === 0 ?
+                    `\r\n\x1b[36m** Process exited - Return Code: 0 **\x1b[0m\r\n` :
+                    '\r\n\x1b[31m** Process exited - ' +
+                    `Return Code: ${pyodide.globals.get('repr')(pyscriptGlobals.exitCode)} **\x1b[0m\r\n`
+                );
+            } catch (e) {
+                console.error('Unexpected error while calling repr() function on exit code object:', e);
+                terminal.write(`\r\n\x1b[35m** Process exited - Return Code: <undefined> **\x1b[0m\r\n`);
+            }
         </script>
     </body>
 </html>
