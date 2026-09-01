@@ -31,6 +31,7 @@ pys_sys.modules = {}
 pys_sys.interns = {}
 pys_sys.singletons = {}
 pys_sys.argv = ['']
+pys_sys.encoding = 'utf-8'
 pys_sys.flags = DEFAULT
 pys_sys.displayhook = print_display
 pys_sys.excepthook = print_traceback

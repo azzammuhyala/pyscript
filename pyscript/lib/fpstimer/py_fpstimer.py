@@ -1,6 +1,8 @@
 from time import monotonic, sleep
 from pyscript.core.utils.decorators import immutable, inheritable, singleton
 
+from typing import Optional
+
 @singleton
 @immutable
 @inheritable
@@ -8,6 +10,7 @@ class FPSTimer:
 
     __slots__ = ()
 
+    _framerate = 60
     _lastTick = 0.0
     _timeElapsed = 0.0
     _rawTime = 0.0
@@ -18,8 +21,9 @@ class FPSTimer:
         fpstimer = super(cls, cls).__new__(cls)
         return fpstimer
 
-    def tick(self, framerate: float | int) -> float:
+    def tick(self, framerate: Optional[int | float] = None) -> float:
         currentTime = monotonic()
+        framerate = FPSTimer._framerate if framerate is None else framerate
         lastTick = FPSTimer._lastTick
         elapsedTime = currentTime - lastTick
 
@@ -37,6 +41,9 @@ class FPSTimer:
 
         return timeElapsed
 
+    def get_framerate(self) -> int | float:
+        return FPSTimer._framerate
+
     def get_time(self) -> float:
         return FPSTimer._timeElapsed
 
@@ -45,5 +52,8 @@ class FPSTimer:
 
     def get_fps(self) -> float:
         return FPSTimer._framesPerSecond
+
+    def set_framerate(self, framerate: int | float) -> None:
+        FPSTimer._framerate = framerate
 
 FPSTimer()

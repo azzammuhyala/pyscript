@@ -2,8 +2,8 @@ from .analyzer import PysAnalyzer
 from .buffer import PysFileBuffer
 from .cache import pys_sys, undefined, PysUndefined
 from .constants import (
-    LIBRARIES_PATH, OTHER_PATH, SITE_PACKAGES_PATH, DEFAULT, SILENT, RETURN_RESULT, NO_COLOR, DONT_SHOW_BANNER_ON_SHELL,
-    CLASSIC_LINE_SHELL, NO_COLOR_PROMPT
+    LIBRARIES_PATH, OTHER_PATH, SITE_PACKAGES_PATH, DEFAULT, NO_COLOR, NO_WARNING, SILENT, RETURN_RESULT,
+    DONT_SHOW_BANNER_ON_SHELL, CLASSIC_LINE_SHELL, NO_COLOR_PROMPT
 )
 from .context import PysContext
 from .exceptions import PysTraceback, PysSignal
@@ -336,9 +336,10 @@ def pys_shell(
 
     if not (flags & DONT_SHOW_BANNER_ON_SHELL):
 
-        for path in (LIBRARIES_PATH, OTHER_PATH, SITE_PACKAGES_PATH):
-            if not os.path.isdir(path):
-                print(f'WARNING: "{path}" directory not found', file=sys.stderr)
+        if not (flags & NO_WARNING):
+            for path in (LIBRARIES_PATH, OTHER_PATH, SITE_PACKAGES_PATH):
+                if not os.path.isdir(path):
+                    print(f'WARNING: "{path}" directory not found', file=sys.stderr)
 
         print(
             f'PyScript {version}\n'

@@ -225,12 +225,12 @@ try:
 
     MAXIMUM_HISTORY_LINE = os.environ.get(ENV_PYSCRIPT_MAXIMUM_HISTORY_LINE)
     if MAXIMUM_HISTORY_LINE is None:
-        MAXIMUM_HISTORY_LINE = 1000
+        MAXIMUM_HISTORY_LINE = 2048
     else:
         try:
             MAXIMUM_HISTORY_LINE = int(MAXIMUM_HISTORY_LINE)
         except:
-            MAXIMUM_HISTORY_LINE = 1000
+            MAXIMUM_HISTORY_LINE = 2048
 
     @singleton
     class PysHistory(Pys, History):
@@ -244,7 +244,7 @@ try:
             try:
 
                 if MAXIMUM_HISTORY_LINE == 0:
-                    with open(HISTORY_PATH, 'w', encoding='utf-8') as file:
+                    with open(HISTORY_PATH, 'w', encoding=pys_sys.encoding) as file:
                         file.write('')
                     return []
 
@@ -260,7 +260,7 @@ try:
                         strings.append('\n'.join(lines))
                         lines.clear()
 
-                    with open(HISTORY_PATH, 'r', encoding='utf-8') as file:
+                    with open(HISTORY_PATH, 'r', encoding=pys_sys.encoding) as file:
 
                         for line in file:
                             line = line[:-1]
@@ -283,7 +283,7 @@ try:
                     update_history = True
 
                 if update_history:
-                    with open(HISTORY_PATH, 'w', encoding='utf-8') as file:
+                    with open(HISTORY_PATH, 'w', encoding=pys_sys.encoding) as file:
                         file.writelines(f'\x1e{line}\n' for line in strings)
 
                 return strings

@@ -2,6 +2,7 @@ with open('./test.pys', 'r') as file:
     source = file.read()
 
 import sys
+import json
 import subprocess
 import pyscript
 import pygments
@@ -29,8 +30,6 @@ def pyscript_doc():
     )
 
 def update_snippets():
-    import json
-
     with open('./highlight/vscode/snippets/pyscript.json') as file:
         data = json.load(file)
 
@@ -38,7 +37,6 @@ def update_snippets():
         content = []
 
         for name, snippet in data.items():
-            # type = name.split(' - ')[0].lower()
             prefix = snippet['prefix']
             body = snippet['body']
             if isinstance(body, list):

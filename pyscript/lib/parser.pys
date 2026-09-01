@@ -32,8 +32,9 @@ SPECIAL = _pyscript.token.SPECIAL
 TOKENS = _pyscript.token.TOKENS
 KEYWORDS = _pyscript.constants.KEYWORDS
 
-# parser flags
+# flags / parser flags
 DEFAULT = _pyscript.constants.DEFAULT
+NO_WARNING = _pyscript.constants.NO_WARNING
 LEXER_HIGHLIGHT = _pyscript.constants.LEXER_HIGHLIGHT
 DICT_TO_JSDICT = _pyscript.constants.DICT_TO_JSDICT
 
@@ -95,6 +96,7 @@ class Parser {
 
         lexer = _pyscript.lexer.PysLexer(
             file=self.file,
+            flags=self.flags & NO_WARNING,
             parser_flags=self.flags
         )
 
@@ -118,6 +120,7 @@ class Parser {
 
         parser = _pyscript.parser.PysParser(
             tokens=tokens,
+            flags=self.flags & NO_WARNING,
             parser_flags=self.flags
         )
 
@@ -174,6 +177,7 @@ __all__ = (
     'TOKENS',
     'KEYWORDS',
     'DEFAULT',
+    'NO_WARNING',
     'LEXER_HIGHLIGHT',
     'DICT_TO_JSDICT',
     'HLFMT_HTML',

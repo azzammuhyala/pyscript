@@ -18,10 +18,9 @@ if (shell.ADVANCE_LINE_SHELL_SUPPORT) {
             shell.history._loaded_strings.clear()
             shell.history._storage.clear()
         }
-}
-else {
+} else {
     HISTORY_PATH = '<none>'
-    MAXIMUM_HISTORY_LINE = 1000
+    MAXIMUM_HISTORY_LINE = 2048
 
     func load() => []
     func append(string);

@@ -1,8 +1,8 @@
 from .core.buffer import PysFileBuffer
 from .core.cache import pys_sys, undefined
 from .core.constants import (
-    ENV_PYSCRIPT_NO_COLOR_PROMPT, ENV_PYSCRIPT_CLASSIC_LINE_SHELL, DEFAULT, DEBUG, NO_COLOR, DONT_SHOW_BANNER_ON_SHELL,
-    CLASSIC_LINE_SHELL, NO_COLOR_PROMPT, NOTEBOOK
+    ENV_PYSCRIPT_NO_COLOR_PROMPT, ENV_PYSCRIPT_CLASSIC_LINE_SHELL, DEFAULT, NO_COLOR, NO_WARNING, DEBUG,
+    DONT_SHOW_BANNER_ON_SHELL, CLASSIC_LINE_SHELL, NO_COLOR_PROMPT, NOTEBOOK
 )
 from .core.editor.gui import PysGUIEditor, GUI_SUPPORT
 from .core.editor.terminal import PysTerminalEditor, TERMINAL_SUPPORT
@@ -100,7 +100,7 @@ parser.add_argument(
 
 parser.add_argument(
     '-l', '--highlight',
-    choices=tuple(FORMATER_HIGHLIGHT_MAP.keys()) + tuple(FORMATER_PYGMENTS_MAP.keys() if PYGMENTS else ()),
+    choices=tuple(FORMATER_HIGHLIGHT_MAP.keys()) + (tuple(FORMATER_PYGMENTS_MAP.keys()) if PYGMENTS else ()),
     default=None,
     help="generate highlight code from a 'file'"
 )
@@ -137,6 +137,12 @@ parser.add_argument(
     '-t', '--terminal',
     action='store_true',
     help="configure terminal encoding to UTF-8 and enable ANSI escape code processing on Windows"
+)
+
+parser.add_argument(
+    '-w', '--no-warning',
+    action='store_true',
+    help="disabled warning (especially syntax warnings)"
 )
 
 parser.add_argument(
@@ -240,6 +246,7 @@ for condition, flag in [
     (args.no_color           or is_environ('NO_COLOR'),                      NO_COLOR),
     (args.no_color_prompt    or is_environ(ENV_PYSCRIPT_NO_COLOR_PROMPT),    NO_COLOR_PROMPT),
     (args.debug,                                                             DEBUG),
+    (args.no_warning,                                                        NO_WARNING),
     (args.q,                                                                 DONT_SHOW_BANNER_ON_SHELL)
 ]:
     if condition:
@@ -258,13 +265,13 @@ def clean_up() -> None:
         'ArgumentParser', 'BBCodeFormatter', 'CLASSIC_LINE_SHELL', 'DEBUG', 'DEFAULT', 'EDITOR_MAP',
         'ENV_PYSCRIPT_CLASSIC_LINE_SHELL', 'ENV_PYSCRIPT_NO_COLOR_PROMPT', 'FORMATER_HIGHLIGHT_MAP',
         'FORMATER_PYGMENTS_MAP', 'GUI_SUPPORT', 'HLFMT_ANSI', 'HLFMT_BBCODE', 'HLFMT_HTML', 'HtmlFormatter',
-        'LatexFormatter', 'NOTEBOOK', 'NO_COLOR', 'NO_COLOR_PROMPT', 'OPTIONAL', 'PYGMENTS', 'PygmentsPyScriptLexer',
-        'PygmentsPyScriptStyle', 'PysFileBuffer', 'PysGUIEditor', 'PysTerminalEditor', 'REMAINDER', 'TERMINAL_SUPPORT',
-        'Terminal256Formatter', 'TerminalFormatter', 'TerminalTrueColorFormatter', 'USE_NOTEBOOK', '__version__',
-        '_namespace_to_symbol_table', 'arg', 'arg_index', 'argc', 'args', 'argument_error', 'arguments_requiring_value',
-        'argv', 'base', 'clean_up', 'condition', 'ctypes', 'execute', 'fd', 'file', 'find_module_path', 'flag',
-        'getcwd', 'highlight', 'i', 'index', 'is_environ', 'kernel32', 'load_file', 'module_path', 'parser',
-        'pys_highlight', 'pys_sys', 'remove_python_path'
+        'LatexFormatter', 'NOTEBOOK', 'NO_COLOR', 'NO_WARNING', 'NO_COLOR_PROMPT', 'OPTIONAL', 'PYGMENTS',
+        'PygmentsPyScriptLexer', 'PygmentsPyScriptStyle', 'PysFileBuffer', 'PysGUIEditor', 'PysTerminalEditor',
+        'REMAINDER', 'TERMINAL_SUPPORT', 'Terminal256Formatter', 'TerminalFormatter', 'TerminalTrueColorFormatter',
+        'USE_NOTEBOOK', '__version__', '_namespace_to_symbol_table', 'arg', 'arg_index', 'argc', 'args',
+        'argument_error', 'arguments_requiring_value', 'argv', 'base', 'clean_up', 'condition', 'ctypes', 'execute',
+        'fd', 'file', 'find_module_path', 'flag', 'getcwd', 'highlight', 'i', 'index', 'is_environ', 'kernel32',
+        'load_file', 'module_path', 'parser', 'pys_highlight', 'pys_sys', 'remove_python_path'
     }:
         try:
             del g[name]
@@ -274,7 +281,7 @@ def clean_up() -> None:
 def load_file(path) -> PysFileBuffer:
     normalized = normpath(path)
     try:
-        with open(normalized, 'r', encoding='utf-8') as file:
+        with open(normalized, 'r', encoding=pys_sys.encoding) as file:
             return PysFileBuffer(file, normalized)
     except FileNotFoundError:
         if not (EDITOR_MAP and args.editor):

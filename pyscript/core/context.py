@@ -28,12 +28,12 @@ class PysContext(Pys):
         if flags is None and parent:
             flags = parent.flags
 
-        setimuattr(self, 'file', file)
-        setimuattr(self, 'name', name)
-        setimuattr(self, 'qualname', qualname)
-        setimuattr(self, 'flags', DEFAULT if flags is None else flags)
-        setimuattr(self, 'symbol_table', symbol_table)
-        setimuattr(self, 'parent', parent)
+        setimuattr(self, 'file',                  file)
+        setimuattr(self, 'name',                  name)
+        setimuattr(self, 'qualname',              qualname)
+        setimuattr(self, 'flags',                 DEFAULT if flags is None else flags)
+        setimuattr(self, 'symbol_table',          symbol_table)
+        setimuattr(self, 'parent',                parent)
         setimuattr(self, 'parent_entry_position', parent_entry_position)
 
 class PysClassContext(PysContext):

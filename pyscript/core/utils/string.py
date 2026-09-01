@@ -1,12 +1,15 @@
 from collections.abc import Iterable
 from io import IOBase, TextIOWrapper
 from json import detect_encoding
+from re import compile as compile_regex
 from types import BuiltinMethodType
 from typing import Sequence
 
+sub_newline = compile_regex(r'\r\n|[\r\v]').sub
+
 def normstr(obj) -> str:
     if isinstance(obj, str):
-        return obj.replace('\r\n', '\n').replace('\r', '\n').replace('\v', '\n')
+        return sub_newline('\n', obj)
 
     elif isinstance(obj, (bytes, bytearray)):
         return normstr(obj.decode(detect_encoding(obj), 'surrogatepass'))

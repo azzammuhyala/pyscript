@@ -83,6 +83,58 @@ GET_ACOLOR = {
     'bold-red': acolor('red', style=BOLD)
 }.__getitem__
 
+HIGHLIGHT_MAP = MappingProxyType({
+    'default': '#D4D4D4',
+    'keyword': '#C586C0',
+    'keyword-constant': '#307CD6',
+    'keyword-other': '#1F52B3',
+    'identifier': '#8CDCFE',
+    'identifier-constant': '#2EA3FF',
+    'identifier-function': '#DCDCAA',
+    'identifier-type': '#4EC9B0',
+    'number': '#B5CEA8',
+    'string': '#CE9178',
+    'escape': '#D7BA71',
+    'brackets-0': '#FFD705',
+    'brackets-1': '#D45DBA',
+    'brackets-2': '#1A9FFF',
+    'comment': '#549952',
+    'invalid': '#B51819'
+})
+
+TAG_VERSION_MAP = MappingProxyType({
+    'a': 'alpha',
+    'b': 'beta',
+    'rc': 'release candidate',
+    'dev': 'development',
+    'post': 'post'
+})
+
+ESCAPE_CHARACTERS_MAP = MappingProxyType({
+    '\\': '\\',
+    "'": "'",
+    '"': '"',
+    'n': '\n',
+    'r': '\r',
+    't': '\t',
+    'b': '\b',
+    'f': '\f',
+    'a': '\a',
+    'v': '\v'
+})
+
+BASE_INTEGER_LITERAL = MappingProxyType({
+    'b': (2,  '01'),
+    'o': (8,  '01234567'),
+    'x': (16, '0123456789abcdefABCDEF')
+})
+
+ESCAPE_LITERAL_LENGTH = MappingProxyType({
+    'x': 2,
+    'u': 4,
+    'U': 8
+})
+
 BRACKETS_MAP = MappingProxyType({
     TOKENS['LEFT_PARENTHESIS']: TOKENS['RIGHT_PARENTHESIS'],
     TOKENS['LEFT_SQUARE']: TOKENS['RIGHT_SQUARE'],

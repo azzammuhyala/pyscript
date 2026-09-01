@@ -181,8 +181,8 @@ try:
                 floats=[
                     Float(
                         content=self.exit_container,
-                        left=2,
-                        bottom=1
+                        width=43,
+                        height=2,
                     )
                 ]
             )

@@ -7,7 +7,7 @@
         <img src="https://static.pepy.tech/personalized-badge/pyscript-programming-language?period=total&units=NONE&left_color=GRAY&right_color=GREEN&left_text=downloads" alt="PyPI Downloads">
     </a>
     <a href="https://en.wikipedia.org/wiki/MIT_License">
-        <img src="https://img.shields.io/badge/license-MIT-orange" alt="License MIT">
+        <img src="https://img.shields.io/badge/license-MIT-orange" alt="MIT License">
     </a>
     <a href="https://www.python.org/">
         <img src="https://img.shields.io/badge/python-3.10+-yellow" alt="Python 3.10+">
@@ -18,10 +18,10 @@ PyScript is a programming language built on top of Python. It combines some synt
 you're already familiar with Python, JavaScript or both, it should be quite easy to learn.
 
 ## Introduction 📖
-PyScript may not be the language we'll be discussing, but the name PyScript already exists, a flexible and platform for
-running Python in a browser. Since it's inception, the language was inspired by Python and JavaScript, which are
-relatively easy for humans to read. This name was chosen because it wasn't immediately known whether this name was
-already in use.
+The name of "PyScript" was previously used by a well-known framework designed to run Python directly in the browser.
+Designed from the outset with inspiration from both Python and JavaScript, this language emphasizes human readability.
+Its name was derived by combining **Py**thon and Java**Script**. Please note that this language is an independent
+programming language project written in Python and has no affiliation with the aforementioned PyScript framework.
 
 This language wasn't designed to compete with other modern programming languages, but rather as a learning for
 understanding how programming languages ​​work and how human written code can be understood by machines. Furthermore, this
@@ -73,15 +73,15 @@ Familiar? There it is!
 |:--:|:------------------|:----------------------:|
 | 1  | `argparse`        | **required**           |
 | 2  | `builtins`        | **required**           |
-| 3  | `collections.abc` | **required**           |
-| 4  | `functools`       | **required**           |
-| 5  | `html`            | **required**           |
-| 6  | `importlib`       | **required**           |
-| 7  | `inspect`         | **required**           |
-| 8  | `io`              | **required**           |
-| 9  | `itertools`       | **required**           |
-| 10 | `json`            | **required**           |
-| 11 | `math`            | **required**           |
+| 3  | `cmath`           | **required**           |
+| 4  | `collections.abc` | **required**           |
+| 5  | `functools`       | **required**           |
+| 6  | `html`            | **required**           |
+| 7  | `importlib`       | **required**           |
+| 8  | `inspect`         | **required**           |
+| 9  | `io`              | **required**           |
+| 10 | `itertools`       | **required**           |
+| 11 | `json`            | **required**           |
 | 12 | `operator`        | **required**           |
 | 13 | `os`              | **required**           |
 | 14 | `re`              | **required**           |

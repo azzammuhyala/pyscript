@@ -1,5 +1,6 @@
 from ..bases import Pys
 from ..buffer import PysFileBuffer
+from ..cache import pys_sys
 from ..constants import CONFIGURATIONS_PATH
 from ..utils.decorators import typecheck, inheritable
 from ..utils.generic import setimuattr
@@ -26,7 +27,7 @@ class PysEditor(Pys):
 
     def load_configuration(self) -> None:
         try:
-            with open(CONFIGURATIONS_PATH, 'r', encoding='utf-8') as file:
+            with open(CONFIGURATIONS_PATH, 'r', encoding=pys_sys.encoding) as file:
                 result = load(file)
                 if not isinstance(result, dict):
                     raise ValueError
@@ -48,7 +49,7 @@ class PysEditor(Pys):
 
     def save_configuration(self) -> None:
         try:
-            with open(CONFIGURATIONS_PATH, 'w', encoding='utf-8') as file:
+            with open(CONFIGURATIONS_PATH, 'w', encoding=pys_sys.encoding) as file:
                 dump(self.configurations, file, separators=(',', ':'))
         except:
             pass
@@ -56,7 +57,7 @@ class PysEditor(Pys):
     def save(self, text) -> None:
         try:
             text = normstr(text)
-            with open(self.file.name, 'w', encoding='utf-8') as file:
+            with open(self.file.name, 'w', encoding=pys_sys.encoding) as file:
                 file.write(text)
                 setimuattr(self.file, 'text', text)
         except:

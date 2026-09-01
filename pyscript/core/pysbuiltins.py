@@ -18,7 +18,7 @@ from .utils.module import find_module_path, set_python_path, remove_python_path
 from .utils.path import base, normpath
 from .utils.string import normstr
 
-from math import inf, nan, isclose
+from cmath import inf, infj, nan, nanj, isclose
 from importlib import import_module
 from inspect import signature
 from types import BuiltinFunctionType, BuiltinMethodType, FunctionType, MethodType, ModuleType, NoneType
@@ -29,6 +29,7 @@ import os
 import sys
 
 real_number = (int, float)
+real_complex_number = real_number + (complex,)
 sequence = (list, tuple, set)
 optional_mapping = (dict, NoneType)
 static_wrapper_function = (staticmethod,)
@@ -124,9 +125,9 @@ class PysHelper(PysPrinter):
 
 try:
     with (
-        open(normpath(OTHER_PATH, 'copyright')) as copyright, 
-        open(normpath(OTHER_PATH, 'credits')) as credits, 
-        open(normpath(OTHER_PATH, 'license')) as license
+        open(normpath(OTHER_PATH, 'copyright'), encoding=pys_sys.encoding) as copyright, 
+        open(normpath(OTHER_PATH, 'credits'), encoding=pys_sys.encoding) as credits, 
+        open(normpath(OTHER_PATH, 'license'), encoding=pys_sys.encoding) as license
     ):
         pys_sys.copyright = copyright.read()
         copyright = PysPrinter('copyright', pys_sys.copyright)
@@ -186,7 +187,7 @@ def require(context, position, name):
                 loading_modules.add(module_path)
 
                 try:
-                    with open(module_path, 'r', encoding='utf-8') as file:
+                    with open(module_path, 'r', encoding=pys_sys.encoding) as file:
                         file = PysFileBuffer(file, module_path)
                 except FileNotFoundError as e:
                     raise ModuleNotFoundError(f"No module named {name!r}") from e
@@ -488,14 +489,14 @@ def ce(context, position, a, b, *, rel_tol=1e-9, abs_tol=0):
 
     Comparing two objects a and b to close equal.
 
-    a, b: Two objects to be compared. If both are integer or float, it will call `math.isclose()` function. Otherwise,
-          it will attempt to call the __ce__ method (if both fail, it calls the negated __nce__ method) of one of the
-          two objects. If all else fails, it will throw a TypeError.
+    a, b: Two objects to be compared. If both are integer, float, or complex, it calls the `cmath.isclose()` function.
+          Otherwise, it will attempt to call the __ce__ method (if both fail, it calls the negated __nce__ method) of
+          one of the two objects. If all else fails, it will throw a TypeError.
     rel_tol: maximum difference for being considered "close", relative to the magnitude of the input values.
     abs_tol: maximum difference for being considered "close", regardless of the magnitude of the input values.
     """
 
-    if isinstance(a, real_number) and isinstance(b, real_number):
+    if isinstance(a, real_complex_number) and isinstance(b, real_complex_number):
         return isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
 
     success, result = _supported_method(context, position, a, '__ce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
@@ -524,14 +525,14 @@ def nce(context, position, a, b, *, rel_tol=1e-9, abs_tol=0):
 
     Comparing two objects a and b to not close equal.
 
-    a, b: Two objects to be compared. If both are integer or float, it calls the `not math.isclose()` function.
-          Otherwise, it attempts to call the __nce__ method (if both fail, it calls the negated __ce__ method) of one of
-          the two objects. If both fail, it throws a TypeError.
+    a, b: Two objects to be compared. If both are integer, float, or complex, it calls the `not cmath.isclose()`
+          function. Otherwise, it attempts to call the __nce__ method (if both fail, it calls the negated __ce__ method)
+          of one of the two objects. If both fail, it throws a TypeError.
     rel_tol: maximum difference for being considered "close", relative to the magnitude of the input values.
     abs_tol: maximum difference for being considered "close", regardless of the magnitude of the input values.
     """
 
-    if isinstance(a, real_number) and isinstance(b, real_number):
+    if isinstance(a, real_complex_number) and isinstance(b, real_complex_number):
         return not isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
 
     success, result = _supported_method(context, position, a, '__nce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
@@ -664,9 +665,9 @@ pys_builtins.__dict__.update({
     'none': None,
     'null': None,
     'inf': inf,
-    'infj': complex(0, inf),
+    'infj': infj,
     'nan': nan,
-    'nanj': complex(0, nan),
+    'nanj': nanj,
     'copyright': copyright,
     'credits': credits,
     'license': license,

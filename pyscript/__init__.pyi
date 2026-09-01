@@ -22,8 +22,9 @@ from .core.highlight import (
 
 DEFAULT: int
 NO_COLOR: int
-DEBUG: int
+NO_WARNING: int
 SILENT: int
+DEBUG: int
 RETURN_RESULT: int
 DONT_SHOW_BANNER_ON_SHELL: int
 CLASSIC_LINE_SHELL: int

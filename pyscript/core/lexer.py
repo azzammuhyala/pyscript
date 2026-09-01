@@ -2,44 +2,19 @@ from .bases import Pys
 from .buffer import PysFileBuffer
 from .cache import intern_object
 from .checks import is_keyword
-from .constants import DEFAULT, SILENT, LEXER_HIGHLIGHT, NO_COLOR
+from .constants import DEFAULT, NO_COLOR, NO_WARNING, LEXER_HIGHLIGHT
 from .context import PysContext
 from .exceptions import PysTraceback
+from .mapping import ESCAPE_CHARACTERS_MAP, BASE_INTEGER_LITERAL, ESCAPE_LITERAL_LENGTH
 from .position import PysPosition, format_error_arrow
 from .token import TOKENS, PysToken
 from .utils.decorators import typecheck
 from .utils.string import indent
 
 from unicodedata import lookup as unicode_lookup
-from types import MappingProxyType
 from typing import Any, Optional
 
 import sys
-
-ESCAPE_CHARACTERS_MAP = MappingProxyType({
-    '\\': '\\',
-    "'": "'",
-    '"': '"',
-    'n': '\n',
-    'r': '\r',
-    't': '\t',
-    'b': '\b',
-    'f': '\f',
-    'a': '\a',
-    'v': '\v'
-})
-
-BASE_INTEGER_LITERAL = MappingProxyType({
-    'b': (2,  '01'),
-    'o': (8,  '01234567'),
-    'x': (16, '0123456789abcdefABCDEF')
-})
-
-ESCAPE_LITERAL_LENGTH = MappingProxyType({
-    'x': 2,
-    'u': 4,
-    'U': 8
-})
 
 class PysLexer(Pys):
 
@@ -232,7 +207,7 @@ class PysLexer(Pys):
             )
 
     def warning(self, message: str) -> None:
-        if not (self.flags & SILENT or self.parser_flags & LEXER_HIGHLIGHT):
+        if not (self.flags & NO_WARNING or self.parser_flags & LEXER_HIGHLIGHT):
             print(message, file=sys.stderr)
 
     def throw(self, start: int, end: int, message: str, add_token: bool = True) -> None:

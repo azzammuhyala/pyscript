@@ -3,7 +3,7 @@ from .buffer import PysFileBuffer
 from .checks import is_constant_keyword, is_left_bracket, is_bracket, is_public_attribute
 from .constants import KEYWORDS, CONSTANT_KEYWORDS, LEXER_HIGHLIGHT
 from .lexer import PysLexer
-from .mapping import BRACKETS_MAP
+from .mapping import HIGHLIGHT_MAP, BRACKETS_MAP
 from .position import PysPosition
 from .pysbuiltins import pys_builtins
 from .token import TOKENS
@@ -12,27 +12,7 @@ from .utils.decorators import typecheck
 from .utils.string import normstr
 
 from html import escape as html_escape
-from types import MappingProxyType
 from typing import Callable, Optional
-
-HIGHLIGHT_MAP = MappingProxyType({
-    'default': '#D4D4D4',
-    'keyword': '#C586C0',
-    'keyword-constant': '#307CD6',
-    'keyword-other': '#1F52B3',
-    'identifier': '#8CDCFE',
-    'identifier-constant': '#2EA3FF',
-    'identifier-function': '#DCDCAA',
-    'identifier-type': '#4EC9B0',
-    'number': '#B5CEA8',
-    'string': '#CE9178',
-    'escape': '#D7BA71',
-    'brackets-0': '#FFD705',
-    'brackets-1': '#D45DBA',
-    'brackets-2': '#1A9FFF',
-    'comment': '#549952',
-    'invalid': '#B51819'
-})
 
 BUILTIN_TYPES = frozenset(
     name
@@ -448,6 +428,7 @@ def pys_highlight(
     formatter: Optional[Callable[[str, PysPosition, str], str]] = None,
     max_bracket_level: int = 3
 ) -> str:
+
     """
     Highlight a PyScript code from source given.
 
@@ -498,6 +479,7 @@ def pys_highlight(
     for i, token in enumerate(tokens):
         ttype = token.type
         tvalue = token.value
+        tposition = token.position
 
         if ttype == T_NULL:
             type_format = 'end'
@@ -553,13 +535,13 @@ def pys_highlight(
         else:
             type_format = 'default'
 
-        if space := text[last_index:token.position.start]:
-            result += formatter('default', PysPosition(file, last_index, token.position.start), space)
-        result += formatter(type_format, token.position, text[token.position.start:token.position.end])
+        if space := text[last_index:tposition.start]:
+            result += formatter('default', PysPosition(file, last_index, tposition.start), space)
+        result += formatter(type_format, tposition, text[tposition.start:tposition.end])
 
         if ttype == T_NULL:
             break
 
-        last_index = token.position.end
+        last_index = tposition.end
 
     return result

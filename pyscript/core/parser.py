@@ -1,7 +1,7 @@
 from .bases import Pys
 from .cache import intern_object
 from .checks import is_sequence, is_literal, is_left_bracket, is_right_bracket
-from .constants import DEFAULT, NO_COLOR, SILENT, DICT_TO_JSDICT
+from .constants import DEFAULT, NO_COLOR, NO_WARNING, DICT_TO_JSDICT
 from .context import PysContext
 from .exceptions import PysTraceback
 from .mapping import BRACKETS_MAP
@@ -78,7 +78,7 @@ class PysParser(Pys):
         self.update_current_token()
 
     def warning(self, message: str) -> None:
-        if not (self.flags & SILENT):
+        if not (self.flags & NO_WARNING):
             print(message, file=sys.stderr)
 
     def new_error(self, message: str, position: Optional[PysPosition] = None) -> PysTraceback:
@@ -1229,7 +1229,7 @@ class PysParser(Pys):
 
                 cases.append((case, body))
 
-            elif self.current_token.match(TOKENS['KEYWORD'], 'default'):
+            elif self.current_token.match(TOKENS['KEYWORD'], 'default', 'else'):
                 result.register_advancement()
                 self.advance()
                 self.skip(result)

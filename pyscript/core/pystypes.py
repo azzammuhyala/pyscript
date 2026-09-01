@@ -10,6 +10,7 @@ from .utils.generic import setimuattr, dinit, drepr, dor, dsetitem, ddelitem, di
 from .utils.similarity import get_closest
 from .utils.string import join
 
+from itertools import islice
 from types import MethodType
 from typing import Any, Callable, Union
 
@@ -20,16 +21,9 @@ class jsdict(PysObject, dict):
 
     def __init__(self, *args, **kwargs) -> None:
         dinit(self, *args, **kwargs)
-
-        removed_keys = []
-        add_key = removed_keys.append
-
-        for key, value in ditems(self):
+        for key, value in tuple(ditems(self)):
             if value is None:
-                add_key(key)
-
-        for key in removed_keys:
-            ddelitem(self, key)
+                ddelitem(self, key)
 
     def __repr__(self) -> str:
         return f'jsdict({drepr(self)})'
@@ -141,7 +135,7 @@ class PysFunction(PysObject):
         combined_keyword_arguments = code.combine_keyword_arguments(kwargs)
         pop_keyword_arguments = combined_keyword_arguments.pop
 
-        for name, arg in b_zip(code.keyword_argument_names, args[b_len(registered_arguments):]):
+        for name, arg in b_zip(code.keyword_argument_names, islice(args, b_len(registered_arguments), None)):
             set_symbol(name, arg)
             add_argument(name)
             pop_keyword_arguments(name, None)
@@ -162,7 +156,7 @@ class PysFunction(PysObject):
                 )
 
             elif name not in code_parameter_names:
-                closest_argument = get_closest(set(code_parameter_names), name)
+                closest_argument = get_closest(code_parameter_names, name)
                 hint_message = "" if closest_argument is None else f". Did you mean {closest_argument!r}?"
 
                 raise PysSignal(

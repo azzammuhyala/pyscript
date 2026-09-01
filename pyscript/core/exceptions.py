@@ -25,18 +25,12 @@ class PysTraceback(Pys):
         primary: Optional['PysTraceback'] = None,
         implicit: bool = False
     ) -> None:
-        # circular import problem solved
-        from .cache import pys_sys
 
         setimuattr(self, 'exception', exception)
         setimuattr(self, 'context', context)
         setimuattr(self, 'position', position)
         setimuattr(self, 'primary', primary)
         setimuattr(self, 'implicit', implicit)
-
-        pys_sys.last_type = type(exception) if isinstance(exception, BaseException) else exception
-        pys_sys.last_value = exception if isinstance(exception, BaseException) else None
-        pys_sys.last_traceback = self
 
     def __repr__(self) -> str:
         return f'<traceback of {self.exception!r}>'

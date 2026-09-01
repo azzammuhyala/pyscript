@@ -1,9 +1,8 @@
 from itertools import pairwise
+from re import compile as compile_regex
 from typing import Iterable
 
-import re
-
-remove_whitespace = re.compile(r'\s+').sub
+remove_whitespace = compile_regex(r'\s+').sub
 
 def get_similarity_ratio(string1: str, string2: str) -> float:
     bigram1 = set(s1 + s2 for s1, s2 in pairwise(remove_whitespace('', string1).lower()))

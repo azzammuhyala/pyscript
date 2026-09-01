@@ -1,24 +1,15 @@
 from .bases import Pys
 from .cache import pys_sys
+from .mapping import TAG_VERSION_MAP
 from .utils.decorators import immutable, inheritable, singleton
 
-from types import MappingProxyType
+from re import match as match_regex
 
-import re
-
-__version__ = '1.13.3'
-__date__ = '31 May 2026, 22:30 UTC+7'
+__version__ = '1.13.4'
+__date__ = '1 September 2026, 20:00 UTC+7'
 __author__ = ('AzzamMuhyala',)
 
 version = pys_sys.version = f'{__version__} ({__date__})'
-
-TAG_VERSION_MAP = MappingProxyType({
-    'a': 'alpha',
-    'b': 'beta',
-    'rc': 'release candidate',
-    'dev': 'development',
-    'post': 'post'
-})
 
 @singleton
 @immutable
@@ -28,7 +19,7 @@ class PysVersionInfo(Pys, tuple):
     __slots__ = ()
 
     def __new_singleton__(cls) -> 'PysVersionInfo':
-        match = re.match(r'^(\d+)\.(\d+)\.(\d+)((?:a|b|rc)(\d+)|\.(dev|post)(\d+))?$', __version__)
+        match = match_regex(r'^(\d+)\.(\d+)\.(\d+)((?:a|b|rc)(\d+)|\.(dev|post)(\d+))?$', __version__)
         if not match:
             raise ValueError(f"invalid format version: {__version__!r}")
 

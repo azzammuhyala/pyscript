@@ -16,7 +16,7 @@ class PysSymbolTable(Pys):
     __slots__ = ('parent', 'symbols', 'globals', 'builtins')
 
     def __init__(self, parent: Optional['PysSymbolTable'] = None) -> None:
-        setimuattr(self, 'parent', parent.parent if isinstance(parent, PysClassSymbolTable) else parent)
+        setimuattr(self, 'parent',  parent.parent if isinstance(parent, PysClassSymbolTable) else parent)
         setimuattr(self, 'symbols', {})
         setimuattr(self, 'globals', set())
 
