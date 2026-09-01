@@ -112,7 +112,7 @@ func sha256(data) {
 if (__name__ == '__main__') {
     import hashlib
 
-    data = b'Hello'
+    data = b'Hello World!'
     hashed = sha256(data).hex()
     hashedlib = hashlib.sha256(data).hexdigest()
 

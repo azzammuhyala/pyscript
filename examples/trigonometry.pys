@@ -81,10 +81,11 @@ _polynomialApproximation.constants = tuple(map(func(n) {
 
 func _exponentialSine(x) {
 
-    #           ix    -ix
-    #          e   - e
-    # sin(x) = ----------
-    #              2i
+    #           ix    -ix   /         /   \       \
+    #          e   - e     |         |  ix |       |
+    # sin(x) = ----------  | or just | e   |.imag  |
+    #              2i      |          \   /        |
+    #                       \                     /
 
     return ((E**(1j*x) - E**(-1j*x))/2j).real
 }

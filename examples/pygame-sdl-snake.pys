@@ -1,0 +1,120 @@
+# pygame-sdl-snake.pys
+
+import pygame
+import 'pygame._sdl2' as sdl
+import random
+
+pygame.init()
+
+WIDTH = 25
+HEIGHT = 25
+DELAY = 125
+FPS = 30
+
+SCREEN_WIDTH = 500
+SCREEN_HEIGHT = 500
+
+running = True
+
+clock = pygame.time.Clock()
+window = sdl.Window('Snake Game', (SCREEN_WIDTH, SCREEN_HEIGHT))
+renderer = sdl.Renderer(window)
+
+func newFood() {
+    while (true) {
+        position = (random.randint(0, WIDTH-1), random.randint(0, HEIGHT-1))
+        if (position not in snake)
+            return position
+    }
+}
+
+directions = {
+    'up': (0, -1),
+    'down': (0, 1),
+    'left': (-1, 0),
+    'right': (1, 0)
+}
+
+cellWidth = SCREEN_WIDTH//WIDTH
+cellHeight = SCREEN_HEIGHT//HEIGHT
+snake = [(WIDTH//2, HEIGHT//2)]
+food = newFood()
+directionStack = [(0, 0)]
+accumulator = 0
+
+while (running) {
+    dt = clock.tick(FPS)
+
+    for (event of pygame.event.get()) {
+
+        if (event.type == pygame.QUIT)
+            running = false
+
+        elif (event.type == pygame.KEYDOWN) {
+            direction = directionStack[0]
+            if (event.key == pygame.K_UP and direction != directions['down'])
+                direction = directions['up']
+            elif (event.key == pygame.K_DOWN and direction != directions['up'])
+                direction = directions['down']
+            elif (event.key == pygame.K_LEFT and direction != directions['right'])
+                direction = directions['left']
+            elif (event.key == pygame.K_RIGHT and direction != directions['left'])
+                direction = directions['right']
+            else
+                continue
+            directionStack.insert(0, direction)
+        }
+
+    }
+
+    accumulator += dt
+
+    if (accumulator >= DELAY) {
+        accumulator -= DELAY
+
+        x, y = snake[0]
+        dx, dy = directionStack.pop() if len(directionStack) > 1 else directionStack[0]
+        head = x + dx, y + dy
+
+        snake.insert(0, head)
+        if (head == food)
+            food = newFood()
+        else
+            snake.pop()
+
+        if (len(snake) == WIDTH * HEIGHT) {
+            print("You Win!")
+            running = False
+        }
+        elif (
+            head[0] < 0 or head[0] >= WIDTH or
+            head[1] < 0 or head[1] >= HEIGHT or
+            len(snake) != len(set(snake))
+        ) {
+            print("You Lose!")
+            running = false
+        }
+    }
+
+    renderer.clear()
+
+    renderer.draw_color = '#00ff00'
+    for (x, y of snake)
+        renderer.fill_rect((
+            x * cellWidth,
+            y * cellHeight,
+            cellWidth, cellHeight
+        ))
+
+    renderer.draw_color = '#ff0000'
+    renderer.fill_rect((
+        food[0] * cellWidth,
+        food[1] * cellHeight,
+        cellWidth, cellHeight
+    ))
+    renderer.draw_color = '#000000'
+
+    renderer.present()
+}
+
+pygame.quit()
