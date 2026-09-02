@@ -1,7 +1,10 @@
 <!--
     AUTHOR: AzzamMuhyala
-    URL: https://azzammuhyala.github.io/pyscript/shell.html
+    URL:    https://azzammuhyala.github.io/pyscript/shell.html
+
+    "im too lazy and tired to fix all the bugs that might happen here"
 -->
+
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -72,7 +75,7 @@
         <div id="terminal-container"></div>
         <script type="module">
             const PYODIDE_URL = 'https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.mjs';
-            const MAXIMUM_HISTORY_LINE = 1000;
+            const MAXIMUM_HISTORY_LINE = 2048;
 
             function dedent(string) {
                 const lines = string.replace(/\r\n|\r/g, '\n').split('\n');
@@ -118,7 +121,6 @@
 
             let cursor = 0;
             let historyCursor = 0;
-            let insert = false;
             const history = [];
             const inputQueue = [];
             const linesQueue = [];
@@ -140,11 +142,25 @@
 
             const above = () => cursor > 0;
             const below = () => cursor < lineBuffer.length;
+            const isInsert = () => !terminal.options.cursorBlink;
+            const setInsert = (value) => { terminal.options.cursorBlink = !value };
+            const getTerminalSize = () => [terminal.cols, terminal.rows];
+            const getCursorPosition = () => [terminal.buffer.active.cursorX, terminal.buffer.active.cursorY];
+
+            function getLineStart(offset, cursorX, cursorY, width) {
+                const startX = ((cursorX - offset) % width + width) % width;
+                return [startX, cursorY - Math.floor((startX + offset) / width)];
+            }
+
+            function offsetToPosition(startX, startY, offset, width) {
+                const total = startX + offset;
+                return [total % width, startY + Math.floor(total / width)];
+            }
 
             function readClipboardThenProcess() {
                 if (!pyscriptGlobals.isWaitingForInput) return;
                 navigator.clipboard.readText().then(text => {
-                    if (text) processInputCharacter(text);
+                    if (text && pyscriptGlobals.isWaitingForInput) processInputCharacter(text);
                 }).catch(err => {
                     console.error('Failed to read clipboard:', err);
                 });
@@ -159,38 +175,60 @@
             function sendSignal(code, prefix) {
                 if (typeof prefix === 'string') terminal.write('^' + prefix);
                 cursor = 0;
-                insert = false;
                 linesQueue.length = 0;
                 lineBuffer.length = 0;
                 linesQueue.push(code);
+                setInsert(false);
             }
 
             function pushBuffer(buffer) {
                 if (!buffer) return;
-                if (!insert && below()) terminal.write(`\x1b[${buffer.length}@`);
-                terminal.write(buffer);
-                lineBuffer.splice(cursor, insert ? buffer.length : 0, ...buffer);
+
+                if (!isInsert() && below()) {
+                    const [width] = getTerminalSize();
+                    const [cursorX, cursorY] = getCursorPosition();
+                    const [startX, startY] = getLineStart(cursor, cursorX, cursorY, width);
+                    const [column, row] = offsetToPosition(startX, startY, cursor + buffer.length, width);
+                    terminal.write(
+                        buffer + lineBuffer.slice(cursor).join('') +
+                        `\x1b[${row + 1};${column + 1}H`
+                    );
+                } else {
+                    terminal.write(buffer);
+                }
+
+                lineBuffer.splice(cursor, isInsert() ? buffer.length : 0, ...buffer);
                 cursor += buffer.length;
             }
 
             function flushHistory() {
-                if (above()) {
-                    terminal.write(`\x1b[${cursor}D${' '.repeat(lineBuffer.length)}\x1b[${lineBuffer.length}D`);
-                    cursor = 0;
+                const oldLength = lineBuffer.length;
+
+                if (oldLength > 0) {
+                    const [width] = getTerminalSize();
+                    const [cursorX, cursorY] = getCursorPosition();
+                    const [startX, startY] = getLineStart(cursor, cursorX, cursorY, width);
+                    const [column, row] = offsetToPosition(startX, startY, 0, width);   
+                    terminal.write(
+                        `\x1b[${row + 1};${column + 1}H` +
+                        ' '.repeat(oldLength) +
+                        `\x1b[${row + 1};${column + 1}H`
+                    );
                 }
-                if (historyCursor >= history.length) {
-                    lineBuffer.length = 0;
-                    return;
-                }
-                const line = history[historyCursor];
-                terminal.write(line);
+
                 lineBuffer.length = 0;
-                lineBuffer.push(...line);
-                cursor = line.length;
+
+                if (historyCursor < history.length) {
+                    const line = history[historyCursor];
+                    lineBuffer.push(...line);
+                    terminal.write(line);
+                }
+
+                cursor = lineBuffer.length;
             }
 
             function pushHistory(line) {
-                if (!line.trim() || line === history[history.length - 1]){
+                if (!line.trim() || line === history[history.length - 1]) {
                     historyCursor = history.length;
                     return;
                 }
@@ -206,19 +244,32 @@
             }
 
             function pushLine() {
-                terminal.write('\r\n');
+                const [width] = getTerminalSize();
+                const [curX, curY] = getCursorPosition();
+                const [startX, startY] = getLineStart(cursor, curX, curY, width);
+                const [column, row] = offsetToPosition(startX, startY, lineBuffer.length, width);
+                terminal.write(`\x1b[${row + 1};${column + 1}H\r\n`);
                 const line = lineBuffer.join('');
                 linesQueue.push(line);
                 pushHistory(line);
+                setInsert(false);
                 lineBuffer.length = 0;
                 cursor = 0;
-                insert = false;
             }
 
             function processInputCharacter(data) {
                 if (!pyscriptGlobals.isWaitingForInput) return;
 
                 data = data.replace(/\r\n|\r/g, '\n');
+
+                const [width] = getTerminalSize();
+                const [cursorX, cursorY] = getCursorPosition();
+                const [lineStartX, lineStartY] = getLineStart(cursor, cursorX, cursorY, width);
+
+                const moveTo = () => {
+                    const [column, row] = offsetToPosition(lineStartX, lineStartY, cursor, width);
+                    terminal.write(`\x1b[${row + 1};${column + 1}H`);
+                };
 
                 switch (data) {
 
@@ -249,20 +300,24 @@
                     case '\x7f':
                         if (!above()) break;
                         cursor--;
-                        terminal.write('\x1b[D\x1b[P');
                         lineBuffer.splice(cursor, 1);
+                        moveTo();
+                        terminal.write(lineBuffer.slice(cursor).join('') + ' ');
+                        moveTo();
                         break;
 
                     // Insert
                     case '\x1b[2~':
-                        insert = !insert;
+                        setInsert(!isInsert());
                         break;
 
                     // Delete
                     case '\x1b[3~':
                         if (!below()) break;
-                        terminal.write('\x1b[P');
                         lineBuffer.splice(cursor, 1);
+                        moveTo();
+                        terminal.write(lineBuffer.slice(cursor).join('') + ' ');
+                        moveTo();
                         break;
 
                     // Page Up
@@ -287,15 +342,15 @@
                     // Home
                     case '\x1b[H':
                         if (!above()) break;
-                        terminal.write(`\x1b[${cursor}D`);
                         cursor = 0;
+                        moveTo();
                         break;
 
                     // End
                     case '\x1b[F':
                         if (!below()) break;
-                        terminal.write(`\x1b[${lineBuffer.length - cursor}C`);
                         cursor = lineBuffer.length;
+                        moveTo();
                         break;
 
                     // Up
@@ -315,15 +370,15 @@
                     // Right
                     case '\x1b[C':
                         if (!below()) break;
-                        terminal.write(data);
                         cursor++;
+                        moveTo();
                         break;
 
                     // Left
                     case '\x1b[D':
                         if (!above()) break;
-                        terminal.write(data);
                         cursor--;
+                        moveTo();
                         break;
 
                     default:
@@ -437,21 +492,22 @@
                     linesQueue = pyscriptGlobals.linesQueue
                     processInputCharacter = pyscriptGlobals.processInputCharacter
 
-                    pyscriptGlobals.isWaitingForInput = True
+                    try:
+                        pyscriptGlobals.isWaitingForInput = True
 
-                    while inputQueue.length > 0:
-                        check_is_exited()
-                        processInputCharacter(inputQueue.shift())
-                        if linesQueue:
-                            return linesQueue.shift()
+                        while inputQueue.length > 0:
+                            check_is_exited()
+                            processInputCharacter(inputQueue.shift())
+                            if linesQueue:
+                                return linesQueue.shift()
 
-                    while not linesQueue:
-                        check_is_exited()
-                        await sleep(0.1)
+                        while not linesQueue:
+                            check_is_exited()
+                            await sleep(0.1)
 
-                    pyscriptGlobals.isWaitingForInput = False
-
-                    return linesQueue.shift()
+                        return linesQueue.shift()
+                    finally:
+                        pyscriptGlobals.isWaitingForInput = False
 
                 def readline():
                     line = run(async_readline())
@@ -521,9 +577,9 @@
             terminal.attachCustomKeyEventHandler(() => true);
             terminalContainer.removeEventListener('contextmenu', handleRightClick);
             disposable.dispose();
+            setInsert(false);
             cursor = 0;
             historyCursor = 0;
-            insert = false;
             history.length = 0;
             inputQueue.length = 0;
             linesQueue.length = 0;

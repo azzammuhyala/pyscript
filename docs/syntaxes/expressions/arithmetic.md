@@ -1,4 +1,4 @@
 [`<- Back`](../index.md)
 
-# Arith
+# Arithmetic
 Bagian evaluasi ini mengatur operasi penjumlahan (`+`) dan pengurangan (`-`)
