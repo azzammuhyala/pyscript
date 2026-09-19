@@ -1,6 +1,6 @@
 # PyScript Documention
 
-> Note: This documentation is still empty or incomplete.
+> NOTE: This documentation is still empty or incomplete. Check out the [examples](https://github.com/azzammuhyala/pyscript/tree/main/examples) to learn more about PyScript syntax.
 
 <div align="center">
     <img src="https://github.com/azzammuhyala/pyscript/blob/main/PyScript.png?raw=true" alt="PyScript Logo" width="200">

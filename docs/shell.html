@@ -143,7 +143,7 @@
             const above = () => cursor > 0;
             const below = () => cursor < lineBuffer.length;
             const isInsert = () => !terminal.options.cursorBlink;
-            const setInsert = (value) => { terminal.options.cursorBlink = !value };
+            const setInsert = (value) => { terminal.options.cursorBlink = !value; };
             const getTerminalSize = () => [terminal.cols, terminal.rows];
             const getCursorPosition = () => [terminal.buffer.active.cursorX, terminal.buffer.active.cursorY];
 
@@ -471,7 +471,7 @@
             await runPythonAsync(`
                 from asyncio import sleep
                 from js import pyscriptGlobals
-                from pyodide.ffi import run_sync as run
+                from pyodide.ffi import run_sync
 
                 import sys
                 import builtins
@@ -510,14 +510,17 @@
                         pyscriptGlobals.isWaitingForInput = False
 
                 def readline():
-                    line = run(async_readline())
+                    line = run_sync(async_readline())
                     if line in signals:
                         raise signals[line]
                     return line
 
                 def input(prompt=''):
-                    if prompt:
-                        print(end=prompt, flush=True)
+                    stdout = getattr(sys, 'stdout', None)
+                    if stdout is None:
+                        raise RuntimeError('lost sys.stdout')
+                    stdout.write(str(prompt))
+                    stdout.flush()
                     return readline()
 
                 sys.stdin.readline = readline
@@ -532,34 +535,34 @@
 
             // prepare libraries to browser environment
             await runPythonAsync(`
-                import js
-                import pyscript
+                from js import pyscriptGlobals
+                from pyscript import pys_require
 
-                pys_sys = pyscript.pys_require('sys')
-                history = pyscript.pys_require('history')
+                pys_sys = pys_require('sys')
+                history = pys_require('history')
 
                 def set_function(module):
                     def decorator(function):
                         setattr(module, function.__name__, function)
                     return decorator
 
-                history.MAXIMUM_HISTORY_LINE = js.pyscriptGlobals.MAXIMUM_HISTORY_LINE
+                history.MAXIMUM_HISTORY_LINE = pyscriptGlobals.MAXIMUM_HISTORY_LINE
 
                 @set_function(pys_sys)
                 def clearhook():
-                    js.pyscriptGlobals.terminal.clear()
+                    pyscriptGlobals.terminal.clear()
 
                 @set_function(history)
                 def load():
-                    return list(reversed(js.pyscriptGlobals.history))
+                    return list(reversed(pyscriptGlobals.history))
 
                 @set_function(history)
                 def append(string):
-                    js.pyscriptGlobals.pushHistory(string)
+                    pyscriptGlobals.pushHistory(string)
 
                 @set_function(history)
                 def clear():
-                    js.pyscriptGlobals.clearHistory()
+                    pyscriptGlobals.clearHistory()
             `);
 
             terminal.clear();
@@ -567,10 +570,10 @@
 
             // run shell
             await runPythonAsync(`
-                import js
-                import pyscript
+                from js import pyscriptGlobals
+                from pyscript import pys_shell, undefined, CLASSIC_LINE_SHELL
 
-                js.pyscriptGlobals.exitCode = pyscript.pys_shell(pyscript.undefined, pyscript.CLASSIC_LINE_SHELL)
+                pyscriptGlobals.exitCode = pys_shell(undefined, CLASSIC_LINE_SHELL)
             `);
 
             pyscriptGlobals.isExited = true;
