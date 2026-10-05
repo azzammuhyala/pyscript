@@ -96,6 +96,7 @@ while (running) {
         }
     }
 
+    renderer.draw_color = '#000000'
     renderer.clear()
 
     renderer.draw_color = '#00ff00'
@@ -112,7 +113,6 @@ while (running) {
         food[1] * cellHeight,
         cellWidth, cellHeight
     ))
-    renderer.draw_color = '#000000'
 
     renderer.present()
 }

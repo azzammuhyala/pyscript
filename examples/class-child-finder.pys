@@ -1,0 +1,9 @@
+import _pyscript, pprint
+
+func findChild(cls) {
+    l = list(cls.__subclasses__())
+    for (n of cls.__subclasses__()) l.extend(findChild(n))
+    return l
+}
+
+pprint.pprint(findChild(_pyscript.bases.Pys))
