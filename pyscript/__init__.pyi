@@ -37,6 +37,7 @@ HLFMT_HTML: PysHighlightFormatter
 HLFMT_ANSI: PysHighlightFormatter
 HLFMT_BBCODE: PysHighlightFormatter
 
+pys_sys: ModuleType
 undefined: PysUndefined
 version: str
 version_info: PysVersionInfo

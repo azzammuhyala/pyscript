@@ -4,8 +4,7 @@ from .core.constants import (
     ENV_PYSCRIPT_NO_COLOR_PROMPT, ENV_PYSCRIPT_CLASSIC_LINE_SHELL, DEFAULT, NO_COLOR, NO_WARNING, DEBUG,
     DONT_SHOW_BANNER_ON_SHELL, CLASSIC_LINE_SHELL, NO_COLOR_PROMPT, NOTEBOOK
 )
-from .core.editor.gui import PysGUIEditor, GUI_SUPPORT
-from .core.editor.terminal import PysTerminalEditor, TERMINAL_SUPPORT
+from .core import editor
 from .core.highlight import (
     PYGMENTS, HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight, PygmentsPyScriptStyle, PygmentsPyScriptLexer
 )
@@ -33,8 +32,19 @@ if PYGMENTS:
     }
 
 from argparse import OPTIONAL, REMAINDER, ArgumentParser
+from re import compile as compile_regex
 
 import sys
+
+if sys.version_info >= (3, 13):
+    try:
+        from _colorize import can_colorize
+        COLORIZE = can_colorize()
+    except:
+        # respect for NO_COLOR, see more here: https://no-color.org
+        COLORIZE = not is_environ('NO_COLOR')
+else:
+    COLORIZE = True
 
 FORMATER_HIGHLIGHT_MAP = {
     'html': HLFMT_HTML,
@@ -42,15 +52,9 @@ FORMATER_HIGHLIGHT_MAP = {
     'bbcode': HLFMT_BBCODE
 }
 
-EDITOR_MAP = {
-    name: cls
-    for support, name, cls in [
-        (GUI_SUPPORT,      'gui',      PysGUIEditor),
-        (TERMINAL_SUPPORT, 'terminal', PysTerminalEditor)
-    ] if support
-}
-
-arguments_requiring_value = {'-l', '--highlight', '-r', '--py-recursion'}
+editors = tuple(editor for editor in editor.__all__ if editor != 'bases')
+arguments_requiring_argv = {'-c', '--command', '-m', '--module'}
+arguments_requiring_value = {'-e', '--editor', '-l', '--highlight', '-r', '--py-recursion'}
 
 parser = ArgumentParser(
     prog=f'{base(sys.executable)} -m pyscript',
@@ -77,14 +81,12 @@ parser.add_argument(
     help="set a debug flag, this will ignore assert statement. Check the flag is active with the __debug__ keyword"
 )
 
-if EDITOR_MAP:
-    parser.add_argument(
-        '-e', '--editor',
-        choices=tuple(EDITOR_MAP.keys()),
-        default=None,
-        help="open the editor panel from a 'file'",
-    )
-    arguments_requiring_value.update({'-e', '--editor'})
+parser.add_argument(
+    '-e', '--editor',
+    choices=editors,
+    default=None,
+    help="open the editor panel from a 'file'",
+)
 
 parser.add_argument(
     '-i', '--inspect',
@@ -185,22 +187,26 @@ argv = sys.argv[1:]
 argc = len(argv)
 index = 0
 arg_index = -1
+parser_color = COLORIZE
 
 while index < argc:
     arg = argv[index]
+
     if not arg.startswith('-') or arg == '--':
         break
-
-    if arg in ('-c', '--command'):
+    elif arg in arguments_requiring_argv:
         arg_index = index + 2
         break
-    elif arg in ('-m', '--module'):
-        arg_index = index + 2
-        break
+    elif arg in ('-n', '--no-color'):
+        parser_color = False
 
     index += 1
     if arg in arguments_requiring_value:
         index += 1
+
+if sys.version_info >= (3, 14):
+    parser.color = parser_color
+    parser.suggest_on_error = True
 
 args = parser.parse_args(argv if arg_index == -1 else argv[:arg_index])
 arg  = args.arg               if arg_index == -1 else argv[arg_index:]
@@ -226,7 +232,7 @@ if args.terminal:
             pass
 
 if args.file is None:
-    if EDITOR_MAP and args.editor:
+    if args.editor:
         argument_error('-e/--editor', "argument 'file' is required")
     elif args.highlight:
         argument_error('-l/--highlight', "argument 'file' is required")
@@ -237,13 +243,17 @@ if args.py_recursion is not None:
     except BaseException as e:
         argument_error('-r/--py-recursion', e)
 
+if args.P:
+    for cwd in {'', '.', getcwd()}:
+        remove_python_path(cwd)
+
 code = 0
 flags = DEFAULT
 
 for condition, flag in [
     (args.notebook           or USE_NOTEBOOK,                                NOTEBOOK),
     (args.classic_line_shell or is_environ(ENV_PYSCRIPT_CLASSIC_LINE_SHELL), CLASSIC_LINE_SHELL),
-    (args.no_color           or is_environ('NO_COLOR'),                      NO_COLOR),
+    (args.no_color           or not COLORIZE,                                NO_COLOR),
     (args.no_color_prompt    or is_environ(ENV_PYSCRIPT_NO_COLOR_PROMPT),    NO_COLOR_PROMPT),
     (args.debug,                                                             DEBUG),
     (args.no_warning,                                                        NO_WARNING),
@@ -252,52 +262,78 @@ for condition, flag in [
     if condition:
         flags |= flag
 
-if args.P:
-    for cwd in {'', '.', getcwd()}:
-        remove_python_path(cwd)
-
 pys_sys.argv = argv = ['', *arg]
 
 def clean_up() -> None:
     g = globals()
 
     for name in {
-        'ArgumentParser', 'BBCodeFormatter', 'CLASSIC_LINE_SHELL', 'DEBUG', 'DEFAULT', 'EDITOR_MAP',
-        'ENV_PYSCRIPT_CLASSIC_LINE_SHELL', 'ENV_PYSCRIPT_NO_COLOR_PROMPT', 'FORMATER_HIGHLIGHT_MAP',
-        'FORMATER_PYGMENTS_MAP', 'GUI_SUPPORT', 'HLFMT_ANSI', 'HLFMT_BBCODE', 'HLFMT_HTML', 'HtmlFormatter',
-        'LatexFormatter', 'NOTEBOOK', 'NO_COLOR', 'NO_WARNING', 'NO_COLOR_PROMPT', 'OPTIONAL', 'PYGMENTS',
-        'PygmentsPyScriptLexer', 'PygmentsPyScriptStyle', 'PysFileBuffer', 'PysGUIEditor', 'PysTerminalEditor',
-        'REMAINDER', 'TERMINAL_SUPPORT', 'Terminal256Formatter', 'TerminalFormatter', 'TerminalTrueColorFormatter',
-        'USE_NOTEBOOK', '__version__', '_namespace_to_symbol_table', 'arg', 'arg_index', 'argc', 'args',
+        'ArgumentParser', 'BBCodeFormatter', 'CLASSIC_LINE_SHELL', 'DEBUG', 'DEFAULT', 'i', 'index', 'is_environ', 'fd',
+        'kernel32', 'ENV_PYSCRIPT_CLASSIC_LINE_SHELL', 'ENV_PYSCRIPT_NO_COLOR_PROMPT', 'FORMATER_HIGHLIGHT_MAP', 'arg',
+        'FORMATER_PYGMENTS_MAP', 'HLFMT_ANSI', 'HLFMT_BBCODE', 'HLFMT_HTML', 'HtmlFormatter', 'OPTIONAL', 'PYGMENTS',
+        'LatexFormatter', 'NOTEBOOK', 'NO_COLOR', 'NO_WARNING', 'NO_COLOR_PROMPT', 'PygmentsPyScriptLexer', 'args',
+        'PygmentsPyScriptStyle', 'PysFileBuffer', 'REMAINDER', 'Terminal256Formatter', 'TerminalFormatter', 'flag',
+        'TerminalTrueColorFormatter', 'USE_NOTEBOOK', '__version__', '_namespace_to_symbol_table', 'arg_index', 'argc', 
         'argument_error', 'arguments_requiring_value', 'argv', 'base', 'clean_up', 'condition', 'ctypes', 'execute',
-        'fd', 'file', 'find_module_path', 'flag', 'getcwd', 'highlight', 'i', 'index', 'is_environ', 'kernel32',
-        'load_file', 'module_path', 'parser', 'pys_highlight', 'pys_sys', 'remove_python_path'
+        'file', 'find_module_path', 'getcwd', 'highlight', 'load_editor_module', 'load_file', 'module_path', 'parser',
+        'pys_highlight', 'pys_sys', 'remove_python_path', 'editors', 'editor', 'compile_regex', 'can_colorize',
+        'arguments_requiring_argv', 'COLORIZE', 'parser_color'
     }:
         try:
             del g[name]
         except:
             continue
 
+def load_editor_module(name: str) -> tuple[type | None, bool]:
+    if name not in editors:
+        return None, False
+
+    module = getattr(editor, name, None)
+    if module is None:
+        return None, False
+
+    class_name = compile_regex(r'Pys[A-Za-z0-9_]+Editor').fullmatch
+    support_name = compile_regex(r'[A-Z0-9_]+_SUPPORT').fullmatch
+
+    cls = None
+    support = None
+    for name in dir(module):
+        if not (cls is None or support is None):
+            break
+        elif class_name(name) and cls is None:
+            cls = getattr(module, name)
+        elif support_name(name) and support is None:
+            support = getattr(module, name)
+    else:
+        return None, False
+
+    return cls, support
+
 def load_file(path) -> PysFileBuffer:
     normalized = normpath(path)
+
+    def open_error(message: str) -> None:
+        argument_error('file', f"can't open file \"{normalized}\": {message}")
+
     try:
         with open(normalized, 'r', encoding=pys_sys.encoding) as file:
             return PysFileBuffer(file, normalized)
     except FileNotFoundError:
-        if not (EDITOR_MAP and args.editor):
-            argument_error('file', f"can't open file \"{normalized}\": No such file or directory")
+        if not args.editor:
+            open_error("No such file or directory")
     except PermissionError:
-        argument_error('file', f"can't open file \"{normalized}\": Permission denied")
+        open_error("Permission denied")
     except IsADirectoryError:
-        argument_error('file', f"can't open file \"{normalized}\": Path is not a file")
+        open_error("Path is not a file")
     except NotADirectoryError:
-        argument_error('file', f"can't open file \"{normalized}\": Attempting to access directory from file")
+        open_error("Attempting to access directory from file")
     except (OSError, IOError):
-        argument_error('file', f"can't open file \"{normalized}\": Attempting to access a system directory or file")
+        open_error("Attempting to access a system directory or file")
     except UnicodeDecodeError:
-        argument_error('file', f"can't read file \"{normalized}\": Bad file")
+        open_error("Bad file")
     except BaseException as e:
         argument_error('file', f"file \"{normalized}\": Unexpected error: {e}")
+
     return PysFileBuffer('', path)
 
 def execute(file: PysFileBuffer) -> None:
@@ -334,9 +370,12 @@ if args.file is not None:
     argv[0] = args.file
     file = load_file(args.file)
 
-    if EDITOR_MAP and args.editor:
+    if args.editor:
+        cls, supported = load_editor_module(args.editor)
+        if not supported:
+            argument_error('-e/--editor', f"'{args.editor}' mode not supported")
         try:
-            EDITOR_MAP[args.editor](file=file, colored=not (flags & NO_COLOR)).run()
+            cls(file, colored=not (flags & NO_COLOR)).run()
         except BaseException as e:
             argument_error('-e/--editor', e)
 

@@ -75,22 +75,23 @@ Familiar? There it is!
 | 2  | `builtins`        | **required**           |
 | 3  | `cmath`           | **required**           |
 | 4  | `collections.abc` | **required**           |
-| 5  | `functools`       | **required**           |
-| 6  | `html`            | **required**           |
-| 7  | `importlib`       | **required**           |
-| 8  | `inspect`         | **required**           |
-| 9  | `io`              | **required**           |
-| 10 | `itertools`       | **required**           |
-| 11 | `json`            | **required**           |
-| 12 | `operator`        | **required**           |
-| 13 | `os`              | **required**           |
-| 14 | `re`              | **required**           |
-| 15 | `subprocess`      | **required**           |
-| 16 | `sys`             | **required**           |
-| 17 | `threading`       | **required**           |
-| 18 | `types`           | **required**           |
-| 19 | `typing`          | **required**           |
-| 20 | `unicodedata`     | **required**           |
+| 5  | `difflib`         | **required**           |
+| 6  | `functools`       | **required**           |
+| 7  | `html`            | **required**           |
+| 8  | `importlib`       | **required**           |
+| 9  | `inspect`         | **required**           |
+| 10 | `io`              | **required**           |
+| 11 | `itertools`       | **required**           |
+| 12 | `json`            | **required**           |
+| 13 | `operator`        | **required**           |
+| 14 | `os`              | **required**           |
+| 15 | `pkgutil`         | **required**           |
+| 16 | `re`              | **required**           |
+| 17 | `subprocess`      | **required**           |
+| 18 | `sys`             | **required**           |
+| 19 | `types`           | **required**           |
+| 20 | `typing`          | **required**           |
+| 21 | `unicodedata`     | **required**           |
 | 1  | `ast`             | **required (library)** |
 | 2  | `msvcrt`          | **required (library)** |
 | 3  | `pprint`          | **required (library)** |
@@ -99,17 +100,18 @@ Familiar? There it is!
 | 6  | `termios`         | **required (library)** |
 | 7  | `time`            | **required (library)** |
 | 8  | `tty`             | **required (library)** |
-| 1  | `beartype`        | **optional**           |
-| 2  | `prompt_toolkit`  | **optional**           |
-| 3  | `pygments`        | **optional**           |
-| 4  | `readline`        | **optional**           |
-| 5  | `tkinter`         | **optional**           |
-| 6  | `IPython`         | **optional**           |
+| 1  | `_colorize`       | **optional**           |
+| 2  | `beartype`        | **optional**           |
+| 3  | `prompt_toolkit`  | **optional**           |
+| 4  | `pygments`        | **optional**           |
+| 5  | `readline`        | **optional**           |
+| 6  | `threading`       | **optional**           |
+| 7  | `tkinter`         | **optional**           |
+| 8  | `IPython`         | **optional**           |
 
 ### Status Explanation
 - **required**: Required by PyScript entirely.
-- **required (library)**: Required PyScript library (located in `pyscript/lib`). PyScript is not affected unless you
-                          import it.
+- **required (library)**: Required by PyScript optional library. PyScript is not affected, unless you import it.
 - **optional**: Not required, but if it is present, some features can be used without issue.
 
 ## Highlights 🎨

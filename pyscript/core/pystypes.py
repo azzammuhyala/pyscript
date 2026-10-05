@@ -6,8 +6,8 @@ from .position import PysPosition
 from .results import PysRunTimeResult
 from .symtab import PysSymbolTable
 from .utils.decorators import immutable
-from .utils.generic import setimuattr, dinit, drepr, dor, dsetitem, ddelitem, ditems
-from .utils.similarity import get_closest
+from .utils.generic import setimuattr, dinit, drepr, dor, dror, dior, dsetitem, ddelitem, ditems
+from .utils.similarity import diff_get_closest
 from .utils.string import join
 
 from itertools import islice
@@ -19,17 +19,28 @@ class PysObject(Pys):
 
 class jsdict(PysObject, dict):
 
-    def __init__(self, *args, **kwargs) -> None:
-        dinit(self, *args, **kwargs)
+    def __remove_none_values(self):
         for key, value in tuple(ditems(self)):
             if value is None:
                 ddelitem(self, key)
+
+    def __init__(self, *args, **kwargs) -> None:
+        dinit(self, *args, **kwargs)
+        jsdict.__remove_none_values(self)
 
     def __repr__(self) -> str:
         return f'jsdict({drepr(self)})'
 
     def __or__(self, *args, **kwargs) -> 'jsdict':
         return jsdict(dor(self, *args, **kwargs))
+
+    def __ror__(self, *args, **kwargs) -> 'jsdict':
+        return jsdict(dror(self, *args, **kwargs))
+
+    def __ior__(self, *args, **kwargs) -> 'jsdict':
+        dior(self, *args, **kwargs)
+        jsdict.__remove_none_values(self)
+        return self
 
     def __setattr__(self, key: Any, value: Any) -> None:
         if value is None:
@@ -156,7 +167,7 @@ class PysFunction(PysObject):
                 )
 
             elif name not in code_parameter_names:
-                closest_argument = get_closest(code_parameter_names, name)
+                closest_argument = diff_get_closest(code_parameter_names, name)
                 hint_message = "" if closest_argument is None else f". Did you mean {closest_argument!r}?"
 
                 raise PysSignal(

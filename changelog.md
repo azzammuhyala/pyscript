@@ -1,20 +1,21 @@
 # Change Logs
 
-## [1.13.4] - 01/09/2026
+## [1.14.0] - 05/10/2026
 
 ### Added
-- Added comparison support for complex objects in the builtin `ce` and `nce` functions.
-- Default maximum input history lines for Pygments to 2048.
-- Configured `open()` encoding based on `pys_sys.encoding` (PyScript `sys.encoding`).
-- The `else` keyword is alias for `default` in `switch` statements.
-- The `fpstimer` module now stores the default framerate value.
-- Added `NO_WARNING` flag.
+- All editors are not loaded when PyScript is loaded.
+- `pys_sys` is available in the main `__init__`.
+- The `import` statement can import several modules at once with a comma (`,`) as separator.
+- Display of help, error, etc. arguments in argparser can be colored and not from `-n` / `--no-color` arguments.
 - _etc._
 
 ### Fixed
 - Fixed some bugs.
-- The builtins `inf`, `infj`, `nan`, and `nanj` come from the `cmath` module.
+- `PysContext`, `PysSymbolTable`, and `PysTraceback` are now mutable for performance.
+- Environ `PYSCRIPT_NO_GIL` changed to `PYSCRIPT_WITH_GIL` (default without GIL).
 - _etc._
 
 ### Removed
-- The attributes of `pys_sys` namely `last_type`, `last_value`, and `last_traceback`.
+- The `NotImplementedError` exception is not catch by the builtin function as a sign that the object does not support an
+  operation.
+- _etc._

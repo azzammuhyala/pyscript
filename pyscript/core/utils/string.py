@@ -20,26 +20,21 @@ def normstr(obj) -> str:
         return normstr(obj.read())
 
     elif isinstance(obj, Iterable):
-        return '\n'.join(map(normstr, obj))
+        return ''.join(map(normstr, obj))
 
     elif (
         isinstance(obj, BuiltinMethodType) and
         isinstance(self := getattr(obj, '__self__', None), TextIOWrapper) and
         obj.__name__ == 'readline'
     ):
-
         if not self.readable():
             raise TypeError("unreadable IO, provides readline function")
+        lines = ''
+        while line := obj():
+            lines += normstr(line)
+        return lines
 
-        lines = []
-        while True:
-            line = obj()
-            if not line:
-                break
-            lines.append(normstr(line))
-        return '\n'.join(lines)
-
-    raise TypeError('not a string')
+    raise TypeError(f"cannot normalize {type(obj).__name__} to str")
 
 def join(sequence: Sequence[str], conjunction: str = 'and') -> str:
     length = len(sequence)

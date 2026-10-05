@@ -1,8 +1,7 @@
 from .bases import Pys
 from .utils.decorators import TYPECHECK_STACK, immutable
-from .utils.generic import setimuattr
+from .utils.generic import setimuattr, dfrozen
 
-from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
@@ -14,7 +13,7 @@ TRIPLE = 2**9
 WITH_EQUAL = 2**10
 SPECIAL = 2**11
 
-TOKENS = MappingProxyType({
+TOKENS = dfrozen({
     'NULL': ord('\0'),
     'NONE': 0x01,
     'KEYWORD': 0x02,
@@ -90,7 +89,7 @@ TOKENS = MappingProxyType({
     'KEYWORD_INSTANCEOF': ord('i') + SPECIAL
 })
 
-REVERSE_TOKENS = MappingProxyType({type: name for name, type in TOKENS.items()})
+REVERSE_TOKENS = dfrozen({type: name for name, type in TOKENS.items()})
 
 @immutable
 class PysToken(Pys):

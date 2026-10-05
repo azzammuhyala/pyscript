@@ -1,7 +1,7 @@
 # Tree-Walk Interpreter
 
 from .constants import DEBUG
-from .cache import undefined
+from .cache import PysUndefined, undefined
 from .checks import is_sequence, is_equal, is_public_attribute
 from .context import PysContext, PysClassContext
 from .exceptions import PysTraceback
@@ -14,8 +14,8 @@ from .results import PysRunTimeResult
 from .symtab import PysClassSymbolTable, find_closest
 from .token import TOKENS
 from .utils.debug import get_traceback_info
-from .utils.generic import getattribute, setimuattr, dget, dkeys, is_object_of
-from .utils.similarity import get_closest
+from .utils.generic import getattribute, dget, dkeys, is_object_of
+from .utils.similarity import diff_get_closest
 
 from collections.abc import Iterable
 from typing import Any, Callable
@@ -27,6 +27,9 @@ T_NULLISH = TOKENS['DOUBLE_QUESTION']
 T_OR = TOKENS['DOUBLE_PIPE']
 T_CE = TOKENS['EQUAL_TILDE']
 T_NCE = TOKENS['EXCLAMATION_TILDE']
+
+def _always_undefined(*args) -> PysUndefined:
+    return undefined
 
 def visit_NumberNode(node: PysNumberNode, context: PysContext) -> PysRunTimeResult:
     return PysRunTimeResult().success(node.value.value)
@@ -422,7 +425,7 @@ def visit_ImportNode(node: PysImportNode, context: PysContext) -> PysRunTimeResu
         symtab = parent
         parent = parent.parent
     builtins = b_getattr(symtab, 'builtins', undefined)
-    get_builtin = lambda name : undefined if builtins is undefined else dget(builtins, name, undefined)
+    get_builtin = _always_undefined if builtins is undefined else dget
 
     result._context = context
     result._position = name_position = tname.position
@@ -430,7 +433,7 @@ def visit_ImportNode(node: PysImportNode, context: PysContext) -> PysRunTimeResu
         name_module = tname.value
         use_python_package = False
 
-        require = get_builtin('require')
+        require = get_builtin(builtins, 'require', undefined)
 
         if require is undefined:
             use_python_package = True
@@ -442,10 +445,10 @@ def visit_ImportNode(node: PysImportNode, context: PysContext) -> PysRunTimeResu
                 use_python_package = True
 
         if use_python_package:
-            pyimport = get_builtin('pyimport')
+            pyimport = get_builtin(builtins, 'pyimport', undefined)
 
             if pyimport is undefined:
-                pyimport = get_builtin('__import__')
+                pyimport = get_builtin(builtins, '__import__', undefined)
 
                 if pyimport is undefined:
                     return result.failure(
@@ -460,11 +463,12 @@ def visit_ImportNode(node: PysImportNode, context: PysContext) -> PysRunTimeResu
             module = pyimport(name_module)
 
     should_return = result.should_return
-    set_symbol = symbol_table.set
-    npackages = node.packages
 
     if should_return():
         return result
+
+    set_symbol = symbol_table.set
+    npackages = node.packages
 
     if npackages == 'all':
 
@@ -647,7 +651,6 @@ def visit_TryNode(node: PysTryNode, context: PysContext) -> PysRunTimeResult:
 
     register(get_visitor(body.__class__)(body, context))
 
-    should_return = result.should_return
     error = result.error
 
     if error:
@@ -672,7 +675,7 @@ def visit_TryNode(node: PysTryNode, context: PysContext) -> PysRunTimeResult:
                 for nerror_class in targets:
                     error_class = register(visit_IdentifierNode(nerror_class, context))
                     if result.error:
-                        setimuattr(result.error, 'primary', error)
+                        result.error.primary = error
                         stop = True
                         break
 
@@ -704,12 +707,12 @@ def visit_TryNode(node: PysTryNode, context: PysContext) -> PysRunTimeResult:
                         symbol_table = context.symbol_table
                         parameter = tparameter.value
                         symbol_table.set(parameter, exception)
-                    if should_return():
+                    if result.should_return():
                         break
 
                 register(get_visitor(body.__class__)(body, context))
                 if result.error:
-                    setimuattr(result.error, 'primary', error)
+                    result.error.primary = error
 
                 if tparameter:
                     with result:
@@ -730,10 +733,10 @@ def visit_TryNode(node: PysTryNode, context: PysContext) -> PysRunTimeResult:
         finally_result.register(get_visitor(finally_body.__class__)(finally_body, context))
         if finally_result.should_return():
             if finally_result.error:
-                setimuattr(finally_result.error, 'primary', result.error)
+                finally_result.error.primary = result.error
             return finally_result
 
-    return result if should_return() else result.success(None)
+    return result if result.should_return() else result.success(None)
 
 def visit_WithNode(node: PysWithNode, context: PysContext) -> PysRunTimeResult:
     result = PysRunTimeResult()
@@ -809,7 +812,7 @@ def visit_WithNode(node: PysWithNode, context: PysContext) -> PysRunTimeResult:
 
     if should_return():
         if result.error and result.error is not error:
-            setimuattr(result.error, 'primary', error)
+            result.error.primary = error
         return result
 
     return result.success(None)
@@ -1322,7 +1325,7 @@ def visit_DeleteNode(node: PysDeleteNode, context: PysContext) -> PysRunTimeResu
             with result:
 
                 if not symbol_table.remove(name):
-                    closest_symbol = get_closest(dkeys(symbol_table.symbols), name)
+                    closest_symbol = diff_get_closest(dkeys(symbol_table.symbols), name)
 
                     return result.failure(
                         PysTraceback(
@@ -1460,7 +1463,7 @@ def visit_declaration_from_AssignmentNode(
         with result:
 
             if not symbol_table.set(name, value, operand=operand):
-                closest_symbol = get_closest(dkeys(symbol_table.symbols), name)
+                closest_symbol = diff_get_closest(dkeys(symbol_table.symbols), name)
 
                 result.failure(
                     PysTraceback(

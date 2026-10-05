@@ -3,13 +3,12 @@ from ..buffer import PysFileBuffer
 from ..cache import pys_sys
 from ..constants import CONFIGURATIONS_PATH
 from ..utils.decorators import typecheck, inheritable
-from ..utils.generic import setimuattr
+from ..utils.generic import delimuattr
 from ..utils.string import normstr
 
 from json import dump, load
+from os.path import basename
 from typing import Any
-
-import os
 
 class PysEditor(Pys):
 
@@ -17,9 +16,11 @@ class PysEditor(Pys):
     def __init__(self, file: PysFileBuffer, colored: bool = True) -> None:
         self.file = file
         self.colored = bool(colored)
-        self.basename = os.path.basename(self.file.name)
+        self.basename = basename(self.file.name)
         self.used = False
         self.modified = False
+
+        self.load_configuration()
 
     def __init_subclass__(cls, **kwargs) -> None:
         super().__init_subclass__(**kwargs)
@@ -29,20 +30,17 @@ class PysEditor(Pys):
         try:
             with open(CONFIGURATIONS_PATH, 'r', encoding=pys_sys.encoding) as file:
                 result = load(file)
-                if not isinstance(result, dict):
+            if not isinstance(result, dict):
+                raise ValueError
+            for key in result:
+                if not isinstance(key, str):
                     raise ValueError
-                for key in result:
-                    if not isinstance(key, str):
-                        raise ValueError
-                self.configurations = result
+            self.configurations = result
         except:
             self.configurations = {}
 
     def get_configuration(self, configuration: str, default: Any) -> Any:
-        if configuration in self.configurations:
-            return self.configurations[configuration]
-        self.configurations[configuration] = default
-        return default
+        return self.configurations.setdefault(configuration, default)
 
     def set_configuration(self, configuration: str, value: Any) -> None:
         self.configurations[configuration] = value
@@ -55,11 +53,12 @@ class PysEditor(Pys):
             pass
 
     def save(self, text) -> None:
+        if not self.modified:
+            return
+
         try:
-            text = normstr(text)
             with open(self.file.name, 'w', encoding=pys_sys.encoding) as file:
-                file.write(text)
-                setimuattr(self.file, 'text', text)
+                file.write(normstr(text))
         except:
             pass
         else:
@@ -68,4 +67,5 @@ class PysEditor(Pys):
     def run(self) -> None:
         if self.used:
             raise RuntimeError("one application object can only be used once")
+        delimuattr(self.file, 'text')
         self.used = True

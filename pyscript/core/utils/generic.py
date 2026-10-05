@@ -1,8 +1,9 @@
 from inspect import currentframe
-from types import FrameType, UnionType
+from types import FrameType, MappingProxyType, UnionType
 from typing import Any, Optional, Sequence
 
 import os
+import sys
 
 getattribute = object.__getattribute__
 setimuattr = object.__setattr__
@@ -10,6 +11,8 @@ delimuattr = object.__delattr__
 dinit = dict.__init__
 drepr = dict.__repr__
 dor = dict.__or__
+dror = dict.__ror__
+dior = dict.__ior__
 dcontains = dict.__contains__
 dgetitem = dict.__getitem__
 dsetitem = dict.__setitem__
@@ -18,6 +21,13 @@ dclear = dict.clear
 dget = dict.get
 dkeys = dict.keys
 ditems = dict.items
+dfrozen = MappingProxyType
+
+if sys.version_info >= (3, 15):
+    try:
+        dfrozen = frozendict
+    except:
+        pass
 
 def get_frame(deep: int = 0) -> FrameType | None:
     deep += 1
@@ -43,8 +53,17 @@ def get_sequence(object: Sequence, key: Any, default: Optional[Any] = None) -> A
 def boundary(value: Any, min_value: Any, max_value: Any) -> Any:
     return max(min_value, min(max_value, value))
 
-def is_environ(key: str) -> bool:
-    return os.environ.get(key) is not None
+def save_get_environ(key: str, default: str | None = None) -> str | None:
+    try:
+        return os.environ.get(key, default)
+    except:
+        return default
+
+def is_environ(key: str) -> bool | None:
+    try:
+        return os.environ.get(key) is not None
+    except:
+        return None
 
 def is_object_of(obj: object | type, class_or_tuple: type | UnionType | tuple[type | UnionType, ...]) -> bool:
 

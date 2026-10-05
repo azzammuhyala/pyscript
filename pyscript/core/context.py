@@ -3,12 +3,9 @@ from .buffer import PysFileBuffer
 from .constants import DEFAULT
 from .position import PysPosition
 from .symtab import PysSymbolTable, PysClassSymbolTable
-from .utils.decorators import immutable
-from .utils.generic import setimuattr
 
 from typing import Optional
 
-@immutable
 class PysContext(Pys):
 
     __slots__ = ('file', 'name', 'qualname', 'flags', 'symbol_table', 'parent', 'parent_entry_position')
@@ -28,13 +25,13 @@ class PysContext(Pys):
         if flags is None and parent:
             flags = parent.flags
 
-        setimuattr(self, 'file',                  file)
-        setimuattr(self, 'name',                  name)
-        setimuattr(self, 'qualname',              qualname)
-        setimuattr(self, 'flags',                 DEFAULT if flags is None else flags)
-        setimuattr(self, 'symbol_table',          symbol_table)
-        setimuattr(self, 'parent',                parent)
-        setimuattr(self, 'parent_entry_position', parent_entry_position)
+        self.file = file
+        self.name = name
+        self.qualname = qualname
+        self.flags = DEFAULT if flags is None else flags
+        self.symbol_table = symbol_table
+        self.parent = parent
+        self.parent_entry_position = parent_entry_position
 
 class PysClassContext(PysContext):
 

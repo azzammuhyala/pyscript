@@ -1,7 +1,7 @@
 from .bases import PysEditor
 from ..buffer import PysFileBuffer
 from ..constants import ICON_PATH
-from ..highlight import PygmentsPyScriptStyle, PygmentsPyScriptLexer
+from ..highlight import PYGMENTS, PygmentsPyScriptStyle, PygmentsPyScriptLexer
 from ..utils.generic import boundary
 from ..version import __version__
 
@@ -15,7 +15,8 @@ try:
             PysEditor.__init__(self, file, colored)
             Tk.__init__(self)
 
-            self.load_configuration()
+            def update_tab_size():
+                self.text.configure(tabs=(self.font.measure('    '),))
 
             def on_save(event=None):
                 text = self.text.get('1.0', 'end')
@@ -26,46 +27,40 @@ try:
             def on_close():
                 if self.modified:
                     answer = messagebox.askyesnocancel('Unsaved changes', 'File has been modified. Save before exit?')
-                    if answer is True:
+                    if answer is None:
+                        return
+                    elif answer:
                         on_save()
-                        self.save_configuration()
-                        self.destroy()
-                    elif answer is False:
-                        self.save_configuration()
-                        self.destroy()
-                else:
-                    self.save_configuration()
-                    self.destroy()
+                self.save_configuration()
+                self.destroy()
 
             def on_configure(event):
                 if event.widget == self:
                     zoom = self.wm_state() == 'zoomed'
                     self.set_configuration('zoom', zoom)
                     if not zoom:
-                        self.set_configuration(
-                            'gui-geometry',
-                            f'{event.width}x{event.height}+{event.x}+{event.y}'
-                        )
+                        self.set_configuration('gui-geometry', f'{event.width}x{event.height}+{event.x}+{event.y}')
 
             def on_modified(event=None):
-                text = self.text
-                if text.edit_modified():
+                if self.text.edit_modified():
                     self.modified = True
                     update()
-                    text.edit_modified(False)
+                    self.text.edit_modified(False)
 
             def on_change_font(value):
                 def wrapper(event=None):
                     font = self.font
                     size = boundary(font.cget('size') + value, 1, 127)
                     font.config(size=size)
+                    update_tab_size()
                     self.set_configuration('gui-size-font', size)
                     return 'break'
                 return wrapper
 
             def on_toggle_wrap(event=None):
-                wrap = self.text.cget('wrap') != 'char'
-                self.text.configure(wrap='char' if wrap else 'none')
+                text = self.text
+                wrap = text.cget('wrap') != 'char'
+                text.configure(wrap='char' if wrap else 'none')
                 self.set_configuration('wrap', wrap)
                 return 'break'
 
@@ -83,8 +78,12 @@ try:
 
             def on_enter(event=None):
                 text = self.text
+                if text.tag_ranges('sel'):
+                    text.delete('sel.first', 'sel.last')
+
                 line = text.get('insert linestart', 'insert lineend')
                 text.insert('insert', '\n' + line[:len(line) - len(line.lstrip())])
+                text.see('insert')
                 return 'break'
 
             self.lexer = PygmentsPyScriptLexer()
@@ -101,6 +100,8 @@ try:
                 insertbackground='white',
                 yscrollcommand=self.scrollbar.set
             )
+
+            update_tab_size()
 
             self.scrollbar.pack_configure(side='right', fill='y')
             self.scrollbar.configure(command=self.text.yview)
@@ -140,10 +141,10 @@ try:
                 )
             )
 
-            self.wm_minsize(300, 250)
+            self.wm_minsize(250, 200)
             self.wm_protocol('WM_DELETE_WINDOW', on_close)
 
-            if colored:
+            if PYGMENTS and colored:
                 tag_configure = self.text.tag_configure
                 for token, style in PygmentsPyScriptStyle.list_styles():
                     color = style['color']

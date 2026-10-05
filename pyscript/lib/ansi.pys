@@ -1,14 +1,1 @@
-from '_pyscript>utils>ansi' import (
-    DEFAULT,
-    BACKGROUND,
-    BOLD,
-    FAINT,
-    ITALIC,
-    UNDERLINE,
-    BLINK,
-    RAPIDBLINK,
-    STRIKETHROUGH,
-    DOUBLEUNDERLINE,
-    acolor,
-    ahtml
-)
+from '_pyscript>utils>ansi' import *

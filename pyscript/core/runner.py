@@ -17,7 +17,7 @@ from .pysbuiltins import require
 from .results import PysRunTimeResult, PysExecuteResult
 from .shell import PysClassicLineShell, PysPromptToolkitLineShell, ADVANCE_LINE_SHELL_SUPPORT
 from .symtab import PysSymbolTable, new_module_namespace
-from .utils.debug import import_readline
+from .utils.debug import custom_print, import_readline
 from .utils.decorators import TYPECHECK_STACK, typecheck
 from .utils.generic import dclear, get_frame, get_locals
 from .version import version
@@ -339,9 +339,9 @@ def pys_shell(
         if not (flags & NO_WARNING):
             for path in (LIBRARIES_PATH, OTHER_PATH, SITE_PACKAGES_PATH):
                 if not os.path.isdir(path):
-                    print(f'WARNING: "{path}" directory not found', file=sys.stderr)
+                    custom_print(f'WARNING: "{path}" directory not found', file=sys.stderr)
 
-        print(
+        custom_print(
             f'PyScript {version}\n'
             f'Python {sys.version}\n'
             'Type "help", "copyright", "credits" or "license" for more information.\n'
@@ -391,10 +391,10 @@ def pys_shell(
 
             except KeyboardInterrupt:
                 shell.reset()
-                print(f'\r{bmagenta}KeyboardInterrupt{reset}', file=sys.stderr)
+                custom_print(f'\r{bmagenta}KeyboardInterrupt{reset}', file=sys.stderr)
 
             except EOFError:
-                print()
+                custom_print()
                 return 0
 
     finally:

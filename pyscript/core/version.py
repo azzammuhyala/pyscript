@@ -5,8 +5,8 @@ from .utils.decorators import immutable, inheritable, singleton
 
 from re import match as match_regex
 
-__version__ = '1.13.4'
-__date__ = '1 September 2026, 20:00 UTC+7'
+__version__ = '1.14.0'
+__date__ = '5 October 2026, 20:00 UTC+7'
 __author__ = ('AzzamMuhyala',)
 
 version = pys_sys.version = f'{__version__} ({__date__})'

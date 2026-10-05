@@ -22,8 +22,6 @@ try:
         def __init__(self, file: PysFileBuffer, colored: bool = True) -> None:
             PysEditor.__init__(self, file, colored)
 
-            self.load_configuration()
-
             self.show_exit_window = False
 
             on_edit = Condition(lambda: not self.show_exit_window)
@@ -47,6 +45,9 @@ try:
                         'style': style_from_pygments_cls(PygmentsPyScriptStyle)
                     })
 
+                text_other_keyword.update({
+                    'scrollbar': True
+                })
                 close_window_keyword.update({
                     'content': FormattedTextControl(
                         " File has been modified. Save before exit? \n"
@@ -86,7 +87,6 @@ try:
 
             self.text = TextArea(
                 multiline=True,
-                scrollbar=True,
                 wrap_lines=on_wrap,
                 input_processors=[TabsProcessor(tabstop=4)],
                 **text_other_keyword

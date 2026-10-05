@@ -1,12 +1,12 @@
 from .token import TOKENS
 from .utils.ansi import BOLD, acolor
+from .utils.generic import dfrozen
 
 from operator import (
     not_, is_, is_not, eq, ne, lt, gt, le, ge, add, sub, mul, truediv, floordiv, pow, matmul, mod, and_, or_, xor,
     lshift, rshift, iadd, isub, imul, itruediv, ifloordiv, ipow, imatmul, imod, iand, ior, ixor, ilshift, irshift, pos,
     neg, inv
 )
-from types import MappingProxyType
 
 contains     = lambda a, b : a in b
 not_contains = lambda a, b : a not in b
@@ -83,7 +83,7 @@ GET_ACOLOR = {
     'bold-red': acolor('red', style=BOLD)
 }.__getitem__
 
-HIGHLIGHT_MAP = MappingProxyType({
+HIGHLIGHT_MAP = dfrozen({
     'default': '#D4D4D4',
     'keyword': '#C586C0',
     'keyword-constant': '#307CD6',
@@ -102,7 +102,7 @@ HIGHLIGHT_MAP = MappingProxyType({
     'invalid': '#B51819'
 })
 
-TAG_VERSION_MAP = MappingProxyType({
+TAG_VERSION_MAP = dfrozen({
     'a': 'alpha',
     'b': 'beta',
     'rc': 'release candidate',
@@ -110,7 +110,7 @@ TAG_VERSION_MAP = MappingProxyType({
     'post': 'post'
 })
 
-ESCAPE_CHARACTERS_MAP = MappingProxyType({
+ESCAPE_CHARACTERS_MAP = dfrozen({
     '\\': '\\',
     "'": "'",
     '"': '"',
@@ -123,25 +123,25 @@ ESCAPE_CHARACTERS_MAP = MappingProxyType({
     'v': '\v'
 })
 
-BASE_INTEGER_LITERAL = MappingProxyType({
+BASE_INTEGER_LITERAL = dfrozen({
     'b': (2,  '01'),
     'o': (8,  '01234567'),
     'x': (16, '0123456789abcdefABCDEF')
 })
 
-ESCAPE_LITERAL_LENGTH = MappingProxyType({
+ESCAPE_LITERAL_LENGTH = dfrozen({
     'x': 2,
     'u': 4,
     'U': 8
 })
 
-BRACKETS_MAP = MappingProxyType({
+BRACKETS_MAP = dfrozen({
     TOKENS['LEFT_PARENTHESIS']: TOKENS['RIGHT_PARENTHESIS'],
     TOKENS['LEFT_SQUARE']: TOKENS['RIGHT_SQUARE'],
     TOKENS['LEFT_CURLY']: TOKENS['RIGHT_CURLY']
 })
 
-SYMBOLS_TOKEN_MAP = MappingProxyType({
+SYMBOLS_TOKEN_MAP = dfrozen({
     TOKENS['NULL']: '\0',
     TOKENS['IS']: 'is',
     TOKENS['IS_NOT']: 'is not',

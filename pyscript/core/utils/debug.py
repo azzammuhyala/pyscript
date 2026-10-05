@@ -4,22 +4,31 @@ from .generic import is_environ
 
 from subprocess import run
 from sys import excepthook
+from io import IOBase
 from types import TracebackType
 from typing import Any, Literal
 
 import sys
 
+def custom_print(*values: Any, sep: str = ' ', end: str = '\n', file: IOBase = sys.stdout, flush: bool = False) -> None:
+    file.write(sep.join(map(str, values)) + end)
+    if flush:
+        file.flush()
+
 def print_display(value: Any) -> None:
     if value is not None:
-        print(repr(value))
+        custom_print(repr(value))
 
 def print_traceback(exc_type: type[BaseException], exc_value: BaseException | None, exc_tb: PysTraceback) -> None:
-    print(exc_tb.string_traceback(), file=sys.stderr)
+    custom_print(exc_tb.string_traceback(), file=sys.stderr)
 
 def pys_excepthook(exc_type: type[BaseException], exc_value: BaseException | None, exc_tb: TracebackType) -> None:
     if exc_type is PysSignal and (traceback := exc_value.result.error) is not None:
         print_traceback(None, None, traceback)
-        print('\nThe above PyScript exception was the direct cause of the following exception:\n', file=sys.stderr)
+        custom_print(
+            '\nThe above PyScript exception was the direct cause of the following exception:\n',
+            file=sys.stderr
+        )
     excepthook(exc_type, exc_value, exc_tb)
 
 def single_excepthook(args) -> None:
@@ -73,7 +82,11 @@ def get_traceback_info(traceback: PysTraceback | None) -> tuple[type[BaseExcepti
     )
 
 if not is_environ(ENV_PYSCRIPT_NO_EXCEPTHOOK):
-    import threading
+    try:
+        import threading
+        threading.excepthook = single_excepthook
+    except:
+        pass
 
     sys.excepthook = pys_excepthook
-    sys.unraisablehook = threading.excepthook = single_excepthook
+    sys.unraisablehook = single_excepthook

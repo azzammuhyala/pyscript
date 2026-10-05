@@ -34,6 +34,7 @@ KEYWORDS = _pyscript.constants.KEYWORDS
 
 # flags / parser flags
 DEFAULT = _pyscript.constants.DEFAULT
+NO_COLOR = _pyscript.constants.NO_COLOR
 NO_WARNING = _pyscript.constants.NO_WARNING
 LEXER_HIGHLIGHT = _pyscript.constants.LEXER_HIGHLIGHT
 DICT_TO_JSDICT = _pyscript.constants.DICT_TO_JSDICT
@@ -51,7 +52,7 @@ class Parser {
 
     func __init__(self, source, flags=DEFAULT) {
 
-        # source is a list of tokens
+        # source is a tuple of tokens
         if (source instanceof tuple) {
             if (!source)
                 throw ValueError("Parser(): source got empty tuple")
@@ -60,7 +61,7 @@ class Parser {
                 if (!(token instanceof _pyscript.token.PysToken))
                     throw TypeError("Parser(): source must be tuple of tokens")
                 if (token.type in (TOKENS['COMMENT'], TOKENS['NONE']))
-                    throw ValueError("Parser(): source token with comment or none token is invalid")
+                    throw ValueError("Parser(): source token with COMMENT or NONE is invalid")
             }
 
             file = source[0].position.file
@@ -96,7 +97,7 @@ class Parser {
 
         lexer = _pyscript.lexer.PysLexer(
             file=self.file,
-            flags=self.flags & NO_WARNING,
+            flags=self.flags & (NO_COLOR | NO_WARNING),
             parser_flags=self.flags
         )
 
@@ -120,7 +121,7 @@ class Parser {
 
         parser = _pyscript.parser.PysParser(
             tokens=tokens,
-            flags=self.flags & NO_WARNING,
+            flags=self.flags & (NO_COLOR | NO_WARNING),
             parser_flags=self.flags
         )
 
@@ -177,6 +178,7 @@ __all__ = (
     'TOKENS',
     'KEYWORDS',
     'DEFAULT',
+    'NO_COLOR',
     'NO_WARNING',
     'LEXER_HIGHLIGHT',
     'DICT_TO_JSDICT',

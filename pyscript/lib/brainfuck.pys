@@ -31,7 +31,7 @@ class BFInterpreter {
             throw TypeError("BFInterpreter() fin must be callable")
         if (!callable(fout))
             throw TypeError("BFInterpreter() fout must be callable")
-        if (!(cells is none) && cells <= 0)
+        if (cells is not none && cells <= 0)
             throw ValueError("BFInterpreter() cells must be greater than 0")
 
         self.source = source
@@ -104,20 +104,17 @@ class BFInterpreter {
         memory = self.memory
         pointer = self.pointer
 
-        if (pointer >= (length := len(memory))) {
+        if (pointer >= (length := len(memory)))
             memory.extend([0] * (pointer - length + 1))
-        }
 
         else {
             removeIndex = 0
-
             for (i, cell of enumerate(reversed(memory))) {
                 if (cell != 0 || i == pointer + removeIndex)
                     break
                 removeIndex -= 1
             }
-
-            if removeIndex != 0
+            if (removeIndex != 0)
                 del memory[removeIndex:]
         }
     }

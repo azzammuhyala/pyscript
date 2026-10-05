@@ -3,8 +3,9 @@ from .cache import pys_sys
 from .constants import GLOBAL_HISTORY_PATH, ENV_PYSCRIPT_HISTORY_PATH, ENV_PYSCRIPT_MAXIMUM_HISTORY_LINE
 from .exceptions import PysSignal
 from .mapping import BRACKETS_MAP
-from .utils.debug import print_traceback
+from .utils.debug import custom_print, print_traceback
 from .utils.decorators import singleton
+from .utils.generic import save_get_environ
 from .utils.path import normpath
 
 from typing import Iterable, Literal, Optional
@@ -152,7 +153,7 @@ class PysLineShell(PysIncompleteHandler):
             except:
                 try:
                     exc_type, exc_value, exc_tb = sys.exc_info()
-                    print('An exception occurred while calling sys.clearhook function:', file=sys.stderr)
+                    custom_print('An exception occurred while calling sys.clearhook function:', file=sys.stderr)
                     if exc_type is PysSignal and (exc_tb := exc_value.result.error) is not None:
                         print_traceback(None, None, exc_tb)
                     else:
@@ -193,7 +194,7 @@ class PysClassicLineShell(PysLineShell):
                 return 0
 
             except (MemoryError, UnicodeDecodeError):
-                print("InputError", file=sys.stderr)
+                custom_print("InputError", file=sys.stderr)
                 continue
 
             process_line(text)
@@ -215,7 +216,7 @@ try:
     from prompt_toolkit.shortcuts.prompt import PromptSession
     from prompt_toolkit.styles.pygments import style_from_pygments_cls
 
-    HISTORY_PATH = os.environ.get(ENV_PYSCRIPT_HISTORY_PATH, GLOBAL_HISTORY_PATH)
+    HISTORY_PATH = save_get_environ(ENV_PYSCRIPT_HISTORY_PATH, GLOBAL_HISTORY_PATH)
     if HISTORY_PATH and HISTORY_PATH != '<none>':
         HISTORY_PATH = normpath(HISTORY_PATH)
         USE_FILE_HISTORY = True
@@ -223,14 +224,11 @@ try:
         HISTORY_PATH = '<none>'
         USE_FILE_HISTORY = False
 
-    MAXIMUM_HISTORY_LINE = os.environ.get(ENV_PYSCRIPT_MAXIMUM_HISTORY_LINE)
-    if MAXIMUM_HISTORY_LINE is None:
+    MAXIMUM_HISTORY_LINE = save_get_environ(ENV_PYSCRIPT_MAXIMUM_HISTORY_LINE, '2048')
+    try:
+        MAXIMUM_HISTORY_LINE = int(MAXIMUM_HISTORY_LINE)
+    except:
         MAXIMUM_HISTORY_LINE = 2048
-    else:
-        try:
-            MAXIMUM_HISTORY_LINE = int(MAXIMUM_HISTORY_LINE)
-        except:
-            MAXIMUM_HISTORY_LINE = 2048
 
     @singleton
     class PysHistory(Pys, History):
@@ -432,7 +430,7 @@ try:
                     return 0
 
                 except (MemoryError, UnicodeDecodeError):
-                    print("InputError", file=sys.stderr)
+                    custom_print("InputError", file=sys.stderr)
                     continue
 
         @property

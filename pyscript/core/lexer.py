@@ -6,8 +6,9 @@ from .constants import DEFAULT, NO_COLOR, NO_WARNING, LEXER_HIGHLIGHT
 from .context import PysContext
 from .exceptions import PysTraceback
 from .mapping import ESCAPE_CHARACTERS_MAP, BASE_INTEGER_LITERAL, ESCAPE_LITERAL_LENGTH
-from .position import PysPosition, format_error_arrow
+from .position import PysPosition
 from .token import TOKENS, PysToken
+from .utils.debug import custom_print
 from .utils.decorators import typecheck
 from .utils.string import indent
 
@@ -197,18 +198,14 @@ class PysLexer(Pys):
             self.tokens.append(
                 PysToken(
                     type,
-                    PysPosition(
-                        self.file,
-                        start,
-                        end
-                    ),
+                    PysPosition(self.file, start, end),
                     value
                 )
             )
 
     def warning(self, message: str) -> None:
         if not (self.flags & NO_WARNING or self.parser_flags & LEXER_HIGHLIGHT):
-            print(message, file=sys.stderr)
+            custom_print(message, file=sys.stderr)
 
     def throw(self, start: int, end: int, message: str, add_token: bool = True) -> None:
         if self.error is None:
@@ -544,7 +541,7 @@ class PysLexer(Pys):
                             f"SyntaxWarning: \"\\{character}\" "
                             "is an invalid escape sequence. Such sequences will not work in the future. Did you mean "
                             f"\"\\\\{character}\"? A raw string is also an option.\n" +
-                            indent(format_error_arrow(position, not (self.flags & NO_COLOR)), 2)
+                            indent(position.format_error_arrow(not (self.flags & NO_COLOR)), 2)
                         )
                         self.advance()
 

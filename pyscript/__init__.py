@@ -12,7 +12,7 @@ from .core.constants import (
     DEFAULT, NO_COLOR, NO_WARNING, SILENT, DEBUG, RETURN_RESULT, DONT_SHOW_BANNER_ON_SHELL, CLASSIC_LINE_SHELL,
     NO_COLOR_PROMPT, NOTEBOOK, LEXER_HIGHLIGHT, DICT_TO_JSDICT
 )
-from .core.cache import undefined
+from .core.cache import pys_sys, undefined
 from .core.highlight import (
     HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight, PygmentsPyScriptStyle, PygmentsPyScriptLexer,
     PygmentsPyScriptShellLexer
@@ -38,6 +38,7 @@ __all__ = (
     'HLFMT_ANSI',
     'HLFMT_BBCODE',
     'undefined',
+    'pys_sys',
     'version',
     'version_info',
     'pys_highlight',

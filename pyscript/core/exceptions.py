@@ -1,7 +1,5 @@
 from .bases import Pys
 from .constants import NO_COLOR
-from .utils.decorators import immutable
-from .utils.generic import setimuattr
 from .utils.string import indent
 
 from typing import TYPE_CHECKING, Optional
@@ -12,7 +10,6 @@ if TYPE_CHECKING:
     from .position import PysPosition
     from .results import PysRunTimeResult
 
-@immutable
 class PysTraceback(Pys):
 
     __slots__ = ('exception', 'context', 'position', 'primary', 'implicit')
@@ -26,25 +23,23 @@ class PysTraceback(Pys):
         implicit: bool = False
     ) -> None:
 
-        setimuattr(self, 'exception', exception)
-        setimuattr(self, 'context', context)
-        setimuattr(self, 'position', position)
-        setimuattr(self, 'primary', primary)
-        setimuattr(self, 'implicit', implicit)
+        self.exception = exception
+        self.context = context
+        self.position = position
+        self.primary = primary
+        self.implicit = implicit
 
     def __repr__(self) -> str:
         return f'<traceback of {self.exception!r}>'
 
     def string_traceback(self) -> str:
-        # circular import problem solved
-        from .mapping import GET_ACOLOR
-        from .position import format_error_arrow
-
         context = self.context
         position = self.position
         colored = not (context.flags & NO_COLOR)
 
         if colored:
+            # circular import problem solved
+            from .mapping import GET_ACOLOR
             reset = GET_ACOLOR('reset')
             magenta = GET_ACOLOR('magenta')
             bmagenta = GET_ACOLOR('bold-magenta')
@@ -63,7 +58,7 @@ class PysTraceback(Pys):
                 f'  File {magenta}"{position.file.name}"{reset}' +
                 ('' if is_positionless      else f', line {magenta}{position.start_line}{reset}') + 
                 ('' if context_name is None else f', in {magenta}{context_name}{reset}') +
-                ('' if is_positionless      else f'\n{indent(format_error_arrow(position, colored), 4)}')
+                ('' if is_positionless      else f'\n{indent(position.format_error_arrow(colored), 4)}')
             )
 
             position = context.parent_entry_position

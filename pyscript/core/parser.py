@@ -6,20 +6,20 @@ from .context import PysContext
 from .exceptions import PysTraceback
 from .mapping import BRACKETS_MAP
 from .nodes import *
-from .position import PysPosition, format_error_arrow
+from .position import PysPosition
 from .pystypes import jsdict
 from .results import PysParserResult
 from .token import TOKENS, PysToken
+from .utils.debug import custom_print
 from .utils.decorators import typecheck
-from .utils.generic import setimuattr
+from .utils.generic import setimuattr, dfrozen
 from .utils.string import indent
 
-from types import MappingProxyType
 from typing import Any, Callable, Optional
 
 import sys
 
-SEQUENCES_MAP = MappingProxyType({
+SEQUENCES_MAP = dfrozen({
     'dict':  (TOKENS['LEFT_CURLY'],       PysDictionaryNode),
     'set':   (TOKENS['LEFT_CURLY'],       PysSetNode),
     'list':  (TOKENS['LEFT_SQUARE'],      PysListNode),
@@ -79,7 +79,7 @@ class PysParser(Pys):
 
     def warning(self, message: str) -> None:
         if not (self.flags & NO_WARNING):
-            print(message, file=sys.stderr)
+            custom_print(message, file=sys.stderr)
 
     def new_error(self, message: str, position: Optional[PysPosition] = None) -> PysTraceback:
         return PysTraceback(
@@ -136,58 +136,61 @@ class PysParser(Pys):
         )
 
     def statement(self) -> PysParserResult:
-        if self.current_token.match(TOKENS['KEYWORD'], 'from'):
+        match = self.current_token.match
+        T_KEYWORD = TOKENS['KEYWORD']
+
+        if match(T_KEYWORD, 'from'):
             return self.from_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], 'import'):
+        elif match(T_KEYWORD, 'import'):
             return self.import_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], 'if'):
+        elif match(T_KEYWORD, 'if'):
             return self.if_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], 'switch'):
+        elif match(T_KEYWORD, 'switch'):
             return self.switch_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], 'try'):
+        elif match(T_KEYWORD, 'try'):
             return self.try_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], 'with'):
+        elif match(T_KEYWORD, 'with'):
             return self.with_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], 'for'):
+        elif match(T_KEYWORD, 'for'):
             return self.for_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], 'while'):
+        elif match(T_KEYWORD, 'while'):
             return self.while_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], 'do'):
+        elif match(T_KEYWORD, 'do'):
             return self.do_while_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], 'repeat'):
+        elif match(T_KEYWORD, 'repeat'):
             return self.repeat_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], 'class'):
+        elif match(T_KEYWORD, 'class'):
             return self.class_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], 'return'):
+        elif match(T_KEYWORD, 'return'):
             return self.return_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], 'global'):
+        elif match(T_KEYWORD, 'global'):
             return self.global_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], 'del', 'delete'):
+        elif match(T_KEYWORD, 'del', 'delete'):
             return self.del_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], 'raise', 'throw'):
+        elif match(T_KEYWORD, 'raise', 'throw'):
             return self.throw_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], 'assert'):
+        elif match(T_KEYWORD, 'assert'):
             return self.assert_statement()
 
         elif self.current_token.type == TOKENS['AT']:
             return self.decorator_statement()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], 'continue'):
+        elif match(T_KEYWORD, 'continue'):
             result = PysParserResult()
             position = self.current_token.position
 
@@ -196,7 +199,7 @@ class PysParser(Pys):
 
             return result.success(PysContinueNode(position))
 
-        elif self.current_token.match(TOKENS['KEYWORD'], 'break'):
+        elif match(T_KEYWORD, 'break'):
             result = PysParserResult()
             position = self.current_token.position
 
@@ -277,13 +280,16 @@ class PysParser(Pys):
         return result.success(node)
 
     def single_expression(self) -> PysParserResult:
-        if self.current_token.match(TOKENS['KEYWORD'], 'match'):
+        match = self.current_token.match
+        T_KEYWORD = TOKENS['KEYWORD']
+
+        if match(T_KEYWORD, 'match'):
             return self.match_expression()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], 'func', 'function', 'constructor'):
+        elif match(T_KEYWORD, 'func', 'function', 'constructor'):
             return self.func_expression()
 
-        elif self.current_token.match(TOKENS['KEYWORD'], 'typeof'):
+        elif match(T_KEYWORD, 'typeof'):
             result = PysParserResult()
             operand = PysToken(TOKENS['TYPEOF'], self.current_token.position)
 
@@ -990,7 +996,7 @@ class PysParser(Pys):
                 self.skip(result)
 
             elif is_left_bracket(self.current_token.type):
-                return result.failure(self.new_error(f"expected '(' not {chr(self.current_token.type)!r}"))
+                return result.failure(self.new_error("expected '('"))
 
             if self.current_token.type != TOKENS['IDENTIFIER']:
                 return result.failure(self.new_error("expected identifier"))
@@ -1066,32 +1072,80 @@ class PysParser(Pys):
         self.advance()
         self.skip(result)
 
-        if self.current_token.type not in (TOKENS['STRING'], TOKENS['IDENTIFIER']):
-            return result.failure(self.new_error("expected string or identifier"))
+        bracket = False
 
-        name = self.current_token
-        as_name = None
+        if self.current_token.type == TOKENS['LEFT_PARENTHESIS']:
+            bracket = True
+            left_bracket_token = self.current_token
+            self.bracket_level += 1
 
-        result.register_advancement()
-        self.advance()
-
-        if self.current_token.match(TOKENS['KEYWORD'], 'as'):
             result.register_advancement()
             self.advance()
+            self.skip(result)
 
-            if self.current_token.type != TOKENS['IDENTIFIER']:
-                return result.failure(self.new_error("expected identifier"))
+        modules = []
 
-            as_name = self.current_token
+        while True:
+            if self.current_token.type not in (TOKENS['STRING'], TOKENS['IDENTIFIER']):
+                return result.failure(self.new_error(
+                    "expected string or identifier"
+                    if not bracket and modules else
+                    "expected string, identifier, or '('"
+                ))
+
+            name = self.current_token
+            as_name = None
+
             result.register_advancement()
             self.advance()
+            self.skip_expression(result)
+
+            if self.current_token.match(TOKENS['KEYWORD'], 'as'):
+                result.register_advancement()
+                self.advance()
+                self.skip_expression(result)
+
+                if self.current_token.type != TOKENS['IDENTIFIER']:
+                    return result.failure(self.new_error("expected identifier"))
+
+                as_name = self.current_token
+                result.register_advancement()
+                self.advance()
+                self.skip_expression(result)
+
+            modules.append(
+                PysImportNode(
+                    (name, as_name),
+                    [],
+                    position
+                )
+            )
+
+            if self.current_token.type == TOKENS['COMMA']:
+                result.register_advancement()
+                self.advance()
+                self.skip_expression(result)
+
+            elif bracket and self.current_token.type == TOKENS['NULL']:
+                break
+
+            elif bracket and not is_right_bracket(self.current_token.type):
+                return result.failure(self.new_error("invalid syntax. Perhaps you forgot a comma?"))
+
+            else:
+                break
+
+        if bracket:
+            self.close_bracket(result, left_bracket_token)
+            if result.error:
+                return result
+
+            self.bracket_level -= 1
 
         return result.success(
-            PysImportNode(
-                (name, as_name),
-                [],
-                position
-            )
+            modules[0]
+            if len(modules) == 1 else
+            PysStatementsNode(modules, position)
         )
 
     def if_statement(self) -> PysParserResult:
@@ -2116,7 +2170,7 @@ class PysParser(Pys):
             self.skip(result)
 
         elif is_left_bracket(self.current_token.type):
-            return result.failure(self.new_error(f"expected '(' not {chr(self.current_token.type)!r}"))
+            return result.failure(self.new_error("expected '('"))
 
         if self.current_token.type != TOKENS['IDENTIFIER']:
             return result.failure(self.new_error("expected identifier"))
@@ -2458,7 +2512,7 @@ class PysParser(Pys):
                     f"SyntaxWarning: \"{'is' if equal else 'is not'}\" "
                     f"with '{type(literal.value.value).__name__}' literal. "
                     f"Did you mean \"{'==' if equal else '!='}\"?\n" +
-                    indent(format_error_arrow(position, not (self.flags & NO_COLOR)), 2)
+                    indent(position.format_error_arrow(not (self.flags & NO_COLOR)), 2)
                 )
 
         if operations:

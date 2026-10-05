@@ -12,7 +12,7 @@ from .pystypes import PysFunction, PysPythonFunction, PysBuiltinFunction
 from .results import PysRunTimeResult
 from .shell import PysClassicLineShell, PysPromptToolkitLineShell, ADVANCE_LINE_SHELL_SUPPORT
 from .symtab import new_module_namespace
-from .utils.debug import import_readline
+from .utils.debug import custom_print, import_readline
 from .utils.generic import dkeys, get_sequence, is_object_of as isobjectof
 from .utils.module import find_module_path, set_python_path, remove_python_path
 from .utils.path import base, normpath
@@ -21,7 +21,9 @@ from .utils.string import normstr
 from cmath import inf, infj, nan, nanj, isclose
 from importlib import import_module
 from inspect import signature
-from types import BuiltinFunctionType, BuiltinMethodType, FunctionType, MethodType, ModuleType, NoneType
+from types import (
+    BuiltinFunctionType, BuiltinMethodType, FunctionType, MethodType, ModuleType, NoneType, NotImplementedType
+)
 from typing import Any, Callable
 
 import builtins
@@ -40,24 +42,19 @@ pyhelp = builtins.help
 pyvars = builtins.vars
 pydir = builtins.dir
 
-def _supported_method(
+def _magic_method(
     context: PysContext,
     position: PysPosition,
     object: Any,
     name: str,
     *args,
     **kwargs
-) -> tuple[bool, Any]:
+) -> Any | NotImplementedType:
     method = getattr(object, name, None)
     if callable(method):
         handle_call(method, context, position)
-        try:
-            result = method(*args, **kwargs)
-            if result is not NotImplemented:
-                return True, result
-        except NotImplementedError:
-            pass
-    return False, None
+        return method(*args, **kwargs)
+    return NotImplemented
 
 def _unpack_comprehension_function(context: PysContext, position: PysPosition, function: Callable) -> Callable:
     check = function
@@ -102,7 +99,7 @@ class PysPrinter(Pys):
         return f'Type {self.name}() to see the full information text.'
 
     def __call__(self) -> None:
-        print(self.text)
+        custom_print(self.text)
 
 class PysHelper(PysPrinter):
 
@@ -114,7 +111,7 @@ class PysHelper(PysPrinter):
 
     def __call__(self, *args, **kwargs) -> None:
         if not (args or kwargs):
-            print(
+            custom_print(
                 "Welcome to the PyScript programming language! "
                 "This is the help utility directly to the Python's help.\n\n"
                 "To get help on a specific object, type 'help(object)'.\n"
@@ -165,7 +162,7 @@ def require(context, position, name):
         elif name == 'sys':
             module = pys_sys
         else:
-            path = module_path = normpath(name)
+            path = module_path = name
 
     if module_path is not None:
         modules = pys_sys.modules
@@ -277,7 +274,7 @@ def breakpoint(context, position):
     )
 
     def show_line():
-        print(f'> {context.file.name}({position.start_line}){context.name}')
+        custom_print(f'> {context.file.name}({position.start_line}){context.name}')
 
     import_readline()
     show_line()
@@ -290,7 +287,7 @@ def breakpoint(context, position):
             try:
                 text = shell.prompt()
                 if text == 1:
-                    print("*** Unable to clean up namespace", file=sys.stderr)
+                    custom_print("*** Unable to clean up namespace", file=sys.stderr)
                     continue
 
                 split = ('exit',) if text == 0 else text.split()
@@ -300,7 +297,7 @@ def breakpoint(context, position):
                     return
 
                 elif command in ('h', 'help'):
-                    print(
+                    custom_print(
                         "\n"
                         "Documented commands:\n"
                         "====================\n"
@@ -325,7 +322,7 @@ def breakpoint(context, position):
                         if scopes:
                             symbol_table = scopes.pop()
                         else:
-                            print('*** Oldest frame')
+                            custom_print('*** Oldest frame')
                             break
 
                 elif command in ('d', 'down'):
@@ -333,7 +330,7 @@ def breakpoint(context, position):
                     parent = symbol_table.parent
                     for _ in range(int(count) if count.isdigit() else 1):
                         if parent is None:
-                            print('*** Newest frame')
+                            custom_print('*** Newest frame')
                             break
                         else:
                             scopes.append(symbol_table)
@@ -351,7 +348,7 @@ def breakpoint(context, position):
 
             except KeyboardInterrupt:
                 shell.reset()
-                print('\r--KeyboardInterrupt--', file=sys.stderr)
+                custom_print('\r--KeyboardInterrupt--', file=sys.stderr)
 
             except EOFError as e:
                 raise SystemExit from e
@@ -416,7 +413,7 @@ def dir(context, position, *args):
             classes.
     """
 
-    return pydir(*args) if args else list(dkeys(context.symbol_table.symbols))
+    return pydir(*args) if args else sorted(dkeys(context.symbol_table.symbols))
 
 @PysBuiltinFunction
 def exec(context, position, source, globals=None):
@@ -499,16 +496,14 @@ def ce(context, position, a, b, *, rel_tol=1e-9, abs_tol=0):
     if isinstance(a, real_complex_number) and isinstance(b, real_complex_number):
         return isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
 
-    success, result = _supported_method(context, position, a, '__ce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
-    if not success:
-        success, result = _supported_method(context, position, b, '__ce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
-        if not success:
-            success, result = _supported_method(context, position, a, '__nce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
-            if not success:
-                success, result = _supported_method(
-                    context, position, b, '__nce__', a, rel_tol=rel_tol, abs_tol=abs_tol
-                )
-                if not success:
+    result = _magic_method(context, position, a, '__ce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
+    if result is NotImplemented:
+        result = _magic_method(context, position, b, '__ce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
+        if result is NotImplemented:
+            result = _magic_method(context, position, a, '__nce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
+            if result is NotImplemented:
+                result = _magic_method(context, position, b, '__nce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
+                if result is NotImplemented:
                     raise TypeError(
                         f"unsupported operand type(s) for ~= or ce(): {type(a).__name__!r} and {type(b).__name__!r}"
                     )
@@ -535,14 +530,14 @@ def nce(context, position, a, b, *, rel_tol=1e-9, abs_tol=0):
     if isinstance(a, real_complex_number) and isinstance(b, real_complex_number):
         return not isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
 
-    success, result = _supported_method(context, position, a, '__nce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
-    if not success:
-        success, result = _supported_method(context, position, b, '__nce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
-        if not success:
-            success, result = _supported_method(context, position, a, '__ce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
-            if not success:
-                success, result = _supported_method(context, position, b, '__ce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
-                if not success:
+    result = _magic_method(context, position, a, '__nce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
+    if result is NotImplemented:
+        result = _magic_method(context, position, b, '__nce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
+        if result is NotImplemented:
+            result = _magic_method(context, position, a, '__ce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
+            if result is NotImplemented:
+                result = _magic_method(context, position, b, '__ce__', a, rel_tol=rel_tol, abs_tol=abs_tol)
+                if result is NotImplemented:
                     raise TypeError(
                         f"unsupported operand type(s) for ~! or nce(): {type(a).__name__!r} and {type(b).__name__!r}"
                     )
@@ -568,8 +563,8 @@ def increment(context, position, object):
     elif isinstance(object, sequence):
         return tuple(_pyincrement(context, position, obj) for obj in object)
 
-    success, result = _supported_method(context, position, object, '__increment__')
-    if not success:
+    result = _magic_method(context, position, object, '__increment__')
+    if result is NotImplemented:
         raise TypeError(f"bad operand type for unary ++ or increment(): {type(object).__name__!r}")
 
     return result
@@ -592,8 +587,8 @@ def decrement(context, position, object):
     elif isinstance(object, sequence):
         return tuple(_pydecrement(context, position, obj) for obj in object)
 
-    success, result = _supported_method(context, position, object, '__decrement__')
-    if not success:
+    result = _magic_method(context, position, object, '__decrement__')
+    if result is NotImplemented:
         raise TypeError(f"bad operand type for unary -- or decrement(): {type(object).__name__!r}")
 
     return result
@@ -656,9 +651,7 @@ pys_builtins.__dict__.update({
     name: getattr(builtins, name)
     for name in pydir(builtins)
     if not (is_private_attribute(name) or is_blacklist_python_builtin(name))
-})
-
-pys_builtins.__dict__.update({
+} | {
     'true': True,
     'false': False,
     'nil': None,
