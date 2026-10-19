@@ -24,10 +24,7 @@ ditems = dict.items
 dfrozen = MappingProxyType
 
 if sys.version_info >= (3, 15):
-    try:
-        dfrozen = frozendict
-    except:
-        pass
+    dfrozen = frozendict
 
 def get_frame(deep: int = 0) -> FrameType | None:
     deep += 1

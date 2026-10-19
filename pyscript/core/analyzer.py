@@ -102,18 +102,17 @@ class PysAnalyzer(Pys):
 
         keyword_names = set()
 
-        for element in node.arguments:
+        for argument in node.arguments:
 
-            if element.__class__ is tuple:
-                token, value = element
+            if argument.__class__ is tuple:
+                token, value = argument
                 name = token.value
                 if name in keyword_names:
                     self.throw(f"duplicate argument {name!r} in call definition", token.position)
                     return
                 keyword_names.add(name)
-
             else:
-                value = element
+                value = argument
 
             self.visit(value)
             if self.error:
@@ -163,7 +162,7 @@ class PysAnalyzer(Pys):
         self.visit_declaration_from_AssignmentNode(node.target, f"cannot {operator} literal", operator)
 
     def visit_StatementsNode(self, node: PysStatementsNode) -> None:
-        for element in node.body:
+        for element in node.elements:
             self.visit(element)
             if self.error:
                 return
@@ -179,7 +178,7 @@ class PysAnalyzer(Pys):
         self.visit(node.value)
 
     def visit_IfNode(self, node: PysIfNode) -> None:
-        for condition, body in node.cases_body:
+        for condition, body in node.cases:
             self.visit(condition)
             if self.error:
                 return
@@ -188,8 +187,8 @@ class PysAnalyzer(Pys):
             if self.error:
                 return
 
-        if node.else_body:
-            self.visit(node.else_body)
+        if node.else_:
+            self.visit(node.else_)
 
     def visit_SwitchNode(self, node: PysSwitchNode) -> None:
         self.visit(node.target)
@@ -198,8 +197,8 @@ class PysAnalyzer(Pys):
 
         self.in_switch += 1
 
-        for condition, body in node.case_cases:
-            self.visit(condition)
+        for case, body in node.cases:
+            self.visit(case)
             if self.error:
                 return
 
@@ -207,8 +206,8 @@ class PysAnalyzer(Pys):
             if self.error:
                 return
 
-        if node.default_body:
-            self.visit(node.default_body)
+        if node.default:
+            self.visit(node.default)
             if self.error:
                 return
 
@@ -220,8 +219,8 @@ class PysAnalyzer(Pys):
             if self.error:
                 return
 
-        for condition, value in node.cases:
-            self.visit(condition)
+        for case, value in node.cases:
+            self.visit(case)
             if self.error:
                 return
 
@@ -237,18 +236,18 @@ class PysAnalyzer(Pys):
         if self.error:
             return
 
-        for _, body in node.catch_cases:
+        for _, body in node.catches:
             self.visit(body)
             if self.error:
                 return
 
-        if node.else_body:
-            self.visit(node.else_body)
+        if node.else_:
+            self.visit(node.else_)
             if self.error:
                 return
 
-        if node.finally_body:
-            self.visit(node.finally_body)
+        if node.finally_:
+            self.visit(node.finally_)
 
     def visit_WithNode(self, node: PysWithNode) -> None:
         for context, _ in node.contexts:
@@ -284,8 +283,8 @@ class PysAnalyzer(Pys):
 
         self.in_loop -= 1
 
-        if node.else_body:
-            self.visit(node.else_body)
+        if node.else_:
+            self.visit(node.else_)
 
     def visit_WhileNode(self, node: PysWhileNode) -> None:
         self.visit(node.condition)
@@ -300,8 +299,8 @@ class PysAnalyzer(Pys):
 
         self.in_loop -= 1
 
-        if node.else_body:
-            self.visit(node.else_body)
+        if node.else_:
+            self.visit(node.else_)
 
     def visit_DoWhileNode(self, node: PysDoWhileNode) -> None:
         self.in_loop += 1
@@ -316,11 +315,10 @@ class PysAnalyzer(Pys):
         if self.error:
             return
 
-        if node.else_body:
-            self.visit(node.else_body)
+        if node.else_:
+            self.visit(node.else_)
 
     def visit_RepeatNode(self, node: PysRepeatNode) -> None:
-
         if node.body:
             self.in_loop += 1
 
@@ -334,8 +332,8 @@ class PysAnalyzer(Pys):
         if self.error:
             return
 
-        if node.else_body:
-            self.visit(node.else_body)
+        if node.else_:
+            self.visit(node.else_)
 
     def visit_ClassNode(self, node: PysClassNode) -> None:
         for decorator in node.decorators:
@@ -378,9 +376,9 @@ class PysAnalyzer(Pys):
 
         parameter_names = set()
 
-        for element in node.parameters:
-            is_keyword = element.__class__ is tuple
-            token = element[0] if is_keyword else element
+        for parameter in node.parameters:
+            is_keyword = parameter.__class__ is tuple
+            token = parameter[0] if is_keyword else parameter
             name = token.value
 
             if name in parameter_names:
@@ -389,7 +387,7 @@ class PysAnalyzer(Pys):
             parameter_names.add(name)
 
             if is_keyword:
-                self.visit(element[1])
+                self.visit(parameter[1])
                 if self.error:
                     return
 
@@ -464,10 +462,6 @@ class PysAnalyzer(Pys):
                 if self.error:
                     return
 
-            elif type is PysKeywordNode:
-                self.throw(f"cannot delete {target.name.value}", target.position)
-                return
-
             elif type is PysDebugNode:
                 self.throw("cannot delete to __debug__", node.position)
                 return
@@ -536,9 +530,6 @@ class PysAnalyzer(Pys):
                 self.visit_declaration_from_AssignmentNode(element, message, operator_name)
                 if self.error:
                     return
-
-        elif type is PysKeywordNode:
-            self.throw(f"cannot {operator_name} to {node.name.value}", node.position)
 
         elif type is PysDebugNode:
             self.throw(f"cannot {operator_name} to __debug__", node.position)

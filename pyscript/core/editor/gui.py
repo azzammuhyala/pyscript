@@ -6,8 +6,17 @@ from ..utils.generic import boundary
 from ..version import __version__
 
 try:
-    from tkinter import Tk, Scrollbar, Text, messagebox
-    from tkinter.font import Font
+    from tkinter import Tk, Scrollbar, Text, Canvas, messagebox
+    from tkinter.font import families, Font
+
+    MONO_FALLBACKS = (
+        'Fira Code',
+        'Cascadia Code', 'SF Mono', 'Ubuntu Mono', 'Liberation Mono',
+        'Consolas', 'Menlo', 'DejaVu Sans Mono',
+        'Courier New', 'Lucida Console', 'Monaco', 'Andale Mono',
+        'Courier', 'Terminal',
+        'monospace'
+    )
 
     class PysGUIEditor(PysEditor, Tk):
 
@@ -45,6 +54,7 @@ try:
                 if self.text.edit_modified():
                     self.modified = True
                     update()
+                    refresh_line_numbers()
                     self.text.edit_modified(False)
 
             def on_change_font(value):
@@ -53,6 +63,7 @@ try:
                     size = boundary(font.cget('size') + value, 1, 127)
                     font.config(size=size)
                     update_tab_size()
+                    refresh_line_numbers()
                     self.set_configuration('gui-size-font', size)
                     return 'break'
                 return wrapper
@@ -61,6 +72,7 @@ try:
                 text = self.text
                 wrap = text.cget('wrap') != 'char'
                 text.configure(wrap='char' if wrap else 'none')
+                refresh_line_numbers()
                 self.set_configuration('wrap', wrap)
                 return 'break'
 
@@ -86,9 +98,64 @@ try:
                 text.see('insert')
                 return 'break'
 
+            def draw_line_numbers():
+                self.line_job = None
+                text = self.text
+                canvas = self.line_numbers
+                font = self.font
+
+                bold = (font.cget('family'), font.cget('size'), 'bold')
+                digits = len(text.index('end-1c').split('.')[0])
+                padding = font.measure(' ')
+                width = font.measure('0' * digits) + padding * 2
+
+                canvas.delete('all')
+                canvas.configure(width=width, bg='#1f1f1f')
+
+                current = text.index('insert').split('.')[0]
+                index = text.index('@0,0')
+                previous = None
+
+                while True:
+                    info = text.dlineinfo(index)
+                    if info is None:
+                        break
+
+                    number = index.split('.')[0]
+                    if number == previous:
+                        break
+
+                    canvas.create_text(
+                        width - padding, info[1],
+                        anchor='ne',
+                        text=number,
+                        font=bold if number == current else font,
+                        fill='#ffffff'
+                    )
+
+                    previous = number
+                    index = text.index(f'{index} +1 lines')
+
+            def refresh_line_numbers(event=None):
+                if self.line_job is None:
+                    self.line_job = self.after_idle(draw_line_numbers)
+
+            def on_scroll(first, last):
+                self.scrollbar.set(first, last)
+                refresh_line_numbers()
+
+            installed = frozenset(families())
+            for font_name in MONO_FALLBACKS:
+                if font_name in installed:
+                    break
+            else:
+                font_name = 'monospace'
+
             self.lexer = PygmentsPyScriptLexer()
-            self.font = Font(family='Consolas', size=boundary(self.get_configuration('gui-size-font', 10), 1, 127))
+            self.font = Font(family=font_name, size=boundary(self.get_configuration('gui-size-font', 10), 1, 127))
+            self.line_job = None
             self.scrollbar = Scrollbar(self)
+            self.line_numbers = Canvas(self, width=0, highlightthickness=0, bd=0)
             self.text = Text(
                 self,
                 undo=True,
@@ -98,7 +165,7 @@ try:
                 bg='#000000',
                 fg='#ffffff',
                 insertbackground='white',
-                yscrollcommand=self.scrollbar.set
+                yscrollcommand=on_scroll
             )
 
             update_tab_size()
@@ -106,6 +173,8 @@ try:
             self.scrollbar.pack_configure(side='right', fill='y')
             self.scrollbar.configure(command=self.text.yview)
 
+            self.line_numbers.pack_configure(side='left', fill='y')
+            self.text.pack_configure(side='left', expand=True, fill='both')
             self.text.pack_configure(side='left', expand=True, fill='both')
 
             self.text.insert('1.0', self.file.text)
@@ -115,6 +184,9 @@ try:
             self.text.bind('<Return>', on_enter)
             self.text.bind('<Prior>', on_page_up)
             self.text.bind('<Next>', on_page_down)
+            self.text.bind('<KeyRelease>', refresh_line_numbers)
+            self.text.bind('<ButtonRelease-1>', refresh_line_numbers)
+            self.text.bind('<Configure>', refresh_line_numbers)
 
             self.bind('<Configure>', on_configure)
             self.bind_all('<Control-S>', on_save)
@@ -145,14 +217,16 @@ try:
             self.wm_protocol('WM_DELETE_WINDOW', on_close)
 
             if PYGMENTS and colored:
+                self.update_job = None
+
                 tag_configure = self.text.tag_configure
                 for token, style in PygmentsPyScriptStyle.list_styles():
                     color = style['color']
                     if color:
                         tag_configure(str(token), foreground=f'#{color}')
 
-                def update():
-                    self.title(f'PyScript {__version__} - {self.basename}{"*" if self.modified else ""}')
+                def refresh_highlight():
+                    self.update_job = None
 
                     index = '1.0'
 
@@ -172,11 +246,18 @@ try:
                         text_tag_add(to_string(type), index, end_index)
                         index = end_index
 
+                def update():
+                    self.title(f'PyScript {__version__} - {self.basename}{"*" if self.modified else ""}')
+                    if self.update_job is not None:
+                        self.after_cancel(self.update_job)
+                    self.update_job = self.after(500, refresh_highlight)
+
             else:
                 def update():
                     self.title(f'PyScript {__version__} - {self.basename}{"*" if self.modified else ""}')
 
             update()
+            refresh_line_numbers()
 
         def run(self) -> None:
             PysEditor.run(self)

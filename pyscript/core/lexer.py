@@ -44,12 +44,13 @@ class PysLexer(Pys):
         self.update_current_character()
 
         while self.read_more():
+            current_character = self.current_character
 
-            if self.current_character == '\n':
+            if current_character == '\n':
                 self.advance()
                 self.add_token(TOKENS['NEWLINE'])
 
-            elif self.current_character == '\\':
+            elif current_character == '\\':
                 self.make_back_slash()
 
             elif self.character_are('isspace'):
@@ -61,102 +62,99 @@ class PysLexer(Pys):
             elif self.character_in('BRbr"\''):
                 self.make_string()
 
-            elif self.character_are('isidentifier') or self.current_character == '$':
+            elif self.character_are('isidentifier') or current_character == '$':
                 self.make_identifier()
 
-            elif self.current_character == '+':
+            elif current_character == '+':
                 self.make_plus()
 
-            elif self.current_character == '-':
+            elif current_character == '-':
                 self.make_minus()
 
-            elif self.current_character == '*':
+            elif current_character == '*':
                 self.make_star()
 
-            elif self.current_character == '/':
+            elif current_character == '/':
                 self.make_slash()
 
-            elif self.current_character == '%':
+            elif current_character == '%':
                 self.make_percent()
 
-            elif self.current_character == '@':
+            elif current_character == '@':
                 self.make_at()
 
-            elif self.current_character == '&':
+            elif current_character == '&':
                 self.make_ampersand()
 
-            elif self.current_character == '|':
+            elif current_character == '|':
                 self.make_pipe()
 
-            elif self.current_character == '^':
+            elif current_character == '^':
                 self.make_circumflex()
 
-            elif self.current_character == '~':
+            elif current_character == '~':
                 self.make_tilde()
 
-            elif self.current_character == '=':
+            elif current_character == '=':
                 self.make_equal()
 
-            elif self.current_character == '!':
+            elif current_character == '!':
                 self.make_exclamation()
 
-            elif self.current_character == '<':
+            elif current_character == '<':
                 self.make_less_than()
 
-            elif self.current_character == '>':
+            elif current_character == '>':
                 self.make_greater_than()
 
-            elif self.current_character == '?':
+            elif current_character == '?':
                 self.make_question()
 
-            elif self.current_character == ':':
+            elif current_character == ':':
                 self.make_colon()
 
-            elif self.current_character == '#':
+            elif current_character == '#':
                 self.make_comment()
 
-            elif self.current_character == '(':
+            elif current_character == '(':
                 self.advance()
                 self.add_token(TOKENS['LEFT_PARENTHESIS'])
 
-            elif self.current_character == ')':
+            elif current_character == ')':
                 self.advance()
                 self.add_token(TOKENS['RIGHT_PARENTHESIS'])
 
-            elif self.current_character == '[':
+            elif current_character == '[':
                 self.advance()
                 self.add_token(TOKENS['LEFT_SQUARE'])
 
-            elif self.current_character == ']':
+            elif current_character == ']':
                 self.advance()
                 self.add_token(TOKENS['RIGHT_SQUARE'])
 
-            elif self.current_character == '{':
+            elif current_character == '{':
                 self.advance()
                 self.add_token(TOKENS['LEFT_CURLY'])
 
-            elif self.current_character == '}':
+            elif current_character == '}':
                 self.advance()
                 self.add_token(TOKENS['RIGHT_CURLY'])
 
-            elif self.current_character == ',':
+            elif current_character == ',':
                 self.advance()
                 self.add_token(TOKENS['COMMA'])
 
-            elif self.current_character == ';':
+            elif current_character == ';':
                 self.advance()
                 self.add_token(TOKENS['SEMICOLON'])
 
             else:
-                character = self.current_character
-                unicode = ord(character)
-
                 self.advance()
                 self.throw(
                     self.index - 1, self.index,
-                    f"invalid character '{character}' (U+{unicode:04X})"
-                    if character.isprintable() else
-                    f"invalid non-printable character U+{unicode:04X}"
+                    f"invalid character '{current_character}' (U+{ord(current_character):04X})"
+                    if current_character.isprintable() else
+                    f"invalid non-printable character U+{ord(current_character):04X}"
                 )
 
         self.advance()
@@ -356,7 +354,7 @@ class PysLexer(Pys):
             elif format is int:
                 result = int(number)
 
-            self.add_token(TOKENS['NUMBER'], start, intern_object(complex(0, result) if is_complex else result))
+            self.add_token(TOKENS['NUMBER'], start, complex(0, result) if is_complex else result)
 
         except (ValueError, OverflowError):
             integer_to_string_limit, other_message = (
@@ -579,7 +577,7 @@ class PysLexer(Pys):
                 except UnicodeEncodeError:
                     self.throw(start, self.index, "bytes can only contain ASCII literal characters", add_token=False)
 
-        self.add_token(TOKENS['STRING'], start, intern_object(string))
+        self.add_token(TOKENS['STRING'], start, string)
 
     def make_identifier(self) -> None:
         start = self.index
@@ -870,14 +868,18 @@ class PysLexer(Pys):
         self.add_token(type, start)
 
     def make_comment(self) -> None:
-        start = self.index
-        comment = ''
-
-        self.advance()
-
-        while self.read_more() and self.current_character != '\n':
-            comment += self.current_character
-            self.advance()
-
         if self.parser_flags & LEXER_HIGHLIGHT:
+            start = self.index
+            comment = ''
+
+            self.advance()
+            while self.read_more() and self.current_character != '\n':
+                comment += self.current_character
+                self.advance()
+
             self.add_token(TOKENS['COMMENT'], start, comment)
+
+        else:
+            self.advance()
+            while self.read_more() and self.current_character != '\n':
+                self.advance()

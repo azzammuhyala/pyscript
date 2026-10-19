@@ -1,3 +1,5 @@
+# bro, im too lazy to renovate this module
+
 from pyscript.core.checks import is_keyword
 from pyscript.core.mapping import SYMBOLS_TOKEN_MAP
 from pyscript.core.nodes import *
@@ -15,17 +17,11 @@ def identifier(name: str) -> str:
 def unparse(ast_obj: PysNode) -> str:
     return get_visitor(ast_obj.__class__)(ast_obj)
 
-def visit_NumberNode(node: PysNumberNode) -> str:
-    return repr(node.value.value)
-
-def visit_StringNode(node: PysStringNode) -> str:
-    return repr(node.value.value)
+def visit_ConstantNode(node: PysConstantNode) -> str:
+    return repr(node.value)
 
 def visit_DebugNode(node: PysDebugNode) -> Literal['__debug__']:
     return '__debug__'
-
-def visit_KeywordNode(node: PysKeywordNode) -> str:
-    return node.name.value
 
 def visit_IdentifierNode(node: PysIdentifierNode) -> str:
     return identifier(node.name.value)
@@ -43,8 +39,12 @@ def visit_DictionaryNode(node: PysDictionaryNode) -> str:
     else:
         for key, value in node.pairs:
             element_string = (
-                identifier(key.value.value)
-                if isinstance(key, PysStringNode) and key.value.value.isindentifier() else
+                identifier(key.value)
+                if
+                    isinstance(key, PysConstantNode) and
+                    isinstance(key.value, str) and
+                    key.value.isidentifier()
+                else
                 f'[{unparse(key)}]'
             )
             element_string += ': '

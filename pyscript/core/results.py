@@ -8,7 +8,7 @@ from .position import PysPosition
 from .utils.debug import print_traceback, get_traceback_info
 
 from types import TracebackType
-from typing import Any, Literal, Union
+from typing import Any, Literal
 
 class PysResult(Pys):
     __slots__ = ()
@@ -36,7 +36,7 @@ class PysParserResult(PysResult):
         self.error = result.error
         return result.node
 
-    def try_register(self, result: 'PysParserResult') -> Union['PysParserResult', None]:
+    def try_register(self, result: 'PysParserResult') -> 'PysParserResult | None':
         if result.error and not result.fatal:
             self.to_reverse_count = result.advance_count
         else:

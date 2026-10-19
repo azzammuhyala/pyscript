@@ -1,6 +1,6 @@
 from .bases import Pys
 from .cache import pys_sys
-from .constants import GLOBAL_HISTORY_PATH, ENV_PYSCRIPT_HISTORY_PATH, ENV_PYSCRIPT_MAXIMUM_HISTORY_LINE
+from .constants import GLOBAL_HISTORY_PATH, ENV_PYSCRIPT_HISTORY_PATH, ENV_PYSCRIPT_HISTORY_LIMIT
 from .exceptions import PysSignal
 from .mapping import BRACKETS_MAP
 from .utils.debug import custom_print, print_traceback
@@ -8,9 +8,8 @@ from .utils.decorators import singleton
 from .utils.generic import save_get_environ
 from .utils.path import normpath
 
-from typing import Iterable, Literal, Optional
+from typing import Literal
 
-import os
 import sys
 
 class PysIncompleteHandler(Pys):
@@ -224,12 +223,13 @@ try:
         HISTORY_PATH = '<none>'
         USE_FILE_HISTORY = False
 
-    MAXIMUM_HISTORY_LINE = save_get_environ(ENV_PYSCRIPT_MAXIMUM_HISTORY_LINE, '2048')
+    HISTORY_LIMIT = save_get_environ(ENV_PYSCRIPT_HISTORY_LIMIT, '1024')
     try:
-        MAXIMUM_HISTORY_LINE = int(MAXIMUM_HISTORY_LINE)
+        HISTORY_LIMIT = max(int(HISTORY_LIMIT), -1)
     except:
-        MAXIMUM_HISTORY_LINE = 2048
+        HISTORY_LIMIT = 1024
 
+    # assume that `_loaded_strings` and the file contents have the same history list
     @singleton
     class PysHistory(Pys, History):
 
@@ -238,78 +238,57 @@ try:
                 return super().__new__(cls)
             raise NotImplementedError('not using file history')
 
-        def update_history(self, append_string: Optional[str] = None) -> list[str]:
+        def _write_history_safely(self, mode: str, function: str, *args) -> None:
             try:
+                with open(HISTORY_PATH, mode, encoding=pys_sys.encoding) as file:
+                    getattr(file, function)(*args)
+            except:
+                pass
 
-                if MAXIMUM_HISTORY_LINE == 0:
-                    with open(HISTORY_PATH, 'w', encoding=pys_sys.encoding) as file:
-                        file.write('')
-                    return []
+        def _manage_history_capacity(self, strings: list[str]) -> None:
+            del strings[HISTORY_LIMIT:]
+            self._write_history_safely('w', 'writelines', (f'\x1e{line}\n' for line in reversed(strings)))
 
+        def load_history_strings(self) -> list[str]:
+            if HISTORY_LIMIT == 0:
+                self._write_history_safely('w', 'write', '')
+                return []
+
+            try:
                 strings = []
                 lines = []
-                update_history = False
 
-                if os.path.isfile(HISTORY_PATH):
+                def add_to_string():
+                    if not lines:
+                        return
+                    strings.insert(0, '\n'.join(lines))
+                    lines.clear()
 
-                    def add_to_string():
-                        if not lines:
-                            return
-                        strings.append('\n'.join(lines))
-                        lines.clear()
+                with open(HISTORY_PATH, 'r', encoding=pys_sys.encoding) as file:
+                    for line in file:
+                        line = line[:-1]
+                        if line.startswith('\x1e'):
+                            add_to_string()
+                            line = line[1:]
+                        lines.append(line)
+                    add_to_string()
 
-                    with open(HISTORY_PATH, 'r', encoding=pys_sys.encoding) as file:
-
-                        for line in file:
-                            line = line[:-1]
-                            if line.startswith('\x1e'):
-                                add_to_string()
-                                line = line[1:]
-                            lines.append(line)
-
-                        add_to_string()
-
-                else:
-                    update_history = True
-
-                if append_string is not None:
-                    strings.append(append_string)
-                    update_history = True
-
-                if MAXIMUM_HISTORY_LINE > 0 and len(strings) > MAXIMUM_HISTORY_LINE:
-                    del strings[:-MAXIMUM_HISTORY_LINE]
-                    update_history = True
-
-                if update_history:
-                    with open(HISTORY_PATH, 'w', encoding=pys_sys.encoding) as file:
-                        file.writelines(f'\x1e{line}\n' for line in strings)
+                if HISTORY_LIMIT > 0 and len(strings) > HISTORY_LIMIT:
+                    self._manage_history_capacity(strings)
 
                 return strings
-
             except:
                 return []
 
-        def load_history_strings(self) -> Iterable[str]:
-            return reversed(self.update_history())
-
+        # this function is called within `append_string()` which adds a new string or history entry to `_loaded_strings`
+        # before invoking this function
         def store_string(self, string: str) -> None:
-            self.update_history(string)
-
-        def append_string(self, string: str) -> None:
-            if MAXIMUM_HISTORY_LINE == 0:
+            if HISTORY_LIMIT == 0:
                 self._loaded_strings.clear()
-                self.update_history()
-                return
-
-            elif MAXIMUM_HISTORY_LINE > 0:
-                length = len(self._loaded_strings)
-                if length == MAXIMUM_HISTORY_LINE:
-                    del self._loaded_strings[-1]
-                elif length > MAXIMUM_HISTORY_LINE:
-                    del self._loaded_strings[:-MAXIMUM_HISTORY_LINE]
-
-            self._loaded_strings.insert(0, string)
-            self.update_history(string)
+            elif HISTORY_LIMIT < 0 or len(self._loaded_strings) <= HISTORY_LIMIT:
+                self._write_history_safely('a', 'write', f'\x1e{string}\n')
+            else:
+                self._manage_history_capacity(self._loaded_strings)
 
     history = (PysHistory if USE_FILE_HISTORY else InMemoryHistory)()
 

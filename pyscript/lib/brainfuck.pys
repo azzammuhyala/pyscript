@@ -3,8 +3,13 @@ getch = require('getch')
 sys = pyimport('sys')
 
 func default_input() {
-    repeat result = ord(getch.getch()) until (0 <= result <= 255)
-    return result
+    try {
+        getch.init()
+        repeat result = ord(getch.getch()) until (0 <= result <= 255)
+        return result
+    } finally {
+        getch.quit()
+    }
 }
 
 func default_output(byte) {

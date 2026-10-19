@@ -2,9 +2,8 @@ from collections.abc import Iterable
 from functools import reduce
 from html.parser import HTMLParser
 from operator import or_
-from typing import Literal, Mapping
 
-from .generic import dfrozen
+from .generic import dfrozen, get_sequence
 
 DEFAULT = 0
 BACKGROUND = 1 << 0
@@ -90,6 +89,17 @@ def acolor(*args, style: int = DEFAULT) -> str:
 
     raise TypeError("acolor(): the argument is invalid for ansi color")
 
+SPECIAL_TAGS = dfrozen({
+    name: acolor(name) for name in ANSI_NAMES_MAP.keys()
+} | {
+    'b': acolor(style=BOLD),
+    'i': acolor(style=ITALIC),
+    'u': acolor(style=UNDERLINE),
+    's': acolor(style=STRIKETHROUGH),
+    'mark': acolor('yellow', style=BACKGROUND),
+    'blink': acolor(style=BLINK)
+})
+
 class AnsiParser(HTMLParser):
 
     def __init__(self, *args, **kwargs) -> None:
@@ -97,31 +107,42 @@ class AnsiParser(HTMLParser):
         self.result = ''
         self.stack = []
 
-    def handle_starttag(self, tag: Literal['ansi'], attrs: Mapping) -> None:
-        if tag != 'ansi':
+    def _get_last_stack(self) -> str:
+        return get_sequence(self.stack, -1, ('', '\x1b[0m'))[1]
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == 'ansi':
+            attrs = dict(attrs)
+            color = acolor(
+                attrs.get('color'),
+                style=reduce(or_, (
+                    FLAG_NAMES_MAP[style.upper()]
+                    for style in
+                    attrs.get('style', 'DEFAULT').replace(',', ' ').split()
+                ))
+            )
+        elif tag in SPECIAL_TAGS:
+            color = SPECIAL_TAGS[tag]
+        else:
             raise ValueError(f"unknown start-tag: {tag}")
 
-        attrs = dict(attrs)
-        color = acolor(
-            attrs.get('color'),
-            style=reduce(or_, (
-                FLAG_NAMES_MAP[style.upper()]
-                for style in
-                attrs.get('style', 'DEFAULT').replace(',', ' ').split()
-            ))
-        )
+        if self._get_last_stack() != color:
+            self.result += color
+        self.stack.append((tag, color))
 
-        self.result += color
-        self.stack.append(color)
-
-    def handle_endtag(self, tag: Literal['ansi']) -> None:
-        if not self.stack:
-            raise SyntaxError("unmatch end-tag")
-        if tag != 'ansi':
+    def handle_endtag(self, tag: str) -> None:
+        if not (tag == 'ansi' or tag in SPECIAL_TAGS):
             raise ValueError(f"unknown end-tag: {tag}")
+        if not self.stack or tag != self.stack[-1][0]:
+            raise SyntaxError("unmatch end-tag")
 
-        self.stack.pop()
-        self.result += self.stack[-1] if self.stack else acolor('reset')
+        _, color = self.stack.pop()
+        last = self._get_last_stack()
+
+        if color and color != last:
+            self.result += '\x1b[0m'
+            if self.stack:
+                self.result += last
 
     def handle_data(self, data: str) -> None:
         self.result += data
@@ -134,6 +155,7 @@ class AnsiParser(HTMLParser):
 def ahtml(string: str) -> str:
     parser = AnsiParser()
     parser.feed(string)
+    parser.close()
     return parser.get_output()
 
 __all__ = (

@@ -6,7 +6,7 @@ from .checks import is_sequence, is_equal, is_public_attribute
 from .context import PysContext, PysClassContext
 from .exceptions import PysTraceback
 from .handlers import handle_call
-from .mapping import GET_BINARY_FUNCTION, GET_UNARY_FUNCTION, GET_VALUE_FROM_CONSTANT_KEYWORDS
+from .mapping import GET_BINARY_FUNCTION, GET_UNARY_FUNCTION
 from .nodes import *
 from .pysbuiltins import ce, nce, increment, decrement
 from .pystypes import PysFunction
@@ -31,14 +31,8 @@ T_NCE = TOKENS['EXCLAMATION_TILDE']
 def _always_undefined(*args) -> PysUndefined:
     return undefined
 
-def visit_NumberNode(node: PysNumberNode, context: PysContext) -> PysRunTimeResult:
-    return PysRunTimeResult().success(node.value.value)
-
-def visit_StringNode(node: PysStringNode, context: PysContext) -> PysRunTimeResult:
-    return PysRunTimeResult().success(node.value.value)
-
-def visit_KeywordNode(node: PysKeywordNode, context: PysContext) -> PysRunTimeResult:
-    return PysRunTimeResult().success(GET_VALUE_FROM_CONSTANT_KEYWORDS(node.name.value))
+def visit_ConstantNode(node: PysConstantNode, context: PysContext) -> PysRunTimeResult:
+    return PysRunTimeResult().success(node.value)
 
 def visit_DebugNode(node: PysDebugNode, context: PysContext) -> PysRunTimeResult:
     return PysRunTimeResult().success(True if context.flags & DEBUG else False)
@@ -309,20 +303,22 @@ def visit_BinaryOperatorNode(node: PysBinaryOperatorNode, context: PysContext) -
     if should_return():
         return result
 
-    toperand = node.operand
-    otype = toperand.type
+    otype = node.operand.type
 
     result._context = context
     result._position = node.position
     with result:
         return_right = True
 
-        if otype == T_AND:
-            if not left: return result.success(left)
-        elif otype == T_OR:
-            if left: return result.success(left)
+        if otype == T_OR:
+            if left:
+                return result.success(left)
+        elif otype == T_AND:
+            if not left:
+                return result.success(left)
         elif otype == T_NULLISH:
-            if left is not None: return result.success(left)
+            if left is not None:
+                return result.success(left)
         else:
             return_right = False
 
@@ -345,13 +341,10 @@ def visit_UnaryOperatorNode(node: PysUnaryOperatorNode, context: PysContext) -> 
     if result.should_return():
         return result
 
-    toperand = node.operand
-    otype = toperand.type
-
     result._context = context
     result._position = node.position
     with result:
-        return result.success(GET_UNARY_FUNCTION(otype)(value))
+        return result.success(GET_UNARY_FUNCTION(node.operand.type)(value))
 
     return result
 
@@ -377,7 +370,7 @@ def visit_IncrementalNode(node: PysIncrementalNode, context: PysContext) -> PysR
         if should_return():
             return result
 
-        return result.success(increast_value if node.operand_position == 'left' else value)
+        return result.success(increast_value if node.operand_alignment == 'left' else value)
 
     return result
 
@@ -387,7 +380,7 @@ def visit_StatementsNode(node: PysStatementsNode, context: PysContext) -> PysRun
     register = result.register
     should_return = result.should_return
 
-    for nelement in node.body:
+    for nelement in node.elements:
         register(get_visitor(nelement.__class__)(nelement, context))
         if should_return():
             return result
@@ -525,7 +518,7 @@ def visit_IfNode(node: PysIfNode, context: PysContext) -> PysRunTimeResult:
     register = result.register
     should_return = result.should_return
 
-    for ncondition, body in node.cases_body:
+    for ncondition, body in node.cases:
         condition = register(get_visitor(ncondition.__class__)(ncondition, context))
         if should_return():
             return result
@@ -539,10 +532,9 @@ def visit_IfNode(node: PysIfNode, context: PysContext) -> PysRunTimeResult:
         if should_return():
             return result
 
-    else_body = node.else_body
-
-    if else_body:
-        register(get_visitor(else_body.__class__)(else_body, context))
+    nelse = node.else_
+    if nelse:
+        register(get_visitor(nelse.__class__)(nelse, context))
         if should_return():
             return result
 
@@ -563,7 +555,7 @@ def visit_SwitchNode(node: PysSwitchNode, context: PysContext) -> PysRunTimeResu
     if should_return():
         return result
 
-    for ncondition, body in node.case_cases:
+    for ncondition, body in node.cases:
 
         if not fall_through:
             case = register(get_visitor(ncondition.__class__)(ncondition, context))
@@ -588,8 +580,8 @@ def visit_SwitchNode(node: PysSwitchNode, context: PysContext) -> PysRunTimeResu
         if should_return():
             return result
 
-    if (fall_through or no_match_found) and (default_body := node.default_body):
-        register(get_visitor(default_body.__class__)(default_body, context))
+    if (fall_through or no_match_found) and (ndefault := node.default):
+        register(get_visitor(ndefault.__class__)(ndefault, context))
         if should_return():
             if result.should_break:
                 result.should_break = False
@@ -633,7 +625,6 @@ def visit_MatchNode(node: PysMatchNode, context: PysContext) -> PysRunTimeResult
             return result
 
     ndefault = node.default
-
     if ndefault:
         default = register(get_visitor(ndefault.__class__)(ndefault, context))
         if should_return():
@@ -665,7 +656,7 @@ def visit_TryNode(node: PysTryNode, context: PysContext) -> PysRunTimeResult:
 
         failure(None)
 
-        for (targets, tparameter), body in node.catch_cases:
+        for (targets, tparameter), body in node.catches:
             handle_exception = True
             stop = False
 
@@ -723,14 +714,13 @@ def visit_TryNode(node: PysTryNode, context: PysContext) -> PysRunTimeResult:
         else:
             failure(error)
 
-    elif else_body := node.else_body:
-        register(get_visitor(else_body.__class__)(else_body, context))
+    elif nelse := node.else_:
+        register(get_visitor(nelse.__class__)(nelse, context))
 
-    finally_body = node.finally_body
-
-    if finally_body:
+    nfinally = node.finally_
+    if nfinally:
         finally_result = PysRunTimeResult()
-        finally_result.register(get_visitor(finally_body.__class__)(finally_body, context))
+        finally_result.register(get_visitor(nfinally.__class__)(nfinally, context))
         if finally_result.should_return():
             if finally_result.error:
                 finally_result.error.primary = result.error
@@ -915,8 +905,8 @@ def visit_ForNode(node: PysForNode, context: PysContext) -> PysRunTimeResult:
     if result.should_break:
         result.should_break = False
 
-    elif else_body := node.else_body:
-        register(get_visitor(else_body.__class__)(else_body, context))
+    elif nelse := node.else_:
+        register(get_visitor(nelse.__class__)(nelse, context))
         if should_return():
             return result
 
@@ -958,8 +948,8 @@ def visit_WhileNode(node: PysWhileNode, context: PysContext) -> PysRunTimeResult
     if result.should_break:
         result.should_break = False
 
-    elif else_body := node.else_body:
-        register(get_visitor(else_body.__class__)(else_body, context))
+    elif nelse := node.else_:
+        register(get_visitor(nelse.__class__)(nelse, context))
         if should_return():
             return result
 
@@ -1001,8 +991,8 @@ def visit_DoWhileNode(node: PysDoWhileNode, context: PysContext) -> PysRunTimeRe
     if result.should_break:
         result.should_break = False
 
-    elif else_body := node.else_body:
-        register(get_visitor(else_body.__class__)(else_body, context))
+    elif nelse := node.else_:
+        register(get_visitor(nelse.__class__)(nelse, context))
         if should_return():
             return result
 
@@ -1046,8 +1036,8 @@ def visit_RepeatNode(node: PysRepeatNode, context: PysContext) -> PysRunTimeResu
         if result.should_break:
             result.should_break = False
 
-        elif else_body := node.else_body:
-            register(get_visitor(else_body.__class__)(else_body, context))
+        elif nelse := node.else_:
+            register(get_visitor(nelse.__class__)(nelse, context))
             if should_return():
                 return result
 
@@ -1291,7 +1281,7 @@ def visit_AssertNode(node: PysAssertNode, context: PysContext) -> PysRunTimeResu
                     PysTraceback(
                         AssertionError(message),
                         context,
-                        node.position
+                        ncondition.position
                     )
                 )
 
@@ -1299,7 +1289,7 @@ def visit_AssertNode(node: PysAssertNode, context: PysContext) -> PysRunTimeResu
                 PysTraceback(
                     AssertionError,
                     context,
-                    node.position
+                    ncondition.position
                 )
             )
 

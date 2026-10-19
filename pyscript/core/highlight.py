@@ -9,10 +9,11 @@ from .pysbuiltins import pys_builtins
 from .token import TOKENS
 from .utils.ansi import acolor
 from .utils.decorators import typecheck
+from .utils.generic import dfrozen
 from .utils.string import normstr
 
 from html import escape as html_escape
-from typing import Callable, Optional
+from typing import Callable, Iterator, Optional
 
 BUILTIN_TYPES = frozenset(
     name
@@ -31,10 +32,11 @@ try:
     from pygments.lexer import RegexLexer, include, bygroups
     from pygments.style import Style
     from pygments.token import (
-        Comment, Error, Escape, Generic, Keyword, Name, Number, Operator, Punctuation, String, Whitespace
+        _TokenType, Comment, Error, Escape, Generic, Keyword, Name, Number, Operator, Punctuation, String, Whitespace
     )
     from pygments.unistring import xid_start, xid_continue
 
+    _brackets_tokens = dfrozen({index: getattr(Punctuation, f'Brackets{index}') for index in range(3)})
     _set_constant_keywords = frozenset(CONSTANT_KEYWORDS)
     _keywords = '|'.join(KEYWORDS)
     _unicode_name = f'[{xid_start}][{xid_continue}]*'
@@ -112,6 +114,10 @@ try:
             Comment.Single: HIGHLIGHT_MAP['comment'],
             Error: HIGHLIGHT_MAP['invalid'],
             Generic.Prompt: HIGHLIGHT_MAP['keyword-other'],
+
+            Punctuation.Brackets0: HIGHLIGHT_MAP['brackets-0'],
+            Punctuation.Brackets1: HIGHLIGHT_MAP['brackets-1'],
+            Punctuation.Brackets2: HIGHLIGHT_MAP['brackets-2']
         }
 
     class PygmentsPyScriptLexer(Pys, RegexLexer):
@@ -324,6 +330,20 @@ try:
 
         }
 
+        def get_tokens_unprocessed(self, *args, **kwargs) -> Iterator[tuple[int, _TokenType, str]]:
+            brackets_stack = []
+
+            for index, token, value in super().get_tokens_unprocessed(*args, **kwargs):
+                if token is Punctuation and len(value) == 1 and is_bracket(ttype := ord(value)):
+                    if is_left_bracket(ttype):
+                        token = _brackets_tokens[len(brackets_stack) % 3]
+                        brackets_stack.append(ttype)
+                    elif not (brackets_stack and BRACKETS_MAP[brackets_stack.pop()] == ttype):
+                        token = Error
+                    else:
+                        token = _brackets_tokens[len(brackets_stack) % 3]
+                yield index, token, value
+
     class PygmentsPyScriptShellLexer(PygmentsPyScriptLexer):
 
         """
@@ -521,8 +541,8 @@ def pys_highlight(
             type_format = 'comment'
 
         elif is_bracket(ttype):
-            type_format = f'brackets-{len(brackets_stack) % max_bracket_level}'
             if is_left_bracket(ttype):
+                type_format = f'brackets-{len(brackets_stack) % max_bracket_level}'
                 brackets_stack.append(ttype)
             elif not (brackets_stack and BRACKETS_MAP[brackets_stack.pop()] == ttype):
                 type_format = 'invalid'

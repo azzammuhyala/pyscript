@@ -1,7 +1,6 @@
-from pyscript.core.mapping import GET_VALUE_FROM_CONSTANT_KEYWORDS
 from pyscript.core.nodes import (
-    PysNode, PysNumberNode, PysStringNode, PysKeywordNode, PysIdentifierNode, PysDictionaryNode, PysSetNode,
-    PysListNode, PysTupleNode, PysCallNode, PysUnaryOperatorNode, PysBinaryOperatorNode, PysEllipsisNode
+    PysNode, PysConstantNode, PysIdentifierNode, PysDictionaryNode, PysSetNode, PysListNode, PysTupleNode, PysCallNode,
+    PysUnaryOperatorNode, PysBinaryOperatorNode, PysEllipsisNode
 )
 from pyscript.core.position import PysPosition
 from pyscript.core.pysbuiltins import pys_builtins
@@ -35,14 +34,8 @@ def visit(node: PysNode) -> Any:
 def visit_unknown_node(node: PysNode) -> None:
     raise _error(ValueError(f"invalid node: {type(node).__name__}"), node.position)
 
-def visit_NumberNode(node: PysNumberNode) -> int | float | complex:
-    return node.value.value
-
-def visit_StringNode(node: PysStringNode) -> str | bytes:
-    return node.value.value
-
-def visit_KeywordNode(node: PysKeywordNode) -> bool | None:
-    return GET_VALUE_FROM_CONSTANT_KEYWORDS(node.name.value)
+def visit_ConstantNode(node: PysConstantNode) -> Any:
+    return node.value
 
 def visit_IdentifierNode(node: PysIdentifierNode) -> Any:
     name = node.name.value
@@ -65,7 +58,7 @@ def visit_TupleNode(node: PysTupleNode) -> tuple:
 
 def visit_CallNode(node: PysCallNode) -> set:
     target = node.target
-    if isinstance(target, PysIdentifierNode) and target.name.value == 'set' and not node.arguments:
+    if target.__class__ == PysIdentifierNode and target.name.value == 'set' and not node.arguments:
         return set()
     raise _error(ValueError("invalid call node except for 'set()'"), node.position)
 

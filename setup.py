@@ -3,12 +3,12 @@
 
 from setuptools import find_packages, setup
 
-with open('./README.md', 'r', encoding='utf-8') as file:
+with open('README.md', 'r', encoding='utf-8') as file:
     long_description = file.read()
 
 setup(
     name='pyscript-programming-language',
-    version='1.14.0',
+    version='1.15.0.dev1',
     description='PyScript Programming Language',
     long_description=long_description,
     long_description_content_type='text/markdown',

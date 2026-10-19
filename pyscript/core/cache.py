@@ -18,6 +18,9 @@ pys_sys = ModuleType(
     "Python sys module."
 )
 
+def intern_object(object: Any) -> Any:
+    return pys_sys.interns.setdefault((type(object), object), object)
+
 pys_sys.__running_shell__ = False
 pys_sys.__running_breakpoint__ = False
 pys_sys.builtin_module_names = tuple(
@@ -33,6 +36,7 @@ pys_sys.singletons = {}
 pys_sys.argv = ['']
 pys_sys.encoding = 'utf-8'
 pys_sys.flags = DEFAULT
+pys_sys.intern_object = intern_object
 pys_sys.displayhook = print_display
 pys_sys.excepthook = print_traceback
 pys_sys.clearhook = clear_shell
@@ -57,9 +61,6 @@ for name in (
 ):
     if hasattr(sys, name):
         setattr(pys_sys, name, getattr(sys, name))
-
-def intern_object(object: Any) -> Any:
-    return pys_sys.interns.setdefault((type(object), object), object)
 
 # sentinel
 @singleton

@@ -1,5 +1,10 @@
-from py_getch import getch
+from py_getch import init, quit, kbhit, getch, getwch, getach
 
 __all__ = (
+    'init',
+    'quit',
+    'kbhit',
     'getch',
+    'getwch',
+    'getach'
 )

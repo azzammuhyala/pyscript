@@ -5,7 +5,7 @@ from .utils.string import normstr
 
 from io import IOBase
 from types import BuiltinMethodType
-from typing import Iterable, Optional, Union
+from typing import Iterable, Optional
 
 @immutable
 class PysBuffer(Pys):
@@ -17,27 +17,23 @@ class PysFileBuffer(PysBuffer):
 
     def __new__(
         cls,
-        text: Union[str, bytes, bytearray, Iterable, BuiltinMethodType, IOBase, 'PysFileBuffer'],
+        text: 'str | bytes | bytearray | Iterable | BuiltinMethodType | IOBase | PysFileBuffer',
         name: Optional[str | bytes] = None
     ) -> 'PysFileBuffer':
 
         if isinstance(text, PysFileBuffer):
             return text
-
         elif isinstance(text, IOBase):
             name = normstr(getattr(text, 'name', '<io>') if name is None else name)
             text = normstr(text)
-
         else:
             name = '<string>' if name is None else normstr(name)
             text = normstr(text)
 
-        instance = super().__new__(cls)
-
-        setimuattr(instance, 'text', text)
-        setimuattr(instance, 'name', name)
-
-        return instance
+        self = super().__new__(cls)
+        setimuattr(self, 'text', text)
+        setimuattr(self, 'name', name)
+        return self
 
     def __repr__(self) -> str:
         return f'<FileBuffer from {self.name!r}>'

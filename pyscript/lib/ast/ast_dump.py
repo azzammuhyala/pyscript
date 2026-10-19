@@ -86,32 +86,20 @@ class DumpNode:
             add_comma=type_object is tuple and len(object) == 1
         )
 
-        return f'{open_parenthesis}{formatted_parameters}{close_parenthesis}'
+        return open_parenthesis + formatted_parameters + close_parenthesis
 
     def visit(self, node: PysNode) -> str:
-        return getattr(self, 'visit_' + type(node).__name__.removeprefix('Pys'), self._any_representation)(node)
+        return getattr(
+            self,
+            'visit_' + type(node).__name__.removeprefix('Pys'),
+            self._any_representation
+        )(node)
 
-    def visit_NumberNode(self, node: PysNumberNode) -> str:
+    def visit_ConstantNode(self, node: PysConstantNode) -> str:
         return self._node_representation(
             node,
             [
                 ('value', node.value)
-            ]
-        )
-
-    def visit_StringNode(self, node: PysStringNode) -> str:
-        return self._node_representation(
-            node,
-            [
-                ('value', node.value)
-            ]
-        )
-
-    def visit_KeywordNode(self, node: PysKeywordNode) -> str:
-        return self._node_representation(
-            node,
-            [
-                ('name', node.name)
             ]
         )
 
@@ -231,7 +219,7 @@ class DumpNode:
             [
                 ('operand', node.operand),
                 ('target', node.target),
-                ('operand_position', node.operand_position)
+                ('operand_alignment', node.operand_alignment)
             ]
         )
 
@@ -239,7 +227,7 @@ class DumpNode:
         return self._node_representation(
             node,
             [
-                ('body', node.body)
+                ('elements', node.elements)
             ]
         )
 
@@ -266,8 +254,8 @@ class DumpNode:
         return self._node_representation(
             node,
             [
-                ('cases_body', node.cases_body),
-                ('else_body', node.else_body)
+                ('cases', node.cases),
+                ('else_', node.else_)
             ]
         )
 
@@ -276,8 +264,8 @@ class DumpNode:
             node,
             [
                 ('target', node.target),
-                ('case_cases', node.case_cases),
-                ('default_body', node.default_body)
+                ('cases', node.cases),
+                ('default', node.default)
             ]
         )
 
@@ -296,9 +284,9 @@ class DumpNode:
             node,
             [
                 ('body', node.body),
-                ('catch_cases', node.catch_cases),
-                ('else_body', node.else_body),
-                ('finally_body', node.finally_body)
+                ('catches', node.catches),
+                ('else_', node.else_),
+                ('finally_', node.finally_)
             ]
         )
 
@@ -317,7 +305,7 @@ class DumpNode:
             [
                 ('header', node.header),
                 ('body', node.body),
-                ('else_body', node.else_body)
+                ('else_', node.else_)
             ]
         )
 
@@ -327,7 +315,7 @@ class DumpNode:
             [
                 ('condition', node.condition),
                 ('body', node.body),
-                ('else_body', node.else_body)
+                ('else_', node.else_)
             ]
         )
 
@@ -337,7 +325,7 @@ class DumpNode:
             [
                 ('body', node.body),
                 ('condition', node.condition),
-                ('else_body', node.else_body)
+                ('else_', node.else_)
             ]
         )
 
@@ -347,7 +335,7 @@ class DumpNode:
             [
                 ('body', node.body),
                 ('condition', node.condition),
-                ('else_body', node.else_body)
+                ('else_', node.else_)
             ]
         )
 

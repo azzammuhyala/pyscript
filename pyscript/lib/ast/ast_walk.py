@@ -11,7 +11,7 @@ def walk(node: PysNode) -> Generator[PysNode, None, None]:
             yield from walk(key)
             yield from walk(value)
 
-    elif isinstance(node, (PysSetNode, PysListNode, PysTupleNode)):
+    elif isinstance(node, (PysSetNode, PysListNode, PysTupleNode, PysStatementsNode)):
         yield node
 
         for element in node.elements:
@@ -90,12 +90,6 @@ def walk(node: PysNode) -> Generator[PysNode, None, None]:
         yield node
         yield from walk(node.target)
 
-    elif isinstance(node, PysStatementsNode):
-        yield node
-
-        for statement in node.body:
-            yield from walk(statement)
-
     elif isinstance(node, PysAssignmentNode):
         yield node
         yield from walk(node.target)
@@ -107,23 +101,23 @@ def walk(node: PysNode) -> Generator[PysNode, None, None]:
     elif isinstance(node, PysIfNode):
         yield node
 
-        for condition, body in node.cases_body:
+        for condition, body in node.cases:
             yield from walk(condition)
             yield from walk(body)
 
-        if node.else_body:
-            yield from walk(node.else_body)
+        if node.else_:
+            yield from walk(node.else_)
 
     elif isinstance(node, PysSwitchNode):
         yield node
         yield from walk(node.target)
 
-        for condition, body in node.case_cases:
+        for condition, body in node.cases:
             yield from walk(condition)
             yield from walk(body)
 
-        if node.default_body:
-            yield from walk(node.default_body)
+        if node.default:
+            yield from walk(node.default)
 
     elif isinstance(node, PysMatchNode):
         yield node
@@ -142,16 +136,16 @@ def walk(node: PysNode) -> Generator[PysNode, None, None]:
         yield node
         yield from walk(node.body)
 
-        for (targets, parameter), body in node.catch_cases:
+        for (targets, parameter), body in node.catches:
             for target in targets:
                 yield from walk(target)
             yield from walk(body)
 
-        if node.else_body:
-            yield from walk(node.else_body)
+        if node.else_:
+            yield from walk(node.else_)
 
-        if node.finally_body:
-            yield from walk(node.finally_body)
+        if node.finally_:
+            yield from walk(node.finally_)
 
     elif isinstance(node, PysWithNode):
         yield node
@@ -175,24 +169,24 @@ def walk(node: PysNode) -> Generator[PysNode, None, None]:
 
         yield from walk(node.body)
 
-        if node.else_body:
-            yield from walk(node.else_body)
+        if node.else_:
+            yield from walk(node.else_)
 
     elif isinstance(node, PysWhileNode):
         yield node
         yield from walk(node.condition)
         yield from walk(node.body)
 
-        if node.else_body:
-            yield from walk(node.else_body)
+        if node.else_:
+            yield from walk(node.else_)
 
     elif isinstance(node, PysDoWhileNode):
         yield node
         yield from walk(node.body)
         yield from walk(node.condition)
 
-        if node.else_body:
-            yield from walk(node.else_body)
+        if node.else_:
+            yield from walk(node.else_)
 
     elif isinstance(node, PysRepeatNode):
         yield node
@@ -202,8 +196,8 @@ def walk(node: PysNode) -> Generator[PysNode, None, None]:
 
         yield from walk(node.condition)
 
-        if node.else_body:
-            yield from walk(node.else_body)
+        if node.else_:
+            yield from walk(node.else_)
 
     elif isinstance(node, PysClassNode):
         yield node

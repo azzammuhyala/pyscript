@@ -5,14 +5,16 @@ from .nodes import PysNode
 from .position import PysPosition
 from .results import PysRunTimeResult
 from .symtab import PysSymbolTable
+from .utils.debug import custom_print
 from .utils.decorators import immutable
 from .utils.generic import setimuattr, dinit, drepr, dor, dror, dior, dsetitem, ddelitem, ditems
 from .utils.similarity import diff_get_closest
 from .utils.string import join
 
+from builtins import help as pyhelp
 from itertools import islice
 from types import MethodType
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional
 
 class PysObject(Pys):
     __slots__ = ()
@@ -56,6 +58,9 @@ class jsdict(PysObject, dict):
     __getitem__ = __getattribute__ = dict.get
     __setitem__ = __setattr__
     __delitem__ = __delattr__
+
+    def copy(self) -> 'jsdict':
+        return jsdict(self)
 
 class PysCode(PysObject):
 
@@ -121,7 +126,7 @@ class PysFunction(PysObject):
     def __repr__(self) -> str:
         return f'<function {self.__qualname__} at 0x{id(self):016X}>'
 
-    def __get__(self, instance: Any | None, owner: type) -> Union['PysFunction', MethodType]:
+    def __get__(self, instance: Any | None, owner: type) -> 'PysFunction | MethodType':
         return self if instance is None else MethodType(self, instance)
 
     def __call__(self, *args, **kwargs) -> Any:
@@ -255,12 +260,12 @@ class PysPythonFunction(PysFunction):
         # circular import problem solved
         from .handlers import handle_call
 
-        setimuattr(self, '__func__',     func)
-        setimuattr(self, '__name__',     getattr(func, '__name__',     '<function>'))
+        setimuattr(self, '__func__', func)
+        setimuattr(self, '__name__', getattr(func, '__name__', '<function>'))
         setimuattr(self, '__qualname__', getattr(func, '__qualname__', '<function>'))
-        setimuattr(self, '__module__',   getattr(func, '__module__',   'pyscript'))
-        setimuattr(self, '__doc__',      getattr(func, '__doc__',      None))
-        setimuattr(self, '__code__',     PysCode(
+        setimuattr(self, '__module__', getattr(func, '__module__', 'pyscript'))
+        setimuattr(self, '__doc__', getattr(func, '__doc__', None))
+        setimuattr(self, '__code__', PysCode(
             context=None,
             position=None,
             handle_call=handle_call
@@ -287,3 +292,40 @@ class PysBuiltinFunction(PysPythonFunction):
 
     def __repr__(self) -> str:
         return f'<built-in function {self.__qualname__}>'
+
+@immutable
+class PysPrinter(PysObject):
+
+    __slots__ = ('name', 'text')
+
+    def __init__(self, name: str, text: Optional[str] = None) -> None:
+        setimuattr(self, 'name', name)
+        setimuattr(self, 'text', text)
+
+    def __repr__(self) -> str:
+        return f'Type {self.name}() to see the full information text.'
+
+    def __call__(self) -> None:
+        if self.text is not None:
+            custom_print(self.text)
+
+class PysHelper(PysPrinter):
+
+    __slots__ = ()
+
+    def __init__(self) -> None:
+        super().__init__('help')
+
+    def __repr__(self) -> str:
+        return f'Type {self.name}() for interactive help, or {self.name}(object) for help about object.'
+
+    def __call__(self, *args, **kwargs) -> None:
+        if not (args or kwargs):
+            custom_print(
+                "Welcome to the PyScript programming language! "
+                "This is the help utility directly to the Python's help.\n\n"
+                "To get help on a specific object, type 'help(object)'.\n"
+                "To get the list of builtin functions, types, exceptions, and other objects, type 'help(\"builtins\")'."
+            )
+        else:
+            pyhelp(*args, **kwargs)

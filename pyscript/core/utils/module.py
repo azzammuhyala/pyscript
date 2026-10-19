@@ -3,10 +3,13 @@ from .path import getcwd, extension, normpath
 import os
 import sys
 
-def get_module_candidate(path: str, entry: str = '__init__') -> str | None:
-    # circular import problem solved
-    from ..checks import is_python_extension
+# circular import problem solved
+is_python_extension = frozenset([
+    '.cgi', '.fcgi', '.gyp', '.gypi', '.ipy', '.lmi', '.pxd', '.pxi', '.py', '.py3', '.pyc', '.pyd', '.pyde', '.pyi',
+    '.pyo', '.pyp', '.pyproj', '.pyt', '.pyw', '.pyx', '.pyz', '.rpy', '.spec', '.tac', '.wsgi', '.xpy'
+]).__contains__
 
+def get_module_candidate(path: str, entry: str = '__init__') -> str | None:
     if os.path.isfile(path) and not is_python_extension(extension(path)):
         return path
 

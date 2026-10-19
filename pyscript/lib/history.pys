@@ -1,26 +1,28 @@
 from _pyscript import shell
 
 if (shell.ADVANCE_LINE_SHELL_SUPPORT) {
-    import explorer
-
     HISTORY_PATH = shell.HISTORY_PATH
-    MAXIMUM_HISTORY_LINE = shell.MAXIMUM_HISTORY_LINE
+    HISTORY_LIMIT = shell.HISTORY_LIMIT
 
-    func load() => list(shell.history.load_history_strings())
+    func load() => shell.history.get_strings()
     func append(string) shell.history.append_string(string)
-    if (shell.USE_FILE_HISTORY)
+
+    if (shell.USE_FILE_HISTORY) {
+        import explorer
         func clear() {
             shell.history._loaded_strings.clear()
             explorer.clear(HISTORY_PATH)
         }
-    else
+    } else {
         func clear() {
             shell.history._loaded_strings.clear()
             shell.history._storage.clear()
         }
+    }
+
 } else {
     HISTORY_PATH = '<none>'
-    MAXIMUM_HISTORY_LINE = 2048
+    HISTORY_LIMIT = 1024
 
     func load() => []
     func append(string);
@@ -29,7 +31,7 @@ if (shell.ADVANCE_LINE_SHELL_SUPPORT) {
 
 __all__ = (
     'HISTORY_PATH',
-    'MAXIMUM_HISTORY_LINE',
+    'HISTORY_LIMIT',
     'load',
     'append',
     'clear'

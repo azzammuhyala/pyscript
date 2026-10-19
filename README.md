@@ -96,10 +96,11 @@ Familiar? There it is!
 | 2  | `msvcrt`          | **required (library)** |
 | 3  | `pprint`          | **required (library)** |
 | 4  | `shutil`          | **required (library)** |
-| 5  | `stat`            | **required (library)** |
-| 6  | `termios`         | **required (library)** |
-| 7  | `time`            | **required (library)** |
-| 8  | `tty`             | **required (library)** |
+| 5  | `signal`          | **required (library)** |
+| 6  | `stat`            | **required (library)** |
+| 7  | `termios`         | **required (library)** |
+| 8  | `time`            | **required (library)** |
+| 9  | `tty`             | **required (library)** |
 | 1  | `_colorize`       | **optional**           |
 | 2  | `beartype`        | **optional**           |
 | 3  | `prompt_toolkit`  | **optional**           |

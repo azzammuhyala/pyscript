@@ -1,3 +1,4 @@
+# from .pysbuiltins import ce, nce
 from .token import TOKENS
 from .utils.ansi import BOLD, acolor
 from .utils.generic import dfrozen
@@ -48,10 +49,12 @@ GET_BINARY_FUNCTION = {
     TOKENS['EQUAL_AT']: imatmul,
     TOKENS['EQUAL_CIRCUMFLEX']: ixor,
     TOKENS['EQUAL_PIPE']: ior,
+    # TOKENS['EQUAL_TILDE']: ce,
     TOKENS['EQUAL_DOUBLE_STAR']: ipow,
     TOKENS['EQUAL_DOUBLE_SLASH']: ifloordiv,
     TOKENS['EQUAL_DOUBLE_LESS_THAN']: ilshift,
     TOKENS['EQUAL_DOUBLE_GREATER_THAN']: irshift,
+    # TOKENS['EXCLAMATION_TILDE']: nce,
     TOKENS['MINUS_GREATER_THAN']: contains,
     TOKENS['EXCLAMATION_GREATER_THAN']: not_contains,
     TOKENS['LESS_THAN_GREATER_THAN']: ne

@@ -14,13 +14,13 @@ def normstr(obj) -> str:
     elif isinstance(obj, (bytes, bytearray)):
         return normstr(obj.decode(detect_encoding(obj), 'surrogatepass'))
 
+    elif isinstance(obj, Iterable):
+        return ''.join(map(normstr, obj))
+
     elif isinstance(obj, IOBase):
         if not obj.readable():
             raise TypeError("unreadable IO")
         return normstr(obj.read())
-
-    elif isinstance(obj, Iterable):
-        return ''.join(map(normstr, obj))
 
     elif (
         isinstance(obj, BuiltinMethodType) and

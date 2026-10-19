@@ -1,4 +1,3 @@
-from .bases import Pys
 from .buffer import PysFileBuffer
 from .cache import pys_sys
 from .checks import is_blacklist_python_builtin, is_private_attribute
@@ -8,7 +7,7 @@ from .exceptions import PysSignal
 from .handlers import handle_call
 from .mapping import GET_ACOLOR
 from .position import PysPosition
-from .pystypes import PysFunction, PysPythonFunction, PysBuiltinFunction
+from .pystypes import PysFunction, PysPythonFunction, PysBuiltinFunction, PysPrinter, PysHelper
 from .results import PysRunTimeResult
 from .shell import PysClassicLineShell, PysPromptToolkitLineShell, ADVANCE_LINE_SHELL_SUPPORT
 from .symtab import new_module_namespace
@@ -38,7 +37,6 @@ static_wrapper_function = (staticmethod,)
 wrapper_function = (MethodType, PysPythonFunction, classmethod)
 python_function = (BuiltinFunctionType, BuiltinMethodType, FunctionType)
 
-pyhelp = builtins.help
 pyvars = builtins.vars
 pydir = builtins.dir
 
@@ -89,37 +87,6 @@ def _unpack_comprehension_function(context: PysContext, position: PysPosition, f
     handle_call(function, context, position)
     return final
 
-class PysPrinter(Pys):
-
-    def __init__(self, name: str, text: str | Any) -> None:
-        self.name = name
-        self.text = text
-
-    def __repr__(self) -> str:
-        return f'Type {self.name}() to see the full information text.'
-
-    def __call__(self) -> None:
-        custom_print(self.text)
-
-class PysHelper(PysPrinter):
-
-    def __init__(self) -> None:
-        super().__init__('help', None)
-
-    def __repr__(self) -> str:
-        return f'Type {self.name}() for interactive help, or {self.name}(object) for help about object.'
-
-    def __call__(self, *args, **kwargs) -> None:
-        if not (args or kwargs):
-            custom_print(
-                "Welcome to the PyScript programming language! "
-                "This is the help utility directly to the Python's help.\n\n"
-                "To get help on a specific object, type 'help(object)'.\n"
-                "To get the list of builtin functions, types, exceptions, and other objects, type 'help(\"builtins\")'."
-            )
-        else:
-            pyhelp(*args, **kwargs)
-
 try:
     with (
         open(normpath(OTHER_PATH, 'copyright'), encoding=pys_sys.encoding) as copyright, 
@@ -132,9 +99,9 @@ try:
         license = PysPrinter('license', license.read())
 except:
     pys_sys.copyright = ''
-    copyright = PysPrinter('copyright', '')
-    credits = PysPrinter('credits', '')
-    license = PysPrinter('license', '')
+    copyright = PysPrinter('copyright')
+    credits = PysPrinter('credits')
+    license = PysPrinter('license')
 
 help = PysHelper()
 

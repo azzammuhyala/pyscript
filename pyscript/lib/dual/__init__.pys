@@ -1,0 +1,17 @@
+import py_dual
+
+dual = py_dual.dual
+eps = dual(0, 1)
+
+func set_ln(fn)
+    py_dual._ln = fn
+
+func set_epssym(value)
+    py_dual.EPSILON_SYMBOL = bool(value)
+
+__all__ = (
+    'dual',
+    'eps',
+    'set_ln',
+    'set_epssym'
+)

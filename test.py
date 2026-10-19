@@ -3,23 +3,23 @@ import pyscript
 def pyscript_doc():
     import subprocess
 
-    with open('./test.pys', 'r') as file:
-        source = file.read()
+    with open('test.pys', 'r') as file:
+        source = file.read().strip()
 
     subprocess.run(
         args='clip',
         text=True,
-        input=f'<pre>{pyscript.pys_highlight(source.strip())}</pre>',
+        input=f'<pre>{pyscript.pys_highlight(source)}</pre>',
         encoding=pyscript.pys_sys.encoding
     )
 
 def update_snippets():
     import json
 
-    with open('./highlight/vscode/snippets/pyscript.json') as file:
+    with open('highlight/vscode/snippets/pyscript.json') as file:
         data = json.load(file)
 
-    with open('./highlight/acode/src/snippets.js', 'w') as file:
+    with open('highlight/acode/src/snippets.js', 'w') as file:
         content = []
 
         for name, snippet in data.items():

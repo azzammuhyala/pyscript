@@ -65,6 +65,13 @@ try:
                         title = file
                     return ANSI(f'\x1b[7m{title}{" " * max(0, columns - len(title))}\x1b[0m')
 
+                def create_line_prefix(line_number, wrap_count):
+                    width = len(str(self.text.document.line_count))
+                    number = str(line_number + 1) if wrap_count == 0 else ''
+                    is_current = line_number == self.text.document.cursor_position_row
+                    style = 'bg:#ffffff fg:#000000' + (' bold' if is_current else '')
+                    return [(style, f' {number:>{width}} '), ('', ' ')]
+
             else:
                 app_other_keyword.update({
                     'color_depth': ColorDepth.DEPTH_1_BIT
@@ -85,10 +92,16 @@ try:
                         title = file
                     return title + ' ' * max(0, columns - len(title))
 
+                def create_line_prefix(line_number, wrap_count):
+                    width = len(str(self.text.document.line_count))
+                    number = str(line_number + 1) if wrap_count == 0 else ''
+                    return f' {number:>{width}} | '
+
             self.text = TextArea(
                 multiline=True,
                 wrap_lines=on_wrap,
                 input_processors=[TabsProcessor(tabstop=4)],
+                get_line_prefix=create_line_prefix,
                 **text_other_keyword
             )
 
@@ -188,7 +201,7 @@ try:
             )
 
             self.text.text = self.file.text
-            self.text.buffer.on_text_changed += on_change
+            self.text.buffer.on_text_changed.add_handler(on_change)
 
             Application.__init__(
                 self,

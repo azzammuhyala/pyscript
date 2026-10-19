@@ -15,8 +15,8 @@ class PysEditor(Pys):
     @typecheck
     def __init__(self, file: PysFileBuffer, colored: bool = True) -> None:
         self.file = file
-        self.colored = bool(colored)
         self.basename = basename(self.file.name)
+        self.colored = bool(colored)
         self.used = False
         self.modified = False
 
