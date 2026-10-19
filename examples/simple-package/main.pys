@@ -1,4 +1,4 @@
 import mypack
 
-name = "Budi"
+name = "John"
 print(mypack.sayHello(name))

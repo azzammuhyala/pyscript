@@ -268,7 +268,7 @@ class MineSweeper {
         separator = '---+' * w
         columnNumber = '    {} '.format(' '.join(map(func(x) => format(x, '^3'), range(1, w + 1))))
 
-        buffer += '{}Flags\x1b[0m: {} \n{}\n'.format(flagColor, self.bombsCount - len(self.flags), columnNumber)
+        buffer += '{}Flags\x1b[0m: {:,} \n{}\n'.format(flagColor, self.bombsCount - len(self.flags), columnNumber)
 
         for (row of range(h)) {
             buffer += '   +{}\n{:>3}'.format(separator, row + 1)

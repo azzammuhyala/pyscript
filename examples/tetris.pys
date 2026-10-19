@@ -1,0 +1,729 @@
+# My old Tetris project (converted to PyScript language)
+# Only works in PyScript>=1.14.1
+
+from __future__ import dict2jsdict
+
+from os import urandom
+from jsdict import jsdict
+from itertools import product
+from fpstimer import fpstimer
+from ansi import acolor, ahtml
+from random import seed, choice
+from getch import init, quit, kbhit, getach
+
+import sys
+
+TICK_FRAME = 24
+FALL_INTERVAL = 0.5
+SHADOW_LEVEL = 75
+EMPTY_STRING = ' .'
+GRID_STRING = '[]'
+SHADOW_STRING = '//'
+
+SHAPES = [
+    {
+        name: 'S',
+        color: (0, 255, 0),
+        array: [
+            [
+                '     ',
+                '     ',
+                '  XX ',
+                ' XX  ',
+                '     '
+            ],
+            [
+                '     ',
+                '  X  ',
+                '  XX ',
+                '   X ',
+                '     '
+            ]
+        ]
+    },
+    {
+        name: 'Z',
+        color: (255, 0, 0),
+        array: [
+            [
+                '     ',
+                '     ',
+                ' XX  ',
+                '  XX ',
+                '     '
+            ],
+            [
+                '     ',
+                '  X  ',
+                ' XX  ',
+                ' X   ',
+                '     '
+            ]
+        ]
+    },
+    {
+        name: 'I',
+        color: (0, 255, 255),
+        array: [
+            [
+                '  X  ',
+                '  X  ',
+                '  X  ',
+                '  X  ',
+                '     '
+            ],
+            [
+                '     ',
+                'XXXX ',
+                '     ',
+                '     ',
+                '     '
+            ]
+        ]
+    },
+    {
+        name: 'O',
+        color: (255, 255, 0),
+        array: [
+            [
+                '     ',
+                '     ',
+                ' XX  ',
+                ' XX  ',
+                '     '
+            ]
+        ]
+    },
+    {
+        name: 'J',
+        color: (255, 165, 0),
+        array: [
+            [
+                '     ',
+                ' X   ',
+                ' XXX ',
+                '     ',
+                '     '
+            ],
+            [
+                '     ',
+                '  XX ',
+                '  X  ',
+                '  X  ',
+                '     '
+            ],
+            [
+                '     ',
+                '     ',
+                ' XXX ',
+                '   X ',
+                '     '
+            ],
+            [
+                '     ',
+                '  X  ',
+                '  X  ',
+                ' XX  ',
+                '     '
+            ]
+        ]
+    },
+    {
+        name: 'L',
+        color: (0, 0, 255),
+        array: [
+            [
+                '     ',
+                '   X ',
+                ' XXX ',
+                '     ',
+                '     '
+            ],
+            [
+                '     ',
+                '  X  ',
+                '  X  ',
+                '  XX ',
+                '     '
+            ],
+            [
+                '     ',
+                '     ',
+                ' XXX ',
+                ' X   ',
+                '     '
+            ],
+            [
+                '     ',
+                ' XX  ',
+                '  X  ',
+                '  X  ',
+                '     '
+            ]
+        ]
+    },
+    {
+        name: 'T',
+        color: (128, 0, 128),
+        array: [
+            [
+                '     ',
+                '  X  ',
+                ' XXX ',
+                '     ',
+                '     '
+            ],
+            [
+                '     ',
+                '  X  ',
+                '  XX ',
+                '  X  ',
+                '     '
+            ],
+            [
+                '     ',
+                '     ',
+                ' XXX ',
+                '  X  ',
+                '     '
+            ],
+            [
+                '     ',
+                '  X  ',
+                ' XX  ',
+                '  X  ',
+                '     '
+            ]
+        ]
+    }
+]
+
+WALL_KICK_OFFSETS = [
+    (-1, 0),
+    (1, 0),
+    (0, -1),
+    (-2, 0),
+    (2, 0),
+    (0, -2)
+]
+
+for (shape of SHAPES)
+    shape.color = (
+        acolor(shape.color),
+        acolor(map(
+            func(channel) => max(channel - SHADOW_LEVEL, 0),
+            shape.color
+        ))
+    )
+
+class Tetris {
+
+    constructor(width, height) {
+        if (!(
+            width instanceof int &&
+            height instanceof int &&
+            width >= 8 &&
+            height >= 8
+        ))
+            throw Exception("invalid size board of tetris")
+
+        self.width = width
+        self.height = height
+
+        self.reset()
+    }
+
+    func reset(self) {
+        self.fallAcumulator = 0.0
+        self.lockedPosition = {}
+        self.rotationOffsets = {}
+        self.isChangeShape = false
+        self.isLose = false
+        self.currentShape = self.newShape()
+        self.nextShape = self.newShape()
+        self.nextShapePosition = self.convertShapeFormat(self.nextShape)
+        self.score = 0
+        self.rowsCleared = 0
+        self.hotkey = none
+
+        self.createGrid()
+        self.updateShadowPosition()
+    }
+
+    func newShape(self) {
+        seed(urandom(32))
+        return {
+            x: self.width // 2,
+            y: 0,
+            rotation: 0,
+            shape: choice(SHAPES)
+        }
+    }
+
+    func createGrid(self) {
+        b_range = range
+        b_list = list
+        b_comprehension = comprehension
+        l_lockedPosition = self.lockedPosition
+
+        self.grid = b_list(b_comprehension(
+            b_range(self.height),
+            func(r) => b_list(b_comprehension(
+                b_range(self.width),
+                func(c) => l_lockedPosition[(c, r)]
+            ))
+        ))
+    }
+
+    func convertShapeFormat(self, shape=none) {
+        if (shape is none)
+            shape = self.currentShape
+
+        x = shape.x
+        y = shape.y
+        rotation = shape.rotation
+        array = shape.shape.array
+
+        totalRotation = len(array)
+        positions = set()
+
+        b_enumerate = enumerate
+        l_addPosition = positions.add
+
+        for (r, line of b_enumerate(array[rotation % totalRotation], start=-4))
+            for (c, col of b_enumerate(line, start=-2))
+                if (col == 'X')
+                    l_addPosition((x + c, y + r))
+
+        return positions
+    }
+
+    func validSpace(self, shape=none) {
+        if (shape is none)
+            shape = self.currentShape
+
+        x = shape.x
+        y = shape.y
+
+        b_min = min
+        b_max = max
+        b_range = range
+        l_getGrid = self.grid.__getitem__
+
+        acceptedPositions = set(comprehension(
+            product(
+                b_range(b_max(x - 4, 0), b_min(x + 5, self.width)),
+                b_range(b_max(y - 4, 0), b_min(y + 5, self.height))
+            ),
+            func(position) => position,
+            func(c, r) => l_getGrid(r)[c] is none
+        ))
+
+        return all(comprehension(
+            self.convertShapeFormat(shape),
+            func(position) => (
+                0 <= position[0] < self.width &&
+                (position -> acceptedPositions || position[1] < 0)
+            )
+        ))
+    }
+
+    func checkLost(self) => any(comprehension(self.lockedPosition, func(x, y) => y < 0))
+
+    func clearRows(self) {
+        b_range = range
+        l_lockedPosition = self.lockedPosition
+        l_getGrid = self.grid.__getitem__
+
+        clearedRows = list(comprehension(
+            b_range(self.height - 1, -1, -1),
+            func(i) => i,
+            func(i) => none !> l_getGrid(i)
+        ))
+
+        for (i of clearedRows)
+            for (j of b_range(self.width))
+                del l_lockedPosition[(j, i)]
+
+        if (clearedRows) {
+            pop = dict.pop
+
+            for (key of sorted(l_lockedPosition, key=func(position) => position[1], reverse=true)) {
+                x, y = key
+
+                numberClearedBelow = 0
+                for (index of clearedRows)
+                    if (y < index)
+                        numberClearedBelow++
+
+                if (numberClearedBelow)
+                    l_lockedPosition[(x, y + numberClearedBelow)] = pop(l_lockedPosition, key)
+            }
+        }
+
+        return len(clearedRows)
+    }
+
+    func updateShadowPosition(self, clearedRows=0) {
+        shape = jsdict(self.currentShape)
+        while (self.validSpace(shape))
+            shape.y++
+        shape.y += clearedRows - 1
+        self.shadowPositions = self.convertShapeFormat(shape)
+    }
+
+    func wallKick(self) {
+        l_currentShape = self.currentShape
+
+        for (dx, dy of WALL_KICK_OFFSETS) {
+            l_currentShape.x += dx
+            l_currentShape.y += dy
+
+            if (self.validSpace())
+                return true
+
+            l_currentShape.x -= dx
+            l_currentShape.y -= dy
+        }
+
+        return false
+    }
+
+    func fall(self) {
+        if (self.isChangeShape)
+            return
+
+        self.currentShape.y++
+        if (!self.validSpace() && self.currentShape.y > 0) {
+            self.currentShape.y--
+            self.isChangeShape = true
+        }
+    }
+
+    func left(self) {
+        if (self.isChangeShape)
+            return
+
+        self.currentShape.x--
+        if (self.validSpace()) {
+            dict.clear(self.rotationOffsets)
+            self.updateShadowPosition()
+        } else
+            self.currentShape.x++
+
+    }
+
+    func right(self) {
+        if (self.isChangeShape)
+            return
+
+        self.currentShape.x++
+        if (self.validSpace()) {
+            dict.clear(self.rotationOffsets)
+            self.updateShadowPosition()
+        } else
+            self.currentShape.x--
+
+    }
+
+    func down(self) {
+        if (self.isChangeShape)
+            return
+
+        self.currentShape.y++
+        if (!self.validSpace())
+            self.currentShape.y--
+    }
+
+    func rotate(self) {
+        if (self.isChangeShape)
+            return
+
+        l_currentShape = self.currentShape
+
+        totalRotation = len(l_currentShape.shape.array)
+        previousRotation = l_currentShape.rotation
+        trialIncrement = 1
+
+        if (previousRotation !> self.rotationOffsets)
+            self.rotationOffsets[previousRotation] = l_currentShape.x
+
+        while (trialIncrement <= totalRotation) {
+            l_currentShape.rotation = (previousRotation + trialIncrement) % totalRotation
+            l_currentShape.x = self.rotationOffsets[l_currentShape.rotation] ?? self.currentShape.x
+
+            if (self.validSpace())
+                break
+            else {
+                trialIncrement++
+                if (self.wallKick())
+                    break
+            }
+        }
+
+        self.updateShadowPosition()
+    }
+
+    func update(self, dt) {
+        self.createGrid()
+
+        self.fallAcumulator += dt
+        if (self.fallAcumulator >= FALL_INTERVAL) {
+            self.fallAcumulator = 0.0
+            self.fall()
+        }
+
+        switch (self.hotkey) {
+            case 'left':
+                self.left()
+                break
+            case 'right':
+                self.right()
+                break
+            case 'down':
+                self.down()
+                break
+            case 'up':
+            case 'rotate':
+                self.rotate()
+                break
+        }
+        self.hotkey = none
+
+        l_getGrid = self.grid.__getitem__
+        l_currentShapeColor = self.currentShape.shape.color
+
+        for (x, y of (shapePosition := self.convertShapeFormat()))
+            if (y >= 0)
+                l_getGrid(y)[x] = l_currentShapeColor
+
+        self.draw()
+
+        if (self.isChangeShape) {
+            for (position of shapePosition)
+                self.lockedPosition[position] = l_currentShapeColor
+
+            dict.clear(self.rotationOffsets)
+
+            self.isChangeShape = false
+            self.currentShape = self.nextShape
+            self.nextShape = self.newShape()
+            self.nextShapePosition = self.convertShapeFormat(self.nextShape)
+
+            rowsCleared = self.clearRows()
+            self.score += len(shapePosition)
+            if (rowsCleared) {
+                self.score += rowsCleared * self.width
+                self.rowsCleared += rowsCleared
+            }
+
+            self.updateShadowPosition(rowsCleared)
+
+            if (self.checkLost())
+                self.isLose = true
+        }
+    }
+
+    func sendHotkey(self, key)
+        self.hotkey = key
+
+    func draw(self)
+        throw NotImplementedError
+}
+
+class TerminalTetris(Tetris) {
+
+    constructor(width, height) {
+        super(TerminalTetris, self).__init__(width, height)
+        self.isRunning = true
+    }
+
+    func draw(self) {
+        range = range
+        width = self.width
+        currentShapeAnsiColor, currentShapeAnsiShadowColor = self.currentShape.shape.color
+        nextShapeAnsiColor, _ = self.nextShape.shape.color
+
+        s = '</{}\\>\r\n'.format(
+            'TETRIS'.center(width * 2, '=')
+        )
+
+        for (r of range(self.height)) {
+            s += '<!'
+
+            for (c of range(width)) {
+                pixel = self.grid[r][c]
+                if (pixel is not none)
+                    s += pixel[0] + GRID_STRING + '\x1b[0m'
+                elif ((c, r) -> self.shadowPositions)
+                    s += currentShapeAnsiShadowColor + SHADOW_STRING + '\x1b[0m'
+                else
+                    s += EMPTY_STRING
+            }
+
+            s += '!>'
+            if (r <= 10)
+                s += '  '
+            if (4 <= r <= 10)
+                s += '  '
+
+            if (r == 0)
+                s += 'FPS: \x1b[33m{:.0f}\x1b[0m'.format(fpstimer.get_fps())
+            elif (r == 1)
+                s += 'Score: \x1b[32m{:,}\x1b[0m'.format(self.score)
+            elif (r == 2)
+                s += 'Rows Cleared: \x1b[35m{:,}\x1b[0m'.format(self.rowsCleared)
+            elif (r == 3)
+                s += 'Next:'
+            elif (r == 4 || r == 10)
+                s += '<!**********!>'
+            elif (5 <= r <= 9) {
+                s += '<!'
+                offsetX = self.nextShape.x
+                for (c of range(-2 + offsetX, 3 + offsetX)) {
+                    if ((c, r - 9) -> self.nextShapePosition)
+                        s += nextShapeAnsiColor + GRID_STRING + '\x1b[0m'
+                    else
+                        s += EMPTY_STRING
+                }
+                s += '!>'
+            }
+
+            s += '\r\n'
+        }
+
+        s += '<!{}!>\r\n  {}  '.format(
+            '*' * (width * 2),
+            '\\/' * width
+        )
+
+        self.refreshTerminal()
+        sys.stdout.write(s)
+        sys.stdout.flush()
+    }
+
+    func refreshTerminal(self, clean=false) {
+        if (clean)
+            sys.clearhook()
+        sys.stdout.write('\x1b[H')
+        sys.stdout.flush()
+    }
+
+    func waitch(self) {
+        while (!kbhit())
+            fpstimer.tick(TICK_FRAME)
+        return getach()
+    }
+
+    func gamePauseState(self) {
+        self.refreshTerminal(True)
+
+        sys.stdout.write(ahtml("<blue>Game paused.\r\nPRESS [ENTER] TO CONTINUE, [R] TO RESTART, [Q] TO QUIT</blue>"))
+        sys.stdout.flush()
+
+        waiting = true
+
+        while (waiting) {
+            switch (self.waitch()) {
+                case b'\r':
+                    waiting = false
+                    break
+
+                case b'r':
+                case b'R':
+                    self.reset()
+                    waiting = false
+                    break
+
+                case b'q':
+                case b'Q':
+                    self.isRunning = False
+                    waiting = false
+                    break
+            }
+        }
+
+        self.refreshTerminal(True)
+    }
+
+    func gameOverState(self) {
+        self.refreshTerminal(True)
+        self.draw()
+
+        sys.stdout.write(ahtml("\r\n<red>You lose!</red>\r\n<blue>PRESS [ENTER] TO RESTART, [Q] TO QUIT</blue>"))
+        sys.stdout.flush()
+
+        waiting = true
+
+        while (waiting) {
+            switch (self.waitch()) {
+                case b'\r':
+                    self.refreshTerminal(True)
+                    self.reset()
+                    waiting = false
+                    break
+
+                case b'q':
+                case b'Q':
+                    self.isRunning = False
+                    waiting = false
+                    break
+            }
+        }
+    }
+
+    func run(self) {
+        try {
+            init()
+            self.refreshTerminal(true)
+            sys.stdout.write('\x1b[?25l')
+            sys.stdout.flush()
+
+            while (self.isRunning) {
+                dt = fpstimer.tick(TICK_FRAME)
+
+                if (kbhit()) switch (getach()) {
+                    case b'\x1b[D':
+                    case b'\xe0K':
+                        self.sendHotkey('left')
+                        break
+                    case b'\x1b[C':
+                    case b'\xe0M':
+                        self.sendHotkey('right')
+                        break
+                    case b'\x1b[B':
+                    case b'\xe0P':
+                        self.sendHotkey('down')
+                        break
+                    case b'\x1b[A':
+                    case b'\xe0H':
+                        self.sendHotkey('rotate')
+                        break
+                    case b' ':
+                        self.refreshTerminal()
+                        break
+                    case b'p':
+                    case b'P':
+                        self.gamePauseState()
+                        break
+                    case b'q':
+                    case b'Q':
+                        self.isRunning = false
+                        break
+                }
+
+                self.update(dt)
+                if (self.isLose)
+                    self.gameOverState()
+            }
+        }
+        finally {
+            sys.stdout.write('\r\n\x1b[?25h')
+            sys.stdout.flush()
+            quit()
+        }
+    }
+}
+
+if (__name__ == '__main__')
+    TerminalTetris(10, 20).run()

@@ -1,0 +1,9 @@
+from sympy import S, lambdify
+from dual import eps
+
+x = S('x')
+func autodiff(f)
+	print('f(x) =', f, '== f(x + \u03b5) ==>', lambdify(x, f)(eps + x))
+
+print("f(x + \u03b5) = f(x) + f'(x)\u03b5")
+autodiff(-3*x**3 + 2*x**2 - 4*x + 9)
