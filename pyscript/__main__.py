@@ -9,7 +9,7 @@ from .core.highlight import (
     PYGMENTS, HLFMT_HTML, HLFMT_ANSI, HLFMT_BBCODE, pys_highlight, PygmentsPyScriptStyle, PygmentsPyScriptLexer
 )
 from .core.runner import _namespace_to_symbol_table, pys_runner, pys_shell
-from .core.utils.debug import USE_NOTEBOOK
+from .core.utils.debug import USE_NOTEBOOK, custom_print
 from .core.utils.generic import is_environ
 from .core.utils.module import find_module_path, remove_python_path
 from .core.utils.path import getcwd, base, normpath
@@ -357,7 +357,7 @@ def execute(file: PysFileBuffer) -> None:
         if sys.stdout.closed or sys.stderr.closed:
             code = 1
         elif sys.stdin.closed:
-            print("Can't run interactive shell: sys.stdin closed", file=sys.stderr)
+            custom_print("Can't run interactive shell: sys.stdin closed", file=sys.stderr)
             code = 1
         else:
             code = pys_shell(
@@ -382,14 +382,14 @@ if args.file is not None:
     elif args.highlight:
         try:
             if args.highlight in FORMATER_HIGHLIGHT_MAP:
-                print(
+                custom_print(
                     pys_highlight(
                         source=file,
                         formatter=FORMATER_HIGHLIGHT_MAP[args.highlight]
                     )
                 )
             else:
-                print(
+                custom_print(
                     highlight(
                         code=file.text,
                         lexer=PygmentsPyScriptLexer(),

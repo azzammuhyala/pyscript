@@ -4,9 +4,11 @@ from .mapping import TAG_VERSION_MAP
 from .utils.decorators import immutable, inheritable, singleton
 
 from re import match as match_regex
+from types import NotImplementedType
+from typing import Any
 
-__version__ = '1.15.0.dev1'
-__date__ = '19 October 2026, 11:45 UTC+7'
+__version__ = '1.15.0'
+__date__ = '23 October 2026, 21:43 UTC+7'
 __author__ = ('AzzamMuhyala',)
 
 version = pys_sys.version = f'{__version__} ({__date__})'
@@ -71,6 +73,15 @@ class PysVersionInfo(Pys, tuple):
     @property
     def release(self) -> tuple[int, int, int]:
         return self[0:3]
+
+    def __add__(self, other: Any) -> NotImplementedType:
+        return NotImplemented
+
+    def __mul__(self, other: Any) -> NotImplementedType:
+        return NotImplemented
+
+    def __rmul__(self, other: Any) -> NotImplementedType:
+        return NotImplemented
 
     def __lt__(self, other: tuple) -> bool:
         return self.release < other

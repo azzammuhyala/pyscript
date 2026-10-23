@@ -114,7 +114,6 @@ try:
             Comment.Single: HIGHLIGHT_MAP['comment'],
             Error: HIGHLIGHT_MAP['invalid'],
             Generic.Prompt: HIGHLIGHT_MAP['keyword-other'],
-
             Punctuation.Brackets0: HIGHLIGHT_MAP['brackets-0'],
             Punctuation.Brackets1: HIGHLIGHT_MAP['brackets-1'],
             Punctuation.Brackets2: HIGHLIGHT_MAP['brackets-2']

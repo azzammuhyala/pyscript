@@ -151,11 +151,18 @@ try:
             else:
                 font_name = 'monospace'
 
-            self.lexer = PygmentsPyScriptLexer()
-            self.font = Font(family=font_name, size=boundary(self.get_configuration('gui-size-font', 10), 1, 127))
             self.line_job = None
+            self.font = Font(
+                family=font_name,
+                size=boundary(self.get_configuration('gui-size-font', 10), 1, 127)
+            )
             self.scrollbar = Scrollbar(self)
-            self.line_numbers = Canvas(self, width=0, highlightthickness=0, bd=0)
+            self.line_numbers = Canvas(
+                self,
+                width=0,
+                highlightthickness=0,
+                bd=0
+            )
             self.text = Text(
                 self,
                 undo=True,
@@ -217,7 +224,8 @@ try:
             self.wm_protocol('WM_DELETE_WINDOW', on_close)
 
             if PYGMENTS and colored:
-                self.update_job = None
+                self.lexer = PygmentsPyScriptLexer()
+                self.refresh_job = None
 
                 tag_configure = self.text.tag_configure
                 for token, style in PygmentsPyScriptStyle.list_styles():
@@ -226,7 +234,7 @@ try:
                         tag_configure(str(token), foreground=f'#{color}')
 
                 def refresh_highlight():
-                    self.update_job = None
+                    self.refresh_job = None
 
                     index = '1.0'
 
@@ -248,9 +256,9 @@ try:
 
                 def update():
                     self.title(f'PyScript {__version__} - {self.basename}{"*" if self.modified else ""}')
-                    if self.update_job is not None:
-                        self.after_cancel(self.update_job)
-                    self.update_job = self.after(500, refresh_highlight)
+                    if self.refresh_job is not None:
+                        self.after_cancel(self.refresh_job)
+                    self.refresh_job = self.after(500, refresh_highlight)
 
             else:
                 def update():
