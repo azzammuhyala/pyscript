@@ -75,7 +75,7 @@
         <div id="terminal-container"></div>
         <script type="module">
             const PYODIDE_URL = 'https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.mjs';
-            const MAXIMUM_HISTORY_LINE = 2048;
+            const HISTORY_LIMIT = 1024;
 
             function dedent(string) {
                 const lines = string.replace(/\r\n|\r/g, '\n').split('\n');
@@ -126,7 +126,7 @@
             const linesQueue = [];
             const lineBuffer = [];
             const pyscriptGlobals = {
-                MAXIMUM_HISTORY_LINE: MAXIMUM_HISTORY_LINE,
+                HISTORY_LIMIT: HISTORY_LIMIT,
                 terminal: terminal,
                 history: history,
                 inputQueue: inputQueue,
@@ -232,8 +232,8 @@
                     historyCursor = history.length;
                     return;
                 }
-                if (history.length >= MAXIMUM_HISTORY_LINE)
-                    history.splice(0, history.length - MAXIMUM_HISTORY_LINE + 1);
+                if (history.length >= HISTORY_LIMIT)
+                    history.splice(0, history.length - HISTORY_LIMIT + 1);
                 history.push(line);
                 historyCursor = history.length;
             }
@@ -546,7 +546,7 @@
                         setattr(module, function.__name__, function)
                     return decorator
 
-                history.MAXIMUM_HISTORY_LINE = pyscriptGlobals.MAXIMUM_HISTORY_LINE
+                history.HISTORY_LIMIT = pyscriptGlobals.HISTORY_LIMIT
 
                 @set_function(pys_sys)
                 def clearhook():
@@ -554,7 +554,7 @@
 
                 @set_function(history)
                 def load():
-                    return list(reversed(pyscriptGlobals.history))
+                    return list(pyscriptGlobals.history)
 
                 @set_function(history)
                 def append(string):
