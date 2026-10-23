@@ -1,5 +1,5 @@
 # My old Tetris project (converted to PyScript language)
-# Only works in PyScript>=1.14.1
+# Only works in PyScript>=1.15.0.dev1
 
 from __future__ import dict2jsdict
 
