@@ -435,6 +435,16 @@ class Tetris {
             self.currentShape.y--
     }
 
+    func instantDown(self) {
+        if (self.isChangeShape)
+            return
+
+        while (self.validSpace())
+            self.currentShape.y++
+        if (!self.validSpace())
+            self.currentShape.y--
+    }
+
     func rotate(self) {
         if (self.isChangeShape)
             return
@@ -482,6 +492,9 @@ class Tetris {
                 break
             case 'down':
                 self.down()
+                break
+            case 'instantDown':
+                self.instantDown()
                 break
             case 'up':
             case 'rotate':
@@ -576,7 +589,7 @@ class TerminalTetris(Tetris) {
             elif (r == 3)
                 s += 'Next:'
             elif (r == 4 || r == 10)
-                s += '<!**********!>'
+                s += '<!==========!>'
             elif (5 <= r <= 9) {
                 s += '<!'
                 offsetX = self.nextShape.x
@@ -593,7 +606,7 @@ class TerminalTetris(Tetris) {
         }
 
         s += '<!{}!>\r\n  {}  '.format(
-            '*' * (width * 2),
+            '=' * (width * 2),
             '\\/' * width
         )
 
@@ -602,8 +615,8 @@ class TerminalTetris(Tetris) {
         sys.stdout.flush()
     }
 
-    func refreshTerminal(self, clean=false) {
-        if (clean)
+    func refreshTerminal(self, clear=false) {
+        if (clear)
             sys.clearhook()
         sys.stdout.write('\x1b[H')
         sys.stdout.flush()
@@ -616,7 +629,7 @@ class TerminalTetris(Tetris) {
     }
 
     func gamePauseState(self) {
-        self.refreshTerminal(True)
+        self.refreshTerminal(true)
 
         sys.stdout.write(ahtml("<blue>Game paused.\r\nPRESS [ENTER] TO CONTINUE, [R] TO RESTART, [Q] TO QUIT</blue>"))
         sys.stdout.flush()
@@ -637,17 +650,17 @@ class TerminalTetris(Tetris) {
 
                 case b'q':
                 case b'Q':
-                    self.isRunning = False
+                    self.isRunning = false
                     waiting = false
                     break
             }
         }
 
-        self.refreshTerminal(True)
+        self.refreshTerminal(true)
     }
 
     func gameOverState(self) {
-        self.refreshTerminal(True)
+        self.refreshTerminal(true)
         self.draw()
 
         sys.stdout.write(ahtml("\r\n<red>You lose!</red>\r\n<blue>PRESS [ENTER] TO RESTART, [Q] TO QUIT</blue>"))
@@ -658,14 +671,14 @@ class TerminalTetris(Tetris) {
         while (waiting) {
             switch (self.waitch()) {
                 case b'\r':
-                    self.refreshTerminal(True)
+                    self.refreshTerminal(true)
                     self.reset()
                     waiting = false
                     break
 
                 case b'q':
                 case b'Q':
-                    self.isRunning = False
+                    self.isRunning = false
                     waiting = false
                     break
             }
@@ -685,22 +698,33 @@ class TerminalTetris(Tetris) {
                 if (kbhit()) switch (getach()) {
                     case b'\x1b[D':
                     case b'\xe0K':
+                    case b'a':
+                    case b'A':
                         self.sendHotkey('left')
                         break
                     case b'\x1b[C':
                     case b'\xe0M':
+                    case b'd':
+                    case b'D':
                         self.sendHotkey('right')
                         break
                     case b'\x1b[B':
                     case b'\xe0P':
+                    case b's':
+                    case b'S':
                         self.sendHotkey('down')
+                        break
+                    case b'\r':
+                        self.sendHotkey('instantDown')
                         break
                     case b'\x1b[A':
                     case b'\xe0H':
+                    case b'w':
+                    case b'W':
                         self.sendHotkey('rotate')
                         break
                     case b' ':
-                        self.refreshTerminal()
+                        self.refreshTerminal(true)
                         break
                     case b'p':
                     case b'P':

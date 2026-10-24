@@ -38,7 +38,7 @@ func getPiFromLeibnizSeries() {
 
 func getPiFromChudnovskyAlgorithm() {
 
-    #            17
+    #            15
     #          <-----\
     #           \          k
     # 1          \     (-1)  (6k)! (545140134k + 13591409)
@@ -51,7 +51,7 @@ func getPiFromChudnovskyAlgorithm() {
     # WARNING: This function can cause integer overflow
 
     s = 0
-    for (k in range(18)) {
+    for (k in range(16)) {
         s += ((-1)**k * factorial(6*k) * (545140134 * k + 13591409)) / \
              (factorial(3*k) * factorial(k)**3 * 640320**(3*k + 3/2))
     }
