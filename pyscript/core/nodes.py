@@ -398,8 +398,8 @@ class PysStatementsNode(PysNode):
             return elements[0]
 
         new = []
-        constant_nodes = (PysConstantNode, PysDebugNode, PysEllipsisNode)
-        interrupt_nodes = (PysReturnNode, PysThrowNode, PysContinueNode, PysBreakNode)
+        constant_nodes = {PysConstantNode, PysDebugNode, PysEllipsisNode}
+        interrupt_nodes = {PysReturnNode, PysThrowNode, PysContinueNode, PysBreakNode}
 
         for node in elements:
             if node.__class__ in constant_nodes:
@@ -478,9 +478,9 @@ class PysIfNode(PysNode):
         if not new_cases:
             return else_ if else_ else PysStatementsNode(position, [])
 
-        elif len(new_cases) == 1:
+        elif not else_ and len(new_cases) == 1:
             condition, body = new_cases[0]
-            if body.__class__ is PysIfNode and len(body.cases) == 1 and body.else_:
+            if body.__class__ is PysIfNode and len(body.cases) == 1 and not body.else_:
                 inner_condition, inner_body = body.cases[0]
                 new_cases = [(
                     PysBinaryOperatorNode(
@@ -747,8 +747,17 @@ class PysGlobalNode(PysNode):
 
     @typecheck
     def __new__(cls, position: PysPosition, identifiers: list[PysToken]) -> 'PysGlobalNode':
+        registered = set()
+        new = []
+
+        for identifier in identifiers:
+            if identifier.value in registered:
+                continue
+            registered.add(identifier.value)
+            new.append(identifier)
+
         self = super().__new__(cls, position)
-        setimuattr(self, 'identifiers', tuple(set(identifiers)))
+        setimuattr(self, 'identifiers', tuple(new))
         return self
 
     def __repr__(self) -> str:

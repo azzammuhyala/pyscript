@@ -9,7 +9,7 @@ if sys.platform == 'win32':
     OLD_INTERRUPT_HANDLER = None
     INTERRUPT = False
 
-    def _interrupted(signum, frame):
+    def _getch_interrupt_handler(signum, frame):
         global INTERRUPT
         INTERRUPT = True
 
@@ -19,7 +19,7 @@ if sys.platform == 'win32':
             return
 
         INITIALIZED = True
-        OLD_INTERRUPT_HANDLER = signal.signal(signal.SIGINT, _interrupted)
+        OLD_INTERRUPT_HANDLER = signal.signal(signal.SIGINT, _getch_interrupt_handler)
 
     def quit() -> None:
         global INITIALIZED, OLD_INTERRUPT_HANDLER

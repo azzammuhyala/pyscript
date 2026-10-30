@@ -1,5 +1,5 @@
 from inspect import currentframe
-from types import FrameType, MappingProxyType, UnionType
+from types import FrameType, UnionType
 from typing import Any, Optional, Sequence
 
 import os
@@ -21,10 +21,11 @@ dclear = dict.clear
 dget = dict.get
 dkeys = dict.keys
 ditems = dict.items
-dfrozen = MappingProxyType
 
 if sys.version_info >= (3, 15):
     dfrozen = frozendict
+else:
+    from types import MappingProxyType as dfrozen
 
 def get_frame(deep: int = 0) -> FrameType | None:
     deep += 1

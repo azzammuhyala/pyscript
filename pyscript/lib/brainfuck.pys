@@ -30,7 +30,7 @@ class BFInterpreter {
         fin = fin ?? default_input
         fout = fout ?? default_output
 
-        if (!(cells instanceof (int, type(none))))
+        if (cells not instanceof (int, type(none)))
             throw TypeError("BFInterpreter() cells must be integer or none")
         if (!callable(fin))
             throw TypeError("BFInterpreter() fin must be callable")
@@ -94,8 +94,7 @@ class BFInterpreter {
     }
 
     func __next__(self) {
-        result = self.step()
-        if (result is none) {
+        if ((result := self.step()) is none) {
             self.stop()
             throw StopIteration
         }
@@ -111,7 +110,6 @@ class BFInterpreter {
 
         if (pointer >= (length := len(memory)))
             memory.extend([0] * (pointer - length + 1))
-
         else {
             removeIndex = 0
             for (i, cell of enumerate(reversed(memory))) {
@@ -142,13 +140,9 @@ class BFInterpreter {
             return
 
         self._tokenCursor += amount
-        tokenCursor = self._tokenCursor
-
-        if (tokenCursor >= len(tokens := self._tokens) || tokenCursor < 0)
+        if (!(0 <= self._tokenCursor < len(self._tokens)))
             return
-
-        position, character = tokens[tokenCursor]
-        cell = (memory := self.memory)[pointer := self.pointer]
+        position, character = self._tokens[self._tokenCursor]
 
         switch (character) {
 
@@ -160,39 +154,39 @@ class BFInterpreter {
                 break
 
             case '<':
-                if (pointer == 0)
-                    self.pointer = len(memory)
+                if (self.pointer == 0)
+                    self.pointer = len(self.memory)
                 self.pointer -= 1
                 self._garbageCollection()
                 break
 
             case '+':
-                memory[pointer] = (cell + 1) % 256
+                self.memory[self.pointer] = (self.memory[self.pointer] + 1) % 256
                 break
 
             case '-':
-                memory[pointer] = (cell - 1) % 256
+                self.memory[self.pointer] = (self.memory[self.pointer] - 1) % 256
                 break
 
             case ',':
                 new = self.fin()
                 if (!(new instanceof int && 0 <= new <= 255))
                     throw TypeError("BFInterpreter() fin must be returns unsigned 8-bit integer")
-                memory[pointer] = new
+                self.memory[self.pointer] = new
                 break
 
             case '.':
-                self.fout(cell)
+                self.fout(self.memory[self.pointer])
                 break
 
             case '[':
-                if (cell == 0)
-                    self._tokenCursor = self._bracketMap[tokenCursor]
+                if (self.memory[self.pointer] == 0)
+                    self._tokenCursor = self._bracketMap[self._tokenCursor]
                 break
 
             case ']':
-                if (cell != 0)
-                    self._tokenCursor = self._bracketMap[tokenCursor]
+                if (self.memory[self.pointer] != 0)
+                    self._tokenCursor = self._bracketMap[self._tokenCursor]
                 break
 
         }
@@ -203,11 +197,11 @@ class BFInterpreter {
     func stop(self, cleanUp=true) {
         if (!self.running)
             return
-
         self.running = false
-
         if (cleanUp)
-            del self.memory, self.pointer, self._tokenCursor
+            try
+                del self.memory, self.pointer, self._tokenCursor
+            except;
     }
 
 }

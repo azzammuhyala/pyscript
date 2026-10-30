@@ -22,6 +22,9 @@ def get_module_candidate(path: str, entry: str = '__init__') -> str | None:
         return candidate
 
 def find_module_path(filename: str | None, name: str, entry: str = '__init__') -> tuple[str | None, str | None]:
+    if name in ('_pyscript', 'builtins', 'sys'):
+        return None, None
+
     # circular import problem solved
     from ..cache import pys_sys
 

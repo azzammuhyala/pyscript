@@ -37,6 +37,7 @@ static_wrapper_function = (staticmethod,)
 wrapper_function = (MethodType, PysPythonFunction, classmethod)
 python_function = (BuiltinFunctionType, BuiltinMethodType, FunctionType)
 
+pynewobject = object.__new__
 pyvars = builtins.vars
 pydir = builtins.dir
 
@@ -55,34 +56,36 @@ def _magic_method(
     return NotImplemented
 
 def _unpack_comprehension_function(context: PysContext, position: PysPosition, function: Callable) -> Callable:
-    check = function
-    final = function
-    offset = 0
+    check = final = function
+    length = offset = 0
 
-    if isinstance(function, wrapper_function):
-        check = function.__func__
-        offset += 2 if isinstance(function, PysPythonFunction) else 1
-    elif isinstance(function, static_wrapper_function):
-        check = function.__func__
+    b_isinstance = isinstance
 
-    if isinstance(check, PysFunction):
+    if b_isinstance(function, wrapper_function):
+        check = function.__func__
+        offset += 2 if b_isinstance(function, PysPythonFunction) else 1
+    elif b_isinstance(function, static_wrapper_function):
+        check = function.__func__
+    elif b_isinstance(function, type):
+        offset += 1
+        check = function.__new__
+        if check is pynewobject:
+            check = function.__init__
+
+    if b_isinstance(check, PysFunction):
         length = max(check.__code__.parameters_length - offset, 0)
-        if length == 0:
-            def final(item):
-                return function()
-        elif length > 1:
-            def final(item):
-                return function(*item)
-
-    elif isinstance(check, python_function):
+    elif b_isinstance(check, python_function):
         parameters = signature(check).parameters
         length = max(len(parameters) - offset, 0)
-        if length == 0:
-            def final(item):
-                return function()
-        elif length > 1 or any(p.kind == p.VAR_POSITIONAL for p in parameters.values()):
-            def final(item):
-                return function(*item)
+        if length == 1 and any(p.kind == p.VAR_POSITIONAL for p in parameters.values()):
+            length = 2
+
+    if length == 0:
+        def final(item):
+            return function()
+    elif length > 1:
+        def final(item):
+            return function(*item)
 
     handle_call(function, context, position)
     return final
@@ -116,8 +119,7 @@ def require(context, position, name):
     name: A name or path of the module to be imported.
     """
 
-    name, *other_components = normstr(name).split('>')
-
+    name, *components = normstr(name).split('>')
     filename = context.file.name
     path, module_path = find_module_path(filename, name)
 
@@ -189,9 +191,8 @@ def require(context, position, name):
             finally:
                 loading_modules.discard(module_path)
 
-    for component in other_components:
+    for component in components:
         module = getattr(module, component)
-
     return module
 
 @PysBuiltinFunction
@@ -386,7 +387,7 @@ def dir(context, position, *args):
 def exec(context, position, source, globals=None):
 
     """
-    exec(source: str | bytes, globals: Optional[dict]) -> None
+    exec(source: str | bytes | bytearray | Iterable | IOBase, globals: Optional[dict] = None) -> None
 
     Executes PyScript code statements from the given source.
 
@@ -416,7 +417,7 @@ def exec(context, position, source, globals=None):
 def eval(context, position, source, globals=None):
 
     """
-    eval(source: str | bytes, globals: Optional[dict]) -> None
+    eval(source: str | bytes | bytearray | Iterable | IOBase, globals: Optional[dict] = None) -> None
 
     Executes a PyScript code expression from the given source.
 

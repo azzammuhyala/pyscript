@@ -93,22 +93,25 @@ Familiar? There it is!
 | 20 | `typing`          | **required**           |
 | 21 | `unicodedata`     | **required**           |
 | 1  | `ast`             | **required (library)** |
-| 2  | `msvcrt`          | **required (library)** |
-| 3  | `pprint`          | **required (library)** |
-| 4  | `shutil`          | **required (library)** |
-| 5  | `signal`          | **required (library)** |
-| 6  | `stat`            | **required (library)** |
-| 7  | `termios`         | **required (library)** |
-| 8  | `time`            | **required (library)** |
-| 9  | `tty`             | **required (library)** |
+| 2  | `math`            | **required (library)** |
+| 3  | `msvcrt`          | **required (library)** |
+| 4  | `pprint`          | **required (library)** |
+| 5  | `shutil`          | **required (library)** |
+| 6  | `signal`          | **required (library)** |
+| 7  | `stat`            | **required (library)** |
+| 8  | `termios`         | **required (library)** |
+| 9  | `time`            | **required (library)** |
+| 10 | `tty`             | **required (library)** |
 | 1  | `_colorize`       | **optional**           |
 | 2  | `beartype`        | **optional**           |
-| 3  | `prompt_toolkit`  | **optional**           |
-| 4  | `pygments`        | **optional**           |
-| 5  | `readline`        | **optional**           |
-| 6  | `threading`       | **optional**           |
-| 7  | `tkinter`         | **optional**           |
-| 8  | `IPython`         | **optional**           |
+| 3  | `ctypes`          | **optional**           |
+| 4  | `numpy`           | **optional**           |
+| 5  | `prompt_toolkit`  | **optional**           |
+| 6  | `pygments`        | **optional**           |
+| 7  | `readline`        | **optional**           |
+| 8  | `threading`       | **optional**           |
+| 9  | `tkinter`         | **optional**           |
+| 10 | `IPython`         | **optional**           |
 
 ### Status Explanation
 - **required**: Required by PyScript entirely.
@@ -116,9 +119,9 @@ Familiar? There it is!
 - **optional**: Not required, but if it is present, some features can be used without issue.
 
 ## Highlights 🎨
-- [PyScript plugin for Acode (Ace Editor)](https://github.com/azzammuhyala/pyscript/releases/download/v1.13.3/plugin-1.0.2.zip)
+- [PyScript plugin for Acode](https://github.com/azzammuhyala/pyscript/tree/main/highlight/acode)
 - [PyScript nano for Linux](https://github.com/azzammuhyala/pyscript/tree/main/highlight/nano)
-- [PyScript extension for VSCode](https://marketplace.visualstudio.com/items?itemName=azzammuhyala.pyslang)
+- [PyScript extension for VSCode](https://github.com/azzammuhyala/pyscript/tree/main/highlight/vscode)
 
 ## Behind It 🕰️
 This language created from based up on a

@@ -34,10 +34,11 @@ def typecheck(func, *args, **kwargs):
 if not is_environ(ENV_PYSCRIPT_NO_TYPECHECK):
     try:
         from beartype import beartype as typecheck
-        TYPECHECK_STACK += 1
-        BEARTYPE = True
     except:
         pass
+    else:
+        TYPECHECK_STACK += 1
+        BEARTYPE = True
 
 def immutable(cls):
     cls.__setattr__ = _PysUtilities.readonly_attribute

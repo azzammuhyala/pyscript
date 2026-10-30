@@ -153,13 +153,14 @@ def pys_runner(
         pys_sys.flags = context.flags
 
         try:
-            del file, flags, symbol_table, context_parent, context_parent_entry_position, \
-                lexer, tokens, error, parser, analyzer
+            del (
+                file, flags, symbol_table, context_parent, context_parent_entry_position, lexer, tokens, error, parser,
+                analyzer
+            )
         except:
             pass
 
         visitor_result = get_visitor(node.__class__)(node, context)
-
         if visitor_result.error:
             return result.failure(visitor_result.error)
 

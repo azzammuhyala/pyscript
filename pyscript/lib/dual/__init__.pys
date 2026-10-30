@@ -3,6 +3,10 @@ import py_dual
 dual = py_dual.dual
 eps = dual(0, 1)
 
+func get_consthash() => py_dual.HASH_DUAL
+func get_ln() => py_dual._ln
+func get_epssym() => py_dual.EPSILON_SYMBOL
+
 func set_ln(fn)
     py_dual._ln = fn
 
@@ -11,7 +15,5 @@ func set_epssym(value)
 
 __all__ = (
     'dual',
-    'eps',
-    'set_ln',
-    'set_epssym'
+    'eps'
 )

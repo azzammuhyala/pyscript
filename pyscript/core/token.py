@@ -25,6 +25,7 @@ TOKENS = dfrozen({
     'TYPEOF': 0x08,
     'INSTANCEOF': 0x09,
     'NEWLINE': ord('\n'),
+    'NOT_INSTANCEOF': 0x0b,
     'EXCLAMATION': ord('!'),
     'COMMENT': ord('#'),
     'PERCENT': ord('%'),

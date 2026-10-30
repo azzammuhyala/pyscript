@@ -3,17 +3,29 @@
 
 from pyscript.core.pysbuiltins import ce, nce
 from pyscript.core.utils.decorators import immutable
-from pyscript.core.utils.generic import setimuattr
+from pyscript.core.utils.generic import setimuattr, is_environ
 
-from typing import Any
+from typing import Any, Optional, SupportsIndex
 
 import cmath
+import math
+
+np = None
+if not is_environ('DUAL_DONT_USE_NUMPY'):
+    try:
+        import numpy as np
+    except:
+        pass
 
 EPSILON_SYMBOL = True
+HASH_DUAL = 10**6 + 33
 
 def _ln(x) -> float | complex:
     result = cmath.log(x)
-    return result.real if isinstance(result, complex) and result.imag == 0 else result
+    return result.real if result.imag == 0 else result
+
+def _parts(x: 'Any | dual') -> tuple[Any, Any]:
+    return (x.real, x.epsilon) if isinstance(x, dual) else (x, 0)
 
 @immutable
 class dual:
@@ -31,38 +43,14 @@ class dual:
                 epsilon = 0
             case _:
                 real, epsilon = args
+                a, b = _parts(real)
+                c, _ = _parts(epsilon)
+                real, epsilon = a, b + c
 
         self = super().__new__(cls)
         setimuattr(self, 'real', real)
         setimuattr(self, 'epsilon', epsilon)
         return self
-
-    def __repr__(self) -> str:
-        return f'{type(self).__name__}({self.real!r}, {self.epsilon!r})'
-
-    def __str__(self) -> str:
-        string = ''
-        parenthesis = False
-        inner_parenthesis = False
-
-        if self.real != 0:
-            parenthesis = True
-            try:
-                sign = '+' if self.epsilon >= 0 else '-'
-            except Exception:
-                inner_parenthesis = True
-                string += f'({self.real!r})+'
-            else:
-                string += repr(self.real)
-                string += sign
-
-        if inner_parenthesis:
-            string += f'({self.epsilon!r})'
-        elif self.epsilon != 1 and self.epsilon != -1:
-            string += repr(abs(self.epsilon))
-
-        string += '\u03b5' if EPSILON_SYMBOL else 'eps'
-        return f'({string})' if parenthesis else string
 
     def __add__(self, other: 'dual | Any') -> 'dual':
         return dual(
@@ -164,15 +152,20 @@ class dual:
         )
 
     def __pow__(self, other: 'dual | Any') -> 'dual':
-        return dual(
-            real := self.real ** other.real,
-            self.epsilon * other.real * self.real**(other.real - 1) + other.epsilon * real * _ln(self.real)
-        ) if isinstance(other, dual) else dual(
-            self.real**other,
-            self.epsilon * other * self.real**(other - 1)
-        )
+        if isinstance(other, dual):
+            c, d = other.as_tuple()
+            if c == 0 and d == 0:
+                return dual(1, 0)
+            a, b = self.as_tuple()
+            real = a ** c
+            return dual(
+                real,
+                (0 if b == 0 or c == 0 else (b * c * a**(c - 1))) +
+                (0 if d == 0 else d * real * _ln(a))
+            )
+        return dual(1, 0) if other == 0 else dual(self.real**other, self.epsilon * other * self.real**(other - 1))
 
-    def  __rpow__(self, other: 'dual | Any') -> 'dual':
+    def __rpow__(self, other: 'dual | Any') -> 'dual':
         return other**self if isinstance(other, dual) else dual(
             real := other ** self.real,
             self.epsilon * real * _ln(other)
@@ -189,10 +182,10 @@ class dual:
 
     def __ne__(self, other: 'dual | Any') -> bool | Any:
         return (
-            self.real != other.real and
+            self.real != other.real or
             self.epsilon != other.epsilon
         ) if isinstance(other, dual) else (
-            self.real != other and
+            self.real != other or
             self.epsilon != 0
         )
 
@@ -207,12 +200,18 @@ class dual:
 
     def __nce__(self, other: 'dual | Any', **kwargs) -> bool | Any:
         return (
-            nce(self.real, other.real, **kwargs) and
+            nce(self.real, other.real, **kwargs) or
             nce(self.epsilon, other.epsilon, **kwargs)
         ) if isinstance(other, dual) else (
-            nce(self.real, other, **kwargs) and
+            nce(self.real, other, **kwargs) or
             nce(self.epsilon, 0, **kwargs)
         )
+
+    def __hash__(self) -> int:
+        return hash(self.real) + hash(self.epsilon) * HASH_DUAL
+
+    def __reduce__(self) -> tuple[type['dual'], tuple[Any, Any]]:
+        return type(self), self.as_tuple()
 
     def __neg__(self) -> 'dual':
         return dual(-self.real, -self.epsilon)
@@ -221,7 +220,7 @@ class dual:
         return dual(+self.real, +self.epsilon)
 
     def __bool__(self) -> bool:
-        return bool(self.real != 0 and self.epsilon != 0)
+        return bool(self.real != 0 or self.epsilon != 0)
 
     def __int__(self) -> int:
         return int(self.real)
@@ -229,18 +228,64 @@ class dual:
     def __float__(self) -> float:
         return float(self.real)
 
-    def __hash__(self) -> int:
-        return hash((type(self), self.real, self.epsilon))
+    def __floor__(self) -> 'dual':
+        return dual(math.floor(self.real), 0)
 
-    def __round__(self, ndigits=None) -> 'dual':
+    def __ceil__(self) -> 'dual':
+        return dual(math.ceil(self.real), 0)
+
+    def __trunc__(self) -> 'dual':
+        return dual(math.trunc(self.real), 0)
+
+    def __round__(self, ndigits: Optional[SupportsIndex] = None) -> 'dual':
         return dual(round(self.real, ndigits), 0)
 
     def __abs__(self) -> 'dual':
-        return dual(abs(self.real), 0)
+        return dual(abs(self.real), self.epsilon if self.real >= 0 else -self.epsilon)
+
+    def __repr__(self) -> str:
+        return f'{type(self).__name__}({self.real!r}, {self.epsilon!r})'
+
+    def __str__(self) -> str:
+        return format(self, '!r')
+
+    def __format__(self, format_spec: str = '') -> str:
+        is_repr = format_spec == '!r'
+        is_formated = not is_repr and format_spec != ''
+
+        string = ''
+        parenthesis = False
+        inner_parenthesis = False
+
+        if is_formated or self.real != 0:
+            parenthesis = True
+            real = repr(self.real) if is_repr else format(self.real, format_spec)
+            try:
+                sign = ' + ' if self.epsilon >= 0 else ' - '
+            except Exception:
+                inner_parenthesis = True
+                string += f'({real}) + '
+            else:
+                string += real + sign
+
+        if inner_parenthesis:
+            string += f'({repr(self.epsilon) if is_repr else format(self.epsilon, format_spec)})'
+        elif is_formated or self.epsilon not in (-1, 1):
+            string += repr(abs(self.epsilon)) if is_repr else format(abs(self.epsilon), format_spec)
+
+        string += '\u03b5' if EPSILON_SYMBOL else 'eps'
+        return f'({string})' if parenthesis else string
+
+    if np is not None:
+        def __array__(self, *args, **kwargs):
+            return np.array(self.as_lmatrix(), *args, **kwargs)
 
     def as_tuple(self) -> tuple[Any, Any]:
         return self.real, self.epsilon
 
+    def as_lmatrix(self, n: int = 2) -> list[list[Any]]:
+        return [[self.real if i == j else self.epsilon if (i, j) == (0, 1) else 0 for j in range(n)] for i in range(n)]
+
     @classmethod
-    def from_number(cls, number) -> 'dual':
+    def from_number(cls, number: Any) -> 'dual':
         return cls(0, number)

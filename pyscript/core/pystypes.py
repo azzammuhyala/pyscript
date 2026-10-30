@@ -203,7 +203,7 @@ class PysFunction(PysObject):
                     PysTraceback(
                         TypeError(
                             f"{self.__qualname__}() missing {total_missing} required positional argument"
-                            f"{'' if total_missing == 1 else 's'}: {join(missing_arguments, conjunction='and')}"
+                            f"{'' if total_missing == 1 else 's'}: {join(missing_arguments)}"
                         ),
                         context,
                         position

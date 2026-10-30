@@ -38,7 +38,9 @@ def normstr(obj) -> str:
 
 def join(sequence: Sequence[str], conjunction: str = 'and') -> str:
     length = len(sequence)
-    if length == 1:
+    if length == 0:
+        return ''
+    elif length == 1:
         return sequence[0]
     elif length == 2:
         return f'{sequence[0]} {conjunction} {sequence[1]}'

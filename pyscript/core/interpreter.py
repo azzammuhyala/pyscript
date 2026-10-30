@@ -582,11 +582,8 @@ def visit_SwitchNode(node: PysSwitchNode, context: PysContext) -> PysRunTimeResu
 
     if (fall_through or no_match_found) and (ndefault := node.default):
         register(get_visitor(ndefault.__class__)(ndefault, context))
-        if should_return():
-            if result.should_break:
-                result.should_break = False
-            else:
-                return result
+        if should_return() and not result.should_break:
+            return result
 
     return result.success(None)
 
@@ -902,10 +899,7 @@ def visit_ForNode(node: PysForNode, context: PysContext) -> PysRunTimeResult:
         if should_return():
             return result
 
-    if result.should_break:
-        result.should_break = False
-
-    elif nelse := node.else_:
+    if not result.should_break and (nelse := node.else_):
         register(get_visitor(nelse.__class__)(nelse, context))
         if should_return():
             return result
@@ -945,10 +939,7 @@ def visit_WhileNode(node: PysWhileNode, context: PysContext) -> PysRunTimeResult
             else:
                 return result
 
-    if result.should_break:
-        result.should_break = False
-
-    elif nelse := node.else_:
+    if not result.should_break and (nelse := node.else_):
         register(get_visitor(nelse.__class__)(nelse, context))
         if should_return():
             return result
@@ -988,10 +979,7 @@ def visit_DoWhileNode(node: PysDoWhileNode, context: PysContext) -> PysRunTimeRe
         if should_return():
             return result
 
-    if result.should_break:
-        result.should_break = False
-
-    elif nelse := node.else_:
+    if not result.should_break and (nelse := node.else_):
         register(get_visitor(nelse.__class__)(nelse, context))
         if should_return():
             return result
@@ -1033,10 +1021,7 @@ def visit_RepeatNode(node: PysRepeatNode, context: PysContext) -> PysRunTimeResu
             if should_return():
                 return result
 
-        if result.should_break:
-            result.should_break = False
-
-        elif nelse := node.else_:
+        if not result.should_break and (nelse := node.else_):
             register(get_visitor(nelse.__class__)(nelse, context))
             if should_return():
                 return result

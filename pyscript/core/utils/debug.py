@@ -40,13 +40,13 @@ def import_readline() -> Literal[False]:
 USE_NOTEBOOK = False
 
 try:
-    from IPython import get_ipython
+    from IPython import get_ipython  # type: ignore
     if type(get_ipython()).__name__ in (
         'ZMQInteractiveShell',     # Jupyter Notebook / Lab
         'Shell',                   # Google Colab
         'TerminalInteractiveShell' # IPython Terminal
     ):
-        from IPython.display import clear_output
+        from IPython.display import clear_output  # type: ignore
         def clear_shell() -> None:
             clear_output()
         USE_NOTEBOOK = True

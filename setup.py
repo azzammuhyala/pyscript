@@ -1,14 +1,14 @@
 # WARNING: This file is deprecated and has been replaced by pyproject.toml.
 # Please use pyproject.toml for package configuration instead.
 
-from setuptools import find_packages, setup
+from setuptools import find_packages, setup  # type: ignore
 
 with open('README.md', 'r', encoding='utf-8') as file:
     long_description = file.read()
 
 setup(
     name='pyscript-programming-language',
-    version='1.15.0',
+    version='1.15.1',
     description='PyScript Programming Language',
     long_description=long_description,
     long_description_content_type='text/markdown',

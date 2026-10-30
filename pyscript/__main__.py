@@ -13,6 +13,7 @@ from .core.utils.debug import USE_NOTEBOOK, custom_print
 from .core.utils.generic import is_environ
 from .core.utils.module import find_module_path, remove_python_path
 from .core.utils.path import getcwd, base, normpath
+from .core.utils.string import join
 from .core.version import __version__
 
 if PYGMENTS:
@@ -41,7 +42,7 @@ if sys.version_info >= (3, 13):
         from _colorize import can_colorize
         COLORIZE = can_colorize()
     except:
-        # respect for NO_COLOR, see more here: https://no-color.org
+        # rule NO_COLOR, see more here: https://no-color.org
         COLORIZE = not is_environ('NO_COLOR')
 else:
     COLORIZE = True
@@ -354,10 +355,11 @@ def execute(file: PysFileBuffer) -> None:
     code, _ = result.end_process()
 
     if inspect:
-        if sys.stdout.closed or sys.stderr.closed:
+        if sys.stderr.closed:
             code = 1
-        elif sys.stdin.closed:
-            custom_print("Can't run interactive shell: sys.stdin closed", file=sys.stderr)
+        elif sys.stdout.closed or sys.stdin.closed:
+            io_closed = join([f'sys.{std}' for std in ('stdout', 'stdin') if getattr(sys, std).closed])
+            custom_print(f"Cannot run interactive shell: {io_closed} closed", file=sys.stderr)
             code = 1
         else:
             code = pys_shell(

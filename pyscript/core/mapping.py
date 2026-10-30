@@ -9,16 +9,18 @@ from operator import (
     neg, inv
 )
 
-contains     = lambda a, b : a in b
-not_contains = lambda a, b : a not in b
-and_op       = lambda a, b : a and b
-or_op        = lambda a, b : a or b
-typeof       = lambda a : type(a).__name__
+contains       = lambda a, b : a in b
+not_contains   = lambda a, b : a not in b
+and_op         = lambda a, b : a and b
+or_op          = lambda a, b : a or b
+not_isinstance = lambda a, b : not isinstance(a, b)
+typeof         = lambda a : type(a).__name__
 
 GET_BINARY_FUNCTION = {
     TOKENS['IS']: is_,
     TOKENS['IS_NOT']: is_not,
     TOKENS['INSTANCEOF']: isinstance,
+    TOKENS['NOT_INSTANCEOF']: not_isinstance,
     TOKENS['PERCENT']: mod,
     TOKENS['AMPERSAND']: and_,
     TOKENS['STAR']: mul,
@@ -150,6 +152,7 @@ SYMBOLS_TOKEN_MAP = dfrozen({
     TOKENS['IS_NOT']: 'is not',
     TOKENS['TYPEOF']: 'typeof',
     TOKENS['INSTANCEOF']: 'instanceof',
+    TOKENS['NOT_INSTANCEOF']: 'not instanceof',
     TOKENS['NEWLINE']: '\n',
     TOKENS['EXCLAMATION']: '!',
     TOKENS['COMMENT']: '#',

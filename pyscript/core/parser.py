@@ -401,7 +401,22 @@ class PysParser(Pys):
         )
 
     def instanceof(self) -> PysParserResult:
-        return self.binary_operator(self.bitwise, (TOKENS['KEYWORD'], 'instanceof'), instanceof=True)
+        result = PysParserResult()
+
+        node = result.try_register(self.binary_operator(
+            self.bitwise,
+            (TOKENS['KEYWORD'], 'instanceof'),
+            (TOKENS['KEYWORD'], 'not'),
+            instanceof=True
+        ))
+
+        if result.error:
+            return result
+        elif node:
+            return result.success(node)
+
+        self.reverse(result.to_reverse_count)
+        return self.bitwise()
 
     def bitwise(self) -> PysParserResult:
         return self.binary_operator(
@@ -2325,15 +2340,12 @@ class PysParser(Pys):
             if result.error:
                 return result
 
-            if body.__class__ == PysStatementsNode:
-                setimuattr(
-                    body, 'position',
-                    PysPosition(
-                        self.current_token.position.file,
-                        left_bracket_token.position.start,
-                        end
-                    )
-                )
+            if body.__class__ is PysStatementsNode:
+                setimuattr(body, 'position', PysPosition(
+                    self.current_token.position.file,
+                    left_bracket_token.position.start,
+                    end
+                ))
 
             return result.success(body)
 
@@ -2350,10 +2362,7 @@ class PysParser(Pys):
 
         body = result.register(self.statement())
         if result.error:
-            return result.failure(
-                self.new_error("expected statement, expression, '{', or ';'"),
-                fatal=False
-            )
+            return result.failure(self.new_error("expected statement, expression, '{', or ';'"), fatal=False)
 
         return result.success(body)
 
@@ -2393,7 +2402,7 @@ class PysParser(Pys):
                 self.skip_expression(result)
 
                 if not self.current_token.match(TOKENS['KEYWORD'], 'in'):
-                    return result.failure(self.new_error("expected 'in'"))
+                    return result.failure(self.new_error("expected 'in' or 'instanceof'"))
 
                 operations[-1] = PysToken(
                     TOKENS['EXCLAMATION_GREATER_THAN'],
@@ -2483,11 +2492,28 @@ class PysParser(Pys):
                     TOKENS['DOUBLE_AMPERSAND' if token.value == 'and' else 'DOUBLE_PIPE'],
                     token.position
                 )
+
             elif instanceof:
-                operand = PysToken(
-                    TOKENS['INSTANCEOF'],
-                    token.position
-                )
+
+                if token.match(TOKENS['KEYWORD'], 'not'):
+                    result.register_advancement()
+                    self.advance()
+                    self.skip_expression(result)
+
+                    if not self.current_token.match(TOKENS['KEYWORD'], 'instanceof'):
+                        return result.failure(self.new_error("expected 'instanceof'"), fatal=False)
+
+                    operand = PysToken(
+                        TOKENS['NOT_INSTANCEOF'],
+                        token.position
+                    )
+
+                else:
+                    operand = PysToken(
+                        TOKENS['INSTANCEOF'],
+                        token.position
+                    )
+
             else:
                 operand = token
 

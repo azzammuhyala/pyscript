@@ -258,7 +258,7 @@ try:
                     self.title(f'PyScript {__version__} - {self.basename}{"*" if self.modified else ""}')
                     if self.refresh_job is not None:
                         self.after_cancel(self.refresh_job)
-                    self.refresh_job = self.after(500, refresh_highlight)
+                    self.refresh_job = self.after(1000, refresh_highlight)
 
             else:
                 def update():
