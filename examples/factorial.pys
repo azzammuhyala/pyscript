@@ -5,7 +5,6 @@ func factorial(x) {
     }
 
     result = x
-
     for (i = x - 1; i > 1; i--) {
         result *= i
     }

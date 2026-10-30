@@ -3,7 +3,7 @@ import cv2                    # pip install opencv-python
 from ultralytics import YOLO  # pip install ultralytics
 
 VIDEO_SOURCE = 0
-MODEL_WEIGHTS = 'yolo11n.pt' # 'yolo11l.pt'
+MODEL_WEIGHTS = 'yolo11n.pt' # 'yolo11l.pt' or 'yolo11n.pt'
 CONFIDENCE_THRESHOLD = 0.25
 
 print('Opening Video...')
@@ -31,7 +31,7 @@ while (true) {
     ))
         cv2.imshow('Object Detection', r.plot())
 
-    if (cv2.waitKey(1) & 0xFF == ord('q'))
+    if (cv2.waitKey(16) & 0xFF == ord('q'))
         break
 }
 
