@@ -9,6 +9,7 @@ repo_url: https://github.com/azzammuhyala/pyscript-programming-language
 theme:
   logo: https://github.com/azzammuhyala/pyscript/blob/main/PyScript.png?raw=true
   name: material
+  color_mode: auto
   language: en
 
   features:
@@ -71,3 +72,6 @@ nav:
 
   - Examples:
       - Overview: examples/index.md
+
+extra_css:
+  - style.css

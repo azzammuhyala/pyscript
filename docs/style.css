@@ -1,0 +1,28 @@
+.pys-code {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.pys-code pre {
+    margin: 0;
+    white-space: pre;
+    width: max-content;
+    min-width: 100%;
+}
+
+.c-default {color: #D4D4D4;}
+.c-keyword {color: #C586C0;}
+.c-keyword-constant {color: #307CD6;}
+.c-keyword-other {color: #1F52B3;}
+.c-identifier {color: #8CDCFE;}
+.c-identifier-constant {color: #2EA3FF;}
+.c-identifier-function {color: #DCDCAA;}
+.c-identifier-type {color: #4EC9B0;}
+.c-number {color: #B5CEA8;}
+.c-string {color: #CE9178;}
+.c-escape {color: #D7BA71;}
+.c-brackets-0 {color: #FFD705;}
+.c-brackets-1 {color: #D45DBA;}
+.c-brackets-2 {color: #1A9FFF;}
+.c-comment {color: #549952;}
+.c-invalid {color: #B51819;}

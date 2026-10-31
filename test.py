@@ -2,6 +2,14 @@ import pyscript
 
 def pyscript_doc():
     import subprocess
+    import html
+
+    HIGHLIGHT_MAP = pyscript.core.mapping.HIGHLIGHT_MAP
+    formatter = pyscript.core.highlight.PysHighlightFormatter(
+        lambda position, content: pyscript.core.utils.string.normstr(html.escape(content)).replace('\n', '<br>'),
+        lambda position, type: f'<span class="c-{type if type in HIGHLIGHT_MAP else "default"}">',
+        lambda position, type: '</span>',
+    )
 
     with open('test.pys', 'r') as file:
         source = file.read().strip()
@@ -9,7 +17,7 @@ def pyscript_doc():
     subprocess.run(
         args='clip',
         text=True,
-        input=f'<pre>{pyscript.pys_highlight(source)}</pre>',
+        input=f'<div class="pys-code"><pre>{pyscript.pys_highlight(source, formatter)}</pre></div>',
         encoding=pyscript.pys_sys.encoding
     )
 
@@ -33,3 +41,5 @@ def update_snippets():
         content = '\n\n'.join(content) + '\n'
         content = content.replace('\t', '\\t').replace('$', '\\$')
         file.write(f'export const snippets = `{content}`;')
+
+pyscript_doc()
