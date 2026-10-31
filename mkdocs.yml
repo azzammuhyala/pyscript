@@ -1,0 +1,73 @@
+
+site_name: PyScript Programming Language
+site_description: Documentation for the PyScript programming language.
+site_author: AzzamMuhyala
+site_url: https://azzammuhyala.github.io/pyscript
+repo_name: pyscript
+repo_url: https://github.com/azzammuhyala/pyscript-programming-language
+
+theme:
+  logo: https://github.com/azzammuhyala/pyscript/blob/main/PyScript.png?raw=true
+  name: material
+  language: en
+
+  features:
+    - navigation.instant
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+
+    - scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+  font:
+    text: Roboto
+    code: Roboto Mono
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+
+  - Language Guide:
+      - Overview: language-guide/index.md
+      - Syntax: language-guide/syntax.md
+      - Expressions: language-guide/expressions.md
+      - Statements: language-guide/statements.md
+      - Functions: language-guide/functions.md
+      - Classes: language-guide/classes.md
+      - Builtins: language-guide/builtins.md
+      - Advanced Features: language-guide/advanced.md
+
+  - API Reference:
+      - Overview: api-reference/index.md
+      - Exceptions: api-reference/exceptions.md
+      - Modules: api-reference/modules.md
+      - CLI: api-reference/cli.md
+
+  - Examples:
+      - Overview: examples/index.md
