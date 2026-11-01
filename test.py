@@ -4,6 +4,8 @@ def pyscript_doc():
     import subprocess
     import html
 
+    getch = pyscript.pys_require('getch')
+
     HIGHLIGHT_MAP = pyscript.core.mapping.HIGHLIGHT_MAP
     formatter = pyscript.core.highlight.PysHighlightFormatter(
         lambda position, content: pyscript.core.utils.string.normstr(html.escape(content)).replace('\n', '<br>'),
@@ -11,15 +13,29 @@ def pyscript_doc():
         lambda position, type: '</span>',
     )
 
-    with open('test.pys', 'r') as file:
-        source = file.read().strip()
+    try:
+        getch.init()
 
-    subprocess.run(
-        args='clip',
-        text=True,
-        input=f'<div class="pys-code"><pre>{pyscript.pys_highlight(source, formatter)}</pre></div>',
-        encoding=pyscript.pys_sys.encoding
-    )
+        while True:
+            print('WAITING PASTE SOURCE OR INTTERUPT...', end='', flush=True)
+            source = getch.getach(getch.getwch)
+            print()
+            if source == '\x03':
+                print('EXITING...')
+                break
+            while getch.kbhit():
+                source += getch.getach(getch.getwch)
+
+            subprocess.run(
+                args='clip',
+                text=True,
+                input=f'<div class="pys-code"><pre>{pyscript.pys_highlight(source, formatter)}</pre></div>',
+                encoding=pyscript.pys_sys.encoding
+            )
+            print('COPYED TO CLIPBOARD')
+
+    finally:
+        getch.quit()
 
 def update_snippets():
     import json

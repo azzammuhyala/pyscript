@@ -1,4 +1,4 @@
-site_name: PyScript Programming Language
+site_name: PyScript Documentation
 site_description: Documentation for the PyScript programming language.
 site_author: AzzamMuhyala
 site_url: https://azzammuhyala.github.io/pyscript
@@ -7,9 +7,10 @@ repo_url: https://github.com/azzammuhyala/pyscript-programming-language
 
 theme:
   logo: https://github.com/azzammuhyala/pyscript/blob/main/PyScript.png?raw=true
+  favicon: https://github.com/azzammuhyala/pyscript/blob/main/PyScript.png?raw=true
   name: material
-  color_mode: auto
   language: en
+  color_mode: auto
 
   features:
     - navigation.instant
@@ -58,8 +59,6 @@ nav:
       - Syntax: language-guide/syntax.md
       - Expressions: language-guide/expressions.md
       - Statements: language-guide/statements.md
-      - Functions: language-guide/functions.md
-      - Classes: language-guide/classes.md
       - Builtins: language-guide/builtins.md
       - Advanced Features: language-guide/advanced.md
 
