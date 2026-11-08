@@ -233,10 +233,8 @@ try:
     @singleton
     class PysHistory(Pys, History):
 
-        def __new_singleton__(cls) -> 'PysHistory':
-            if USE_FILE_HISTORY:
-                return super().__new__(cls)
-            raise NotImplementedError('not using file history')
+        def __new_singleton__(cls) -> 'PysHistory | InMemoryHistory':
+            return super().__new__(cls) if USE_FILE_HISTORY else InMemoryHistory()
 
         def _write_history_safely(self, mode: str, function: str, *args) -> None:
             try:
@@ -254,16 +252,16 @@ try:
                 self._write_history_safely('w', 'write', '')
                 return []
 
+            strings = []
+            lines = []
+
+            def add_to_string():
+                if not lines:
+                    return
+                strings.insert(0, '\n'.join(lines))
+                lines.clear()
+
             try:
-                strings = []
-                lines = []
-
-                def add_to_string():
-                    if not lines:
-                        return
-                    strings.insert(0, '\n'.join(lines))
-                    lines.clear()
-
                 with open(HISTORY_PATH, 'r', encoding=pys_sys.encoding) as file:
                     for line in file:
                         line = line[:-1]
@@ -273,12 +271,14 @@ try:
                         lines.append(line)
                     add_to_string()
 
-                if HISTORY_LIMIT > 0 and len(strings) > HISTORY_LIMIT:
+                if 0 < HISTORY_LIMIT < len(strings):
                     self._manage_history_capacity(strings)
 
-                return strings
             except:
                 return []
+
+            else:
+                return strings
 
         # this function is called within `append_string()` which adds a new string or history entry to `_loaded_strings`
         # before invoking this function
@@ -289,8 +289,6 @@ try:
                 self._write_history_safely('a', 'write', f'\x1e{string}\n')
             else:
                 self._manage_history_capacity(self._loaded_strings)
-
-    history = (PysHistory if USE_FILE_HISTORY else InMemoryHistory)()
 
     class PysPromptToolkitLineShell(PysLineShell, PromptSession):
 
@@ -381,7 +379,7 @@ try:
                 input_processors=[TabsProcessor(tabstop=4)],
                 key_bindings=key_bindings,
                 prompt_continuation=lambda width, line_number, is_soft_wrap: self._ps2,
-                history=history,
+                history=PysHistory(),
                 **other_keyword
             )
 

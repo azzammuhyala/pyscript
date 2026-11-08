@@ -461,7 +461,8 @@ def ce(context, position, a, b, *, rel_tol=1e-9, abs_tol=0):
     abs_tol: maximum difference for being considered "close", regardless of the magnitude of the input values.
     """
 
-    if isinstance(a, real_complex_number) and isinstance(b, real_complex_number):
+    b_isinstance = isinstance
+    if b_isinstance(a, real_complex_number) and b_isinstance(b, real_complex_number):
         return isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
 
     result = _magic_method(context, position, a, '__ce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
@@ -495,7 +496,8 @@ def nce(context, position, a, b, *, rel_tol=1e-9, abs_tol=0):
     abs_tol: maximum difference for being considered "close", regardless of the magnitude of the input values.
     """
 
-    if isinstance(a, real_complex_number) and isinstance(b, real_complex_number):
+    b_isinstance = isinstance
+    if b_isinstance(a, real_complex_number) and b_isinstance(b, real_complex_number):
         return not isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
 
     result = _magic_method(context, position, a, '__nce__', b, rel_tol=rel_tol, abs_tol=abs_tol)
@@ -526,9 +528,10 @@ def increment(context, position, object):
     __increment__ method, which if unsuccessful will throw a TypeError.
     """
 
-    if isinstance(object, real_number):
+    b_isinstance = isinstance
+    if b_isinstance(object, real_number):
         return object + 1
-    elif isinstance(object, sequence):
+    elif b_isinstance(object, sequence):
         return tuple(_pyincrement(context, position, obj) for obj in object)
 
     result = _magic_method(context, position, object, '__increment__')
@@ -550,9 +553,10 @@ def decrement(context, position, object):
     call the __decrement__ method, which if unsuccessful will throw a TypeError.
     """
 
-    if isinstance(object, real_number):
+    b_isinstance = isinstance
+    if b_isinstance(object, real_number):
         return object - 1
-    elif isinstance(object, sequence):
+    elif b_isinstance(object, sequence):
         return tuple(_pydecrement(context, position, obj) for obj in object)
 
     result = _magic_method(context, position, object, '__decrement__')

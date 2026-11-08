@@ -1,22 +1,32 @@
 from _pyscript import shell
 
 if (shell.ADVANCE_LINE_SHELL_SUPPORT) {
+    history = shell.PysHistory()
+
     HISTORY_PATH = shell.HISTORY_PATH
     HISTORY_LIMIT = shell.HISTORY_LIMIT
 
-    func load() => shell.history.get_strings()
-    func append(string) shell.history.append_string(string)
+    func load() {
+        if (!history._loaded) {
+            history._loaded_strings = history.load_history_strings()
+            history._loaded = True
+        }
+        return history.get_strings()
+    }
+
+    func append(string)
+        history.append_string(string)
 
     if (shell.USE_FILE_HISTORY) {
         import explorer
         func clear() {
-            shell.history._loaded_strings.clear()
+            history._loaded_strings.clear()
             explorer.clear(HISTORY_PATH)
         }
     } else {
         func clear() {
-            shell.history._loaded_strings.clear()
-            shell.history._storage.clear()
+            history._loaded_strings.clear()
+            history._storage.clear()
         }
     }
 

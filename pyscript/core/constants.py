@@ -1,10 +1,11 @@
 import os
+import site
 
 PYSCRIPT_PATH = os.path.sep.join(__file__.split(os.path.sep)[:-2])
 CORE_PATH = os.path.join(PYSCRIPT_PATH, 'core')
 LIBRARIES_PATH = os.path.join(PYSCRIPT_PATH, 'lib')
 OTHER_PATH = os.path.join(PYSCRIPT_PATH, 'other')
-SITE_PACKAGES_PATH = os.path.join(PYSCRIPT_PATH, 'site-packages')
+SITE_PACKAGES_PATH = os.path.join(site.getusersitepackages(), 'pyscript')
 ICON_PATH = os.path.join(OTHER_PATH, 'PyScript.ico')
 GLOBAL_HISTORY_PATH = os.path.join(os.path.expanduser('~'), '.pyscript_history')
 CONFIGURATIONS_PATH = os.path.join(OTHER_PATH, 'configurations.json')

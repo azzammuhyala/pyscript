@@ -28,7 +28,6 @@ BUILTIN_FUNCTIONS = frozenset(
 )
 
 try:
-    # if pygments module already exists
     from pygments.lexer import RegexLexer, include, bygroups
     from pygments.style import Style
     from pygments.token import (

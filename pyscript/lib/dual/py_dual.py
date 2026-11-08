@@ -1,5 +1,5 @@
-# Formula from: https://github.com/BaguetteBunny/dual-lib
-# By: BaguetteBunny
+# formula from: https://github.com/BaguetteBunny/dual-lib
+# by: BaguetteBunny
 
 from pyscript.core.pysbuiltins import ce, nce
 from pyscript.core.utils.decorators import immutable
@@ -37,15 +37,15 @@ class dual:
             case 0:
                 real = epsilon = 0
             case 1:
-                real = args[0]
+                real, = args
                 if isinstance(real, dual):
                     return real
                 epsilon = 0
             case _:
                 real, epsilon = args
-                a, b = _parts(real)
+                real, b = _parts(real)
                 c, _ = _parts(epsilon)
-                real, epsilon = a, b + c
+                epsilon = b + c
 
         self = super().__new__(cls)
         setimuattr(self, 'real', real)
@@ -62,10 +62,7 @@ class dual:
         )
 
     def __radd__(self, other: 'dual | Any') -> 'dual':
-        return dual(
-            other.real + self.real,
-            other.epsilon + self.epsilon
-        ) if isinstance(other, dual) else dual(
+        return other + self if isinstance(other, dual) else dual(
             other + self.real,
             self.epsilon
         )
@@ -80,10 +77,7 @@ class dual:
         )
 
     def __rsub__(self, other: 'dual | Any') -> 'dual':
-        return dual(
-            other.real - self.real,
-            other.epsilon - self.epsilon
-        ) if isinstance(other, dual) else dual(
+        return other - self if isinstance(other, dual) else dual(
             other - self.real,
             self.epsilon
         )
@@ -98,10 +92,7 @@ class dual:
         )
 
     def __rmul__(self, other: 'dual | Any') -> 'dual':
-        return dual(
-            other.real * self.real,
-            other.real * self.epsilon + other.epsilon * self.real
-        ) if isinstance(other, dual) else dual(
+        return other * self if isinstance(other, dual) else dual(
             other * self.real,
             other * self.epsilon
         )
@@ -227,6 +218,9 @@ class dual:
 
     def __float__(self) -> float:
         return float(self.real)
+
+    def __complex__(self) -> complex:
+        return complex(self.real)
 
     def __floor__(self) -> 'dual':
         return dual(math.floor(self.real), 0)

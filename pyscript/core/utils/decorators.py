@@ -13,9 +13,10 @@ class _PysUtilities(Pys):
         # circular import problem solved
         from ..cache import pys_sys
         singletons = pys_sys.singletons
-        if type(singletons.get(cls, None)) is not cls:
-            singletons[cls] = cls.__new_singleton__(cls, *args, **kwargs)
-        return singletons[cls]
+        object = singletons.get(cls, None)
+        if type(object) is not cls:
+            singletons[cls] = object = cls.__new_singleton__(cls, *args, **kwargs)
+        return object
 
     @staticmethod
     def readonly_attribute(*args, **kwargs):

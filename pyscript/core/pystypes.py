@@ -11,7 +11,6 @@ from .utils.generic import setimuattr, dinit, drepr, dor, dror, dior, dsetitem, 
 from .utils.similarity import diff_get_closest
 from .utils.string import join
 
-from builtins import help as pyhelp
 from itertools import islice
 from types import MethodType
 from typing import Any, Callable, Optional
@@ -311,10 +310,16 @@ class PysPrinter(PysObject):
 
 class PysHelper(PysPrinter):
 
-    __slots__ = ()
+    __slots__ = ('_pyhelp',)
 
     def __init__(self) -> None:
         super().__init__('help')
+        try:
+            from builtins import help
+        except:
+            def help(*args, **kwargs):
+                raise NotImplementedError('python builtins.help not found')
+        setimuattr(self, '_pyhelp', help)
 
     def __repr__(self) -> str:
         return f'Type {self.name}() for interactive help, or {self.name}(object) for help about object.'
@@ -328,4 +333,4 @@ class PysHelper(PysPrinter):
                 "To get the list of builtin functions, types, exceptions, and other objects, type 'help(\"builtins\")'."
             )
         else:
-            pyhelp(*args, **kwargs)
+            self._pyhelp(*args, **kwargs)

@@ -1,14 +1,26 @@
 from .cache import pys_sys
-from .constants import ENV_PYSCRIPT_WITH_GIL
+from .constants import SITE_PACKAGES_PATH, ENV_PYSCRIPT_WITH_GIL
 from .context import PysContext
 from .position import PysPosition
 from .pystypes import PysFunction
 from .utils.generic import is_environ
 
+from site import ENABLE_USER_SITE
 from types import MethodType
 from typing import Any
 
+import os
+
 wrapper_function = (MethodType, classmethod, staticmethod)
+
+if ENABLE_USER_SITE:
+    try:
+        if os.path.isfile(SITE_PACKAGES_PATH):
+            os.remove(SITE_PACKAGES_PATH)
+        if not os.path.exists(SITE_PACKAGES_PATH):
+            os.mkdir(SITE_PACKAGES_PATH)
+    except:
+        pass
 
 GIL = pys_sys.gil = False
 if is_environ(ENV_PYSCRIPT_WITH_GIL):

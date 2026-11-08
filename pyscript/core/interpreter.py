@@ -308,17 +308,19 @@ def visit_BinaryOperatorNode(node: PysBinaryOperatorNode, context: PysContext) -
     result._context = context
     result._position = node.position
     with result:
-        return_right = True
 
         if otype == T_OR:
             if left:
                 return result.success(left)
+            return_right = True
         elif otype == T_AND:
             if not left:
                 return result.success(left)
+            return_right = True
         elif otype == T_NULLISH:
             if left is not None:
                 return result.success(left)
+            return_right = True
         else:
             return_right = False
 
@@ -595,13 +597,13 @@ def visit_MatchNode(node: PysMatchNode, context: PysContext) -> PysRunTimeResult
     should_return = result.should_return
     ntarget = node.target
 
-    compare = False
-
     if ntarget:
         target = register(get_visitor(ntarget.__class__)(ntarget, context))
         if should_return():
             return result
         compare = True
+    else:
+        compare = False
 
     for ncondition, nvalue in node.cases:
         condition = register(get_visitor(ncondition.__class__)(ncondition, context))
@@ -611,7 +613,7 @@ def visit_MatchNode(node: PysMatchNode, context: PysContext) -> PysRunTimeResult
         result._position = ncondition.position
         with result:
 
-            if target == condition if compare else (True if condition else False):
+            if (target == condition) if compare else condition:
                 value = register(get_visitor(nvalue.__class__)(nvalue, context))
                 if should_return():
                     return result
@@ -654,7 +656,6 @@ def visit_TryNode(node: PysTryNode, context: PysContext) -> PysRunTimeResult:
         failure(None)
 
         for (targets, tparameter), body in node.catches:
-            handle_exception = True
             stop = False
 
             if targets:
@@ -682,6 +683,9 @@ def visit_TryNode(node: PysTryNode, context: PysContext) -> PysRunTimeResult:
                     if b_issubclass(exception_class, error_class):
                         handle_exception = True
                         break
+
+            else:
+                handle_exception = True
 
             if stop:
                 break

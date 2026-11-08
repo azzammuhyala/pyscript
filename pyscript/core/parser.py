@@ -1197,66 +1197,71 @@ class PysParser(Pys):
 
         self.skip(result)
 
-        if self.current_token.type != TOKENS['LEFT_CURLY']:
-            return result.failure(self.new_error("expected '{'"))
-
-        left_bracket_token = self.current_token
-
-        result.register_advancement()
-        self.advance()
-        self.skip(result)
-
         cases = []
         default = None
 
-        while True:
+        if self.current_token.type == TOKENS['SEMICOLON']:
+            result.register_advancement()
+            self.advance()
 
-            if self.current_token.match(TOKENS['KEYWORD'], 'case'):
-                result.register_advancement()
-                self.advance()
-                self.skip(result)
+        elif self.current_token.type == TOKENS['LEFT_CURLY']:
+            left_bracket_token = self.current_token
 
-                case = result.register(self.walrus(), True)
-                if result.error:
-                    return result
+            result.register_advancement()
+            self.advance()
+            self.skip(result)
 
-                self.skip(result)
+            while True:
 
-                if self.current_token.type != TOKENS['COLON']:
-                    return result.failure(self.new_error("expected ':'"))
+                if self.current_token.match(TOKENS['KEYWORD'], 'case'):
+                    result.register_advancement()
+                    self.advance()
+                    self.skip(result)
 
-                result.register_advancement()
-                self.advance()
+                    case = result.register(self.walrus(), True)
+                    if result.error:
+                        return result
 
-                body = result.register(self.statements())
-                if result.error:
-                    return result
+                    self.skip(result)
 
-                cases.append((case, body))
+                    if self.current_token.type != TOKENS['COLON']:
+                        return result.failure(self.new_error("expected ':'"))
 
-            elif self.current_token.match(TOKENS['KEYWORD'], 'default', 'else'):
-                result.register_advancement()
-                self.advance()
-                self.skip(result)
+                    result.register_advancement()
+                    self.advance()
 
-                if self.current_token.type != TOKENS['COLON']:
-                    return result.failure(self.new_error("expected ':'"))
+                    body = result.register(self.statements())
+                    if result.error:
+                        return result
 
-                result.register_advancement()
-                self.advance()
+                    cases.append((case, body))
 
-                default = result.register(self.statements())
-                if result.error:
-                    return result
+                elif self.current_token.match(TOKENS['KEYWORD'], 'default', 'else'):
+                    result.register_advancement()
+                    self.advance()
+                    self.skip(result)
 
-                break
+                    if self.current_token.type != TOKENS['COLON']:
+                        return result.failure(self.new_error("expected ':'"))
 
-            else:
-                break
+                    result.register_advancement()
+                    self.advance()
 
-        self.close_bracket(result, left_bracket_token)
-        if result.error:
-            return result
+                    default = result.register(self.statements())
+                    if result.error:
+                        return result
+
+                    break
+
+                else:
+                    break
+
+            self.close_bracket(result, left_bracket_token)
+            if result.error:
+                return result
+
+        else:
+            return result.failure(self.new_error("expected '{'"))
 
         return result.success(
             PysSwitchNode(

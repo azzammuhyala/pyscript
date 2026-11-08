@@ -139,7 +139,7 @@ parser.add_argument(
 parser.add_argument(
     '-t', '--terminal',
     action='store_true',
-    help="configure terminal encoding to UTF-8 and enable ANSI escape code processing on Windows"
+    help=f"configure terminal encoding to {pys_sys.encoding} and enable ANSI escape code processing on Windows"
 )
 
 parser.add_argument(
@@ -216,7 +216,7 @@ if args.terminal:
 
     for fd in (sys.stdout, sys.stderr, sys.stdin):
         try:
-            fd.reconfigure(encoding='utf-8')
+            fd.reconfigure(encoding=pys_sys.encoding)
         except:
             continue
 

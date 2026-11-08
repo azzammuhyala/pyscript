@@ -1,13 +1,16 @@
 # Change Logs
 
-## [1.15.1] - 30/10/2026
+## [1.15.2] - 08/11/2026
 
 ### Added
-- `dual` supports conversion to a NumPy array represented as a 2x2 matrix definition of a dual number
-  $a + b\epsilon = \begin{pmatrix} a & b \\ 0 & a \end{pmatrix}$ and includes several magic methods.
-- Added a new syntax `not instanceof`.
+- Site packages have been moved to `site.getusersitepackages()` within the `pyscript` folder.
+- The body of a `switch` statement can use semicolons `;`.
+- Optimizations applied to several nodes.
+- `getch` library includes the function `getch.is_initialized()`.
+- `site` library includes the function `site.getusersitepackages()`.
+- Added support for conversion to `complex` types in the `dual` library.
+- Added the `make_dirs` parameter to the `newfile`, `move`, and `copy` functions in the `explorer` library.
 
 ### Fixed
 - Fixed several bugs.
-- The refresh delay for highlights in the GUI editor has been set to 1000ms.
 - _etc._

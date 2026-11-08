@@ -274,6 +274,7 @@ class PysTernaryOperatorNode(PysNode):
         invalid: PysNode,
         style: Literal['general', 'pythonic']
     ) -> 'PysTernaryOperatorNode | PysNode':
+
         if (l_condition := _get_literal_value(condition)) is not undefined:
             return valid if l_condition else invalid
 
@@ -398,17 +399,15 @@ class PysStatementsNode(PysNode):
             return elements[0]
 
         new = []
-        constant_nodes = {PysConstantNode, PysDebugNode, PysEllipsisNode}
-        interrupt_nodes = {PysReturnNode, PysThrowNode, PysContinueNode, PysBreakNode}
 
         for node in elements:
-            if node.__class__ in constant_nodes:
+            if node.__class__ in _constant_nodes:
                 continue
             elif node.__class__ is PysStatementsNode:
                 new.extend(node.elements)
             else:
                 new.append(node)
-            if node.__class__ in interrupt_nodes:
+            if node.__class__ in _interrupt_nodes:
                 break
 
         self = super().__new__(cls, position)
@@ -510,12 +509,16 @@ class PysSwitchNode(PysNode):
         target: PysNode,
         cases: list[tuple[PysNode, PysNode]],
         default: PysNode | None
-    ) -> 'PysSwitchNode':
+    ) -> 'PysSwitchNode | PysNode':
+        default = _optional_part(default)
+
+        if not (cases or default):
+            return target
 
         self = super().__new__(cls, position)
         setimuattr(self, 'target', target)
         setimuattr(self, 'cases', tuple(cases))
-        setimuattr(self, 'default', _optional_part(default))
+        setimuattr(self, 'default', default)
         return self
 
     def __repr__(self) -> str:
@@ -532,12 +535,31 @@ class PysMatchNode(PysNode):
         target: PysNode | None,
         cases: list[tuple[PysNode, PysNode]],
         default: PysNode | None
-    ) -> 'PysMatchNode':
+    ) -> 'PysMatchNode | PysNode':
+
+        if target and (l_target := _get_literal_value(target)) is not undefined:
+            new_cases = []
+
+            for condition, value in cases:
+                if (l_condition := _get_literal_value(condition)) is undefined:
+                    new_cases.append((condition, value))
+                elif l_target == l_condition:
+                    default = value
+                    break
+
+            cases = new_cases
+            default = _optional_part(default, expression=True)
+
+            if not cases:
+                return default if default else PysConstantNode(position, None)
+
+        else:
+            default = _optional_part(default, expression=True)
 
         self = super().__new__(cls, position)
         setimuattr(self, 'target', target)
         setimuattr(self, 'cases', tuple(cases))
-        setimuattr(self, 'default', _optional_part(default))
+        setimuattr(self, 'default', default)
         return self
 
     def __repr__(self) -> str:
@@ -602,8 +624,7 @@ class PysForNode(PysNode):
     def __new__(
         cls,
         position: PysPosition,
-        header: tuple[PysNode | None, PysNode | None, PysNode | None] |
-                tuple[PysNode, PysNode],
+        header: tuple[PysNode | None, PysNode | None, PysNode | None] | tuple[PysNode, PysNode],
         body: PysNode,
         else_: PysNode | None
     ) -> 'PysForNode':
@@ -628,12 +649,16 @@ class PysWhileNode(PysNode):
         condition: PysNode,
         body: PysNode,
         else_: PysNode | None
-    ) -> 'PysWhileNode':
+    ) -> 'PysWhileNode | PysNode':
+        else_ = _optional_part(else_)
+
+        if (l_condition := _get_literal_value(condition)) is not undefined and not l_condition:
+            return else_ if else_ else PysStatementsNode(position, [])
 
         self = super().__new__(cls, position)
         setimuattr(self, 'condition', condition)
         setimuattr(self, 'body', body)
-        setimuattr(self, 'else_', _optional_part(else_))
+        setimuattr(self, 'else_', else_)
         return self
 
     def __repr__(self) -> str:
@@ -770,7 +795,7 @@ class PysReturnNode(PysNode):
     @typecheck
     def __new__(cls, position: PysPosition, value: PysNode | None) -> 'PysReturnNode':
         self = super().__new__(cls, position)
-        setimuattr(self, 'value', _optional_part(value))
+        setimuattr(self, 'value', _optional_part(value, expression=True))
         return self
 
     def __repr__(self) -> str:
@@ -855,6 +880,9 @@ class PysBreakNode(PysNode):
     def __repr__(self) -> Literal['Break()']:
         return 'Break()'
 
+_constant_nodes = frozenset([PysConstantNode, PysDebugNode, PysEllipsisNode])
+_interrupt_nodes = frozenset([PysReturnNode, PysThrowNode, PysContinueNode, PysBreakNode])
+
 def _get_literal_value(item: Any) -> Any | PysUndefined:
 
     if isinstance(item, (PysConstantNode, PysToken)):
@@ -886,9 +914,9 @@ def _get_literal_value(item: Any) -> Any | PysUndefined:
 
     return undefined
 
-def _optional_part(part: PysNode | None) -> PysNode | None:
+def _optional_part(part: PysNode | None, *, expression: bool = False) -> PysNode | None:
     return None if (
+        (not expression and part.__class__ in _constant_nodes) or
         _get_literal_value(part) is None or
-        (part.__class__ is PysStatementsNode and not part.elements) or
-        (part.__class__ in (PysDebugNode, PysEllipsisNode))
+        (part.__class__ is PysStatementsNode and not part.elements)
     ) else part

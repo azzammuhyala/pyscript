@@ -37,7 +37,7 @@ if sys.platform == 'win32':
     def getch() -> bytes:
         global INTERRUPT
         if not INITIALIZED:
-            raise Exception('not initialized')
+            raise RuntimeError('not initialized')
         elif INTERRUPT:
             INTERRUPT = False
             return b'\x03'
@@ -78,8 +78,11 @@ else:
 
     def getch() -> bytes:
         if not INITIALIZED:
-            raise Exception('not initialized')
+            raise RuntimeError('not initialized')
         return os.read(FILE_DESCRIPTOR, 1)
+
+def is_initialized() -> bool:
+    return INITIALIZED
 
 def getwch() -> str:
     codes = getch()

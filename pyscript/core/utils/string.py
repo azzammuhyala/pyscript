@@ -43,8 +43,10 @@ def join(sequence: Sequence[str], conjunction: str = 'and') -> str:
     elif length == 1:
         return sequence[0]
     elif length == 2:
-        return f'{sequence[0]} {conjunction} {sequence[1]}'
-    return f'{", ".join(sequence[:-1])}, {conjunction} {sequence[-1]}'
+        a, b = sequence
+        return f'{a} {conjunction} {b}'
+    *others, end = sequence
+    return f'{", ".join(others)}, {conjunction} {end}'
 
 def indent(string: str, length: int, indent: str = ' ') -> str:
     prefix = indent * length

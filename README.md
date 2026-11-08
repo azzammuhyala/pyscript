@@ -37,8 +37,8 @@ Try [PyScript Shell (_REPL_)](https://azzammuhyala.github.io/pyscript/shell.html
 (no installation required).
 
 ## Installation ⬇️
-First, you'll need to download Python. Make sure you're using the latest version above `3.10`, to ensure the code runs
-correctly. Visit the official [Python website](https://python.org) to download it.
+First, you'll need to download Python. Make sure you're using the latest version **above `3.10`**, to ensure the code
+runs correctly. Visit the official [Python website](https://python.org) to download it.
 
 Next, after downloading and configuring the Python application, you can download the PyScript from
 [PyScript releases](https://github.com/azzammuhyala/pyscript/releases) or from PIP with this command (_Recommended_):
@@ -87,11 +87,12 @@ Familiar? There it is!
 | 14 | `os`              | **required**           |
 | 15 | `pkgutil`         | **required**           |
 | 16 | `re`              | **required**           |
-| 17 | `subprocess`      | **required**           |
-| 18 | `sys`             | **required**           |
-| 19 | `types`           | **required**           |
-| 20 | `typing`          | **required**           |
-| 21 | `unicodedata`     | **required**           |
+| 17 | `site`            | **required**           |
+| 18 | `subprocess`      | **required**           |
+| 19 | `sys`             | **required**           |
+| 20 | `types`           | **required**           |
+| 21 | `typing`          | **required**           |
+| 22 | `unicodedata`     | **required**           |
 | 1  | `ast`             | **required (library)** |
 | 2  | `math`            | **required (library)** |
 | 3  | `msvcrt`          | **required (library)** |

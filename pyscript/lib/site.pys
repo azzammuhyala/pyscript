@@ -5,6 +5,8 @@ import explorer
 from '_pyscript>utils>module' import get_module_candidate
 from '_pyscript>utils>path' import normpath
 
+ENABLE_USER_SITE = pyimport('site').ENABLE_USER_SITE
+
 func removeduppaths() {
     path = []
     known_paths = set()
@@ -21,21 +23,19 @@ func removeduppaths() {
     return known_paths
 }
 
-func getsitepackages() {
-    return list(
-        comprehension(
-            os.listdir(sys.site_packages_path),
-            func(package) => os.path.splitext(package)[0],
-            func(package) => get_module_candidate(normpath(sys.site_packages_path, package)) is not None
-        )
-    )
-}
+func getusersitepackages() => sys.site_packages_path
+
+func getsitepackages() => list(comprehension(
+    os.listdir(sys.site_packages_path),
+    func(package) => os.path.splitext(package)[0],
+    func(package) => get_module_candidate(normpath(sys.site_packages_path, package)) is not None
+))
 
 func addpackage(path) {
     valid = get_module_candidate(normpath(path))
     if (valid is None)
         throw ModuleNotFoundError("invalid module")
-    result = explorer.copy(path, sys.site_packages_path, replace=False, metadata=False)
+    result = explorer.copy(path, sys.site_packages_path, metadata=False)
     if (!result.success)
         throw result.exception
 }
@@ -54,6 +54,7 @@ func removepackage(name) {
 
 __all__ = (
     'removeduppaths',
+    'getusersitepackages',
     'getsitepackages',
     'addpackage',
     'removepackage'
@@ -106,26 +107,25 @@ if (__name__ == '__main__') {
         }
     }
 
-    if (args.l)
+    if (!ENABLE_USER_SITE)
+        error('User site is disabled')
+
+    elif (args.l)
         print('\n'.join(sorted(getsitepackages())))
 
-    elif (args.a) {
+    elif (args.a)
         try {
             addpackage(args.a)
             info('Package added successfully')
-        }
-        catch (e)
+        } catch (e)
             error('-a: {}: {}'.format(typeof e, e))
-    }
 
-    elif (args.r) {
+    elif (args.r)
         try {
             removepackage(args.r)
             info('Package removed successfully')
-        }
-        catch (e)
+        } catch (e)
             error('-r: {}: {}'.format(typeof e, e))
-    }
 
     else
         parser.print_help(sys.stdout)
