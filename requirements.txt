@@ -1,3 +1,0 @@
-beartype
-pygments
-prompt_toolkit
