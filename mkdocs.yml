@@ -64,9 +64,10 @@ nav:
 
   - API Reference:
       - Overview: api-reference/index.md
+      - Libraries:
+          - Overview: api-reference/libraries/index.md
+      - Shell / CLI: api-reference/cli.md
       - Exceptions: api-reference/exceptions.md
-      - Modules: api-reference/modules.md
-      - CLI: api-reference/cli.md
 
   - Examples:
       - Overview: examples/index.md
