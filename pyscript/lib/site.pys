@@ -5,7 +5,12 @@ import explorer
 from '_pyscript>utils>module' import get_module_candidate
 from '_pyscript>utils>path' import normpath
 
-ENABLE_USER_SITE = pyimport('site').ENABLE_USER_SITE
+(func getusersitepackages() {
+    global ENABLE_USER_SITE
+    path = sys.site_packages_path
+    ENABLE_USER_SITE = path is not none
+    return path
+})()
 
 func removeduppaths() {
     path = []
@@ -23,27 +28,34 @@ func removeduppaths() {
     return known_paths
 }
 
-func getusersitepackages() => sys.site_packages_path
-
-func getsitepackages() => list(comprehension(
-    os.listdir(sys.site_packages_path),
-    func(package) => os.path.splitext(package)[0],
-    func(package) => get_module_candidate(normpath(sys.site_packages_path, package)) is not None
-))
+func getsitepackages() {
+    site_path = getusersitepackages()
+    if (!ENABLE_USER_SITE)
+        throw Exception('user site is disabled')
+    return list(comprehension(
+        os.listdir(site_path),
+        func(package) => os.path.splitext(package)[0],
+        func(package) => get_module_candidate(normpath(site_path, package)) is not none
+    ))
+}
 
 func addpackage(path) {
-    valid = get_module_candidate(normpath(path))
-    if (valid is None)
+    site_path = getusersitepackages()
+    if (!ENABLE_USER_SITE)
+        throw Exception('user site is disabled')
+    if (get_module_candidate(normpath(path)) is none)
         throw ModuleNotFoundError("invalid module")
-    result = explorer.copy(path, sys.site_packages_path, metadata=False)
+    result = explorer.copy(path, site_path, metadata=False)
     if (!result.success)
         throw result.exception
 }
 
 func removepackage(name) {
-    path = normpath(sys.site_packages_path, name)
-    valid = get_module_candidate(path)
-    if (valid is None)
+    site_path = getusersitepackages()
+    if (!ENABLE_USER_SITE)
+        throw Exception('user site is disabled')
+    path = normpath(site_path, name)
+    if (get_module_candidate(path) is none)
         throw ModuleNotFoundError("module not found")
     if (!os.path.exists(path))
         path += '.pys'
@@ -66,6 +78,12 @@ if (__name__ == '__main__') {
     parser = argparse.ArgumentParser(
         prog="{} -m site".format(sys.executable),
         description="PyScript's site module"
+    )
+
+    parser.add_argument(
+        '--user-site',
+        action='store_true',
+        help='show the user site path'
     )
 
     parser.add_argument(
@@ -107,7 +125,10 @@ if (__name__ == '__main__') {
         }
     }
 
-    if (!ENABLE_USER_SITE)
+    if (args.user_site)
+        print(getusersitepackages())
+
+    elif (!ENABLE_USER_SITE)
         error('User site is disabled')
 
     elif (args.l)

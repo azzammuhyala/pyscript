@@ -7,8 +7,8 @@ from re import match as match_regex
 from types import NotImplementedType
 from typing import Any
 
-__version__ = '1.15.2'
-__date__ = '08 November 2026, 12:30 UTC+7'
+__version__ = '1.15.3'
+__date__ = '10 November 2026, 14:30 UTC+7'
 __author__ = ('AzzamMuhyala',)
 
 version = pys_sys.version = f'{__version__} ({__date__})'

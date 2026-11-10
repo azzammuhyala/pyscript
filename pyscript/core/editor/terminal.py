@@ -138,6 +138,22 @@ try:
                 line = buffer.document.current_line_before_cursor
                 buffer.insert_text('\n' + line[:len(line) - len(line.lstrip())])
 
+            @key_bindings.add('s-tab', filter=on_edit, eager=True)
+            def _(event):
+                buffer = self.text.buffer
+                document = buffer.document
+
+                if document.char_before_cursor == '\t':
+                    buffer.delete_before_cursor(1)
+                    return
+
+                elif document.current_line.startswith('\t'):
+                    line_start = document.translate_row_col_to_index(document.cursor_position_row, 0)
+                    old_position = buffer.cursor_position
+                    buffer.cursor_position = line_start
+                    buffer.delete(1)
+                    buffer.cursor_position = max(line_start, old_position - 1)
+
             @key_bindings.add('c-w', filter=on_edit, eager=True)
             def _(event):
                 self.set_configuration('wrap', not self.get_configuration('wrap', False))

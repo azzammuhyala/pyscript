@@ -339,7 +339,7 @@ def pys_shell(
 
         if not (flags & NO_WARNING):
             for path in (LIBRARIES_PATH, OTHER_PATH, SITE_PACKAGES_PATH):
-                if not os.path.isdir(path):
+                if not (path is None or os.path.isdir(path)):
                     custom_print(f'WARNING: "{path}" directory not found', file=sys.stderr)
 
         custom_print(

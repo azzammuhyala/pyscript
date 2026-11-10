@@ -5,7 +5,6 @@ from .position import PysPosition
 from .pystypes import PysFunction
 from .utils.generic import is_environ
 
-from site import ENABLE_USER_SITE
 from types import MethodType
 from typing import Any
 
@@ -13,12 +12,11 @@ import os
 
 wrapper_function = (MethodType, classmethod, staticmethod)
 
-if ENABLE_USER_SITE:
+if SITE_PACKAGES_PATH is not None:
     try:
         if os.path.isfile(SITE_PACKAGES_PATH):
             os.remove(SITE_PACKAGES_PATH)
-        if not os.path.exists(SITE_PACKAGES_PATH):
-            os.mkdir(SITE_PACKAGES_PATH)
+        os.makedirs(SITE_PACKAGES_PATH, exist_ok=True)
     except:
         pass
 

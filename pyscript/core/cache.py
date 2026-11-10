@@ -28,7 +28,7 @@ pys_sys.builtin_module_names = tuple(
     for module in os.listdir(LIBRARIES_PATH)
     if get_module_candidate(os.path.join(LIBRARIES_PATH, module)) is not None
 )
-pys_sys.path = [LIBRARIES_PATH, SITE_PACKAGES_PATH]
+pys_sys.path = [LIBRARIES_PATH]
 pys_sys.loading_modules = set()
 pys_sys.modules = {}
 pys_sys.interns = {}
@@ -50,6 +50,9 @@ pys_sys.executable = f'{base(sys.executable)} -m pyscript'
 pys_sys.ps1 = '>>> '
 pys_sys.ps2 = '... '
 pys_sys._is_gil_enabled = lambda : pys_sys.gil
+
+if SITE_PACKAGES_PATH is not None:
+    pys_sys.path.append(SITE_PACKAGES_PATH)
 
 for name in (
     '_clear_internal_caches', '_is_immortal', '_is_interned', 'byteorder', 'exit', 'float_info', 'float_repr_style',

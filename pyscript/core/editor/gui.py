@@ -88,6 +88,20 @@ try:
                 text.see('insert')
                 return 'break'
 
+            def on_dedent(event=None):
+                text = self.text
+
+                if text.get('insert-1c', 'insert') == '\t':
+                    text.delete('insert-1c', 'insert')
+                    refresh_line_numbers()
+                    return 'break'
+
+                if text.get('insert linestart', 'insert linestart +1c') == '\t':
+                    text.delete('insert linestart', 'insert linestart +1c')
+                    refresh_line_numbers()
+
+                return 'break'
+
             def on_enter(event=None):
                 text = self.text
                 if text.tag_ranges('sel'):
@@ -188,7 +202,10 @@ try:
             self.text.edit_modified(False)
 
             self.text.bind('<<Modified>>', on_modified)
-            self.text.bind('<Return>', on_enter)
+            self.text.bind('<Control-Return>', on_enter)
+            self.text.bind('<Control-j>', on_enter)
+            self.text.bind('<Shift-Tab>', on_dedent)
+            self.text.bind('<ISO_Left_Tab>', on_dedent)
             self.text.bind('<Prior>', on_page_up)
             self.text.bind('<Next>', on_page_down)
             self.text.bind('<KeyRelease>', refresh_line_numbers)

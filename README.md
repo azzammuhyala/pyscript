@@ -51,13 +51,6 @@ pip install -U pyscript-programming-language
 pip install -U pyscript-programming-language[other]
 ```
 
-And also, you can download PyScript with `git`:
-```sh
-git clone https://github.com/azzammuhyala/pyscript
-cd pyscript
-pip install .
-```
-
 After that, you can run the PyScript shell (_REPL_) with this command:
 ```sh
 python -m pyscript

@@ -1,16 +1,13 @@
 # Change Logs
 
-## [1.15.2] - 08/11/2026
+## [1.15.3] - 10/11/2026
 
 ### Added
-- Site packages have been moved to `site.getusersitepackages()` within the `pyscript` folder.
-- The body of a `switch` statement can use semicolons `;`.
-- Optimizations applied to several nodes.
-- `getch` library includes the function `getch.is_initialized()`.
-- `site` library includes the function `site.getusersitepackages()`.
-- Added support for conversion to `complex` types in the `dual` library.
-- Added the `make_dirs` parameter to the `newfile`, `move`, and `copy` functions in the `explorer` library.
+- Some functions in the `site` library now raise exceptions if `ENABLE_USER_SITE` is `None`.
+- _etc._
 
 ### Fixed
+- The user site-packages path has been moved to `site.getusersitepackages()` + `/pyscript/site-packages`.
+- The **Shift** + **Tab** shortcut now performs a dedent to the one tab character.
 - Fixed several bugs.
 - _etc._
