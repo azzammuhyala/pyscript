@@ -1,0 +1,625 @@
+<!--
+    AUTHOR: AzzamMuhyala
+    URL:    https://azzammuhyala.github.io/pyscript/shell.html
+
+    "im too lazy and tired to fix all the bugs that might happen here"
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+        <title>PyScript Shell</title>
+        <link
+            rel="icon"
+            type="image/png"
+            href="https://github.com/azzammuhyala/pyscript/blob/main/PyScript.png?raw=true"
+        >
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.min.css">
+        <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
+        <style>
+            body {
+                width: 100vw;
+                height: 100vh;
+                margin: 0;
+                padding: 10px;
+                box-sizing: border-box;
+                overflow: hidden;
+                background: #202020;
+                position: fixed;
+                top: 0;
+                left: 0;
+                overscroll-behavior: none;
+            }
+
+            #terminal-container {
+                width: 100%;
+                height: 100%;
+                border-radius: 8px;
+                overflow: hidden;
+                background: #000000;
+                touch-action: pan-y;
+            }
+
+            #terminal-container ::-webkit-scrollbar, .xterm-viewport::-webkit-scrollbar {
+                width: 8px;
+                height: 8px;
+            }
+
+            #terminal-container ::-webkit-scrollbar-track, .xterm-viewport::-webkit-scrollbar-track {
+                background: rgba(0, 0, 0, 0.2);
+                border-radius: 4px;
+            }
+
+            #terminal-container ::-webkit-scrollbar-thumb, .xterm-viewport::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 4px;
+                border: 1px solid rgba(0, 0, 0, 0.1);
+                transition: background 0.2s ease;
+            }
+
+            #terminal-container ::-webkit-scrollbar-thumb:hover, .xterm-viewport::-webkit-scrollbar-thumb:hover {
+                background: rgba(255, 255, 255, 0.4);
+            }
+
+            #terminal-container, .xterm-viewport {
+                scrollbar-width: thin;
+                scrollbar-color: rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.2);
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="terminal-container"></div>
+        <script type="module">
+            const PYODIDE_URL = 'https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.mjs';
+            const HISTORY_LIMIT = 1024;
+
+            function dedent(string) {
+                const lines = string.replace(/\r\n?/g, '\n').split('\n');
+                const indents = lines.filter(line => line.trim().length > 0)
+                                     .map(line => line.match(/^ */)[0].length);
+                const minimumIndent = indents.length ? Math.min(...indents) : 0;
+                return lines.map(line => {
+                    if (line.trim().length === 0) return line;
+                    return line.slice(Math.min(minimumIndent, line.match(/^ */)[0].length));
+                }).join('\n');
+            }
+
+            const terminalContainer = document.getElementById('terminal-container');
+            const terminal = new Terminal({
+                theme: { background: '#000000' },
+                fontSize: 15,
+                fontFamily: 'Consolas, Menlo, Monaco, "Courier New", monospace',
+                cursorBlink: true,
+                screenReaderMode: true
+            });
+            const fitAddon = new FitAddon.FitAddon();
+
+            terminal.loadAddon(fitAddon);
+            terminal.open(terminalContainer);
+            fitAddon.fit();
+
+            if (window.visualViewport) {
+
+                const resizeToViewport = () => {
+                    if (window.visualViewport) {
+                        const vv = window.visualViewport;
+                        document.body.style.height = `${vv.height}px`;
+                        document.body.style.top = `${vv.offsetTop}px`;
+                    }
+                    fitAddon.fit();
+                }
+
+                window.visualViewport.addEventListener('resize', resizeToViewport);
+                window.visualViewport.addEventListener('scroll', resizeToViewport);
+            } else {
+                window.addEventListener('resize', fitAddon.fit.bind(fitAddon));
+            }
+
+            let cursor = 0;
+            let historyCursor = 0;
+            const history = [];
+            const inputQueue = [];
+            const linesQueue = [];
+            const lineBuffer = [];
+            const pyscriptGlobals = {
+                HISTORY_LIMIT: HISTORY_LIMIT,
+                terminal: terminal,
+                history: history,
+                inputQueue: inputQueue,
+                linesQueue: linesQueue,
+                pushHistory: pushHistory,
+                clearHistory: clearHistory,
+                isWaitingForInput: false,
+                isExited: false,
+                exitCode: 0
+            };
+
+            window.pyscriptGlobals = pyscriptGlobals;
+
+            const above = () => cursor > 0;
+            const below = () => cursor < lineBuffer.length;
+            const isInsert = () => !terminal.options.cursorBlink;
+            const setInsert = (value) => { terminal.options.cursorBlink = !value; };
+            const getTerminalSize = () => [terminal.cols, terminal.rows];
+            const getCursorPosition = () => [terminal.buffer.active.cursorX, terminal.buffer.active.cursorY];
+
+            function getLineStart(offset, cursorX, cursorY, width) {
+                const startX = ((cursorX - offset) % width + width) % width;
+                return [startX, cursorY - Math.floor((startX + offset) / width)];
+            }
+
+            function offsetToPosition(startX, startY, offset, width) {
+                const total = startX + offset;
+                return [total % width, startY + Math.floor(total / width)];
+            }
+
+            function readClipboardThenProcess() {
+                if (!pyscriptGlobals.isWaitingForInput) return;
+                navigator.clipboard.readText().then(text => {
+                    if (text && pyscriptGlobals.isWaitingForInput) processInputCharacter(text);
+                }).catch(err => {
+                    console.error('Failed to read clipboard:', err);
+                });
+            }
+
+            function writeClipboard(text) {
+                navigator.clipboard.writeText(text).catch(err => {
+                    console.error('Failed to write clipboard:', err);
+                });
+            }
+
+            function sendSignal(code, prefix) {
+                if (typeof prefix === 'string') terminal.write('^' + prefix);
+                cursor = 0;
+                linesQueue.length = 0;
+                lineBuffer.length = 0;
+                linesQueue.push(code);
+                setInsert(false);
+            }
+
+            function pushBuffer(buffer) {
+                if (!buffer) return;
+
+                if (!isInsert() && below()) {
+                    const [width] = getTerminalSize();
+                    const [cursorX, cursorY] = getCursorPosition();
+                    const [startX, startY] = getLineStart(cursor, cursorX, cursorY, width);
+                    const [column, row] = offsetToPosition(startX, startY, cursor + buffer.length, width);
+                    terminal.write(
+                        buffer + lineBuffer.slice(cursor).join('') +
+                        `\x1b[${row + 1};${column + 1}H`
+                    );
+                } else {
+                    terminal.write(buffer);
+                }
+
+                lineBuffer.splice(cursor, isInsert() ? buffer.length : 0, ...buffer);
+                cursor += buffer.length;
+            }
+
+            function flushHistory() {
+                const oldLength = lineBuffer.length;
+
+                if (oldLength > 0) {
+                    const [width] = getTerminalSize();
+                    const [cursorX, cursorY] = getCursorPosition();
+                    const [startX, startY] = getLineStart(cursor, cursorX, cursorY, width);
+                    const [column, row] = offsetToPosition(startX, startY, 0, width);   
+                    terminal.write(
+                        `\x1b[${row + 1};${column + 1}H` +
+                        ' '.repeat(oldLength) +
+                        `\x1b[${row + 1};${column + 1}H`
+                    );
+                }
+
+                lineBuffer.length = 0;
+
+                if (historyCursor < history.length) {
+                    const line = history[historyCursor];
+                    lineBuffer.push(...line);
+                    terminal.write(line);
+                }
+
+                cursor = lineBuffer.length;
+            }
+
+            function pushHistory(line) {
+                if (!line.trim() || line === history[history.length - 1]) {
+                    historyCursor = history.length;
+                    return;
+                }
+                if (history.length >= HISTORY_LIMIT)
+                    history.splice(0, history.length - HISTORY_LIMIT + 1);
+                history.push(line);
+                historyCursor = history.length;
+            }
+
+            function clearHistory() {
+                historyCursor = 0;
+                history.length = 0;
+            }
+
+            function pushLine() {
+                const [width] = getTerminalSize();
+                const [curX, curY] = getCursorPosition();
+                const [startX, startY] = getLineStart(cursor, curX, curY, width);
+                const [column, row] = offsetToPosition(startX, startY, lineBuffer.length, width);
+                terminal.write(`\x1b[${row + 1};${column + 1}H\r\n`);
+                const line = lineBuffer.join('');
+                linesQueue.push(line);
+                pushHistory(line);
+                setInsert(false);
+                lineBuffer.length = 0;
+                cursor = 0;
+            }
+
+            function processInputCharacter(data) {
+                if (!pyscriptGlobals.isWaitingForInput) return;
+
+                data = data.replace(/\r\n?/g, '\n');
+
+                const [width] = getTerminalSize();
+                const [cursorX, cursorY] = getCursorPosition();
+                const [lineStartX, lineStartY] = getLineStart(cursor, cursorX, cursorY, width);
+
+                const moveTo = () => {
+                    const [column, row] = offsetToPosition(lineStartX, lineStartY, cursor, width);
+                    terminal.write(`\x1b[${row + 1};${column + 1}H`);
+                };
+
+                switch (data) {
+
+                    // Ctrl + C (INT)
+                    case '\x03':
+                        sendSignal('\x03', 'C');
+                        break;
+
+                    // Ctrl + V (Paste)
+                    case '\x16':
+                        readClipboardThenProcess();
+                        break;
+
+                    // Ctrl + D or Z (EOF)
+                    case '\x04':
+                        sendSignal('\x1a', 'D');
+                        break;
+                    case '\x1a':
+                        sendSignal('\x1a', 'Z');
+                        break;
+
+                    // Enter
+                    case '\n':
+                        pushLine();
+                        break;
+
+                    // Backspace
+                    case '\x7f':
+                        if (!above()) break;
+                        cursor--;
+                        lineBuffer.splice(cursor, 1);
+                        moveTo();
+                        terminal.write(lineBuffer.slice(cursor).join('') + ' ');
+                        moveTo();
+                        break;
+
+                    // Insert
+                    case '\x1b[2~':
+                        setInsert(!isInsert());
+                        break;
+
+                    // Delete
+                    case '\x1b[3~':
+                        if (!below()) break;
+                        lineBuffer.splice(cursor, 1);
+                        moveTo();
+                        terminal.write(lineBuffer.slice(cursor).join('') + ' ');
+                        moveTo();
+                        break;
+
+                    // Page Up
+                    case '\x1b[5~':
+                        if (history.length <= 0 || historyCursor <= 0) break;
+                        historyCursor = 0;
+                        flushHistory();
+                        break;
+
+                    // Page Down
+                    case '\x1b[6~':
+                        if (historyCursor >= history.length - 1) break;
+                        historyCursor = history.length - 1;
+                        flushHistory();
+                        break;
+
+                    /* Special Keys (do nothing in input) */
+                    // F11
+                    case '\x1b[23~':
+                        break;
+
+                    // Home
+                    case '\x1b[H':
+                        if (!above()) break;
+                        cursor = 0;
+                        moveTo();
+                        break;
+
+                    // End
+                    case '\x1b[F':
+                        if (!below()) break;
+                        cursor = lineBuffer.length;
+                        moveTo();
+                        break;
+
+                    // Up
+                    case '\x1b[A':
+                        if (history.length <= 0 || historyCursor <= 0) break;
+                        historyCursor--;
+                        flushHistory();
+                        break;
+
+                    // Down
+                    case '\x1b[B':
+                        if (historyCursor >= history.length) break;
+                        historyCursor++;
+                        flushHistory();
+                        break;
+
+                    // Right
+                    case '\x1b[C':
+                        if (!below()) break;
+                        cursor++;
+                        moveTo();
+                        break;
+
+                    // Left
+                    case '\x1b[D':
+                        if (!above()) break;
+                        cursor--;
+                        moveTo();
+                        break;
+
+                    default:
+                        let buffer = '';
+                        let index = 0;
+
+                        for (const character of data) {
+                            switch (character) {
+
+                                case '\n':
+                                    pushBuffer(buffer);
+                                    pushLine();
+                                    inputQueue.push(data.slice(index + 1));
+                                    return;
+
+                                case '\t':
+                                    buffer += '    ';
+                                    break;
+
+                                case '\x1b':
+                                    buffer += '^[';
+                                    break;
+
+                                default:
+                                    buffer += character;
+                                    break;
+
+                            }
+                            index++;
+                        }
+
+                        pushBuffer(buffer);
+                        break;
+                }
+            }
+
+            pyscriptGlobals.processInputCharacter = processInputCharacter;
+
+            const disposable = terminal.onData(data => {
+                if (pyscriptGlobals.isWaitingForInput) processInputCharacter(data);
+                else inputQueue.push(data);
+            });
+
+            terminal.attachCustomKeyEventHandler((event) => {
+                if (
+                    (event.ctrlKey || event.metaKey) &&
+                    event.type === 'keydown' && event.key.toLowerCase() === 'c' &&
+                    terminal.hasSelection()
+                ) {
+                    writeClipboard(terminal.getSelection());
+                    terminal.clearSelection();
+                    return false;
+                }
+                return true;
+            });
+
+            terminal.write('Loading pyodide\r\n');
+
+            const { loadPyodide } = await import(PYODIDE_URL);
+            const pyodide = await loadPyodide();
+
+            terminal.write('Loaded pyodide\r\n');
+
+            terminal.write('Preparing environment\r\n');
+
+            pyodide.setStdout({
+                raw: (code) => {
+                    terminal.write(code === 10 ? '\r\n' : String.fromCharCode(code));
+                }
+            });
+
+            pyodide.setStderr({
+                raw: (code) => {
+                    terminal.write(code === 10 ? '\r\n' : String.fromCharCode(code));
+                }
+            });
+
+            const onExit = () => {
+                let color, returnCode;
+                try {
+                    [color, returnCode] = (
+                        pyscriptGlobals.exitCode === 0 ?
+                        [36, '0'] :
+                        [31, pyodide.globals.get('repr')(pyscriptGlobals.exitCode)]
+                    )
+                } catch (e) {
+                    [color, returnCode] = [35, '<undefined>']
+                    console.error('Unexpected error while calling repr() function on exit code object:', e);
+                }
+                terminal.write(`\r\n\x1b[${color}m** Process exited - Return Code: ${returnCode} **\x1b[0m\r\n`);
+            }
+
+            const handleRightClick = (e) => {
+                e.preventDefault();
+                readClipboardThenProcess();
+            }
+
+            const handleException = (err) => {
+                pyscriptGlobals.exitCode = 1
+                const message = (err && err.message) ? err.message : String(err);
+                terminal.write(`\x1b[31m${message.replace(/\n/g, '\r\n')}\x1b[0m`);
+                onExit();
+            }
+
+            terminalContainer.addEventListener('contextmenu', handleRightClick);
+            window.addEventListener('error', (e) => {
+                handleException(e.error ?? e.message);
+            });
+            window.addEventListener('unhandledrejection', (e) => {
+                handleException(e.reason);
+            });
+
+            async function runPythonAsync(code) {
+                await pyodide.runPythonAsync(dedent(code), {globals: pyodide.globals.get('dict')()});
+            }
+
+            try {
+                // prepare input standards
+                await runPythonAsync(`
+                    from asyncio import sleep
+                    from js import pyscriptGlobals
+                    from pyodide.ffi import run_sync
+
+                    import sys
+                    import builtins
+
+                    signals = {
+                        '\\x03': KeyboardInterrupt,
+                        '\\x1a': EOFError
+                    }
+
+                    def check_is_exited():
+                        if pyscriptGlobals.isExited:
+                            raise ValueError("I/O operation on closed file.")
+
+                    async def async_readline():
+                        check_is_exited()
+
+                        inputQueue = pyscriptGlobals.inputQueue
+                        linesQueue = pyscriptGlobals.linesQueue
+                        processInputCharacter = pyscriptGlobals.processInputCharacter
+
+                        try:
+                            pyscriptGlobals.isWaitingForInput = True
+
+                            while inputQueue.length > 0:
+                                check_is_exited()
+                                processInputCharacter(inputQueue.shift())
+                                if linesQueue:
+                                    return linesQueue.shift()
+
+                            while not linesQueue:
+                                check_is_exited()
+                                await sleep(0.1)
+
+                            return linesQueue.shift()
+                        finally:
+                            pyscriptGlobals.isWaitingForInput = False
+
+                    def readline():
+                        line = run_sync(async_readline())
+                        if line in signals:
+                            raise signals[line]
+                        return line
+
+                    def input(prompt=''):
+                        stdout = getattr(sys, 'stdout', None)
+                        if stdout is None:
+                            raise RuntimeError('lost sys.stdout')
+                        stdout.write(str(prompt))
+                        stdout.flush()
+                        return readline()
+
+                    sys.stdin.readline = readline
+                    builtins.input = input
+                `);
+
+                await pyodide.loadPackage('micropip');
+                const micropip = pyodide.pyimport('micropip');
+
+                terminal.write('Loading pyscript\r\n');
+                await micropip.install('pyscript-programming-language');
+
+                // prepare libraries to browser environment
+                await runPythonAsync(`
+                    from js import pyscriptGlobals
+                    from pyscript import pys_require
+
+                    pys_sys = pys_require('sys')
+                    history = pys_require('history')
+
+                    def set_function(module):
+                        def decorator(function):
+                            setattr(module, function.__name__, function)
+                        return decorator
+
+                    history.HISTORY_LIMIT = pyscriptGlobals.HISTORY_LIMIT
+
+                    @set_function(pys_sys)
+                    def clearhook():
+                        pyscriptGlobals.terminal.clear()
+
+                    @set_function(history)
+                    def load():
+                        return list(pyscriptGlobals.history)
+
+                    @set_function(history)
+                    def append(string):
+                        pyscriptGlobals.pushHistory(string)
+
+                    @set_function(history)
+                    def clear():
+                        pyscriptGlobals.clearHistory()
+                `);
+
+                terminal.clear();
+                terminal.write(`Welcome to the PyScript Shell using Xterm.js and Pyodide ${pyodide.version}\r\n`);
+
+                // run shell
+                await runPythonAsync(`
+                    from js import pyscriptGlobals
+                    from pyscript import pys_shell, undefined, CLASSIC_LINE_SHELL
+
+                    pyscriptGlobals.exitCode = pys_shell(undefined, CLASSIC_LINE_SHELL)
+                `);
+
+            } finally {
+                pyscriptGlobals.isExited = true;
+                terminal.attachCustomKeyEventHandler(() => true);
+                terminalContainer.removeEventListener('contextmenu', handleRightClick);
+                disposable.dispose();
+                setInsert(false);
+                cursor = 0;
+                historyCursor = 0;
+                history.length = 0;
+                inputQueue.length = 0;
+                linesQueue.length = 0;
+                lineBuffer.length = 0;
+            }
+
+            onExit();
+        </script>
+    </body>
+</html>
