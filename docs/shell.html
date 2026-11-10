@@ -78,9 +78,9 @@
             const HISTORY_LIMIT = 1024;
 
             function dedent(string) {
-                const lines = string.replace(/\r\n|\r/g, '\n').split('\n');
+                const lines = string.replace(/\r\n?/g, '\n').split('\n');
                 const indents = lines.filter(line => line.trim().length > 0)
-                                     .map(   line => line.match(/^ */)[0].length);
+                                     .map(line => line.match(/^ */)[0].length);
                 const minimumIndent = indents.length ? Math.min(...indents) : 0;
                 return lines.map(line => {
                     if (line.trim().length === 0) return line;
@@ -260,7 +260,7 @@
             function processInputCharacter(data) {
                 if (!pyscriptGlobals.isWaitingForInput) return;
 
-                data = data.replace(/\r\n|\r/g, '\n');
+                data = data.replace(/\r\n?/g, '\n');
 
                 const [width] = getTerminalSize();
                 const [cursorX, cursorY] = getCursorPosition();
@@ -456,149 +456,170 @@
                 }
             });
 
+            const onExit = () => {
+                let color, returnCode;
+                try {
+                    [color, returnCode] = (
+                        pyscriptGlobals.exitCode === 0 ?
+                        [36, '0'] :
+                        [31, pyodide.globals.get('repr')(pyscriptGlobals.exitCode)]
+                    )
+                } catch (e) {
+                    [color, returnCode] = [35, '<undefined>']
+                    console.error('Unexpected error while calling repr() function on exit code object:', e);
+                }
+                terminal.write(`\r\n\x1b[${color}m** Process exited - Return Code: ${returnCode} **\x1b[0m\r\n`);
+            }
+
             const handleRightClick = (e) => {
                 e.preventDefault();
                 readClipboardThenProcess();
             }
 
+            const handleException = (err) => {
+                pyscriptGlobals.exitCode = 1
+                const message = (err && err.message) ? err.message : String(err);
+                terminal.write(`\x1b[31m${message.replace(/\n/g, '\r\n')}\x1b[0m`);
+                onExit();
+            }
+
             terminalContainer.addEventListener('contextmenu', handleRightClick);
+            window.addEventListener('error', (e) => {
+                handleException(e.error ?? e.message);
+            });
+            window.addEventListener('unhandledrejection', (e) => {
+                handleException(e.reason);
+            });
 
             async function runPythonAsync(code) {
                 await pyodide.runPythonAsync(dedent(code), {globals: pyodide.globals.get('dict')()});
             }
 
-            // prepare input standards
-            await runPythonAsync(`
-                from asyncio import sleep
-                from js import pyscriptGlobals
-                from pyodide.ffi import run_sync
-
-                import sys
-                import builtins
-
-                signals = {
-                    '\\x03': KeyboardInterrupt,
-                    '\\x1a': EOFError
-                }
-
-                def check_is_exited():
-                    if pyscriptGlobals.isExited:
-                        raise ValueError("I/O operation on closed file.")
-
-                async def async_readline():
-                    check_is_exited()
-
-                    inputQueue = pyscriptGlobals.inputQueue
-                    linesQueue = pyscriptGlobals.linesQueue
-                    processInputCharacter = pyscriptGlobals.processInputCharacter
-
-                    try:
-                        pyscriptGlobals.isWaitingForInput = True
-
-                        while inputQueue.length > 0:
-                            check_is_exited()
-                            processInputCharacter(inputQueue.shift())
-                            if linesQueue:
-                                return linesQueue.shift()
-
-                        while not linesQueue:
-                            check_is_exited()
-                            await sleep(0.1)
-
-                        return linesQueue.shift()
-                    finally:
-                        pyscriptGlobals.isWaitingForInput = False
-
-                def readline():
-                    line = run_sync(async_readline())
-                    if line in signals:
-                        raise signals[line]
-                    return line
-
-                def input(prompt=''):
-                    stdout = getattr(sys, 'stdout', None)
-                    if stdout is None:
-                        raise RuntimeError('lost sys.stdout')
-                    stdout.write(str(prompt))
-                    stdout.flush()
-                    return readline()
-
-                sys.stdin.readline = readline
-                builtins.input = input
-            `);
-
-            await pyodide.loadPackage('micropip');
-            const micropip = pyodide.pyimport('micropip');
-
-            terminal.write('Loading pyscript\r\n');
-            await micropip.install('pyscript-programming-language');
-
-            // prepare libraries to browser environment
-            await runPythonAsync(`
-                from js import pyscriptGlobals
-                from pyscript import pys_require
-
-                pys_sys = pys_require('sys')
-                history = pys_require('history')
-
-                def set_function(module):
-                    def decorator(function):
-                        setattr(module, function.__name__, function)
-                    return decorator
-
-                history.HISTORY_LIMIT = pyscriptGlobals.HISTORY_LIMIT
-
-                @set_function(pys_sys)
-                def clearhook():
-                    pyscriptGlobals.terminal.clear()
-
-                @set_function(history)
-                def load():
-                    return list(pyscriptGlobals.history)
-
-                @set_function(history)
-                def append(string):
-                    pyscriptGlobals.pushHistory(string)
-
-                @set_function(history)
-                def clear():
-                    pyscriptGlobals.clearHistory()
-            `);
-
-            terminal.clear();
-            terminal.write(`Welcome to the PyScript Shell using Xterm.js and Pyodide ${pyodide.version}\r\n`);
-
-            // run shell
-            await runPythonAsync(`
-                from js import pyscriptGlobals
-                from pyscript import pys_shell, undefined, CLASSIC_LINE_SHELL
-
-                pyscriptGlobals.exitCode = pys_shell(undefined, CLASSIC_LINE_SHELL)
-            `);
-
-            pyscriptGlobals.isExited = true;
-            terminal.attachCustomKeyEventHandler(() => true);
-            terminalContainer.removeEventListener('contextmenu', handleRightClick);
-            disposable.dispose();
-            setInsert(false);
-            cursor = 0;
-            historyCursor = 0;
-            history.length = 0;
-            inputQueue.length = 0;
-            linesQueue.length = 0;
-            lineBuffer.length = 0;
-
             try {
-                terminal.write(
-                    pyscriptGlobals.exitCode === 0 ?
-                    `\r\n\x1b[36m** Process exited - Return Code: 0 **\x1b[0m\r\n` :
-                    '\r\n\x1b[31m** Process exited - ' +
-                    `Return Code: ${pyodide.globals.get('repr')(pyscriptGlobals.exitCode)} **\x1b[0m\r\n`
-                );
-            } catch (e) {
-                console.error('Unexpected error while calling repr() function on exit code object:', e);
-                terminal.write(`\r\n\x1b[35m** Process exited - Return Code: <undefined> **\x1b[0m\r\n`);
+                // prepare input standards
+                await runPythonAsync(`
+                    from asyncio import sleep
+                    from js import pyscriptGlobals
+                    from pyodide.ffi import run_sync
+
+                    import sys
+                    import builtins
+
+                    signals = {
+                        '\\x03': KeyboardInterrupt,
+                        '\\x1a': EOFError
+                    }
+
+                    def check_is_exited():
+                        if pyscriptGlobals.isExited:
+                            raise ValueError("I/O operation on closed file.")
+
+                    async def async_readline():
+                        check_is_exited()
+
+                        inputQueue = pyscriptGlobals.inputQueue
+                        linesQueue = pyscriptGlobals.linesQueue
+                        processInputCharacter = pyscriptGlobals.processInputCharacter
+
+                        try:
+                            pyscriptGlobals.isWaitingForInput = True
+
+                            while inputQueue.length > 0:
+                                check_is_exited()
+                                processInputCharacter(inputQueue.shift())
+                                if linesQueue:
+                                    return linesQueue.shift()
+
+                            while not linesQueue:
+                                check_is_exited()
+                                await sleep(0.1)
+
+                            return linesQueue.shift()
+                        finally:
+                            pyscriptGlobals.isWaitingForInput = False
+
+                    def readline():
+                        line = run_sync(async_readline())
+                        if line in signals:
+                            raise signals[line]
+                        return line
+
+                    def input(prompt=''):
+                        stdout = getattr(sys, 'stdout', None)
+                        if stdout is None:
+                            raise RuntimeError('lost sys.stdout')
+                        stdout.write(str(prompt))
+                        stdout.flush()
+                        return readline()
+
+                    sys.stdin.readline = readline
+                    builtins.input = input
+                `);
+
+                await pyodide.loadPackage('micropip');
+                const micropip = pyodide.pyimport('micropip');
+
+                terminal.write('Loading pyscript\r\n');
+                await micropip.install('pyscript-programming-language');
+
+                // prepare libraries to browser environment
+                await runPythonAsync(`
+                    from js import pyscriptGlobals
+                    from pyscript import pys_require
+
+                    pys_sys = pys_require('sys')
+                    history = pys_require('history')
+
+                    def set_function(module):
+                        def decorator(function):
+                            setattr(module, function.__name__, function)
+                        return decorator
+
+                    history.HISTORY_LIMIT = pyscriptGlobals.HISTORY_LIMIT
+
+                    @set_function(pys_sys)
+                    def clearhook():
+                        pyscriptGlobals.terminal.clear()
+
+                    @set_function(history)
+                    def load():
+                        return list(pyscriptGlobals.history)
+
+                    @set_function(history)
+                    def append(string):
+                        pyscriptGlobals.pushHistory(string)
+
+                    @set_function(history)
+                    def clear():
+                        pyscriptGlobals.clearHistory()
+                `);
+
+                terminal.clear();
+                terminal.write(`Welcome to the PyScript Shell using Xterm.js and Pyodide ${pyodide.version}\r\n`);
+
+                // run shell
+                await runPythonAsync(`
+                    from js import pyscriptGlobals
+                    from pyscript import pys_shell, undefined, CLASSIC_LINE_SHELL
+
+                    pyscriptGlobals.exitCode = pys_shell(undefined, CLASSIC_LINE_SHELL)
+                `);
+
+            } finally {
+                pyscriptGlobals.isExited = true;
+                terminal.attachCustomKeyEventHandler(() => true);
+                terminalContainer.removeEventListener('contextmenu', handleRightClick);
+                disposable.dispose();
+                setInsert(false);
+                cursor = 0;
+                historyCursor = 0;
+                history.length = 0;
+                inputQueue.length = 0;
+                linesQueue.length = 0;
+                lineBuffer.length = 0;
             }
+
+            onExit();
         </script>
     </body>
 </html>
