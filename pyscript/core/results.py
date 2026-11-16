@@ -112,7 +112,7 @@ class PysRunTimeResult(PysResult):
             self.func_should_return
         )
 
-    # --- HANDLE EXCEPTION ---
+    # --- HANDLE EXCEPTION (using manager protocol) ---
 
     def __enter__(self) -> None:
         pass

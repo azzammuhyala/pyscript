@@ -550,12 +550,12 @@ def visit_SwitchNode(node: PysSwitchNode, context: PysContext) -> PysRunTimeResu
     should_return = result.should_return
     ntarget = node.target
 
-    fall_through = False
-    no_match_found = True
-
     target = register(get_visitor(ntarget.__class__)(ntarget, context))
     if should_return():
         return result
+
+    fall_through = False
+    no_match_found = True
 
     for ncondition, body in node.cases:
 
@@ -568,16 +568,17 @@ def visit_SwitchNode(node: PysSwitchNode, context: PysContext) -> PysRunTimeResu
         with result:
 
             if fall_through or target == case:
+                register(get_visitor(body.__class__)(body, context))
+
                 fall_through = True
                 no_match_found = False
 
-                register(get_visitor(body.__class__)(body, context))
                 if should_return():
                     if result.should_break:
                         result.should_break = False
                         fall_through = False
-                    else:
-                        return result
+                        break
+                    return result
 
         if should_return():
             return result
@@ -887,6 +888,7 @@ def visit_ForNode(node: PysForNode, context: PysContext) -> PysRunTimeResult:
         if should_return():
             return result
 
+        # no protocol manager is needed because it's already handled in condition()
         if not done:
             break
 

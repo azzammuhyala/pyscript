@@ -15,7 +15,6 @@ formatter = pyscript.core.highlight.PysHighlightFormatter(
 def on_click(x, y, button, pressed):
     if not (pressed and button == pynput.mouse.Button.middle):
         return
-
     keyboard.send('ctrl+x')
     time.sleep(0.3)
     pyperclip.copy(f'<div class="pys-code"><pre>{pyscript.pys_highlight(pyperclip.paste(), formatter)}</pre></div>')
@@ -26,4 +25,4 @@ def on_click(x, y, button, pressed):
 with pynput.mouse.Listener(on_click=on_click) as listener:
     print('READY')
     while True:
-        fpstimer.tick(20)
+        fpstimer.tick(24)

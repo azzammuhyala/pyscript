@@ -67,15 +67,25 @@ func newfolder(path, exist_ok=True) {
     return result
 }
 
-func rename(path, name) {
+func rename(path, name, replace=False) {
     result = ExplorerResult()
     path = normpath(path, absolute=False)
 
     if (!os.path.exists(path))
         return result._failure(FileNotFoundError("{!r} not found".format(path)))
 
+    if (os.path.exists(new := os.path.join(os.path.dirname(path), name))) {
+        if (replace) {
+            result._register(remove(new))
+            if (!result.success)
+                return result
+        }
+        else
+            return result._failure(FileExistsError("{!r} already exists".format(new)))
+    }
+
     with (result)
-        os.rename(path, os.path.join(os.path.dirname(path), name))
+        os.rename(path, new)
 
     return result
 }

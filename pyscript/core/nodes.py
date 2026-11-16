@@ -314,12 +314,15 @@ class PysBinaryOperatorNode(PysNode):
     ) -> 'PysBinaryOperatorNode | PysNode':
         position = PysPosition(left.position.file, left.position.start, right.position.end)
 
+        if (l_right := _get_literal_value(right)) is None and operand.type == TOKENS['DOUBLE_QUESTION']:
+            return left
+
         if (l_left := _get_literal_value(left)) is not undefined:
             if operand.type == (TOKENS['DOUBLE_PIPE'] if l_left else TOKENS['DOUBLE_AMPERSAND']):
-                return PysConstantNode(left.position, l_left)
-            elif l_left is None and operand.type == TOKENS['DOUBLE_QUESTION']:
-                return right
-            elif (l_right := _get_literal_value(right)) is not undefined:
+                return left
+            elif operand.type == TOKENS['DOUBLE_QUESTION']:
+                return right if l_left is None else left
+            elif l_right is not undefined:
                 try:
                     return PysConstantNode(position, GET_BINARY_FUNCTION(operand.type)(l_left, l_right))
                 except:
@@ -395,8 +398,9 @@ class PysStatementsNode(PysNode):
 
     @typecheck
     def __new__(cls, position: PysPosition, elements: list[PysNode]) -> 'PysStatementsNode | PysNode':
-        if len(elements) == 1:
-            return elements[0]
+        # this is for the value displayed in the shell/REPL
+        if len(elements) == 1 and (first := elements[0]).__class__ in _constant_nodes:
+            return first
 
         new = []
 
@@ -407,8 +411,13 @@ class PysStatementsNode(PysNode):
                 new.extend(node.elements)
             else:
                 new.append(node)
+            # sometimes, other _interrupt_nodes blocks further down that violate syntax rules such as
+            # func() {return 42; break} go undetected by the analyzer, but that's fine
             if node.__class__ in _interrupt_nodes:
                 break
+
+        if len(new) == 1:
+            return new[0]
 
         self = super().__new__(cls, position)
         setimuattr(self, 'elements', tuple(new))
@@ -511,7 +520,6 @@ class PysSwitchNode(PysNode):
         default: PysNode | None
     ) -> 'PysSwitchNode | PysNode':
         default = _optional_part(default)
-
         if not (cases or default):
             return target
 

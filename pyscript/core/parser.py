@@ -123,12 +123,10 @@ class PysParser(Pys):
 
         self.bracket_level = bracket_level
 
-        return result.success(
-            PysStatementsNode(
-                PysPosition(self.current_token.position.file, start, self.current_token.position.end),
-                statements
-            )
-        )
+        return result.success(PysStatementsNode(
+            PysPosition(self.current_token.position.file, start, self.current_token.position.end),
+            statements
+        ))
 
     def statement(self) -> PysParserResult:
         match = self.current_token.match
@@ -532,7 +530,7 @@ class PysParser(Pys):
                         return result
 
                     if self.current_token.type == TOKENS['EQUAL']:
-                        if argument_or_keyword.__class__ != PysIdentifierNode:
+                        if argument_or_keyword.__class__ is not PysIdentifierNode:
                             return result.failure(
                                 self.new_error("expected identifier (before '=')", argument_or_keyword.position)
                             )
@@ -1907,7 +1905,7 @@ class PysParser(Pys):
                 return result
 
             end = base.position.end
-            bases = list(base.value) if base.__class__ == PysConstantNode else list(base.elements)
+            bases = list(base.value) if base.__class__ is PysConstantNode else list(base.elements)
 
         elif self.current_token.match(TOKENS['KEYWORD'], 'extends'):
             has_bases = True
@@ -1923,7 +1921,7 @@ class PysParser(Pys):
             end = base.position.end
             bases = list(base.elements) if is_sequence(base.__class__) else (
                 [PysConstantNode(base.position, element) for element in base.value]
-                if base.__class__ == PysConstantNode and isinstance(base.value, tuple) else
+                if base.__class__ is PysConstantNode and isinstance(base.value, tuple) else
                 [base]
             )
 
@@ -2448,8 +2446,8 @@ class PysParser(Pys):
 
             if (
                 membership and (
-                (literal := expressions[-1]).__class__ == PysConstantNode or
-                (literal := expression).__class__ == PysConstantNode
+                (literal := expressions[-1]).__class__ is PysConstantNode or
+                (literal := expression).__class__ is PysConstantNode
                 ) and
                 (token := operations[-1]).type in (TOKENS['IS'], TOKENS['IS_NOT'])
             ):

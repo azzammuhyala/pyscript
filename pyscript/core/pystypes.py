@@ -119,14 +119,16 @@ class PysFunction(PysObject):
             argument_names=b_tuple(argument_names),
             keyword_argument_names=b_tuple(keyword_argument_names),
             parameter_names=b_tuple(parameter_names),
-            combine_keyword_arguments=keyword_arguments.__or__
+            combine_keyword_arguments=keyword_arguments.__or__,
+            is_method=False
         )
 
     def __repr__(self) -> str:
         return f'<function {self.__qualname__} at 0x{id(self):016X}>'
 
     def __get__(self, instance: Any | None, owner: type) -> 'PysFunction | MethodType':
-        return self if instance is None else MethodType(self, instance)
+        self.__code__.is_method = is_method = instance is not None
+        return MethodType(self, instance) if is_method else self
 
     def __call__(self, *args, **kwargs) -> Any:
         code = self.__code__
@@ -218,10 +220,16 @@ class PysFunction(PysObject):
                 result.failure(
                     PysTraceback(
                         TypeError(
-                            f"{self.__qualname__}() takes no arguments ({given_arguments} given)"
-                            if code_parameters_length == 0 else
-                            f"{self.__qualname__}() takes {code_parameters_length} positional argument"
-                            f"{'' if code_parameters_length == 1 else 's'} but {given_arguments} were given"
+                            (
+                                f"{self.__qualname__}() takes no arguments ({given_arguments} given)"
+                                if code_parameters_length == 0 else
+                                f"{self.__qualname__}() takes {code_parameters_length} positional argument"
+                                f"{'' if code_parameters_length == 1 else 's'} but {given_arguments} were given"
+                            ) + (
+                                ". Did you forget the 'self' parameter in the function definition?"
+                                if code.is_method else
+                                ""
+                            )
                         ),
                         context,
                         position
@@ -260,8 +268,8 @@ class PysPythonFunction(PysFunction):
         from .handlers import handle_call
 
         setimuattr(self, '__func__', func)
-        setimuattr(self, '__name__', getattr(func, '__name__', '<function>'))
-        setimuattr(self, '__qualname__', getattr(func, '__qualname__', '<function>'))
+        setimuattr(self, '__name__', name := getattr(func, '__name__', '<function>'))
+        setimuattr(self, '__qualname__', getattr(func, '__qualname__', name))
         setimuattr(self, '__module__', getattr(func, '__module__', 'pyscript'))
         setimuattr(self, '__doc__', getattr(func, '__doc__', None))
         setimuattr(self, '__code__', PysCode(
@@ -333,4 +341,8 @@ class PysHelper(PysPrinter):
                 "To get the list of builtin functions, types, exceptions, and other objects, type 'help(\"builtins\")'."
             )
         else:
+            if args and isinstance(what := args[0], str) and what.strip() == 'builtins':
+                # circular import problem solved
+                from .pysbuiltins import pys_builtins
+                args = (pys_builtins, *args[1:])
             self._pyhelp(*args, **kwargs)

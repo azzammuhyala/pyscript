@@ -152,7 +152,7 @@ def visit_IncrementalNode(node: PysIncrementalNode) -> str:
     return '(' + (operand + target if node.operand_position == 'left' else target + operand) + ')'
 
 def visit_StatementsNode(node: PysStatementsNode) -> str:
-    return '\n'.join(map(unparse, node.body))
+    return '\n'.join(map(unparse, node.elements))
 
 def visit_AssignmentNode(node: PysAssignmentNode) -> str:
     return f'{unparse(node.target)} {SYMBOLS_TOKEN_MAP[node.operand.type]} {unparse(node.value)}'
